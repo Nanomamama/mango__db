@@ -7,18 +7,23 @@
     <title>Admin Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
-    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: "Kanit", sans-serif;
+        }
+    </style>
 </head>
 
 <body>
     <div class="d-flex">
         <!-- Sidebar -->
-        <div class="bg-dark text-white p-3" style="width: 250px; height: 100vh;">
-            <h3>Admin Panel</h3>
+        <div class="bg-dark text-white p-3" style="width: 250px; height: 150vh;">
+            <h3 class="text-center"> Admin Panel</h3>
             <ul class="nav flex-column">
                 <li class="nav-item">
                     <a href="./index.php" class="nav-link text-white">
-                        <i class='bx bx-home-alt'></i> Dashboard
+                        <i class='bx bxs-dashboard'></i> Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
@@ -51,7 +56,7 @@
 
         <!-- Main Content -->
         <div class="p-4" style="flex: 1;">
-            <h2>📊 Admin Dashboard</h2>
+            <h2><i class='bx bxs-dashboard'></i> Admin Dashboard</h2>
             <div class="row mt-4">
                 <!-- Card Sections -->
                 <div class="col-md-4">

@@ -69,7 +69,7 @@ $bookings = [
     <?php include 'sidebar.php'; ?>
     <div class="d-flex">
         <div class="container mt-5" style="margin-left: 250px; flex: 1;">
-            <h2 class="mb-4">📋 ตารางรายการจอง</h2>
+            <h2 class="mb-4"><i class='bx bxs-calendar'></i> ตารางรายการจองวันเข้าชมศึกษาดูงาน<br>ที่สวนมะม่วงลุงเผือก</h2>
 
             <!-- Tabs -->
             <ul class="nav nav-tabs" id="bookingTabs">
@@ -86,6 +86,7 @@ $bookings = [
                     <button class="nav-link" data-bs-toggle="tab" data-bs-target="#rejected">ถูกปฏิเสธ</button>
                 </li>
             </ul>
+
 
             <div class="tab-content mt-3">
                 <?php
@@ -113,6 +114,26 @@ $bookings = [
             </div>
         </div>
     </div>
+
+    <!-- Modal Confirmation -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmModalLabel">ยืนยันการกระทำ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirmMessage">คุณต้องการดำเนินการนี้หรือไม่?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-primary" id="confirmAction">ยืนยัน</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Modal -->
     <div class="modal fade" id="fileModal" tabindex="-1" aria-labelledby="fileModalLabel" aria-hidden="true">
@@ -154,14 +175,14 @@ $bookings = [
                 let i = 1;
 
                 bookingsData.forEach(booking => {
-                    if (tab === 'all' || 
+                    if (tab === 'all' ||
                         (tab === 'approved' && booking.status === 'อนุมัติแล้ว') ||
                         (tab === 'rejected' && booking.status === 'ถูกปฏิเสธ') ||
                         (tab === 'pending' && booking.status === 'รออนุมัติ')) {
-                        
+
                         const row = document.createElement('tr');
-                        const statusColor = booking.status === 'อนุมัติแล้ว' ? 'success' : 
-                                        (booking.status === 'ถูกปฏิเสธ' ? 'danger' : 'warning');
+                        const statusColor = booking.status === 'อนุมัติแล้ว' ? 'success' :
+                            (booking.status === 'ถูกปฏิเสธ' ? 'danger' : 'warning');
 
                         row.innerHTML = `
                             <td>${i}</td>
@@ -169,13 +190,13 @@ $bookings = [
                             <td>${booking.date}</td>
                             <td>${booking.time}</td>
                             <td>${booking.people}</td>
-                            <td><button class='btn btn-primary btn-sm' onclick='showModal("uploads/${booking.doc}", "เอกสารยืนยัน")'>📂 ดูไฟล์</button></td>
-                            <td><button class='btn btn-info btn-sm' onclick='showModal("uploads/${booking.slip}", "สลิปค่ามัดจำ")'>📂 ดูสลิป</button></td>
+                            <td><button class='btn btn-primary btn-sm' onclick='showModal("uploads/${booking.doc}", "เอกสารยืนยัน")'><i class='bx bx-folder'></i> ดูไฟล์</button></td>
+                            <td><button class='btn btn-primary btn-sm' onclick='showModal("uploads/${booking.slip}", "สลิปค่ามัดจำ")'><i class='bx bx-folder'></i> ดูสลิป</button></td>
                             <td><span class='badge bg-${statusColor}'>${booking.status}</span></td>
                             <td>
-                                <button class='btn btn-success btn-sm me-1' onclick='changeStatus(${booking.id}, "อนุมัติแล้ว")'>✔ อนุมัติ</button>
-                                <button class='btn btn-danger btn-sm me-1' onclick='changeStatus(${booking.id}, "ถูกปฏิเสธ")'>❌ ปฏิเสธ</button>
-                                <button class='btn btn-secondary btn-sm' onclick='deleteBooking(${booking.id})'>🗑 ลบ</button>
+                                <button class='btn btn-success btn-sm me-1' onclick='changeStatus(${booking.id}, "อนุมัติแล้ว")'><i class='bx bx-message-square-check'></i> อนุมัติ</button>
+                                <button class='btn btn-danger btn-sm me-1' onclick='changeStatus(${booking.id}, "ถูกปฏิเสธ")'><i class='bx bx-message-square-x' ></i> ปฏิเสธ</button>
+                                <button class='btn btn-secondary btn-sm' onclick='deleteBooking(${booking.id})'><i class='bx bx-trash-alt'></i> ลบ</button>
                             </td>
                         `;
                         tbody.appendChild(row);
@@ -185,28 +206,43 @@ $bookings = [
             });
         }
 
+        function showConfirmModal(message, actionCallback) {
+            document.getElementById('confirmMessage').innerText = message;
+            const confirmButton = document.getElementById('confirmAction');
+            confirmButton.onclick = function() {
+                actionCallback();
+                var modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+                modal.hide();
+            };
+            var modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+            modal.show();
+        }
+
         function changeStatus(bookingId, newStatus) {
-            if (confirm(`คุณต้องการเปลี่ยนสถานะการจองเป็น "${newStatus}" หรือไม่?`)) {
-                const booking = bookingsData.find(b => b.id === bookingId);
-                if (booking) {
+            const booking = bookingsData.find(b => b.id === bookingId);
+            if (booking) {
+                const message = `คุณต้องการเปลี่ยนสถานะการจองของ "${booking.name}" เป็น "${newStatus}" หรือไม่?`;
+                showConfirmModal(message, function() {
                     booking.status = newStatus;
                     console.log(`Booking ID: ${bookingId} Status changed to: ${newStatus}`);
                     renderTables();
                     alert("สถานะการจองถูกอัปเดตแล้ว!");
-                }
+                });
             }
         }
 
         function deleteBooking(bookingId) {
-            if (confirm("คุณต้องการลบการจองนี้หรือไม่?")) {
-                bookingsData = bookingsData.filter(b => b.id !== bookingId);
-                console.log(`Booking ID: ${bookingId} has been deleted.`);
-                renderTables();
-                alert("การจองถูกลบแล้ว!");
+            const booking = bookingsData.find(b => b.id === bookingId);
+            if (booking) {
+                const message = `คุณต้องการลบการจองของ "${booking.name}" หรือไม่?`;
+                showConfirmModal(message, function() {
+                    bookingsData = bookingsData.filter(b => b.id !== bookingId);
+                    console.log(`Booking ID: ${bookingId} has been deleted.`);
+                    renderTables();
+                    alert("การจองถูกลบแล้ว!");
+                });
             }
         }
-
-        // รันครั้งแรกเมื่อโหลดหน้า
         document.addEventListener('DOMContentLoaded', renderTables);
     </script>
 </body>
