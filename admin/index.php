@@ -32,12 +32,6 @@
                 <li class="nav-item"><a href="./manage_mango.php" class="nav-link text-white">
                         <i class='bx bx-lemon'></i>
                         จัดการสายพันธุ์มะม่วง</a></li>
-                <li class="nav-item"><a href="./add_product.php" class="nav-link text-white">
-                    <i class='bx bxs-calendar'></i>
-                        ผลิตภัณฑ์</a></li>
-                <li class="nav-item"><a href="./booking_list.php" class="nav-link text-white">
-                    <i class='bx bxs-calendar'></i>
-                        ตารางรายการจอง</a></li>
             </ul>
         </div>
     </div>
@@ -76,17 +70,18 @@
                 </div>
             </div>
 
-            <div class="col-md-4">
-                <div class="card text-white bg-success mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">🥭 จัดการสายพันธุ์มะม่วง</h5>
-                        <p class="card-text">จัดการสายพันธุ์มะม่วงในเว็บไซต์</p>
-                        <a href="manage_mango.php" class="btn btn-light">แก้ไข</a>
+                <div class="col-md-4">
+                    <div class="card text-white bg-success mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">🥭 จัดการสายพันธุ์มะม่วง</h5>
+                            <p class="card-text">จัดการสายพันธุ์มะม่วงในเว็บไซต์</p>
+                            <a href="manage_mango.php" class="btn btn-light">แก้ไข</a>
+                        </div>
                     </div>
                 </div>
+
             </div>
         </div>
-    </div>
     </div>
 
 </body>
