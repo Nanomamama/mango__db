@@ -18,5 +18,8 @@
                 <li class="nav-item"><a href="./manage_mango.php" class="nav-link text-white">
                     <i class='bx bx-lemon'></i>
                         จัดการสายพันธุ์มะม่วง</a></li>
+                <li class="nav-item"><a href="./add_product.php" class="nav-link text-white">
+                    <i class='bx bx-lemon'></i>
+                        ผลิตภัณฑ์</a></li>
             </ul>
 </div>
