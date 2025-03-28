@@ -61,6 +61,7 @@
         <div class="row">
             <!-- คอลัมน์ 1: ข้อมูลทั่วไป -->
             <div class="col-md-6">
+                <h5>ชื่อสายพันธุ์: น้ำดอกไม้</h5>
                 <h5>ชื่อวิทยาศาสตร์: น้ำดอกไม้</h5>
                 <h5>ชื่อท้องถิ่น: น้ำดอกไม้</h5>
 
@@ -94,8 +95,6 @@
                 <h6>หมวดมะม่วง:</h6>
                 <ul>
                     <li>เชิงพาณิชย์</li>
-                    <li>เชิงอนุรักษ์</li>
-                    <li>บริโภคในครัวเรือน</li>
                 </ul>
             </div>
 
@@ -103,6 +102,8 @@
             <div class="col-md-6">
                 <h6>รูปภาพ:</h6>
                 <div>
+                    <strong>รูปผลมะม่วง</strong><br>
+                    <img src="https://via.placeholder.com/100" width="100"><br>
                     <strong>รูปต้นมะม่วง</strong><br>
                     <img src="https://via.placeholder.com/100" width="100"><br>
                     <strong>รูปใบมะม่วง</strong><br>

@@ -11,88 +11,93 @@
     <h2>➕ เพิ่มสายพันธุ์มะม่วง</h2>
     
     <form action="save_mango.php" method="POST" enctype="multipart/form-data">
-        <!-- ชื่อสายพันธุ์ -->
-        <div class="mb-3">
-            <label class="form-label">ชื่อสายพันธุ์</label>
-            <input type="text" class="form-control" name="mango_name" required>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">ชื่อสายพันธุ์</label>
+                    <input type="text" class="form-control" name="mango_name" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ชื่อวิทยาศาสตร์</label>
+                    <input type="text" class="form-control" name="scientific_name" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ชื่อท้องถิ่น</label>
+                    <input type="text" class="form-control" name="local_name" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ลักษณะสัณฐานวิทยา</label>
+                    <input type="text" class="form-control" name="morphology_stem" placeholder="ลำต้น" required>
+                    <input type="text" class="form-control mt-2" name="morphology_fruit" placeholder="ผล" required>
+                    <input type="text" class="form-control mt-2" name="morphology_leaf" placeholder="ใบ" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">รูปผลมะม่วง</label>
+                    <input type="file" class="form-control" name="fruit_image" accept="image/*" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">รูปต้นมะม่วง</label>
+                    <input type="file" class="form-control" name="tree_image" accept="image/*" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">รูปใบมะม่วง</label>
+                    <input type="file" class="form-control" name="leaf_image" accept="image/*" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">รูปดอกมะม่วง</label>
+                    <input type="file" class="form-control" name="leaf_image" accept="image/*" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">รูปกลิ่งมะม่วง</label>
+                    <input type="file" class="form-control" name="leaf_image" accept="image/*" required>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">การขยายพันธุ์</label>
+                    <input type="text" class="form-control" name="propagation_method" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ลักษณะดิน</label>
+                    <input type="text" class="form-control" name="soil_characteristics" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ระยะเวลาเพาะปลูก</label>
+                    <input type="text" class="form-control" name="planting_period" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ช่วงฤดูกาลเก็บเกี่ยว</label>
+                    <input type="text" class="form-control" name="harvest_season" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">การแปรรูป</label><br>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="processing_methods[]" value="กวน">
+                        <label class="form-check-label">กวน</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="processing_methods[]" value="ดอง">
+                        <label class="form-check-label">ดอง</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="processing_methods[]" value="แช่อิ่ม">
+                        <label class="form-check-label">แช่อิ่ม</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="processing_methods[]" value="นิยมรับประทานสด">
+                        <label class="form-check-label">นิยมรับประทานสด</label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">หมวดมะม่วง</label>
+                    <select class="form-select" name="mango_category" required>
+                        <option value="เชิงพาณิชย์">เชิงพาณิชย์</option>
+                        <option value="เชิงอนุรักษ์">เชิงอนุรักษ์</option>
+                        <option value="บริโภคในครัวเรือน">บริโภคในครัวเรือน</option>
+                    </select>
+                </div>
+            </div>
         </div>
-
-        <!-- รูปผลมะม่วง -->
-        <div class="mb-3">
-            <label class="form-label">รูปผลมะม่วง</label>
-            <input type="file" class="form-control" name="fruit_image" accept="image/*" required>
-        </div>
-
-        <!-- รูปต้นมะม่วง -->
-        <div class="mb-3">
-            <label class="form-label">รูปต้นมะม่วง</label>
-            <input type="file" class="form-control" name="tree_image" accept="image/*" required>
-        </div>
-
-        <!-- รูปใบมะม่วง -->
-        <div class="mb-3">
-            <label class="form-label">รูปใบมะม่วง</label>
-            <input type="file" class="form-control" name="leaf_image" accept="image/*" required>
-        </div>
-
-        <!-- รูปดอกมะม่วง -->
-        <div class="mb-3">
-            <label class="form-label">รูปดอกมะม่วง</label>
-            <input type="file" class="form-control" name="flower_image" accept="image/*" required>
-        </div>
-
-        <!-- รูปกลิ่งมะม่วง -->
-        <div class="mb-3">
-            <label class="form-label">รูปกลิ่งมะม่วง</label>
-            <input type="file" class="form-control" name="stem_image" accept="image/*" required>
-        </div>
-
-        <!-- ลักษณะอื่นๆ เช่น ชื่อวิทยาศาสตร์, ชื่อท้องถิ่น, การขยายพันธุ์ ฯลฯ -->
-        <div class="mb-3">
-            <label class="form-label">ชื่อวิทยาศาสตร์</label>
-            <input type="text" class="form-control" name="scientific_name" required>
-        </div>
-        
-        <div class="mb-3">
-            <label class="form-label">ชื่อท้องถิ่น</label>
-            <input type="text" class="form-control" name="local_name" required>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">การขยายพันธุ์</label>
-            <input type="text" class="form-control" name="propagation_method" required>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">ลักษณะดิน</label>
-            <input type="text" class="form-control" name="soil_characteristics" required>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">ระยะเวลาเพาะปลูก</label>
-            <input type="text" class="form-control" name="planting_period" required>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">ช่วงฤดูกาลเกี้ยว</label>
-            <input type="text" class="form-control" name="harvest_season" required>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">การแปรรูป</label>
-            <input type="text" class="form-control" name="processing_methods" required>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">หมวดมะม่วง</label>
-            <select class="form-select" name="mango_category" required>
-                <option value="เชิงพาณิชย์">เชิงพาณิชย์</option>
-                <option value="เชิงอนุรักษ์">เชิงอนุรักษ์</option>
-                <option value="บริโภคในครัวเรือน">บริโภคในครัวเรือน</option>
-            </select>
-        </div>
-
-        <!-- ปุ่มบันทึกข้อมูล -->
         <button type="submit" class="btn btn-primary">💾 บันทึก</button>
         <a href="manage_mango.php" class="btn btn-secondary">🔙 กลับ</a>
     </form>

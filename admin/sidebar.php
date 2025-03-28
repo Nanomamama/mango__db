@@ -5,7 +5,7 @@
     <ul class="nav flex-column">
                 <li class="nav-item"><a href="./index.php" class="nav-link text-white">
                     <i class='bx bx-home-alt'></i>
-                        Dashboard..</a></li>
+                        Dashboard</a></li>
                 <li class="nav-item"><a href="./edit_home.php" class="nav-link text-white">
                     <i class='bx bx-notepad'></i>
                         จัดการหน้าแรก</a></li>
