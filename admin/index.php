@@ -15,7 +15,7 @@
     <!-- Sidebar -->
     <div class="d-flex">
         <div class="bg-dark text-white p-3" style="width: 250px; height: 100vh;">
-            <h3>Admin Panel.</h3>
+            <h3>Admin Panel</h3>
             <ul class="nav flex-column">
                 <li class="nav-item"><a href="./index.php" class="nav-link text-white">
                     <i class='bx bx-home-alt'></i>
