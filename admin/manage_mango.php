@@ -37,10 +37,10 @@
             <tbody>
                 <tr>
                     <td><img src="https://media.thairath.co.th/image/fmQpvmjp1V2ZIs1a2hU4OGKwkdosTnm1j4VXg22TebXFCs1a2hPSxQe9vA1.jpg" width="100"></td>
-                    <td><img src="https://via.placeholder.com/100" width="100"></td>
-                    <td><img src="https://via.placeholder.com/100" width="100"></td>
-                    <td><img src="https://via.placeholder.com/100" width="100"></td>
-                    <td><img src="https://via.placeholder.com/100" width="100"></td>
+                    <td><img src="https://media.thairath.co.th/image/fmQpvmjp1V2ZIs1a2hU4OGKwkdosTnm1j4VXg22TebXFCs1a2hPSxQe9vA1.jpg" width="100"></td>
+                    <td><img src="https://media.thairath.co.th/image/fmQpvmjp1V2ZIs1a2hU4OGKwkdosTnm1j4VXg22TebXFCs1a2hPSxQe9vA1.jpg" width="100"></td>
+                    <td><img src="https://media.thairath.co.th/image/fmQpvmjp1V2ZIs1a2hU4OGKwkdosTnm1j4VXg22TebXFCs1a2hPSxQe9vA1.jpg" width="100"></td>
+                    <td><img src="https://media.thairath.co.th/image/fmQpvmjp1V2ZIs1a2hU4OGKwkdosTnm1j4VXg22TebXFCs1a2hPSxQe9vA1.jpg" width="100"></td>
                     <td>น้ำดอกไม้</td>
                     <td>
                         <a href="edit_mango.php" class="btn btn-warning btn-sm">✏️ แก้ไข</a>
@@ -109,15 +109,15 @@
                 <h6>รูปภาพ:</h6>
                 <div>
                     <strong>รูปผลมะม่วง</strong><br>
-                    <img src="https://via.placeholder.com/100" width="100"><br>
+                    <img src="https://media.thairath.co.th/image/fmQpvmjp1V2ZIs1a2hU4OGKwkdosTnm1j4VXg22TebXFCs1a2hPSxQe9vA1.jpg" width="100"><br>
                     <strong>รูปต้นมะม่วง</strong><br>
-                    <img src="https://via.placeholder.com/100" width="100"><br>
+                    <img src="https://media.thairath.co.th/image/fmQpvmjp1V2ZIs1a2hU4OGKwkdosTnm1j4VXg22TebXFCs1a2hPSxQe9vA1.jpg" width="100"><br>
                     <strong>รูปใบมะม่วง</strong><br>
-                    <img src="https://via.placeholder.com/100" width="100"><br>
+                    <img src="https://media.thairath.co.th/image/fmQpvmjp1V2ZIs1a2hU4OGKwkdosTnm1j4VXg22TebXFCs1a2hPSxQe9vA1.jpg" width="100"><br>
                     <strong>รูปดอกมะม่วง</strong><br>
-                    <img src="https://via.placeholder.com/100" width="100"><br>
+                    <img src="https://media.thairath.co.th/image/fmQpvmjp1V2ZIs1a2hU4OGKwkdosTnm1j4VXg22TebXFCs1a2hPSxQe9vA1.jpg" width="100"><br>
                     <strong>รูปกลิ่งมะม่วง</strong><br>
-                    <img src="https://via.placeholder.com/100" width="100">
+                    <img src="https://media.thairath.co.th/image/fmQpvmjp1V2ZIs1a2hU4OGKwkdosTnm1j4VXg22TebXFCs1a2hPSxQe9vA1.jpg" width="100">
                 </div>
             </div>
         </div>
