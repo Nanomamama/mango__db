@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จัดการสินค้า</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+<?php include 'sidebar.php'; ?>
+
+<div class="d-flex">
+    <div class="p-4" style="margin-left: 250px; flex: 1;">
+        <h2>📋 จัดการสินค้าผลิตภัณฑ์</h2>
+        <a href="add_product.php" class="btn btn-primary mb-3">➕ เพิ่มสินค้า</a>
+        <table class="table table-bordered">
+            <!-- <thead>
+                <tr>
+                    <th>รูปสินค้า</th>
+                    <th>ชื่อสินค้า</th>
+                    <th>รายละเอียดสินค้า</th>
+                    <th>หมวดหมู่สินค้า</th>
+                    <th>ราคา</th>
+                </tr>
+            </thead> -->
+            <tbody>
+                <tr>
+                    <td><img src="https://ตลาดเกษตรกรออนไลน์.com/uploads/products/212.jpg" width="100"></td>
+                    <!-- <td><img src="#" width="100"></td>
+                    <td><img src="#" width="100"></td>
+                    <td><img src="#" width="100"></td>
+                    <td><img src="#" width="100"></td> -->
+                    <td>กล้วยทอดอบเนยสมุนไพร</td>
+                    <td>
+                        <a href="edit_product.php" class="btn btn-warning btn-sm">✏️ แก้ไข</a>
+                        <a href="#" class="btn btn-danger btn-sm">🗑️ ลบ</a>
+                        <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#mangoDetailsModal">🔍 ดูข้อมูลทั้งหมด</button>
+                    </td>
+                </tr>
+                <!-- เพิ่มแถวอื่นๆ ตามต้องการ -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="mangoDetailsModal" tabindex="-1" aria-labelledby="mangoDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="mangoDetailsModalLabel">ข้อมูลรายละเอียดสินค้า</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- เนื้อหาที่จะแสดงใน Modal -->
+        <div class="row">
+            <!-- คอลัมน์ 1: ข้อมูลทั่วไป -->
+            <div class="col-md-6">
+            <div class="col-md-6">
+                <div>
+                    <img src="https://ตลาดเกษตรกรออนไลน์.com/uploads/products/212.jpg" width="350"  height="200"><br>
+                </div>
+            </div>
+                <h5>ชื่อสินค้า: กล้วยทอดอบเนยสมุนไพร</h5>
+                <h5>รายละเอียดสินค้า:</h5>
+
+                <h6><strong>หมวดหมู่สินค้าแปรรูป:</strong></h6>
+                <p>กล้วยทอด</p>
+
+                <h6>ราคา:</h6>
+                <p>50</p>
+
+            </div>
+
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap 5 JS and dependencies -->
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+
+</body>
+</html>
