@@ -48,11 +48,13 @@
              </div>
               
         </div>
-</div>
+     </form>
         <button type="submit" class="btn btn-primary">💾 บันทึก</button>
         <a href="manage_product.php" class="btn btn-secondary">🔙 กลับ</a>
 
-    </form>
+</div>
+       
+   
 
 </body>
 
