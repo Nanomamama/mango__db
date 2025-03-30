@@ -32,6 +32,9 @@
                 <li class="nav-item"><a href="./manage_mango.php" class="nav-link text-white">
                     <i class='bx bx-lemon'></i>
                         จัดการสายพันธุ์มะม่วง</a></li>
+                <li class="nav-item"><a href="./manage_mango.php" class="nav-link text-white">
+                    <i class='bx bx-lemon'></i>
+                        จัดการสินค้าผลิตภัณฑ์</a></li>
             </ul>
         </div>
 
@@ -75,6 +78,16 @@
                             <h5 class="card-title">🥭 จัดการสายพันธุ์มะม่วง</h5>
                             <p class="card-text">จัดการสายพันธุ์มะม่วงในเว็บไซต์</p>
                             <a href="manage_mango.php" class="btn btn-light">แก้ไข</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card text-white bg-success mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title"> สินค้าผลิตภัณฑ์แปรรูป</h5>
+                            <p class="card-text">จัดการสายพันธุ์มะม่วงในเว็บไซต์</p>
+                            <a href="manage_product.php" class="btn btn-light">แก้ไข</a>
                         </div>
                     </div>
                 </div>
