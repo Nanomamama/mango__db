@@ -69,7 +69,7 @@ $bookings = [
     <?php include 'sidebar.php'; ?>
     <div class="d-flex">
         <div class="container mt-5" style="margin-left: 250px; flex: 1;">
-            <h2 class="mb-4"><i class='bx bxs-calendar'></i> ตารางรายการจองวันเข้าชมศึกษาดูงาน<br>ที่สวนมะม่วงลุงเผือก</h2>
+            <h2 class="mb-4"><i class='bx bxs-calendar'></i> ตารางรายการจองวันเข้าชมศึกษาดูงานที่สวนมะม่วงลุงเผือก</h2>
 
             <!-- Tabs -->
             <ul class="nav nav-tabs" id="bookingTabs">
