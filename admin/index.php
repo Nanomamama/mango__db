@@ -106,6 +106,16 @@
                     </div>
                 </div>
 
+                <div class="col-md-4">
+                    <div class="card text-white bg-success mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title"> ตารางรายการจอง</h5>
+                            <p class="card-text">จัดการตารางรายการจองในเว็บไซต์</p>
+                            <a href="booking_list.php" class="btn btn-light">แก้ไข</a>
+                        </div>
+                    </div>
+                </div>
+
 
             </div>
         </div>
