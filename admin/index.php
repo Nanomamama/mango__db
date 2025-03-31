@@ -73,13 +73,16 @@
                 <li class="nav-item"><a href="./manage_mango.php" class="nav-link text-white">
                     <i class='bx bx-package'></i>
                         จัดการสินค้าผลิตภัณฑ์</a></li>
-
                 <li class="nav-item">
                     <a href="./booking_list.php" class="nav-link text-white">
                         <i class='bx bxs-calendar'></i> ตารางรายการจอง
                     </a>
                 </li>
-
+                <li class="nav-item">
+                    <a href="./admin_login.php" class="nav-link text-white">
+                        <i class='bx bx-log-out'></i></i> ออกจากระบบ
+                    </a>
+                </li>
             </ul>
         </div>
 

@@ -6,8 +6,8 @@
 }
 
 body {
-    /* background:url(https://img.freepik.com/free-photo/anime-moon-landscape_23-2151645889.jpg?w=360);
-    width: 100%; */
+    background:url(https://img.freepik.com/free-photo/anime-moon-landscape_23-2151645889.jpg?w=360);
+    width: 100%;
     background-color: aqua;
     height: 100dvh;
     display: flex;
@@ -23,7 +23,7 @@ body {
     padding: 24px;
     border-radius: 16px;
     border: solid 5px rgb(255,255,255,0.1);
-    backdrop-filter: blur(25px);
+    /* backdrop-filter: blur(25px); */
     box-shadow: 0px 0px 30px 20px rgb(0,0,0,0.1);
     color: white;
     display: flex;

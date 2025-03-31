@@ -32,7 +32,6 @@
             <i class='bx bxs-dashboard'></i>
             Dashboard
         </a>
-
         <li class="nav-item"><a href="./edit_home.php" class="nav-link text-white">
                 <i class='bx bx-notepad'></i>
                 จัดการหน้าแรก</a></li>
@@ -53,6 +52,7 @@
         <li class="nav-item"><a href="./booking_list.php" class="nav-link text-white">
                 <i class='bx bxs-calendar'></i>
                 ตารางรายการจอง</a></li>
+        <li class="nav-item"><a href="./admin_login.php" class="nav-link text-white">
+                <i class='bx bx-log-out'></i></i> ออกจากระบบ</a></li>
     </ul>
-
 </div>

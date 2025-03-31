@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login</title>
+    <title>Admin Register</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -19,11 +20,11 @@
         }
     </style>
 </head>
+
 <body class="d-flex justify-content-center align-items-center vh-100 bg-light">
 
-    <!-- เพิ่ม method="POST" และ action="index.php" -->
-    <form class="p-4 bg-white shadow rounded" style="width: 350px;" method="POST" action="index.php">
-        <h2 class="text-center mb-4">Admin Login</h2>
+    <form class="p-4 bg-white shadow rounded" style="width: 400px;" action="admin_login.php" method="POST">
+        <h2 class="text-center mb-4">Register</h2>
 
         <div class="mb-3">
             <label for="username" class="form-label">Username</label>
@@ -31,26 +32,31 @@
         </div>
 
         <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" name="email" placeholder="Enter email" required>
+        </div>
+
+        <div class="mb-3">
             <label for="password" class="form-label">Password</label>
             <input type="password" class="form-control" id="password" name="password" placeholder="Enter password" required>
         </div>
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="remember-me">
-                <label class="form-check-label" for="remember-me">Remember me</label>
-            </div>
-            <a href="#" class="text-decoration-none">Forgot password?</a>
+        <div class="mb-3">
+            <label for="confirm_password" class="form-label">Confirm Password</label>
+            <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Confirm password" required>
         </div>
 
-        <button type="submit" class="btn btn-primary w-100">Login</button>
-
+        <button type="button" class="btn btn-success w-100" onclick="window.location.href='admin_login.php'">
+            Register
+        </button>
+        
         <div class="text-center mt-3">
-            <p>Don't have an account? <a href="./admin_register.php" class="fw-bold">Register</a></p>
+            <p>Already have an account? <a href="./admin_login.php" class="fw-bold">Login</a></p>
         </div>
     </form>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
