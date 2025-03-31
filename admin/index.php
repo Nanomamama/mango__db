@@ -9,8 +9,41 @@
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --main-color: #5342ed;
+            --light-color: #f7f7f7;
+            --grey-color: #9f9f9f;
+            --dark-color: #000000;
+            --primary-color: #4B0082;
+            --secondary-color: #D63384;
+            --darkprimary-color: #9b42f5;
+            --asas: #212529;
+        }
+
         * {
             font-family: "Kanit", sans-serif;
+        }
+        .nav-link {
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .nav-link:hover {
+            background-color: white;
+            color: black !important;
+        }
+        .btn {
+           color:#fff; 
+           border: 1px solid #fff;
+           border-radius: 50px;
+           transition: transform 0.3s ease;
+           transition: 0.3s;
+
+        }
+        .btn:hover {
+           border: 1px solid var(--asas);
+           background-color: var(--asas);
+           border-radius: 50px;
+           transform: translateY(-5px);
         }
     </style>
 </head>
@@ -23,7 +56,7 @@
             <ul class="nav flex-column">
 
                 <li class="nav-item"><a href="./index.php" class="nav-link text-white">
-                    <i class='bx bx-home-alt'></i>
+                <i class='bx bxs-dashboard'></i>
                         Dashboard</a></li>
                 <li class="nav-item"><a href="./edit_home.php" class="nav-link text-white">
                     <i class='bx bx-notepad'></i>
@@ -58,9 +91,19 @@
                 <div class="col-md-4">
                     <div class="card text-white bg-primary mb-3">
                         <div class="card-body">
-                            <h5 class="card-title">🌍 เนื้อหาในหน้าแรก</h5>
+                            <h5 class="card-title">เนื้อหาในหน้าแรก</h5>
                             <p class="card-text">แก้ไขรายละเอียดในหน้าแรกของเว็บไซต์</p>
-                            <a href="edit_home.php" class="btn btn-light">แก้ไข</a>
+                            <a href="edit_home.php" class="btn w-30">จัดการข้อมูล <i class='bx bxs-log-in-circle'></i></a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card text-white bg-info mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">ข้อมูลเจ้าของ</h5>
+                            <p class="card-text">จัดการข้อมูลเจ้าของแหล่งเรียนรู้</p>
+                            <a href="edit_owner.php" class="btn w-30">จัดการข้อมูล <i class='bx bxs-log-in-circle'></i></a>
                         </div>
                     </div>
                 </div>
@@ -68,55 +111,43 @@
                 <div class="col-md-4">
                     <div class="card text-white bg-success mb-3">
                         <div class="card-body">
-                            <h5 class="card-title">👤 ข้อมูลเจ้าของ</h5>
-                            <p class="card-text">จัดการข้อมูลเจ้าของแหล่งเรียนรู้</p>
-                            <a href="edit_owner.php" class="btn btn-light">แก้ไข</a>
+                            <h5 class="card-title">หลักสูตรการเรียนรู้</h5>
+                            <p class="card-text">จัดการหลักสูตรที่มีอยู่ในเว็บไซต์</p>
+                            <a href="edit_courses.php" class="btn w-30">จัดการข้อมูล <i class='bx bxs-log-in-circle'></i></a>
                         </div>
                     </div>
                 </div>
+
+                <div class="col-md-4">
+                    <div class="card text-white bg-danger mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">จัดการสายพันธุ์มะม่วง</h5>
+                            <p class="card-text">จัดการสายพันธุ์มะม่วงในเว็บไซต์</p>
+                            <a href="manage_mango.php" class="btn w-30">จัดการข้อมูล <i class='bx bxs-log-in-circle'></i></a>
+                        </div>
+                    </div>
+                </div>
+
 
                 <div class="col-md-4">
                     <div class="card text-white bg-warning mb-3">
                         <div class="card-body">
-                            <h5 class="card-title">📚 หลักสูตรการเรียนรู้</h5>
-                            <p class="card-text">จัดการหลักสูตรที่มีอยู่ในเว็บไซต์</p>
-                            <a href="edit_courses.php" class="btn btn-light">แก้ไข</a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <div class="card text-white bg-success mb-3">
-                        <div class="card-body">
-                            <h5 class="card-title">🥭 จัดการสายพันธุ์มะม่วง</h5>
-                            <p class="card-text">จัดการสายพันธุ์มะม่วงในเว็บไซต์</p>
-                            <a href="manage_mango.php" class="btn btn-light">แก้ไข</a>
-                        </div>
-                    </div>
-                </div>
-
-
-                <div class="col-md-4">
-                    <div class="card text-white bg-success mb-3">
-                        <div class="card-body">
                             <h5 class="card-title"> สินค้าผลิตภัณฑ์แปรรูป</h5>
                             <p class="card-text">จัดการสายพันธุ์มะม่วงในเว็บไซต์</p>
-                            <a href="manage_product.php" class="btn btn-light">แก้ไข</a>
+                            <a href="manage_product.php" class="btn w-30">จัดการข้อมูล <i class='bx bxs-log-in-circle'></i></a>
                         </div>
                     </div>
                 </div>
 
                 <div class="col-md-4">
-                    <div class="card text-white bg-success mb-3">
+                    <div class="card text-white bg-primary mb-3">
                         <div class="card-body">
                             <h5 class="card-title"> ตารางรายการจอง</h5>
                             <p class="card-text">จัดการตารางรายการจองในเว็บไซต์</p>
-                            <a href="booking_list.php" class="btn btn-light">แก้ไข</a>
+                            <a href="booking_list.php" class="btn w-30">จัดการข้อมูล <i class='bx bxs-log-in-circle'></i></a>
                         </div>
                     </div>
                 </div>
-
-
             </div>
         </div>
     </div>
