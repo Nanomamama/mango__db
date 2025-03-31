@@ -18,12 +18,18 @@
             background-size: cover;
             background-position: center;
         }
+        form {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 
 <body class="d-flex justify-content-center align-items-center vh-100 bg-light">
 
-    <form class="p-4 bg-white shadow rounded" style="width: 400px;" action="admin_login.php" method="POST">
+    <form class="p-4  shadow rounded" style="width: 400px;" action="admin_login.php" method="POST">
         <h2 class="text-center mb-4">Register</h2>
 
         <div class="mb-3">

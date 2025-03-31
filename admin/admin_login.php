@@ -17,12 +17,18 @@
             background-size: cover;
             background-position: center;
         }
+        form {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 <body class="d-flex justify-content-center align-items-center vh-100 bg-light">
 
     <!-- เพิ่ม method="POST" และ action="index.php" -->
-    <form class="p-4 bg-white shadow rounded" style="width: 350px;" method="POST" action="index.php">
+    <form class="p-4  shadow rounded" style="width: 350px;" method="POST" action="index.php">
         <h2 class="text-center mb-4">Admin Login</h2>
 
         <div class="mb-3">
