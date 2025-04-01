@@ -20,6 +20,7 @@
         <a href="add_product.php" class="btn btn-primary mb-3">➕ เพิ่มสินค้า</a>
         <a href="order_product.php" class="btn btn-warning mb-3 "> คำสั่งซื้อ</a>
         <a href="sales_report.php" class="btn btn-warning mb-3 "> รายงานการขาย</a>
+        <a href="product_list.php" class="btn btn-warning mb-3 "> รายการสินค้า</a>
         <input type="text" id="searchInput" class="form-control mb-3" placeholder="🔍 ค้นหาสินค้า...">
         
         <table id="productTable" class="table table-bordered">
