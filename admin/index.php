@@ -18,6 +18,34 @@
             --secondary-color: #D63384;
             --darkprimary-color: #9b42f5;
             --asas: #212529;
+
+            --Primary: #4e73df;
+            --Success: #1cc88a;
+            --Info: #36b9cc;
+            --Warning: #f6c23e;
+            --Danger: #e74a3b;
+            --Secondary: #858796;
+            --Light: #f8f9fc;
+            --Dark: #5a5c69;
+        }
+
+        .bg-1{
+            background-color:var(--Primary);
+        }
+        .bg-2{
+            background-color:var(--Info);
+        }
+        .bg-3{
+            background-color:var(--Success);
+        }
+        .bg-4{
+            background-color:var(--Danger);
+        }
+        .bg-5{
+            background-color:var(--Warning);
+        }
+        .bg-6{
+            background-color:var(--Dark);
         }
 
         * {
@@ -31,6 +59,11 @@
             background-color: white;
             color: black !important;
         }
+
+        .card-body {
+           box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
         .btn {
            color:#fff; 
            border: 1px solid #fff;
@@ -40,10 +73,12 @@
 
         }
         .btn:hover {
-           border: 1px solid var(--asas);
-           background-color: var(--asas);
+           color:var(--dark-color);
+           border: 1px solid var(--light-color);
+           background-color: var(--light-color);
            border-radius: 50px;
            transform: translateY(-5px);
+           box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
@@ -92,7 +127,7 @@
             <div class="row mt-4">
                 <!-- Card Sections -->
                 <div class="col-md-4">
-                    <div class="card text-white bg-primary mb-3">
+                    <div class="card text-white bg-1 mb-3">
                         <div class="card-body">
                             <h5 class="card-title">เนื้อหาในหน้าแรก</h5>
                             <p class="card-text">แก้ไขรายละเอียดในหน้าแรกของเว็บไซต์</p>
@@ -102,7 +137,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <div class="card text-white bg-info mb-3">
+                    <div class="card text-white bg-2 mb-3">
                         <div class="card-body">
                             <h5 class="card-title">ข้อมูลเจ้าของ</h5>
                             <p class="card-text">จัดการข้อมูลเจ้าของแหล่งเรียนรู้</p>
@@ -112,7 +147,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <div class="card text-white bg-success mb-3">
+                    <div class="card text-white bg-3 mb-3">
                         <div class="card-body">
                             <h5 class="card-title">หลักสูตรการเรียนรู้</h5>
                             <p class="card-text">จัดการหลักสูตรที่มีอยู่ในเว็บไซต์</p>
@@ -122,7 +157,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <div class="card text-white bg-danger mb-3">
+                    <div class="card text-white bg-4 mb-3">
                         <div class="card-body">
                             <h5 class="card-title">จัดการสายพันธุ์มะม่วง</h5>
                             <p class="card-text">จัดการสายพันธุ์มะม่วงในเว็บไซต์</p>
@@ -133,7 +168,7 @@
 
 
                 <div class="col-md-4">
-                    <div class="card text-white bg-warning mb-3">
+                    <div class="card text-white bg-5 mb-3">
                         <div class="card-body">
                             <h5 class="card-title"> สินค้าผลิตภัณฑ์แปรรูป</h5>
                             <p class="card-text">จัดการสายพันธุ์มะม่วงในเว็บไซต์</p>
@@ -143,7 +178,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <div class="card text-white bg-primary mb-3">
+                    <div class="card text-white bg-6 mb-3">
                         <div class="card-body">
                             <h5 class="card-title"> ตารางรายการจอง</h5>
                             <p class="card-text">จัดการตารางรายการจองในเว็บไซต์</p>
