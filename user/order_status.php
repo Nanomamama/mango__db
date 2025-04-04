@@ -1,25 +1,24 @@
-
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📦 ตรวจสอบสถานะคำสั่งซื้อ</title>
-
-</head>
-<body>
-<?php include 'navbar.php'; ?>
-
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
 
-<div class="container" style="margin-left: 250px; flex: 2;">
-    <h2 class="mt-4">📦 ตรวจสอบสถานะคำสั่งซื้อ</h2>
-    <p>กรอกหมายเลขคำสั่งซื้อของคุณเพื่อดูสถานะ</p>
+<?php include 'navbar.php'; ?>
 
-    <input type="text" id="orderIdInput" class="form-control w-50 mb-3" placeholder="🔍 ป้อนหมายเลขคำสั่งซื้อ">
-    <button class="btn btn-primary" onclick="checkOrderStatus()">🔎 ตรวจสอบ</button>
+<div class="container py-4" style="max-width: 700px;">
+    <h2 class="text-center mb-4">📦 ตรวจสอบสถานะคำสั่งซื้อ</h2>
+    <p class="text-center text-muted">กรอกหมายเลขคำสั่งซื้อของคุณเพื่อดูสถานะ</p>
+
+    <div class="input-group mb-3">
+        <input type="text" id="orderIdInput" class="form-control" placeholder="🔍 ป้อนหมายเลขคำสั่งซื้อ">
+        <button class="btn btn-primary" onclick="checkOrderStatus()">ตรวจสอบ</button>
+    </div>
 
     <div id="orderStatusResult" class="mt-4"></div>
 </div>
@@ -32,7 +31,7 @@ function checkOrderStatus() {
         return;
     }
 
-    // ข้อมูลจำลอง (Mock Data)
+    // Mock Data
     let mockOrders = {
         "1001": { status: "📦 กำลังจัดส่ง", customer: "สมชาย", address: "กรุงเทพฯ" },
         "1002": { status: "✅ สำเร็จ", customer: "สมหญิง", address: "เชียงใหม่" },
@@ -44,15 +43,19 @@ function checkOrderStatus() {
     if (mockOrders[orderId]) {
         let order = mockOrders[orderId];
         resultDiv.innerHTML = `
-            <div class="alert alert-info">
-                <h5>🆔 คำสั่งซื้อ #${orderId}</h5>
-                <p>👤 ลูกค้า: ${order.customer}</p>
-                <p>📍 ที่อยู่: ${order.address}</p>
-                <p>📦 สถานะ: <strong>${order.status}</strong></p>
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h5 class="card-title">🆔 คำสั่งซื้อ #${orderId}</h5>
+                    <p>👤 <strong>ลูกค้า:</strong> ${order.customer}</p>
+                    <p>📍 <strong>ที่อยู่:</strong> ${order.address}</p>
+                    <p>📦 <strong>สถานะ:</strong> ${order.status}</p>
+                </div>
             </div>
         `;
     } else {
-        resultDiv.innerHTML = `<div class="alert alert-danger">❌ ไม่พบคำสั่งซื้อ #${orderId}</div>`;
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger">❌ ไม่พบคำสั่งซื้อหมายเลข <strong>#${orderId}</strong></div>
+        `;
     }
 }
 </script>
