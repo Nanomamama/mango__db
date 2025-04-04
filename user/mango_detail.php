@@ -65,6 +65,64 @@ $mangoes = [
             "branch" => "กิ่ง.jpg",
             "flower" => "ดอก.jpg"
         ]
+        ],
+    "แก้วขาว" => [
+        "eng_name" => "Kaew Khao",
+        "scientific_name" => "Mangifera indica 'Kaew Khamin'",
+        "local_name" => "แก้วขาว",
+        "image" => "แก้วขาว.png",
+        "desc" => "มะม่วงที่มีสีเหลืองทอง รสชาติหวานอร่อย",
+        "morphology" => [
+            "trunk" => "ลำต้นขนาดกลาง เปลือกเรียบ สีน้ำตาล",
+            "fruit" => "ผลขนาดปานกลาง สีเหลืองทอง เนื้อหวานฉ่ำ",
+            "leaf" => "ใบเรียวยาว สีเขียวเข้ม"
+        ],
+        "propagation" => "การตอนกิ่ง และการทาบกิ่ง",
+        "soil" => "ดินร่วนปนทราย มีการระบายน้ำดี",
+        "growing_period" => "ประมาณ 3-5 ปี ถึงให้ผลผลิต",
+        "flowering_season" => "ระหว่างเดือนพฤศจิกายน - กุมภาพันธ์",
+        "processing" => [
+            "preserved" => "นิยมกวนเป็นมะม่วงกวน",
+            "pickled" => "สามารถดองได้",
+            "candied" => "นิยมแช่อิ่ม",
+            "fresh" => "นิยมรับประทานสด"
+        ],
+        "category" => "เชิงพาณิชย์",
+        "images" => [
+            "tree" => "ต้น.jpg",
+            "leaf" => "ใบ.jpg",
+            "branch" => "กิ่ง.jpg",
+            "flower" => "ดอก.jpg"
+        ]
+        ],
+    "เขียวเสวย" => [
+        "eng_name" => "Kheaw Swei",
+        "scientific_name" => "Mangifera indica 'Kheaw Swei'",
+        "local_name" => "เขียวเสวย",
+        "image" => "เขียวเสวย.png",
+        "desc" => "มะม่วงที่มีสีเหลืองทอง รสชาติหวานอร่อย",
+        "morphology" => [
+            "trunk" => "ลำต้นขนาดกลาง เปลือกเรียบ สีน้ำตาล",
+            "fruit" => "ผลขนาดปานกลาง สีเหลืองทอง เนื้อหวานฉ่ำ",
+            "leaf" => "ใบเรียวยาว สีเขียวเข้ม"
+        ],
+        "propagation" => "การตอนกิ่ง และการทาบกิ่ง",
+        "soil" => "ดินร่วนปนทราย มีการระบายน้ำดี",
+        "growing_period" => "ประมาณ 3-5 ปี ถึงให้ผลผลิต",
+        "flowering_season" => "ระหว่างเดือนพฤศจิกายน - กุมภาพันธ์",
+        "processing" => [
+            "preserved" => "นิยมกวนเป็นมะม่วงกวน",
+            "pickled" => "สามารถดองได้",
+            "candied" => "นิยมแช่อิ่ม",
+            "fresh" => "นิยมรับประทานสด"
+        ],
+        "category" => "เชิงพาณิชย์",
+        "images" => [
+            "tree" => "ต้น.jpg",
+            "leaf" => "ใบ.jpg",
+            "branch" => "กิ่ง.jpg",
+            "flower" => "ดอก.jpg"
+        ]
     ]
 ];
 
@@ -95,24 +153,28 @@ if (!$mango) {
         --Dark: #5a5c69;
         }
 
-        .col-1 img {
+        .col-6 img {
             height: 100%;
             object-fit: cover;
             transition: transform 0.5s ease;
         }
-        .col-1:hover img {
+        .col-6:hover img {
             transform: scale(1.1);
         }
-        .row h4 {
-            /* color:var(--Danger); */
-            font-weight: 900;
+        .row h2 {
+            font-weight: 600;
         }
-        /* p strong {
-            color:var(--Danger);
-        } */
+        .row h4 {
+            font-weight: 600;
+        }
+        p strong {
+            font-weight: 400;
+        }
+        .container h4 {
+            font-weight: 600;
+        }
     </style>
 </head>
-
 <body>
     <?php include 'navbar.php'; ?>
     <br>
