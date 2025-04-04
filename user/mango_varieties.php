@@ -73,43 +73,25 @@
                 ["name" => "ตลับนาค", "eng_name" => "Talab Nak", "image" => "ตลับนาค.png", "desc" => "มีเปลือกสีทองสวย หอม หวานละมุน"]
             ];
             
-            foreach ($mangoes as $index => $mango) {
+            foreach ($mangoes as $mango) {
                 $imagePath = "image/{$mango['image']}";
                 if (!file_exists($imagePath)) {
                     $imagePath = "image/default.png";
                 }
-            
-                echo "<div class='col mango-item' data-bs-toggle='modal' data-bs-target='#mangoModal' 
-                        data-name='{$mango['name']}' 
-                        data-eng_name='{$mango['eng_name']}' 
-                        data-image='{$imagePath}' 
-                        data-desc='{$mango['desc']}'>
-                        <div class='card mango-card'>
-                            <img src='{$imagePath}' class='card-img-top' alt='{$mango['name']}'>
-                            <div class='card-body'>
-                                <h5 class='card-title'>{$mango['name']}</h5>
-                                <p class='text-muted'>{$mango['eng_name']}</p>
+
+                echo "<div class='col mango-item'>
+                        <a href='mango_detail.php?name=" . urlencode($mango['name']) . "' class='text-decoration-none text-dark'>
+                            <div class='card mango-card'>
+                                <img src='{$imagePath}' class='card-img-top' alt='{$mango['name']}'>
+                                <div class='card-body'>
+                                    <h5 class='card-title'>{$mango['name']}</h5>
+                                    <p class='text-muted'>{$mango['eng_name']}</p>
+                                </div>
                             </div>
-                        </div>
+                        </a>
                       </div>";
             }
             ?>
-        </div>
-    </div>
-
-    <!-- Bootstrap Modal -->
-    <div class="modal fade" id="mangoModal" tabindex="-1" aria-labelledby="mangoModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="mangoModalLabel"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <img id="mangoModalImage" src="" class="img-fluid mb-3" alt="">
-                    <p id="mangoModalDesc"></p>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -120,7 +102,7 @@
             let mangoItems = document.querySelectorAll('.mango-item');
 
             mangoItems.forEach(function(item) {
-                let name = item.getAttribute('data-name').toLowerCase();
+                let name = item.querySelector('.card-title').textContent.toLowerCase();
                 if (name.includes(filter)) {
                     item.style.display = "block";
                 } else {
@@ -128,20 +110,7 @@
                 }
             });
         });
-
-        // จัดการ Modal ให้แสดงข้อมูลของมะม่วงที่คลิก
-        let mangoModal = document.getElementById('mangoModal');
-        mangoModal.addEventListener('show.bs.modal', function (event) {
-            let button = event.relatedTarget;
-            let name = button.getAttribute('data-name');
-            let engName = button.getAttribute('data-eng_name');
-            let image = button.getAttribute('data-image');
-            let desc = button.getAttribute('data-desc');
-
-            document.getElementById('mangoModalLabel').textContent = name + " (" + engName + ")";
-            document.getElementById('mangoModalImage').src = image;
-            document.getElementById('mangoModalDesc').textContent = desc;
-        });
     </script>
 </body>
+
 </html>

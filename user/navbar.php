@@ -121,7 +121,12 @@
 <body>
     <nav class="navbar navbar-expand-lg">
         <div class="container">
-            <a class="navbar-logo" href="#home">สวนลุงเผือก</a>
+        <a class="navbar-logo" href="#home">
+            <img src="image/สวนลุงเผือก4-Photoroom.png" alt="สวนลุงเผือก" 
+            class="img-fluid d-block mx-auto mx-lg-0" 
+            style="max-height: 95px; height: auto; width: auto;">
+        </a>
+
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <i class='bx bx-menu-alt-left'></i>เมนู
             </button>
