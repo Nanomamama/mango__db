@@ -16,7 +16,7 @@
     <p class="text-center text-muted">กรอกหมายเลขคำสั่งซื้อของคุณเพื่อดูสถานะ</p>
 
     <div class="input-group mb-3">
-        <input type="text" id="orderIdInput" class="form-control" placeholder="🔍 ป้อนหมายเลขคำสั่งซื้อ">
+        <input type="text" id="orderIdInput" class="form-control" placeholder=" ป้อนหมายเลขคำสั่งซื้อ">
         <button class="btn btn-primary" onclick="checkOrderStatus()">ตรวจสอบ</button>
     </div>
 

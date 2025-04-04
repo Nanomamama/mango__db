@@ -9,14 +9,15 @@
 </head>
 <body>
 <?php include 'navbar.php'; ?>
-
+<br>
+<br>
 <div class="container text-center mt-5">
     <h1 class="text-success">คำสั่งซื้อของคุณถูกส่งเรียบร้อยแล้ว!</h1>
     <p class="lead">ขอบคุณที่ใช้บริการ! หมายเลขคำสั่งซื้อของคุณคือ: <strong>#<span id="order-id"></span></strong></p>
 
     <div class="mt-4">
-        <a href="products.php" class="btn btn-primary">🛍️ กลับไปเลือกซื้อสินค้า</a>
-        <a href="order_status.php" class="btn btn-secondary">📦 ตรวจสอบสถานะคำสั่งซื้อ</a>
+        <a href="products.php" class="btn btn-primary">กลับไปเลือกซื้อสินค้า</a>
+        <a href="order_status.php" class="btn btn-secondary">ตรวจสอบสถานะคำสั่งซื้อ</a>
     </div>
 </div>
 

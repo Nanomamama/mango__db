@@ -12,10 +12,9 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <div class="container mt-4">
+<div class="container mt-4">
     <h1>✅ ดำเนินการสั่งซื้อ</h1>
-    
-    <!-- ข้อมูลลูกค้า -->
+
     <form id="checkout-form">
         <div class="mb-3">
             <label for="customerName" class="form-label">👤 ชื่อลูกค้า</label>
@@ -32,25 +31,14 @@
             <input type="tel" class="form-control" id="customerPhone" required>
         </div>
 
-        <!-- รายละเอียดการสั่งซื้อ -->
         <h4 class="text-end">ยอดรวม: ฿<span id="total-price">0.00</span></h4>
-
-        <!-- การชำระเงิน -->
-        <div class="mb-3">
-            <label for="paymentMethod" class="form-label">💳 วิธีการชำระเงิน</label>
-            <select id="paymentMethod" class="form-select" required>
-                <option value="bank_transfer">โอนผ่านธนาคาร</option>
-                <option value="cash_on_delivery">ชำระปลายทาง</option>
-            </select>
-        </div>
 
         <div class="d-flex justify-content-between mt-4">
             <a href="cart.php" class="btn btn-secondary">🔙 กลับไปตะกร้า</a>
-            <button type="submit" class="btn btn-info">ยืนยันการสั่งซื้อ</button>
+            <a href="order_seccess.php" class="btn btn-info">ยืนยันการสั่งซื้อ</a>
         </div>
     </form>
 </div>
-
 
 <script>
 // โหลดข้อมูลจากตะกร้า
