@@ -6,6 +6,18 @@
     <title>สายพันธุ์มะม่วง</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        :root {
+            --green-color: #016A70;
+            --white-color: #fff;
+            --Primary: #4e73df;
+            --Success: #1cc88a;
+            --Info: #36b9cc;
+            --Warning: #f6c23e;
+            --Danger: #e74a3b;
+            --Secondary: #858796;
+            --Light: #f8f9fc;
+            --Dark: #5a5c69;
+        }
         body {
             background-color: #f8f9fa;
             height: 200vh;
@@ -32,9 +44,9 @@
         .mango-card .card-title {
             font-weight: bold;
         }
-        h2 {
+        .container h2 {
             font-weight: 600;
-            color: #000;
+            color: var(--Danger);
         }
     </style>
 </head>
@@ -46,19 +58,19 @@
         <h2 class="text-center mb-4 mt-5">สายพันธุ์มะม่วง</h2>
         <br>
         <div class="mb-4 text-center">
-            <input type="text" id="searchInput" class="form-control w-50 mx-auto" placeholder="ค้นหาสายพันธุ์มะม่วง">
+            <input type="text" id="searchInput" class="form-control w-100 mx-auto" placeholder="ค้นหาสายพันธุ์มะม่วง">
         </div>
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4" id="mangoList">
             <?php 
             $mangoes = [
-                ["name" => "กะล่อนทอง", "eng_name" => "Kalon Thong", "image" => "image-Photoroom.png", "desc" => "มะม่วงที่มีสีเหลืองทอง รสชาติหวานอร่อย"],
-                ["name" => "แก้วขมิ้น", "eng_name" => "Kaew Khamin", "image" => "image-Photoroom.png", "desc" => "มะม่วงพันธุ์โบราณ เปลือกสีเหลืองเข้ม"],
-                ["name" => "แก้วขาว", "eng_name" => "Kaew Khao", "image" => "image-Photoroom.png", "desc" => "มีเนื้อสีขาวใส รสชาติเปรี้ยวอมหวาน"],
-                ["name" => "เขียวเสวย", "eng_name" => "Kheaw Swei", "image" => "image-Photoroom.png", "desc" => "มะม่วงยอดนิยม รสชาติหวานมัน"],
-                ["name" => "ขอช้าง", "eng_name" => "Khor Chang", "image" => "image-Photoroom.png", "desc" => "มะม่วงพันธุ์แปลก รูปทรงโค้งเหมือนงาช้าง"],
-                ["name" => "แขกขายตึก", "eng_name" => "Kaek Khai Tuek", "image" => "image-Photoroom.png", "desc" => "พันธุ์หายาก เนื้อแน่น หอมหวาน"],
-                ["name" => "โชคอนันต์", "eng_name" => "Chok Anan", "image" => "image-Photoroom.png", "desc" => "มะม่วงที่นิยมปลูกเพื่อการค้า รสชาติอร่อย"],
-                ["name" => "ตลับนาค", "eng_name" => "Talab Nak", "image" => "image-Photoroom.png", "desc" => "มีเปลือกสีทองสวย หอม หวานละมุน"]
+                ["name" => "กะล่อนทอง", "eng_name" => "Kalon Thong", "image" => "กะล่อนทอง.png", "desc" => "มะม่วงที่มีสีเหลืองทอง รสชาติหวานอร่อย"],
+                ["name" => "แก้วขมิ้น", "eng_name" => "Kaew Khamin", "image" => "แก้วขมิ้น.png", "desc" => "มะม่วงพันธุ์โบราณ เปลือกสีเหลืองเข้ม"],
+                ["name" => "แก้วขาว", "eng_name" => "Kaew Khao", "image" => "แก้วขาว.png", "desc" => "มีเนื้อสีขาวใส รสชาติเปรี้ยวอมหวาน"],
+                ["name" => "เขียวเสวย", "eng_name" => "Kheaw Swei", "image" => "เขียวเสวย.png", "desc" => "มะม่วงยอดนิยม รสชาติหวานมัน"],
+                ["name" => "ขอช้าง", "eng_name" => "Khor Chang", "image" => "ขอช้าง.png", "desc" => "มะม่วงพันธุ์แปลก รูปทรงโค้งเหมือนงาช้าง"],
+                ["name" => "แขกขายตึก", "eng_name" => "Kaek Khai Tuek", "image" => "แขกขายตึก.png", "desc" => "พันธุ์หายาก เนื้อแน่น หอมหวาน"],
+                ["name" => "โชคอนันต์", "eng_name" => "Chok Anan", "image" => "โชคอนันต์.png", "desc" => "มะม่วงที่นิยมปลูกเพื่อการค้า รสชาติอร่อย"],
+                ["name" => "ตลับนาค", "eng_name" => "Talab Nak", "image" => "ตลับนาค.png", "desc" => "มีเปลือกสีทองสวย หอม หวานละมุน"]
             ];
             
             foreach ($mangoes as $index => $mango) {
