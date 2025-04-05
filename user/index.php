@@ -8,9 +8,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-
+ 
     body  {
         height: 500vh;
+        position: relative; 
     }
     :root {
         --Primary: #4e73df;
@@ -191,7 +192,8 @@
 </style>
 
 </head>
-<body>
+<body data-bs-spy="scroll" data-bs-target=".navbar" data-bs-offset="50">
+
 
 <?php include 'navbar.php'; ?>
 
