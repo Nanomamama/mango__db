@@ -22,6 +22,9 @@
     <a href="checkout.php" class="btn btn-info">🧾 ดำเนินการสั่งซื้อ</a>
   </div>
 </div>
+
+<?php include 'footer.php'; ?>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>

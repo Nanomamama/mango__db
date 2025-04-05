@@ -9,9 +9,9 @@
 
 <style>
 
-    body  {
+    /* body  {
         height: 500vh;
-    }
+    } */
     :root {
         --Primary: #4e73df;
         --Success: #1cc88a;
@@ -298,6 +298,9 @@
             ?>
         </div>
     </div>
+<br>
+
+<?php include 'footer.php'; ?>
 
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

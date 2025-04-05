@@ -243,6 +243,9 @@ if (!$mango) {
 </div>
         <a href="mango_varieties.php" class="btn btn-secondary mt-4">← กลับหน้ารวม</a>
     </div>
+
+<?php include 'footer.php'; ?>
+
 </body>
 
 </html>

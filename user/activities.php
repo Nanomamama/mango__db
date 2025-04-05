@@ -81,6 +81,9 @@ session_start();
         </div>
     </div>
 
+<?php include 'footer.php'; ?>
+
+
     <script>
         $(document).ready(function() {
             moment.locale('th');
