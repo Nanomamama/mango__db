@@ -8,6 +8,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
+
+    body  {
+        height: 500vh;
+    }
     :root {
         --Primary: #4e73df;
         --Success: #1cc88a;
@@ -18,7 +22,6 @@
         --Light: #f8f9fc;
         --Dark: #5a5c69;
     }
-    @import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
     
     .hero {
       height: 100vh;
@@ -158,7 +161,32 @@
 
     }
 
-
+    .mango-card {
+            border-radius: 12px;
+            transition: transform 0.3s;
+            cursor: pointer;
+            background-color: #f8f9fa;
+        }
+        .mango-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .mango-card img {
+            width: 100%;
+            height: 250px;
+            object-fit: contain;
+            padding: 15px;
+        }
+        .mango-card .card-body {
+            text-align: center;
+        }
+        .mango-card .card-title {
+            font-weight: bold;
+        }
+        .container h2 {
+            font-weight: 600;
+            color: var(--Danger);
+        }
 
 </style>
 
@@ -236,6 +264,42 @@
             </div>
         </div>
     </section>
+
+    <div class="container">
+        <h2 class="text-center mb-4 mt-5">สายพันธุ์มะม่วงที่น่าสนใจ</h2>
+        <br>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4" id="mangoList">
+            <?php 
+            $mangoes = [
+                ["name" => "กะล่อนทอง", "eng_name" => "Kalon Thong", "image" => "กะล่อนทอง.png", "desc" => "มะม่วงที่มีสีเหลืองทอง รสชาติหวานอร่อย"],
+                ["name" => "แก้วขมิ้น", "eng_name" => "Kaew Khamin", "image" => "แก้วขมิ้น.png", "desc" => "มะม่วงพันธุ์โบราณ เปลือกสีเหลืองเข้ม"],
+                ["name" => "แก้วขาว", "eng_name" => "Kaew Khao", "image" => "แก้วขาว.png", "desc" => "มีเนื้อสีขาวใส รสชาติเปรี้ยวอมหวาน"],
+                ["name" => "เขียวเสวย", "eng_name" => "Kheaw Swei", "image" => "เขียวเสวย.png", "desc" => "มะม่วงยอดนิยม รสชาติหวานมัน"]              
+            ];
+            
+            foreach ($mangoes as $mango) {
+                $imagePath = "image/{$mango['image']}";
+                if (!file_exists($imagePath)) {
+                    $imagePath = "image/default.png";
+                }
+
+                echo "<div class='col mango-item'>
+                        <a href='mango_detail.php?name=" . urlencode($mango['name']) . "' class='text-decoration-none text-dark'>
+                            <div class='card mango-card'>
+                                <img src='{$imagePath}' class='card-img-top' alt='{$mango['name']}'>
+                                <div class='card-body'>
+                                    <h5 class='card-title'>{$mango['name']}</h5>
+                                    <p class='text-muted'>{$mango['eng_name']}</p>
+                                </div>
+                            </div>
+                        </a>
+                      </div>";
+            }
+            ?>
+        </div>
+    </div>
+
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
