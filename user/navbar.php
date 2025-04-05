@@ -139,10 +139,11 @@
                         <a class="nav-link" href="../user/mango_varieties.php">สายพันธุ์ทั้งหมด</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">หลักสูตรการเรียนรู้</a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link" href="../user/products.php">สินค้าผลิตภัณฑ์</a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="course.php">หลักสูตรการเรียนรู้</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="../user/activities.php">จองวันเข้าดูงาน</a>

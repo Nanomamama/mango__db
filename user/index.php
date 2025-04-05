@@ -9,9 +9,10 @@
 
 <style>
 
-    /* body  {
+    body  {
         height: 500vh;
-    } */
+        position: relative; 
+    }
     :root {
         --Primary: #4e73df;
         --Success: #1cc88a;
@@ -191,8 +192,8 @@
 </style>
 
 </head>
-<body>
-
+<body data-bs-spy="scroll" data-bs-target=".navbar" data-bs-offset="50">
+    
 <?php include 'navbar.php'; ?>
 
 <div class="hero text-center">
