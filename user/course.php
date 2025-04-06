@@ -255,8 +255,8 @@
       <h2 class="mb-4">ใครเหมาะกับหลักสูตรนี้?</h2>
       <ul>
         <li>ผู้นำทีม / หัวหน้างาน</li>
-        <li>พนักงานทั่วไป</li>
-        <li>ฝ่าย HR ที่ต้องการจัดอบรม</li>
+        <li>ผู้ที่สนใจเกษตร</li>
+        <li>--</li>
       </ul>
     </div>
   </section>
@@ -268,18 +268,18 @@
       <p><strong>ระยะเวลาอบรม:</strong> 1 วัน (09:00 - 16:00)</p>
       <p><strong>รับจำนวนจำกัด:</strong> 25 คน</p>
       <p><strong>ค่าลงทะเบียน:</strong> 1,500 บาท</p>
-      <a href="#" class="btn btn-primary">สมัครอบรมออนไลน์</a>
+      <a href="activities.php" class="btn btn-primary">สมัครอบรมออนไลน์</a>
     </div>
   </section>
 
   <!-- Contact Section -->
   <section class="py-5">
     <div class="container">
-      <h2 class="mb-4">ติดต่อสอบถาม</h2>
+      <h2 class="mb-4">--</h2>
      
     </div>
   </section>
-
+  <?php include 'footer.php'; ?>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
