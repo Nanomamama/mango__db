@@ -4,12 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>หลักสูตรการอบรมแบบมีฐานการเรียนรู้</title>
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@100;400;700&family=Prompt:wght@100;400;700&family=Roboto:wght@100;400;700&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+   <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  
   <style>
-    * {
+    /* * {
       font-family: "Prompt", sans-serif;
-    }
+    } */
     :root {
       --green-color: #016A70;
       --white-color: #fff;
@@ -35,36 +37,38 @@
     .carousel-item img {
     height: 300px;
     object-fit: cover;
-  }
-
-  @media (max-width: 768px) {
-    .carousel-item img {
-      height: 350px;
     }
-  }
-  .card-body h5{
-    color: var(--Danger);
-    font-weight: 600;
-  }
-  .card-body a{
-    padding: 0.5rem 1.5rem;
-    border-radius: 20px;
-    font-weight: bold;
-    color:var(--Danger);
-    border: 1px solid var(--Danger);
-    background-color: transparent;
-    transition:background-color 0.5s ease, color 0.5s ease;
 
-  }
-  .card-body a:hover{
-    background-color: var(--Danger);
-    color: var(--Light);
-    transition: 0.5s;
-  }
+    @media (max-width: 768px) {
+      .carousel-item img {
+        height: 350px;
+      }
+    }
+    .card-body h5{
+      color: var(--Danger);
+      font-weight: 600;
+    }
+    .card-body a{
+      padding: 0.5rem 1.5rem;
+      border-radius: 20px;
+      font-weight: bold;
+      color:var(--Danger);
+      border: 1px solid var(--Danger);
+      background-color: transparent;
+      transition:background-color 0.5s ease, color 0.5s ease;
+
+    }
+    .card-body a:hover{
+      background-color: var(--Danger);
+      color: var(--Light);
+      transition: 0.5s;
+    }
   </style>
 </head>
 <body>
+
 <?php include 'navbar.php'; ?>
+
   <!-- Hero Section -->
   <br><br>
   <section class="hero">
@@ -280,6 +284,6 @@
     </div>
   </section>
   <?php include 'footer.php'; ?>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
