@@ -1,64 +1,25 @@
 <?php
-// ข้อมูลตัวอย่างที่จำลองจากฐานข้อมูล
-$mango_varieties = [
-    [
-        'id' => 1,
-        'name' => 'น้ำดอกไม้',
-        'scientific_name' => 'Mangifera indica',
-        'local_name' => 'น้ำดอกไม้',
-        'morphological_characteristics' => [
-            'stem' => 'ลำต้นสูงและตรง',
-            'fruit' => 'ผลทรงกลม ขนาดกลาง',
-            'leaf' => 'ใบกว้าง สีเขียวเข้ม',
-        ],
-        'propagation' => 'การขยายพันธุ์โดยการตอนกิ่ง และการเพาะเมล็ด',
-        'soil_characteristics' => 'ดินร่วนระบายน้ำดี',
-        'planting_duration' => 'ระยะเวลาเพาะปลูกประมาณ 4-6 เดือน',
-        'harvest_season' => 'ช่วงฤดูกาลเก็บเกี่ยวคือช่วงเดือนเมษายน-พฤษภาคม',
-        'processing_methods' => [
-            'preserved' => 'นิยมทำเป็นมะม่วงดองหรือมะม่วงแช่อิ่ม',
-            'fresh' => 'นิยมรับประทานสด',
-        ],
-        'mango_category' => 'หมวดมะม่วงเชิงพาณิชย์',
-        'description' => 'ลำต้นสูงและตรง ผลทรงกลม ขนาดกลาง ใบกว้าง สีเขียวเข้ม',
-        'images' => [
-            'fruit' => 'https://image.makewebeasy.net/makeweb/m_1920x0/vYbyNLJY1/Fruit/bcfad4f70f02b816bea05818b0b40fe0.jpg',
-            'tree' => 'https://www.palangkaset.com/wp-content/uploads/2018/05/4.%E0%B8%81%E0%B8%A3%E0%B8%B0%E0%B8%95%E0%B8%B8%E0%B9%89%E0%B8%99%E0%B9%83%E0%B8%AB%E0%B9%89%E0%B8%A3%E0%B8%B2%E0%B8%81%E0%B8%94%E0%B8%B9%E0%B8%94%E0%B8%8B%E0%B8%B6%E0%B8%A1%E0%B8%AA%E0%B8%B2%E0%B8%A3%E0%B8%AD%E0%B8%B2%E0%B8%AB%E0%B8%B2%E0%B8%A3%E0%B8%A1%E0%B8%B2%E0%B9%83%E0%B8%8A%E0%B9%89%E0%B9%80%E0%B8%AD%E0%B8%87%E0%B8%88%E0%B8%B2%E0%B8%81%E0%B8%94%E0%B8%B4%E0%B8%99.jpg',
-            'leaf' => 'https://inwfile.com/s-cl/aawzer.jpg',
-            'flower' => 'https://inwfile.com/s-ds/n49cdc.jpg',
-            'branch' => 'https://www.technologychaoban.com/wp-content/uploads/2019/01/7-13.jpg'
-        ]
-    ],
-    [
-        'id' => 2,
-        'name' => 'เขียวเสวย',
-        'scientific_name' => 'Mangifera indica',
-        'local_name' => 'เขียวเสวย',
-        'morphological_characteristics' => [
-            'stem' => 'ลำต้นแข็งแรงและสูงตรง',
-            'fruit' => 'ผลทรงกระบอก ขนาดใหญ่ สีเขียวอมเหลืองเมื่อสุก',
-            'leaf' => 'ใบกว้าง รูปรี สีเขียวเข้ม',
-        ],
-        'propagation' => 'การขยายพันธุ์โดยการเพาะเมล็ดและการตอนกิ่ง',
-        'soil_characteristics' => 'ดินร่วนซุย มีการระบายน้ำดี',
-        'planting_duration' => 'ระยะเวลาเพาะปลูกประมาณ 5-7 เดือน',
-        'harvest_season' => 'ช่วงฤดูกาลเก็บเกี่ยวคือช่วงเดือนมีนาคม-เมษายน',
-        'processing_methods' => [
-            'preserved' => 'นิยมทำเป็นมะม่วงดอง มะม่วงแช่อิ่ม',
-            'fresh' => 'นิยมรับประทานสด',
-        ],
-        'mango_category' => 'หมวดมะม่วงเชิงพาณิชย์',
-        'description' => 'ลำต้นแข็งแรง ผลขนาดใหญ่ สีเขียวอมเหลืองเมื่อสุก ใบสีเขียวเข้ม',
-        'images' => [
-            'fruit' => 'https://onniorganicfarm.com/wp-content/uploads/2021/03/IMG_0343.jpg',
-            'tree' => 'https://www.technologychaoban.com/wp-content/uploads/2017/04/089.jpg',
-            'leaf' => 'https://www.kasettambon.com/wp-content/uploads/2021/03/%E0%B9%83%E0%B8%9A%E0%B8%A1%E0%B8%B0%E0%B8%A1%E0%B9%88%E0%B8%A7%E0%B8%87-600x398.jpg',
-            'flower' => 'https://www.parichfertilizer.com/wp-content/uploads/mango.jpg',
-            'branch' => 'https://www.technologychaoban.com/wp-content/uploads/2019/01/7-13.jpg'
-        ]
-    ],
-    // เพิ่มข้อมูลตัวอย่างอื่นๆ ตามต้องการ
-];
+// เริ่มเซสชั่น
+session_start();
+
+// ตั้งค่าการเชื่อมต่อฐานข้อมูล
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "db_mango";
+
+// สร้างการเชื่อมต่อ
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// เช็คการเชื่อมต่อ
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// คำสั่ง SQL สำหรับดึงข้อมูลจากฐานข้อมูล
+$sql = "SELECT * FROM mango_varieties";
+$result = $conn->query($sql);
+
 ?>
 
 <!DOCTYPE html>
@@ -90,6 +51,14 @@ $mango_varieties = [
 
     <?php include 'sidebar.php'; ?>
 
+    <?php if (isset($_GET['deleted'])): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            ลบข้อมูลเรียบร้อยแล้ว
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php endif; ?>
+
+
     <div class="d-flex">
         <div class="p-4" style="margin-left: 250px; flex: 1;">
             <h2><i class='bx bx-detail'></i> จัดการสายพันธุ์มะม่วง</h2>
@@ -97,68 +66,94 @@ $mango_varieties = [
             <table class="table table-bordered">
                 <thead class="table-dark">
                     <tr style="text-align: center;">
+                        <th>ชื่อสายพันธุ์</th>
                         <th>รูปผลมะม่วง</th>
                         <th>รูปต้นมะม่วง</th>
                         <th>รูปใบมะม่วง</th>
                         <th>รูปดอกมะม่วง</th>
                         <th>รูปกิ่งมะม่วง</th>
-                        <th>ชื่อสายพันธุ์</th>
                         <th>จัดการ</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($mango_varieties as $mango): ?>
+                    <?php while ($mango = $result->fetch_assoc()): ?>
                         <tr>
+                            <td 
+                                style="text-align: center;">
+                                <?= $mango['mango_name']; ?>
+                            </td>
+                            
                             <td style="text-align: center;">
-                                <img src="<?= $mango['images']['fruit']; ?>" style="width: 110px; height: 70px; object-fit: cover;">
+                                <?php if (!empty($mango['fruit_image'])): ?>
+                                    <img src="<?= $mango['fruit_image']; ?>" style="width: 110px; height: 110px; object-fit: cover;">
+                                <?php else: ?>
+                                    <span>ไม่มีข้อมูล</span>
+                                <?php endif; ?>
                             </td>
                             <td style="text-align: center;">
-                                <img src="<?= $mango['images']['tree']; ?>" style="width: 110px; height: 70px; object-fit: cover;">
+                                <?php if (!empty($mango['tree_image'])): ?>
+                                    <img src="<?= $mango['tree_image']; ?>" style="width: 150px; height: 110px; object-fit: cover;">
+                                <?php else: ?>
+                                    <span>ไม่มีข้อมูล</span>
+                                <?php endif; ?>
                             </td>
                             <td style="text-align: center;">
-                                <img src="<?= $mango['images']['leaf']; ?>" style="width: 110px; height: 70px; object-fit: cover;">
+                                <?php if (!empty($mango['leaf_image'])): ?>
+                                    <img src="<?= $mango['leaf_image']; ?>" style="width: 150px; height: 110px; object-fit: cover;">
+                                <?php else: ?>
+                                    <span>ไม่มีข้อมูล</span>
+                                <?php endif; ?>
                             </td>
                             <td style="text-align: center;">
-                                <img src="<?= $mango['images']['flower']; ?>" style="width: 110px; height: 70px; object-fit: cover;">
+                                <?php if (!empty($mango['flower_image'])): ?>
+                                    <img src="<?= $mango['flower_image']; ?>" style="width: 150px; height: 110px; object-fit: cover;">
+                                <?php else: ?>
+                                    <span>ไม่มีข้อมูล</span>
+                                <?php endif; ?>
                             </td>
                             <td style="text-align: center;">
-                                <img src="<?= $mango['images']['branch']; ?>" style="width: 110px; height: 70px; object-fit: cover;">
+                                <?php if (!empty($mango['branch_image'])): ?>
+                                    <img src="<?= $mango['branch_image']; ?>" style="width: 150px; height: 110px; object-fit: cover;">
+                                <?php else: ?>
+                                    <span>ไม่มีข้อมูล</span>
+                                <?php endif; ?>
                             </td>
-
-                            <td style="text-align: center;"><?= $mango['name']; ?></td>
-
                             <td style="text-align: center;">
-                                <a href="edit_mango.php?id=<?= $mango['id']; ?>" class="btn btn-warning btn-sm text-light"><i class='bx bxs-edit'></i> แก้ไข</a>
-                                <a href="#" class="btn btn-secondary btn-sm"><i class='bx bx-trash-alt'></i> ลบ</a>
+                                <a href="edit_mango.php?id=<?php echo $mango['id']; ?>" class="btn btn-warning btn-sm">✏️ แก้ไข</a>
+                                <!-- ปุ่มลบที่เรียก Modal -->
+                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="<?= $mango['id']; ?>" data-name="<?= htmlspecialchars($mango['mango_name']); ?>">
+                                    🗑️ ลบ
+                                </button>
                                 <button type="button" class="btn btn-info btn-sm text-light" data-bs-toggle="modal" data-bs-target="#mangoDetailsModal"
                                     data-id="<?= $mango['id']; ?>"
-                                    data-name="<?= $mango['name']; ?>"
-                                    data-scientific-name="<?= $mango['scientific_name']; ?>"
-                                    data-local-name="<?= $mango['local_name']; ?>"
-                                    data-stem="<?= $mango['morphological_characteristics']['stem']; ?>"
-                                    data-fruit="<?= $mango['morphological_characteristics']['fruit']; ?>"
-                                    data-leaf="<?= $mango['morphological_characteristics']['leaf']; ?>"
-                                    data-propagation="<?= $mango['propagation']; ?>"
-                                    data-soil="<?= $mango['soil_characteristics']; ?>"
-                                    data-planting-duration="<?= $mango['planting_duration']; ?>"
-                                    data-harvest-season="<?= $mango['harvest_season']; ?>"
-                                    data-preserved="<?= $mango['processing_methods']['preserved']; ?>"
-                                    data-fresh="<?= $mango['processing_methods']['fresh']; ?>"
-                                    data-category="<?= $mango['mango_category']; ?>"
-                                    data-description="<?= $mango['description']; ?>"
-                                    data-fruit-img="<?= $mango['images']['fruit']; ?>"
-                                    data-tree-img="<?= $mango['images']['tree']; ?>"
-                                    data-leaf-img="<?= $mango['images']['leaf']; ?>"
-                                    data-flower-img="<?= $mango['images']['flower']; ?>"
-                                    data-branch-img="<?= $mango['images']['branch']; ?>"><i class='bx bx-search'></i> ดูข้อมูลทั้งหมด</button>
+                                    data-name="<?= htmlspecialchars($mango['mango_name']); ?>"
+                                    data-scientific-name="<?= htmlspecialchars($mango['scientific_name']); ?>"
+                                    data-local-name="<?= htmlspecialchars($mango['local_name']); ?>"
+                                    data-stem="<?= htmlspecialchars($mango['morphology_stem']); ?>"
+                                    data-fruit="<?= htmlspecialchars($mango['morphology_fruit']); ?>"
+                                    data-leaf="<?= htmlspecialchars($mango['morphology_leaf']); ?>"
+                                    data-propagation="<?= htmlspecialchars($mango['propagation_method']); ?>"
+                                    data-soil="<?= htmlspecialchars($mango['soil_characteristics']); ?>"
+                                    data-planting-duration="<?= htmlspecialchars($mango['planting_period']); ?>"
+                                    data-harvest-season="<?= htmlspecialchars($mango['harvest_season']); ?>"
+                                    data-category="<?= htmlspecialchars($mango['mango_category']); ?>"
+                                    data-description="<?= htmlspecialchars($mango['processing_methods']); ?>"
+                                    data-fruit-img="<?= htmlspecialchars($mango['fruit_image']); ?>"
+                                    data-tree-img="<?= htmlspecialchars($mango['tree_image']); ?>"
+                                    data-leaf-img="<?= htmlspecialchars($mango['leaf_image']); ?>"
+                                    data-flower-img="<?= htmlspecialchars($mango['flower_image']); ?>"
+                                    data-branch-img="<?= htmlspecialchars($mango['branch_image']); ?>">
+                                    ดูรายละเอียด</button>
                             </td>
+
                         </tr>
-                    <?php endforeach; ?>
+                    <?php endwhile; ?>
                 </tbody>
             </table>
         </div>
     </div>
-    <!-- Modal -->
+
+    <!-- Modal ดูข้อมูล -->
     <div class="modal fade" id="mangoDetailsModal" tabindex="-1" aria-labelledby="mangoDetailsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -175,8 +170,7 @@ $mango_varieties = [
             </div>
         </div>
     </div>
-
-    <!-- JavaScript -->
+    <!-- JavaScript ดูข้อมูล -->
     <script>
         var mangoDetailsModal = document.getElementById('mangoDetailsModal');
         mangoDetailsModal.addEventListener('show.bs.modal', function(event) {
@@ -193,7 +187,6 @@ $mango_varieties = [
             var plantingDuration = button.getAttribute('data-planting-duration');
             var harvestSeason = button.getAttribute('data-harvest-season');
             var preserved = button.getAttribute('data-preserved');
-            var fresh = button.getAttribute('data-fresh');
             var category = button.getAttribute('data-category');
             var description = button.getAttribute('data-description');
             var fruitImg = button.getAttribute('data-fruit-img');
@@ -206,65 +199,98 @@ $mango_varieties = [
             var modalBody = mangoDetailsModal.querySelector('.modal-body');
             modalTitle.textContent = 'ข้อมูลรายละเอียดสายพันธุ์มะม่วง: ' + name;
             modalBody.innerHTML = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <h5>ข้อมูลทั่วไป</h5>
-                        <p><strong>ชื่อวิทยาศาสตร์:</strong> ${scientificName}</p>
-                        <p><strong>ชื่อท้องถิ่น:</strong> ${localName}</p>
-                        <p><strong>หมวดหมู่:</strong> ${category}</p>
-                        <p><strong>คำอธิบาย:</strong> ${description}</p>
-                        
-                        <h5>ลักษณะทางสัณฐานวิทยา</h5>
-                        <p><strong>ลำต้น:</strong> ${stem}</p>
-                        <p><strong>ผล:</strong> ${fruit}</p>
-                        <p><strong>ใบ:</strong> ${leaf}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h5>การปลูกและการดูแล</h5>
-                        <p><strong>การขยายพันธุ์:</strong> ${propagation}</p>
-                        <p><strong>ลักษณะดิน:</strong> ${soil}</p>
-                        <p><strong>ระยะเวลาการปลูก:</strong> ${plantingDuration}</p>
-                        <p><strong>ฤดูกาลเก็บเกี่ยว:</strong> ${harvestSeason}</p>
-                        
-                        <h5>วิธีการแปรรูป</h5>
-                        <p><strong>แปรรูป:</strong> ${preserved}</p>
-                        <p><strong>รับประทานสด:</strong> ${fresh}</p>
-                    </div>
-                </div>
-                <hr>
-                <h5>รูปภาพ</h5>
-<div class="row">
-    <div class="col-md-4">
-        <strong>ผลมะม่วง</strong><br>
-        <img src="${fruitImg}" style="width: 100%; height: 150px; object-fit: cover;">
-    </div>
-    <div class="col-md-4">
-        <strong>ต้นมะม่วง</strong><br>
-        <img src="${treeImg}" style="width: 100%; height: 150px; object-fit: cover;">
-    </div>
-    <div class="col-md-4">
-        <strong>ใบมะม่วง</strong><br>
-        <img src="${leafImg}" style="width: 100%; height: 150px; object-fit: cover;">
-    </div>
-    <div class="col-md-4">
-        <strong>ดอกมะม่วง</strong><br>
-        <img src="${flowerImg}" style="width: 100%; height: 150px; object-fit: cover;">
-    </div>
-    <div class="col-md-4">
-        <strong>กิ่งมะม่วง</strong><br>
-        <img src="${branchImg}" style="width: 100%; height: 150px; object-fit: cover;">
-    </div>
-</div>
+        <div class="row">
+            <div class="col-md-6">
+                <h5>ข้อมูลทั่วไป</h5>
+                <p><strong>ชื่อวิทยาศาสตร์:</strong> ${scientificName}</p>
+                <p><strong>ชื่อท้องถิ่น:</strong> ${localName}</p>
+                <p><strong>หมวดหมู่:</strong> ${category}</p>
 
-            `;
+                <h5>ลักษณะทางสัณฐานวิทยา</h5>
+                <p><strong>ลำต้น:</strong> ${stem}</p>
+                <p><strong>ผล:</strong> ${fruit}</p>
+                <p><strong>ใบ:</strong> ${leaf}</p>
+            </div>
+            <div class="col-md-6">
+                <h5>การปลูกและการดูแล</h5>
+                <p><strong>การขยายพันธุ์:</strong> ${propagation}</p>
+                <p><strong>ลักษณะดิน:</strong> ${soil}</p>
+                <p><strong>ระยะเวลาการปลูก:</strong> ${plantingDuration}</p>
+                <p><strong>ฤดูกาลเก็บเกี่ยว:</strong> ${harvestSeason}</p>
+
+                <h5>วิธีการแปรรูป</h5>
+                <p><strong>แปรรูป:</strong> ${description}</p>
+            </div>
+        </div>
+        <hr>
+        <h5>รูปภาพ</h5>
+        <div class="row">
+            <div class="col-md-4">
+                <strong>ผลมะม่วง</strong><br>
+                <img src="${fruitImg}" style="width: 100%; height: 250px; object-fit: cover;">
+            </div>
+            <div class="col-md-4">
+                <strong>ต้นมะม่วง</strong><br>
+                <img src="${treeImg}" style="width: 100%; height: 250px; object-fit: cover;">
+            </div>
+            <div class="col-md-4">
+                <strong>ใบมะม่วง</strong><br>
+                <img src="${leafImg}" style="width: 100%; height: 250px; object-fit: cover;">
+            </div>
+            <div class="col-md-4">
+                <strong>ดอกมะม่วง</strong><br>
+                <img src="${flowerImg}" style="width: 100%; height: 250px; object-fit: cover;">
+            </div>
+            <div class="col-md-4">
+                <strong>กิ่งมะม่วง</strong><br>
+                <img src="${branchImg}" style="width: 100%; height: 250px; object-fit: cover;">
+            </div>
+        </div>
+        `;
         });
     </script>
-    <a href="add_mango.php" class="btn btn-primary mb-3"><i class='bx bx-plus'></i> เพิ่มสายพันธุ์</a>
+
+
+    <!-- Modal ยืนยันการลบ -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="POST" action="delete_mango.php">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title" id="deleteModalLabel">ยืนยันการลบ</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        คุณแน่ใจหรือไม่ว่าต้องการลบสายพันธุ์ <strong id="deleteMangoName"></strong>?
+                        <input type="hidden" name="delete_id" id="deleteMangoId">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-danger">ลบ</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- JavaScript ที่ใช้ในการลบ -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const deleteModal = document.getElementById('deleteModal');
+            deleteModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const id = button.getAttribute('data-id');
+                const name = button.getAttribute('data-name');
+
+                // ใส่ค่าลงใน Modal
+                document.getElementById('deleteMangoId').value = id;
+                document.getElementById('deleteMangoName').textContent = name;
+            });
+        });
+    </script>
 
     <!-- Bootstrap 5 JS and dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
 
 </body>
-
 </html>
