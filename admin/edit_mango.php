@@ -1,4 +1,7 @@
 <?php
+require_once 'auth.php';
+?>
+<?php
 // เริ่ม session
 session_start();
 

@@ -1,3 +1,6 @@
+<?php
+require_once 'auth.php';
+?>
 <?php session_start(); ?>
 <!DOCTYPE html>
 <html lang="th">

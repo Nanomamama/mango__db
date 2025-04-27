@@ -1,3 +1,6 @@
+<?php
+require_once 'auth.php';
+?>
 <!DOCTYPE html>
 <html lang="th">
 
@@ -114,9 +117,9 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="./admin_login.php" class="nav-link text-white">
-                        <i class='bx bx-log-out'></i></i> ออกจากระบบ
-                    </a>
+                <a href="logout.php" class="nav-link text-white">
+                    <i class='bx bx-log-out'></i> ออกจากระบบ
+                </a>
                 </li>
             </ul>
         </div>
