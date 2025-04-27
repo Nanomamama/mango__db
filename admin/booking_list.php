@@ -1,4 +1,8 @@
 <?php
+require_once 'auth.php';
+?>
+
+<?php
 // ตัวอย่างข้อมูลจำลองสำหรับการจอง
 $bookings = [
     [

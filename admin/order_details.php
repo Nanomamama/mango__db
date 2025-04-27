@@ -1,4 +1,7 @@
 <?php
+require_once 'auth.php';
+?>
+<?php
 include 'sidebar.php';
 $order_id = isset($_GET['order_id']) ? $_GET['order_id'] : '';
 $customer_name = "สมชาย ใจดี"; // จำลองข้อมูลลูกค้า

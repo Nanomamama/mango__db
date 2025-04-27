@@ -1,6 +1,5 @@
 <?php
-// เริ่มเซสชั่น
-session_start();
+require_once 'auth.php';
 
 // ตั้งค่าการเชื่อมต่อฐานข้อมูล
 $servername = "localhost";
