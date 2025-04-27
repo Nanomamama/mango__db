@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>➕ เพิ่มสินค้าผลิตภัณฐ์แปรรูป</title>
+    <title> เพิ่มสินค้าผลิตภัณฐ์แปรรูป</title>
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -53,7 +53,7 @@
 
                     <div class="mb-3">
                         <label class="form-label">รูปสินค้า</label>
-                        <input type="file" class="form-control" name="product_image" accept="image/*" required>
+                        <input type="file" class="form-control" name="product_images[]" accept="image/*" multiple required>
                     </div>
                 </div>
 
