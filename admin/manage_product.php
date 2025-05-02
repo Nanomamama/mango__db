@@ -1,3 +1,7 @@
+<?php
+require_once 'db.php'; // เชื่อมต่อฐานข้อมูล
+?>
+
 <!DOCTYPE html>
 <html lang="th">
 
@@ -6,7 +10,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>จัดการสินค้า</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- ✅ โหลด jQuery ก่อนใช้งาน -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
 </head>
 
@@ -18,112 +23,110 @@
     <div class="p-4" style="margin-left: 250px; flex: 2;">
         <h2>📋 จัดการสินค้าผลิตภัณฑ์</h2>
         <a href="add_product.php" class="btn btn-primary mb-3">➕ เพิ่มสินค้า</a>
-        <a href="order_product.php" class="btn btn-warning mb-3 "> คำสั่งซื้อ</a>
-        <a href="sales_report.php" class="btn btn-warning mb-3 "> รายงานการขาย</a>
-        <input type="text" id="searchInput" class="form-control mb-3" placeholder=" ค้นหาสินค้า...">
-        
+        <a href="order_product.php" class="btn btn-warning mb-3">คำสั่งซื้อ</a>
+        <a href="sales_report.php" class="btn btn-warning mb-3">รายงานการขาย</a>
+
         <table id="productTable" class="table table-bordered">
-            <tbody>
+            <thead>
                 <tr>
-                    <td><img src="https://ตลาดเกษตรกรออนไลน์.com/uploads/products/212.jpg" width="100"></td>
-                    <td>กล้วยทอดอบเนยสมุนไพร</td>
-                    <td>คงเหลือ: 20 ชิ้น</td>
-                    <td>
-                        <a href="edit_product.php" class="btn btn-warning btn-sm">✏️ แก้ไข</a>
-                        <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete()">🗑️ ลบ</a>
-                        <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#mangoDetailsModal">🔍 ดูข้อมูลทั้งหมด</button>
-                    </td>
+                    <th>รูปภาพ</th>
+                    <th>ชื่อสินค้า</th>
+                    <th>คงเหลือ</th>
+                    <th>การจัดการ</th>
                 </tr>
-                <!-- เพิ่มแถวอื่นๆ ตามต้องการ -->
+            </thead>
+            <tbody>
+                <?php
+                $query = "SELECT * FROM products";
+                $result = $conn->query($query);
+
+                while ($row = $result->fetch_assoc()):
+                    $images = json_decode($row['images'], true); // แปลง JSON เป็น Array
+                ?>
+                <tr>
+                    <td><img src="productsimage/<?= htmlspecialchars($images[0]) ?>" width="100"></td>
+                    <td><?= htmlspecialchars($row['name']) ?></td>
+                    <td>คงเหลือ: <?= htmlspecialchars($row['stock']) ?> ชิ้น</td>
+                    <td>
+                        <a href="edit_product.php?id=<?= $row['id'] ?>" class="btn btn-warning btn-sm">✏️ แก้ไข</a>
+                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal<?= $row['id'] ?>">🗑️ ลบ</button>
+                        <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#mangoDetailsModal<?= $row['id'] ?>">🔍 ดูข้อมูลทั้งหมด</button>
+                    </td>
+
+                    <!-- Modal สำหรับการลบสินค้า -->
+                    <div class="modal fade" id="deleteModal<?= $row['id'] ?>" tabindex="-1" aria-labelledby="deleteModalLabel<?= $row['id'] ?>" aria-hidden="true">
+                      <div class="modal-dialog">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h5 class="modal-title" id="deleteModalLabel<?= $row['id'] ?>">ยืนยันการลบสินค้า</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                          </div>
+                          <div class="modal-body">
+                            คุณแน่ใจหรือไม่ว่าต้องการลบสินค้า <strong><?= htmlspecialchars($row['name']) ?></strong>?
+                          </div>
+                          <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                            <a href="delete_product.php?id=<?= $row['id'] ?>" class="btn btn-danger">ยืนยันการลบ</a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Modal สำหรับแสดงรายละเอียดสินค้า -->
+                    <div class="modal fade" id="mangoDetailsModal<?= $row['id'] ?>" tabindex="-1" aria-labelledby="mangoDetailsModalLabel<?= $row['id'] ?>" aria-hidden="true">
+                      <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h5 class="modal-title" id="mangoDetailsModalLabel<?= $row['id'] ?>">ข้อมูลรายละเอียดสินค้า</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                          </div>
+                          <div class="modal-body">
+                            <div id="productImagesCarousel<?= $row['id'] ?>" class="carousel slide" data-bs-ride="carousel">
+                              <div class="carousel-inner">
+                                <?php foreach ($images as $index => $image): ?>
+                                <div class="carousel-item <?= $index === 0 ? 'active' : '' ?>">
+                                  <img src="productsimage/<?= htmlspecialchars($image) ?>" class="d-block w-100" alt="รูปที่ <?= $index + 1 ?>">
+                                </div>
+                                <?php endforeach; ?>
+                              </div>
+                              <button class="carousel-control-prev" type="button" data-bs-target="#productImagesCarousel<?= $row['id'] ?>" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon"></span>
+                                <span class="visually-hidden">Previous</span>
+                              </button>
+                              <button class="carousel-control-next" type="button" data-bs-target="#productImagesCarousel<?= $row['id'] ?>" data-bs-slide="next">
+                                <span class="carousel-control-next-icon"></span>
+                                <span class="visually-hidden">Next</span>
+                              </button>
+                            </div>
+                            <div class="mt-4">
+                              <h5>ชื่อสินค้า: <?= htmlspecialchars($row['name']) ?></h5>
+                              <h5>รายละเอียดสินค้า:</h5>
+                              <p><?= htmlspecialchars($row['description']) ?></p>
+                              <h6><strong>ราคา:</strong> <?= htmlspecialchars($row['price']) ?> บาท</h6>
+                            </div>
+                          </div>
+                          <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                </tr>
+                <?php endwhile; ?>
             </tbody>
         </table>
     </div>
 </div>
-
-<!-- Modal -->
-<div class="modal fade" id="mangoDetailsModal" tabindex="-1" aria-labelledby="mangoDetailsModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="mangoDetailsModalLabel">ข้อมูลรายละเอียดสินค้า</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        
-        <!-- Carousel รูปภาพสินค้า -->
-        <div id="productImagesCarousel" class="carousel slide" data-bs-ride="carousel">
-          <div class="carousel-inner">
-            <div class="carousel-item active">
-              <img src="https://ตลาดเกษตรกรออนไลน์.com/uploads/products/212.jpg" class="d-block w-100" alt="รูปที่ 1">
-            </div>
-            <div class="carousel-item">
-              <img src="https://ตลาดเกษตรกรออนไลน์.com/uploads/products/212.jpg" class="d-block w-100" alt="รูปที่ 2">
-            </div>
-            <div class="carousel-item">
-              <img src="https://ตลาดเกษตรกรออนไลน์.com/uploads/products/212.jpg" class="d-block w-100" alt="รูปที่ 3">
-            </div>
-          </div>
-          <button class="carousel-control-prev" type="button" data-bs-target="#productImagesCarousel" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon"></span>
-            <span class="visually-hidden">Previous</span>
-          </button>
-          <button class="carousel-control-next" type="button" data-bs-target="#productImagesCarousel" data-bs-slide="next">
-            <span class="carousel-control-next-icon"></span>
-            <span class="visually-hidden">Next</span>
-          </button>
-        </div>
-
-        <!-- ข้อมูลสินค้า -->
-        <div class="mt-4">
-          <h5>ชื่อสินค้า: กล้วยทอดอบเนยสมุนไพร</h5>
-          <h5>รายละเอียดสินค้า:</h5>
-          <h6><strong>หมวดหมู่สินค้าแปรรูป:</strong> กล้วยทอด</h6>
-          <h6><strong>ราคา:</strong> 50 บาท</h6>
-        </div>
-
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 
 <!-- Bootstrap 5 JS and dependencies -->
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
 
 <script>
-// ✅ ยืนยันการลบ
-function confirmDelete() {
-    if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบสินค้านี้?")) {
-        alert("สินค้าถูกลบเรียบร้อยแล้ว!");
-    }
-}
-
-// ✅ ค้นหาสินค้า
-document.addEventListener("DOMContentLoaded", function () {
-    let searchInput = document.getElementById("searchInput");
-
-    if (searchInput) {
-        searchInput.addEventListener("keyup", function () {
-            let filter = this.value.toLowerCase();
-            let rows = document.querySelectorAll("tbody tr");
-
-            rows.forEach(row => {
-                let productName = row.cells[1].innerText.toLowerCase();
-                row.style.display = productName.includes(filter) ? "" : "none";
-            });
-        });
-    }
-});
-
-// ✅ Pagination สำหรับตาราง
 $(document).ready(function () {
     $("#productTable").DataTable();
 });
 </script>
 
 </body>
-</html
+</html>

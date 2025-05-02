@@ -1,14 +1,22 @@
 <?php
 require_once 'auth.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// สร้าง CSRF Token หากยังไม่มี
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 ?>
-<?php session_start(); ?>
 <!DOCTYPE html>
 <html lang="th">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> เพิ่มสินค้าผลิตภัณฐ์แปรรูป</title>
+    <title> เพิ่มสินค้าผลิตภัณฑ์แปรรูป</title>
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -36,6 +44,9 @@ require_once 'auth.php';
         <h2 class="mb-4">➕ เพิ่มสินค้าผลิตภัณฐ์แปรรูป</h2>
 
         <form action="save_product.php" method="POST" enctype="multipart/form-data">
+            <!-- เพิ่ม CSRF Token -->
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+
             <div class="row">
                 <!-- ซ้าย -->
                 <div class="col-md-6">
@@ -50,13 +61,9 @@ require_once 'auth.php';
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">หมวดหมู่สินค้า</label>
-                        <input type="text" class="form-control" name="product_category" placeholder="เช่น ขนมอบ, ของแห้ง" required>
-                    </div>
-
-                    <div class="mb-3">
                         <label class="form-label">รูปสินค้า</label>
-                        <input type="file" class="form-control" name="product_images[]" accept="image/*" multiple required>
+                        <input type="file" class="form-control" name="product_images[]" id="product_images" accept="image/*" multiple required>
+                        <div id="image_preview" class="mt-3 d-flex flex-wrap"></div>
                     </div>
                 </div>
 
@@ -65,6 +72,12 @@ require_once 'auth.php';
                     <div class="mb-3">
                         <label class="form-label">ราคา (บาท)</label>
                         <input type="number" class="form-control" name="product_price" placeholder="กรอกราคา เช่น 59" min="1" required>
+                    </div>
+
+                    <!-- เพิ่มฟิลด์สำหรับสินค้าคงเหลือ -->
+                    <div class="mb-3">
+                        <label class="form-label">จำนวนสินค้าคงเหลือ</label>
+                        <input type="number" class="form-control" name="product_stock" placeholder="กรอกจำนวน เช่น 100" min="0" required>
                     </div>
                 </div>
             </div>
@@ -92,6 +105,34 @@ require_once 'auth.php';
         });
     </script>
     <?php unset($_SESSION['success']); endif; ?>
+
+    <script>
+        document.getElementById('product_images').addEventListener('change', function(event) {
+            const imagePreview = document.getElementById('image_preview');
+            imagePreview.innerHTML = ''; // ล้างตัวอย่างรูปภาพก่อนหน้า
+
+            const files = event.target.files;
+            if (files) {
+                Array.from(files).forEach(file => {
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            img.alt = file.name;
+                            img.style.width = '100px';
+                            img.style.marginRight = '10px';
+                            img.style.marginBottom = '10px';
+                            img.style.border = '1px solid #ddd';
+                            img.style.borderRadius = '5px';
+                            imagePreview.appendChild(img);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+        });
+    </script>
 
 </body>
 

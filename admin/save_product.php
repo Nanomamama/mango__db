@@ -1,84 +1,70 @@
 <?php
+require_once 'db.php'; // เชื่อมต่อฐานข้อมูล
 session_start();
 
-// เชื่อมต่อฐานข้อมูล
-$servername = "localhost"; 
-$username = "root";         
-$password = "";            
-$dbname = "db_mango";    
+function uploadFiles($files, $target_dir) {
+    $uploaded_images = [];
+    foreach ($files['tmp_name'] as $key => $tmp_name) {
+        $file_name = preg_replace('/[^a-zA-Z0-9._-]/', '_', basename($files['name'][$key]));
+        $file_type = mime_content_type($tmp_name);
+        $file_size = $files['size'][$key];
+        $target_path = $target_dir . $file_name;
 
-$conn = new mysqli($servername, $username, $password, $dbname);
+        if (!in_array($file_type, ['image/jpeg', 'image/png', 'image/gif'])) {
+            throw new Exception("ประเภทไฟล์ไม่ถูกต้อง!");
+        }
 
-// เช็คการเชื่อมต่อฐานข้อมูล
-if ($conn->connect_error) {
-    die("การเชื่อมต่อฐานข้อมูลล้มเหลว: " . $conn->connect_error);
+        if ($file_size > 2 * 1024 * 1024) {
+            throw new Exception("ไฟล์ใหญ่เกินไป!");
+        }
+
+        if (!move_uploaded_file($tmp_name, $target_path)) {
+            throw new Exception("เกิดข้อผิดพลาดในการอัปโหลดไฟล์!");
+        }
+
+        $uploaded_images[] = $file_name;
+    }
+    return $uploaded_images;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // รับข้อมูลจากฟอร์ม
-    $productName = $_POST['product_name'];
-    $productDescription = $_POST['product_description'];
-    $productCategory = $_POST['product_category'];
-    $productPrice = $_POST['product_price'];
-
-    // เตรียมบันทึกสินค้า
-    $sql = "INSERT INTO products (name, description, category, price) VALUES (?, ?, ?, ?)";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sssd", $productName, $productDescription, $productCategory, $productPrice);
-
-    if ($stmt->execute()) {
-        $productId = $stmt->insert_id; // id สินค้าใหม่
-
-        // เตรียมโฟลเดอร์รูป
-        $uploadDir = 'uploads/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
-        }
-
-        // เช็กว่ามีไฟล์ภาพไหม
-        if (!empty($_FILES['product_images']['name'][0])) {
-            $allowedTypes = ['jpg', 'jpeg', 'png', 'gif'];
-
-            foreach ($_FILES['product_images']['tmp_name'] as $key => $tmpName) {
-                $originalName = basename($_FILES['product_images']['name'][$key]);
-                $fileExt = pathinfo($originalName, PATHINFO_EXTENSION);
-
-                // ตั้งชื่อไฟล์ใหม่ ป้องกันซ้ำ
-                $newFileName = time() . '_' . uniqid() . '.' . strtolower($fileExt);
-                $targetFilePath = $uploadDir . $newFileName;
-
-                // ตรวจสอบชนิดไฟล์
-                if (in_array(strtolower($fileExt), $allowedTypes)) {
-                    if (move_uploaded_file($tmpName, $targetFilePath)) {
-                        // บันทึกรูปภาพเข้า DB
-                        $insertImage = $conn->prepare("INSERT INTO product_images (product_id, image_path) VALUES (?, ?)");
-                        $insertImage->bind_param("is", $productId, $newFileName);
-                        $insertImage->execute();
-                    } else {
-                        $_SESSION['error'] = "การอัปโหลดรูปภาพล้มเหลว";
-                        header("Location: manage_product.php");
-                        exit();
-                    }
-                } else {
-                    $_SESSION['error'] = "รูปภาพไม่ตรงตามประเภทที่อนุญาต";
-                    header("Location: manage_product.php");
-                    exit();
-                }
-            }
-        }
-
-        $_SESSION['success'] = "บันทึกข้อมูลสินค้าเรียบร้อยแล้ว!";
-        header("Location: manage_product.php");
-        exit();
-    } else {
-        $_SESSION['error'] = "เกิดข้อผิดพลาดในการบันทึกสินค้า: " . $conn->error;
-        header("Location: manage_product.php");
-        exit();
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        $_SESSION['success'] = "การร้องขอไม่ถูกต้อง!";
+        header("Location: add_product.php");
+        exit;
     }
-} else {
-    // ป้องกันการเข้าหน้าโดยตรง
-    $_SESSION['error'] = "ไม่อนุญาตให้เข้าถึงหน้านี้โดยตรง!";
-    header("Location: manage_product.php");
-    exit();
+
+    $product_name = filter_var($_POST['product_name'], FILTER_SANITIZE_STRING);
+    $product_description = filter_var($_POST['product_description'], FILTER_SANITIZE_STRING);
+    $product_price = (float) $_POST['product_price'];
+    $product_stock = (int) $_POST['product_stock'];
+
+    try {
+        $uploaded_images = [];
+        if (!empty($_FILES['product_images']['name'][0])) {
+            $uploaded_images = uploadFiles($_FILES['product_images'], "productsimage/");
+        }
+
+        // บันทึกข้อมูลในฐานข้อมูล
+        $images_json = json_encode($uploaded_images);
+        $stmt = $conn->prepare("INSERT INTO products (name, description, price, stock, images) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssdss", $product_name, $product_description, $product_price, $product_stock, $images_json);
+
+        if ($stmt->execute()) {
+            $_SESSION['success'] = "เพิ่มสินค้าสำเร็จ!";
+        } else {
+            error_log("Error: " . $stmt->error, 3, "error.log");
+            $_SESSION['success'] = "เกิดข้อผิดพลาดในการเพิ่มสินค้า!";
+        }
+
+        $stmt->close();
+    } catch (Exception $e) {
+        $_SESSION['success'] = $e->getMessage();
+    }
+
+    header("Location: add_product.php");
+    exit;
 }
 ?>
+
+<input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
