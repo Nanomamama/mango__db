@@ -253,36 +253,7 @@
     </div>
   </section>
 
-  <!-- Suitable for -->
-  <section class="py-5">
-    <div class="container">
-      <h2 class="mb-4">ใครเหมาะกับหลักสูตรนี้?</h2>
-      <ul>
-        <li>ผู้นำทีม / หัวหน้างาน</li>
-        <li>ผู้ที่สนใจเกษตร</li>
-        <li>--</li>
-      </ul>
-    </div>
-  </section>
 
-  <!-- Schedule and Register -->
-  <section class="bg-light py-5" id="register">
-    <div class="container">
-      <h2 class="mb-4">ตารางเวลาและการสมัคร</h2>
-      <p><strong>ระยะเวลาอบรม:</strong> 1 วัน (09:00 - 16:00)</p>
-      <p><strong>รับจำนวนจำกัด:</strong> 25 คน</p>
-      <p><strong>ค่าลงทะเบียน:</strong> 1,500 บาท</p>
-      <a href="activities.php" class="btn btn-primary">สมัครอบรมออนไลน์</a>
-    </div>
-  </section>
-
-  <!-- Contact Section -->
-  <section class="py-5">
-    <div class="container">
-      <h2 class="mb-4">--</h2>
-     
-    </div>
-  </section>
   <?php include 'footer.php'; ?>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
