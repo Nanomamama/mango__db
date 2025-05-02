@@ -1,6 +1,3 @@
-<?php
-require_once 'auth.php';
-?>
 <!DOCTYPE html>
 <html lang="th">
 
@@ -23,7 +20,7 @@ require_once 'auth.php';
         <a href="add_product.php" class="btn btn-primary mb-3">➕ เพิ่มสินค้า</a>
         <a href="order_product.php" class="btn btn-warning mb-3 "> คำสั่งซื้อ</a>
         <a href="sales_report.php" class="btn btn-warning mb-3 "> รายงานการขาย</a>
-        <input type="text" id="searchInput" class="form-control mb-3" placeholder="🔍 ค้นหาสินค้า...">
+        <input type="text" id="searchInput" class="form-control mb-3" placeholder=" ค้นหาสินค้า...">
         
         <table id="productTable" class="table table-bordered">
             <tbody>
@@ -52,17 +49,38 @@ require_once 'auth.php';
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <div class="row">
-            <div class="col-md-6">
-                <img src="https://ตลาดเกษตรกรออนไลน์.com/uploads/products/212.jpg" width="350" height="200"><br>
-                <h5>ชื่อสินค้า: กล้วยทอดอบเนยสมุนไพร</h5>
-                <h5>รายละเอียดสินค้า:</h5>
-                <h6><strong>หมวดหมู่สินค้าแปรรูป:</strong></h6>
-                <p>กล้วยทอด</p>
-                <h6>ราคา:</h6>
-                <p>50</p>
+        
+        <!-- Carousel รูปภาพสินค้า -->
+        <div id="productImagesCarousel" class="carousel slide" data-bs-ride="carousel">
+          <div class="carousel-inner">
+            <div class="carousel-item active">
+              <img src="https://ตลาดเกษตรกรออนไลน์.com/uploads/products/212.jpg" class="d-block w-100" alt="รูปที่ 1">
             </div>
+            <div class="carousel-item">
+              <img src="https://ตลาดเกษตรกรออนไลน์.com/uploads/products/212.jpg" class="d-block w-100" alt="รูปที่ 2">
+            </div>
+            <div class="carousel-item">
+              <img src="https://ตลาดเกษตรกรออนไลน์.com/uploads/products/212.jpg" class="d-block w-100" alt="รูปที่ 3">
+            </div>
+          </div>
+          <button class="carousel-control-prev" type="button" data-bs-target="#productImagesCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+            <span class="visually-hidden">Previous</span>
+          </button>
+          <button class="carousel-control-next" type="button" data-bs-target="#productImagesCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
+            <span class="visually-hidden">Next</span>
+          </button>
         </div>
+
+        <!-- ข้อมูลสินค้า -->
+        <div class="mt-4">
+          <h5>ชื่อสินค้า: กล้วยทอดอบเนยสมุนไพร</h5>
+          <h5>รายละเอียดสินค้า:</h5>
+          <h6><strong>หมวดหมู่สินค้าแปรรูป:</strong> กล้วยทอด</h6>
+          <h6><strong>ราคา:</strong> 50 บาท</h6>
+        </div>
+
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
@@ -70,6 +88,7 @@ require_once 'auth.php';
     </div>
   </div>
 </div>
+
 
 <!-- Bootstrap 5 JS and dependencies -->
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
@@ -107,4 +126,4 @@ $(document).ready(function () {
 </script>
 
 </body>
-</html>
+</html
