@@ -24,12 +24,38 @@
             font-size: 16px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
+
+        .product-image {
+            width: 300px;
+            height: 250px;
+            object-fit: cover; /* ครอบรูปภาพให้พอดีกับพื้นที่ */
+            border-radius: 5px; /* เพิ่มมุมโค้งมน */
+            display: block; /* ทำให้ภาพเป็นบล็อก */
+            margin: auto; /* จัดให้อยู่ตรงกลาง */
+        }
     </style>
 </head>
 
 <body>
-
     <?php include 'navbar.php'; ?>
+
+    <?php
+    require_once '../admin/db.php'; // เชื่อมต่อฐานข้อมูล
+
+    $query = "SELECT * FROM products"; // ดึงข้อมูลสินค้าทั้งหมด
+    $result = $conn->query($query);
+
+    if (!$result) {
+        die("เกิดข้อผิดพลาดในการดึงข้อมูลสินค้า: " . $conn->error);
+    }
+
+    $products = [];
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $products[] = $row; // เก็บข้อมูลสินค้าใน Array
+        }
+    }
+    ?>
 
     <br>
     <br>
@@ -47,32 +73,52 @@
                     <input type="text" id="searchInput" class="form-control mb-3" placeholder=" ค้นหาสินค้า...">
 
                     <div class="row" id="product-list">
-                        <!-- สินค้าตัวอย่าง -->
                         <?php
-                        $products = [
-                            ["id" => "001", "name" => "กล้วยทอดอบเนย", "price" => 50, "type" => "ทอด", "image" => "https://down-th.img.susercontent.com/file/th-11134207-7r98r-lo5m7m19khdc53", "description" => "กล้วยทอดอบเนยกรอบอร่อย", "weight" => "200g"],
-                            ["id" => "002", "name" => "มันฝรั่งทอด", "price" => 60, "type" => "ทอด", "image" => "https://inwfile.com/s-i/fdkajx.jpg", "description" => "มันฝรั่งทอดกรอบ รสชาติกลมกล่อม", "weight" => "250g"],
-                            ["id" => "003", "name" => "ขนมข้าวโพดอบกรอบ", "price" => 40, "type" => "อบ", "image" => "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRpDYUXjOtJiMOi06q2SOrzIcE64WvGnhTBlQ&s", "description" => "ขนมข้าวโพดอบกรอบรสชาติหวาน", "weight" => "150g"],
-                            ["id" => "004", "name" => "ข้าวเกรียบกุ้ง", "price" => 55, "type" => "ทอด", "image" => "https://image.makewebeasy.net/makeweb/m_1920x0/t2rR4pVxh/Snack20/121_01.jpg?v=202405291424", "description" => "ข้าวเกรียบกุ้งรสชาติอร่อย", "weight" => "300g"]
-                        ];
+                        if (!empty($products)) {
+                            foreach ($products as $product) {
+                                $images = json_decode($product['images'], true); // แปลง JSON ของรูปภาพเป็น Array
+                                $image = !empty($images) ? $images[0] : 'default-image.jpg'; // ใช้รูปแรก หรือรูปภาพเริ่มต้นหากไม่มีรูป
 
-                        foreach ($products as $product) {
-                            echo '<div class="col-lg-3 col-md-4 col-sm-6 mb-4">';
-                            echo '    <div class="card h-100 shadow-sm">';
-                            echo '        <img src="' . $product["image"] . '" class="card-img-top" alt="' . $product["name"] . '">';
-                            echo '        <div class="card-body text-center">';
-                            echo '            <h5 class="card-title">' . $product["name"] . '</h5>';
-                            echo '            <p class="card-text text-danger fw-bold">฿' . number_format($product["price"], 2) . '</p>';
-                            echo '            <p class="card-text text-muted">' . $product["description"] . '</p>'; // คำอธิบายสินค้า
-                            echo '            <p class="card-text text-muted">ประเภท:' . $product["type"] . '</p>'; // ประเภทสินค้า เช่น 
-                            echo '            <p class="card-text text-muted">น้ำหนัก: ' . $product["weight"] . '</p>'; // น้ำหนักสินค้า
-                            echo '            <button class="btn btn-success add-to-cart" data-id="' . $product["id"] . '" data-name="' . $product["name"] . '" data-price="' . $product["price"] . '">🛒 เพิ่มลงตะกร้า</button>';
-                            echo '        </div>';
-                            echo '    </div>';
-                            echo '</div>';
+                                // การ์ดสินค้า
+                                echo '<div class="col-lg-3 col-md-4 col-sm-6 mb-4">';
+                                echo '    <div class="card h-100 shadow-sm">';
+                                echo '        <img src="../admin/productsimage/' . htmlspecialchars($image) . '" class="product-image" alt="' . htmlspecialchars($product["name"]) . '">';
+                                echo '        <div class="card-body text-center">';
+                                echo '            <h5 class="card-title">' . htmlspecialchars($product["name"]) . '</h5>';
+                                echo '            <p class="card-text text-danger fw-bold">฿' . number_format($product["price"], 2) . '</p>';
+                                echo'             <p>สินค้าคงเหลือ:' . htmlspecialchars($product["stock"]) . '</p>';
+                                echo '            <button class="btn btn-success add-to-cart" data-id="' . $product["id"] . '" data-name="' . htmlspecialchars($product["name"]) . '" data-price="' . $product["price"] . '">🛒 เพิ่มลงตะกร้า</button>';
+                                echo '            <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#productModal' . $product["id"] . '">ดูรายละเอียด</button>';
+                                echo '        </div>';
+                                echo '    </div>';
+                                echo '</div>';
+
+                                // Modal สำหรับแสดงรายละเอียดสินค้า
+                                echo '<div class="modal fade" id="productModal' . $product["id"] . '" tabindex="-1" aria-labelledby="productModalLabel' . $product["id"] . '" aria-hidden="true">';
+                                echo '    <div class="modal-dialog">';
+                                echo '        <div class="modal-content">';
+                                echo '            <div class="modal-header">';
+                                echo '                <h5 class="modal-title" id="productModalLabel' . $product["id"] . '">' . htmlspecialchars($product["name"]) . '</h5>';
+                                echo '                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>';
+                                echo '            </div>';
+                                echo '            <div class="modal-body">';
+                                echo '                <img src="../admin/productsimage/' . htmlspecialchars($image) . '" class="img-fluid mb-3" alt="' . htmlspecialchars($product["name"]) . '">';
+                                echo '                <h4>' . htmlspecialchars($product["name"]) . '</h4>';
+                                echo '                <p>' . htmlspecialchars($product["description"]) . '</p>';
+                                echo '                <p><strong>ราคา:</strong> ฿' . number_format($product["price"], 2) . '</p>';
+                                
+                                echo '            </div>';
+                                echo '            <div class="modal-footer">';
+                                echo '                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>';
+                                echo '            </div>';
+                                echo '        </div>';
+                                echo '    </div>';
+                                echo '</div>';
+                            }
+                        } else {
+                            echo '<p class="text-center">ไม่มีสินค้าในขณะนี้</p>';
                         }
                         ?>
-
                     </div>
 
                     <a href="cart.php" class="btn btn-warning cart-button ">🛒 ไปที่ตะกร้าสินค้า</a>
@@ -83,6 +129,7 @@
     <?php include 'footer.php'; ?>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
         // ค้นหาสินค้า
@@ -98,21 +145,30 @@
             let product = {
                 id: $(this).data("id"),
                 name: $(this).data("name"),
-                price: $(this).data("price"),
-                image: $(this).closest(".card").find("img").attr("src"), // ✅ จุดสำคัญ
+                price: parseFloat($(this).data("price")), // แปลง price เป็นตัวเลข
+                image: $(this).closest(".card").find("img").attr("src"),
                 quantity: 1
             };
 
-            let cart = JSON.parse(localStorage.getItem("cart")) || [];
-            let found = cart.find(item => item.id === product.id);
+            let cart = JSON.parse(localStorage.getItem("cart")) || []; // โหลดข้อมูลตะกร้าจาก Local Storage
+            let found = cart.find(item => item.id === product.id); // ตรวจสอบว่าสินค้าอยู่ในตะกร้าแล้วหรือไม่
+
             if (found) {
-                found.quantity++;
+                found.quantity++; // หากมีสินค้าอยู่ในตะกร้าแล้ว ให้เพิ่มจำนวน
             } else {
-                cart.push(product);
+                cart.push(product); // หากยังไม่มีสินค้าในตะกร้า ให้เพิ่มสินค้าใหม่
             }
 
-            localStorage.setItem("cart", JSON.stringify(cart));
-            alert(product.name + " ถูกเพิ่มลงตะกร้าแล้ว!");
+            localStorage.setItem("cart", JSON.stringify(cart)); // บันทึกข้อมูลตะกร้ากลับไปที่ Local Storage
+
+            // ใช้ SweetAlert2 แทน alert()
+            Swal.fire({
+                icon: 'success',
+                title: 'เพิ่มสินค้าเรียบร้อย!',
+                text: product.name + ' ถูกเพิ่มลงตะกร้าแล้ว!',
+                showConfirmButton: false,
+                timer: 1500
+            });
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

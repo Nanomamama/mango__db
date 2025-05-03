@@ -14,37 +14,23 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <div class="container mt-4">
     <h2>ดำเนินการสั่งซื้อ</h2>
-    <form id="checkout-form">
-    <div class="mb-3">
-        <label for="customerName" class="form-label">👤 ชื่อลูกค้า</label>
-        <input type="text" class="form-control" id="customerName" required>
-    </div>
-
-    <div class="mb-3">
-        <label for="customerAddress" class="form-label">📍 ที่อยู่จัดส่ง</label>
-        <textarea class="form-control" id="customerAddress" rows="3" required></textarea>
-    </div>
-
-    <div class="mb-3">
-        <label for="customerPhone" class="form-label">📞 เบอร์โทรศัพท์</label>
-        <input type="tel" class="form-control" id="customerPhone" required>
-    </div>
-
-    <h4 class="text-end">ยอดรวม: ฿<span id="total-price">0.00</span></h4>
-
-    <div class="mb-3">
-        <label class="form-label">💳 วิธีการชำระเงิน</label>
-        <select class="form-select" id="paymentMethod" required>
-            <option value="">-- กรุณาเลือกวิธีชำระเงิน --</option>
-            <option value="cod">💸 เก็บเงินปลายทาง</option>
-            <option value="transfer">🏦 โอนเงินผ่านบัญชีธนาคาร</option>
-        </select>
-    </div>
-
-    <div class="d-flex justify-content-between mt-4">
-        <a href="cart.php" class="btn btn-secondary">🔙 กลับไปตะกร้า</a>
-        <button type="submit" class="btn btn-info">ยืนยันการสั่งซื้อ</button>
-    </div>
+    <form id="checkout-form" method="POST" action="process_checkout.php">
+        <h2>ข้อมูลลูกค้า</h2>
+        <div class="mb-3">
+            <label for="customer-name" class="form-label">ชื่อ-นามสกุล</label>
+            <input type="text" class="form-control" id="customer-name" name="customer_name" required>
+        </div>
+        <div class="mb-3">
+            <label for="customer-phone" class="form-label">เบอร์โทรศัพท์</label>
+            <input type="text" class="form-control" id="customer-phone" name="customer_phone" required>
+        </div>
+        <div class="mb-3">
+            <label for="customer-address" class="form-label">ที่อยู่สำหรับจัดส่ง</label>
+            <textarea class="form-control" id="customer-address" name="customer_address" rows="3" required></textarea>
+        </div>
+        <h2>รายการสินค้า</h2>
+        <div id="cart-summary"></div>
+        <button type="submit" class="btn btn-primary">ยืนยันการสั่งซื้อ</button>
     </form>
     <br>
 </div>
@@ -59,52 +45,43 @@
             total += item.price * item.quantity;
         });
 
-        $("#total-price").text(total.toFixed(2));
+        let summaryHtml = cart.map(item => `
+            <div class="d-flex justify-content-between">
+                <span>${item.name} x ${item.quantity}</span>
+                <span>฿${(item.price * item.quantity).toFixed(2)}</span>
+            </div>
+        `).join("");
+
+        summaryHtml += `<div class="text-end mt-3"><strong>ยอดรวม: ฿${total.toFixed(2)}</strong></div>`;
+
+        $("#cart-summary").html(summaryHtml);
     }
 
-    // เมื่อกดยืนยันคำสั่งซื้อ
-    $("#checkout-form").submit(function (event) {
-        event.preventDefault();
-
-        let customerName = $("#customerName").val();
-        let customerAddress = $("#customerAddress").val();
-        let customerPhone = $("#customerPhone").val();
-        let paymentMethod = $("#paymentMethod").val();
-        let cart = JSON.parse(localStorage.getItem("cart")) || [];
-
-        if (cart.length === 0) {
-            alert("❌ ตะกร้าสินค้าว่างอยู่!");
-            return;
-        }
-
-        if (!paymentMethod) {
-            alert("❗ กรุณาเลือกวิธีการชำระเงิน");
-            return;
-        }
-
-        let orderData = {
-            name: customerName,
-            address: customerAddress,
-            phone: customerPhone,
-            payment: paymentMethod,
-            items: cart,
-            total: $("#total-price").text()
-        };
-
-        // ส่งข้อมูลไปยังเซิร์ฟเวอร์
-        $.post("process_order.php", orderData, function (response) {
-            alert(response);
-            localStorage.removeItem("cart");
-
-            if (paymentMethod === "transfer") {
-                window.location.href = "bank_transfer.php?total=" + orderData.total;
-            } else {
-                window.location.href = "order_success.php";
-            }
-        });
-    });
-
     $(document).ready(loadCartSummary);
+
+    document.getElementById("checkout-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        let cart = JSON.parse(localStorage.getItem("cart")) || [];
+        let formData = new FormData(this);
+        formData.append("cart", JSON.stringify(cart));
+
+        fetch("process_checkout.php", {
+            method: "POST",
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire("สำเร็จ!", "การสั่งซื้อของคุณถูกบันทึกเรียบร้อยแล้ว", "success");
+                localStorage.removeItem("cart"); // ล้างตะกร้าสินค้า
+                setTimeout(() => window.location.href = "products.php", 2000);
+            } else {
+                Swal.fire("ผิดพลาด!", data.message, "error");
+            }
+        })
+        .catch(error => console.error("Error:", error));
+    });
 </script>
 
 </body>
