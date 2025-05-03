@@ -2,9 +2,6 @@
 require_once 'auth.php';
 ?>
 <?php
-// เริ่ม session
-session_start();
-
 // เชื่อมต่อฐานข้อมูล
 $conn = new mysqli("localhost", "root", "", "db_mango");
 if ($conn->connect_error) {
