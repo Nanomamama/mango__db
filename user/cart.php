@@ -27,7 +27,9 @@
     </div>
     <h3 class="mt-4 text-end">ยอดรวม: <span id="total-price">฿0.00</span></h3>
     <div class="text-end">
-        <button class="btn btn-primary mt-3" id="checkout-button">ดำเนินการชำระเงิน</button>
+
+        <a href="products.php" class="btn btn-warning">🔙 กลับ</a>
+        <a href="checkout.php" class="btn btn-primary "> ดำเนินการชำระเงิน</a>
     </div>
 </div>
 
