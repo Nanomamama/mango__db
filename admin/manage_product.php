@@ -1,5 +1,6 @@
 <?php
 require_once 'db.php'; // เชื่อมต่อฐานข้อมูล
+require_once 'auth.php';
 ?>
 
 <!DOCTYPE html>
@@ -13,6 +14,43 @@ require_once 'db.php'; // เชื่อมต่อฐานข้อมูล
     <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+    <style>
+        table.table {
+            border: 1px solid #ddd;
+            border-collapse: collapse;
+        }
+
+        table.table th, table.table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        table.table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+
+        table.table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        table.table tr:hover {
+            background-color: #f1f1f1;
+        }
+
+       
+    .product-image {
+        width: 400px; /* กำหนดความกว้าง */
+        height: 400px; /* กำหนดความสูง */
+        object-fit: cover; /* ครอบรูปภาพให้พอดีกับพื้นที่ */
+        border: 1px solid #ddd; /* เพิ่มเส้นขอบ */
+        border-radius: 5px; /* เพิ่มมุมโค้งมน */
+    }
+
+      
+    </style>
 </head>
 
 <body>
@@ -44,7 +82,9 @@ require_once 'db.php'; // เชื่อมต่อฐานข้อมูล
                     $images = json_decode($row['images'], true); // แปลง JSON เป็น Array
                 ?>
                 <tr>
-                    <td><img src="productsimage/<?= htmlspecialchars($images[0]) ?>" width="100"></td>
+                    <td>
+                        <img src="productsimage/<?= htmlspecialchars($images[0]) ?>" style="width: 150px; height: 150px; object-fit: cover; #ddd; border-radius: 5px;">
+                    </td>
                     <td><?= htmlspecialchars($row['name']) ?></td>
                     <td>คงเหลือ: <?= htmlspecialchars($row['stock']) ?> ชิ้น</td>
                     <td>
@@ -74,35 +114,24 @@ require_once 'db.php'; // เชื่อมต่อฐานข้อมูล
 
                     <!-- Modal สำหรับแสดงรายละเอียดสินค้า -->
                     <div class="modal fade" id="mangoDetailsModal<?= $row['id'] ?>" tabindex="-1" aria-labelledby="mangoDetailsModalLabel<?= $row['id'] ?>" aria-hidden="true">
-                      <div class="modal-dialog modal-lg">
+                      <div class="modal-dialog custom-modal modal-lg">
                         <div class="modal-content">
                           <div class="modal-header">
                             <h5 class="modal-title" id="mangoDetailsModalLabel<?= $row['id'] ?>">ข้อมูลรายละเอียดสินค้า</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                           </div>
                           <div class="modal-body">
-                            <div id="productImagesCarousel<?= $row['id'] ?>" class="carousel slide" data-bs-ride="carousel">
-                              <div class="carousel-inner">
-                                <?php foreach ($images as $index => $image): ?>
-                                <div class="carousel-item <?= $index === 0 ? 'active' : '' ?>">
-                                  <img src="productsimage/<?= htmlspecialchars($image) ?>" class="d-block w-100" alt="รูปที่ <?= $index + 1 ?>">
-                                </div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <?php foreach ($images as $image): ?>
+                                    <img src="productsimage/<?= htmlspecialchars($image) ?>" class="product-image" alt="รูปสินค้า">
                                 <?php endforeach; ?>
-                              </div>
-                              <button class="carousel-control-prev" type="button" data-bs-target="#productImagesCarousel<?= $row['id'] ?>" data-bs-slide="prev">
-                                <span class="carousel-control-prev-icon"></span>
-                                <span class="visually-hidden">Previous</span>
-                              </button>
-                              <button class="carousel-control-next" type="button" data-bs-target="#productImagesCarousel<?= $row['id'] ?>" data-bs-slide="next">
-                                <span class="carousel-control-next-icon"></span>
-                                <span class="visually-hidden">Next</span>
-                              </button>
                             </div>
                             <div class="mt-4">
                               <h5>ชื่อสินค้า: <?= htmlspecialchars($row['name']) ?></h5>
                               <h5>รายละเอียดสินค้า:</h5>
                               <p><?= htmlspecialchars($row['description']) ?></p>
                               <h6><strong>ราคา:</strong> <?= htmlspecialchars($row['price']) ?> บาท</h6>
+                              <h6>คลัง: <?= htmlspecialchars($row['stock']) ?></h6>
                             </div>
                           </div>
                           <div class="modal-footer">
