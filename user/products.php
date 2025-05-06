@@ -10,16 +10,11 @@
     <style>
         .cart-button {
             position: fixed;
-            bottom: 2px;
-            /* ระยะจากขอบล่าง */
-            left: 50%;
-            /* วางตรงกลางของหน้าจอ */
-            transform: translateX(-50%);
-            /* ปรับปุ่มให้อยู่ตรงกลาง */
-            z-index: 1050;
-            /* ให้อยู่หน้าสุด */
-            border-radius: 50px;
-            /* ทำให้ดูโค้งๆ */
+            bottom: 2px;/* ระยะจากขอบล่าง */
+            left: 50%; /* วางตรงกลางของหน้าจอ */
+            transform: translateX(-50%);/* ปรับปุ่มให้อยู่ตรงกลาง */
+            z-index: 1050; /* ให้อยู่หน้าสุด */
+            border-radius: 50px;/* ทำให้ดูโค้งๆ */
             padding: 12px 20px;
             font-size: 16px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
@@ -33,6 +28,8 @@
             display: block; /* ทำให้ภาพเป็นบล็อก */
             margin: auto; /* จัดให้อยู่ตรงกลาง */
         }
+
+       
     </style>
 </head>
 
@@ -87,8 +84,8 @@
                                 echo '            <h5 class="card-title">' . htmlspecialchars($product["name"]) . '</h5>';
                                 echo '            <p class="card-text text-danger fw-bold">฿' . number_format($product["price"], 2) . '</p>';
                                 echo'             <p>สินค้าคงเหลือ:' . htmlspecialchars($product["stock"]) . '</p>';
-                                echo '            <button class="btn btn-success add-to-cart" data-id="' . $product["id"] . '" data-name="' . htmlspecialchars($product["name"]) . '" data-price="' . $product["price"] . '">🛒 เพิ่มลงตะกร้า</button>';
                                 echo '            <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#productModal' . $product["id"] . '">ดูรายละเอียด</button>';
+                                echo '            <button class="btn btn-success add-to-cart" data-id="' . $product["id"] . '" data-name="' . htmlspecialchars($product["name"]) . '" data-price="' . $product["price"] . '" data-stock="' . $product["stock"] . '" data-image="../admin/productsimage/' . htmlspecialchars($image) . '" ' . ($product["stock"] == 0 ? 'disabled' : '') . '>🛒 เพิ่มลงตะกร้า</button>';
                                 echo '        </div>';
                                 echo '    </div>';
                                 echo '</div>';
@@ -121,7 +118,7 @@
                         ?>
                     </div>
 
-                    <a href="cart.php" class="btn btn-warning cart-button ">🛒 ไปที่ตะกร้าสินค้า</a>
+                    <a href="cart.php" class="btn btn-warning cart-button">🛒 ไปที่ตะกร้าสินค้า</a>
                 </div>
             </div>
         </div>
@@ -141,31 +138,31 @@
         });
 
         // เพิ่มสินค้าลงตะกร้า
-        $(".add-to-cart").click(function() {
+        $(".add-to-cart").click(function () {
             let product = {
                 id: $(this).data("id"),
                 name: $(this).data("name"),
-                price: parseFloat($(this).data("price")), // แปลง price เป็นตัวเลข
-                image: $(this).closest(".card").find("img").attr("src"),
-                quantity: 1
+                price: parseFloat($(this).data("price")),
+                image: $(this).data("image"),
+                quantity: 1,
+                stock: parseInt($(this).data("stock")) // ดึงจำนวนสต็อกจาก data-stock
             };
 
-            let cart = JSON.parse(localStorage.getItem("cart")) || []; // โหลดข้อมูลตะกร้าจาก Local Storage
-            let found = cart.find(item => item.id === product.id); // ตรวจสอบว่าสินค้าอยู่ในตะกร้าแล้วหรือไม่
+            let cart = JSON.parse(localStorage.getItem("cart")) || [];
+            let found = cart.find(item => item.id === product.id);
 
             if (found) {
-                found.quantity++; // หากมีสินค้าอยู่ในตะกร้าแล้ว ให้เพิ่มจำนวน
+                found.quantity++;
             } else {
-                cart.push(product); // หากยังไม่มีสินค้าในตะกร้า ให้เพิ่มสินค้าใหม่
+                cart.push(product);
             }
 
-            localStorage.setItem("cart", JSON.stringify(cart)); // บันทึกข้อมูลตะกร้ากลับไปที่ Local Storage
+            localStorage.setItem("cart", JSON.stringify(cart));
 
-            // ใช้ SweetAlert2 แทน alert()
             Swal.fire({
-                icon: 'success',
-                title: 'เพิ่มสินค้าเรียบร้อย!',
-                text: product.name + ' ถูกเพิ่มลงตะกร้าแล้ว!',
+                icon: "success",
+                title: "เพิ่มสินค้าเรียบร้อย!",
+                text: product.name + " ถูกเพิ่มลงตะกร้าแล้ว!",
                 showConfirmButton: false,
                 timer: 1500
             });

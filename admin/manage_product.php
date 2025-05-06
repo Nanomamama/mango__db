@@ -40,16 +40,13 @@ require_once 'auth.php';
             background-color: #f1f1f1;
         }
 
-       
-    .product-image {
-        width: 400px; /* กำหนดความกว้าง */
-        height: 400px; /* กำหนดความสูง */
-        object-fit: cover; /* ครอบรูปภาพให้พอดีกับพื้นที่ */
-        border: 1px solid #ddd; /* เพิ่มเส้นขอบ */
-        border-radius: 5px; /* เพิ่มมุมโค้งมน */
-    }
-
-      
+        .product-image {
+            width: 100%; /* ปรับให้รูปภาพเต็มความกว้างของคอลัมน์ */
+            height: auto; /* รักษาอัตราส่วนของรูปภาพ */
+            object-fit: cover; /* ครอบรูปภาพให้พอดีกับพื้นที่ */
+            border: 1px solid #ddd; /* เพิ่มเส้นขอบ */
+            border-radius: 5px; /* เพิ่มมุมโค้งมน */
+        }
     </style>
 </head>
 
@@ -75,7 +72,7 @@ require_once 'auth.php';
             </thead>
             <tbody>
                 <?php
-                $query = "SELECT * FROM products";
+                $query = "SELECT * FROM products ORDER BY id DESC";
                 $result = $conn->query($query);
 
                 while ($row = $result->fetch_assoc()):
@@ -114,24 +111,30 @@ require_once 'auth.php';
 
                     <!-- Modal สำหรับแสดงรายละเอียดสินค้า -->
                     <div class="modal fade" id="mangoDetailsModal<?= $row['id'] ?>" tabindex="-1" aria-labelledby="mangoDetailsModalLabel<?= $row['id'] ?>" aria-hidden="true">
-                      <div class="modal-dialog custom-modal modal-lg">
+                      <div class="modal-dialog modal-lg">
                         <div class="modal-content">
                           <div class="modal-header">
                             <h5 class="modal-title" id="mangoDetailsModalLabel<?= $row['id'] ?>">ข้อมูลรายละเอียดสินค้า</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                           </div>
                           <div class="modal-body">
-                            <div class="d-flex flex-wrap gap-2">
-                                <?php foreach ($images as $image): ?>
-                                    <img src="productsimage/<?= htmlspecialchars($image) ?>" class="product-image" alt="รูปสินค้า">
-                                <?php endforeach; ?>
-                            </div>
-                            <div class="mt-4">
-                              <h5>ชื่อสินค้า: <?= htmlspecialchars($row['name']) ?></h5>
-                              <h5>รายละเอียดสินค้า:</h5>
-                              <p><?= htmlspecialchars($row['description']) ?></p>
-                              <h6><strong>ราคา:</strong> <?= htmlspecialchars($row['price']) ?> บาท</h6>
-                              <h6>คลัง: <?= htmlspecialchars($row['stock']) ?></h6>
+                            <div class="row">
+                              <!-- รูปภาพสินค้า -->
+                              <div class="col-md-6">
+                                <div class="d-flex flex-wrap gap-2">
+                                  <?php foreach ($images as $image): ?>
+                                    <img src="productsimage/<?= htmlspecialchars($image) ?>" class="product-image mb-2" alt="รูปสินค้า">
+                                  <?php endforeach; ?>
+                                </div>
+                              </div>
+                              <!-- ข้อมูลสินค้า -->
+                              <div class="col-md-6">
+                                <h5><strong>ชื่อสินค้า:</strong> <?= htmlspecialchars($row['name']) ?></h5>
+                                <h6><strong>ราคา:</strong> ฿<?= htmlspecialchars($row['price']) ?></h6>
+                                <h6><strong>คงเหลือในคลัง:</strong> <?= htmlspecialchars($row['stock']) ?> ชิ้น</h6>
+                                <h6><strong>รายละเอียดสินค้า:</strong></h6>
+                                <p><?= htmlspecialchars($row['description']) ?></p>
+                              </div>
                             </div>
                           </div>
                           <div class="modal-footer">

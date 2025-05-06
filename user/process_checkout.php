@@ -24,6 +24,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode(['success' => false, 'message' => 'กรุณากรอกข้อมูลให้ครบถ้วน']);
         exit;
     }
+//ห้ตรวจสอบว่ามีการส่งข้อมูล bank_name มาหรือไม่ หากผู้ใช้เลือกวิธีการชำระเงินแบบ "โอนเงินผ่านธนาคาร":
+    if ($payment_method === 'bank') {
+        $bank_name = htmlspecialchars($_POST['bank_name']);
+        if (empty($bank_name)) {
+            echo json_encode(['success' => false, 'message' => 'กรุณาเลือกธนาคาร']);
+            exit;
+        }
+    }
 
     // คำนวณยอดรวม
     $total_price = 0;
