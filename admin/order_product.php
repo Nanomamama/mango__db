@@ -58,7 +58,6 @@ if (!$result) {
                         <td>฿<?php echo number_format($row['total_price'], 2); ?></td>
                         <td class="d-flex">
                             <a href="order_details.php?order_id=<?php echo $row['id']; ?>" class="btn btn-info btn-sm">🔍 ดูรายละเอียด</a>
-                            <button class="btn btn-success btn-sm" onclick="updateStatus(<?php echo $row['id']; ?>, 'กำลังจัดส่ง')">🚚 จัดส่ง</button>
                         </td>
                     </tr>
                 <?php endwhile; ?>

@@ -4,16 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>✅ ดำเนินการสั่งซื้อ</title>
-   
-</head>
-<body>
-<?php include 'navbar.php'; ?>
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+</head>
+<body>
+<?php include 'navbar.php'; ?>
+<br>
+<br>
+<br>
 <div class="container mt-4">
+   
     <div class="row justify-content-center">
         <div class="col-md-6">
             <form id="checkout-form" method="POST" action="process_checkout.php">
@@ -64,6 +67,12 @@
                             เก็บเงินปลายทาง
                         </label>
                     </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="payment_method" id="payment-promptpay" value="promptpay">
+                        <label class="form-check-label" for="payment-promptpay">
+                            ชำระเงินผ่าน PromptPay
+                        </label>
+                    </div>
                 </div>
 
                 <div class="mb-3" id="bank-selection" style="display: none;">
@@ -76,7 +85,17 @@
                         <option value="ktb">ธนาคารกรุงไทย</option>
                     </select>
                 </div>
-
+                <!-- เพิ่มโค้ด QR Payment -->
+                <div id="qr-payment" class="text-center mt-4" style="display: none;">
+                    <h5>📱 สแกนเพื่อชำระเงิน (PromptPay)</h5>
+                    <img id="promptpay-qr" alt="PromptPay QR Code" style="width: 250px; height: 250px;">
+                    <p class="mt-2" style="color: green;">โปรดชำระเงินให้ตรงยอด และแนบสลิปในขั้นตอนถัดไป</p>
+                </div>
+                <div class="mb-3" id="slip-upload" style="display: none;">
+                    <label for="payment-slip" class="form-label">แนบสลิปโอนเงิน</label>
+                    <input type="file" class="form-control" id="payment-slip" name="payment_slip" accept="image/*">
+                </div>
+                
                 <h4>รายการสินค้า</h4>
                 <div id="cart-summary"></div>
                 <div class="d-flex justify-content-between mt-4">
@@ -89,6 +108,8 @@
 </div>
 <?php include 'footer.php'; ?>
 <script>
+    const promptpayNumber = "1429500011543"; // หมายเลข PromptPay ของคุณ
+
     // โหลดข้อมูลจากตะกร้า
     function loadCartSummary() {
         let cart = JSON.parse(localStorage.getItem("cart")) || [];
@@ -119,11 +140,37 @@
         document.querySelectorAll('input[name="payment_method"]').forEach(input => {
             input.addEventListener('change', function () {
                 const bankSelection = document.getElementById('bank-selection');
+                const qrPayment = document.getElementById('qr-payment');
+                const promptpayQR = document.getElementById('promptpay-qr');
+                const slipUpload = document.getElementById('slip-upload');
+
                 if (this.value === 'bank') {
                     bankSelection.style.display = 'block'; // แสดงฟิลด์เลือกธนาคาร
+                    qrPayment.style.display = 'none'; // ซ่อน QR Payment
+                    slipUpload.style.display = 'block'; // แสดงฟิลด์แนบสลิป
+                } else if (this.value === 'promptpay') {
+                    bankSelection.style.display = 'none'; // ซ่อนฟิลด์เลือกธนาคาร
+                    qrPayment.style.display = 'block'; // แสดง QR Payment
+                    slipUpload.style.display = 'block'; // แสดงฟิลด์แนบสลิป
+
+                    // เพิ่มโค้ดนี้สำหรับสร้าง QR Code
+                    if (localStorage.getItem("cart")) {
+                        const cart = JSON.parse(localStorage.getItem("cart"));
+                        const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2);
+
+                        if (promptpayNumber && totalAmount > 0) {
+                            const qrUrl = `https://promptpay.io/${promptpayNumber}/${totalAmount}.png`;
+                            $("#promptpay-qr").attr("src", qrUrl);
+                        } else {
+                            console.error("PromptPay Number หรือยอดเงินไม่ถูกต้อง");
+                        }
+                    } else {
+                        console.error("ไม่มีข้อมูลในตะกร้าสินค้า");
+                    }
                 } else {
                     bankSelection.style.display = 'none'; // ซ่อนฟิลด์เลือกธนาคาร
-                    document.getElementById('bank-name').value = ''; // ล้างค่าที่เลือกไว้
+                    qrPayment.style.display = 'none'; // ซ่อน QR Payment
+                    slipUpload.style.display = 'none'; // ซ่อนฟิลด์แนบสลิป
                 }
             });
         });
