@@ -19,7 +19,7 @@
    
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <form id="checkout-form" method="POST" action="process_checkout.php">
+            <form id="checkout-form" method="POST" action="process_checkout.php" enctype="multipart/form-data">
                 <h2 class="text-center">ดำเนินการสั่งซื้อ</h2>
                 <h4>ข้อมูลลูกค้า</h4>
                 <div class="mb-3">
@@ -37,16 +37,22 @@
                     <input type="text" class="form-control" id="address-number" name="address_number" required>
                 </div>
                 <div class="mb-3">
-                    <label for="sub-district" class="form-label">ตำบล</label>
-                    <input type="text" class="form-control" id="sub-district" name="sub_district" required>
+                    <label for="province" class="form-label">จังหวัด</label>
+                    <select class="form-control" id="province" name="province" required>
+                        <option value="">-- เลือกจังหวัด --</option>
+                    </select>
                 </div>
                 <div class="mb-3">
                     <label for="district" class="form-label">อำเภอ</label>
-                    <input type="text" class="form-control" id="district" name="district" required>
+                    <select class="form-control" id="district" name="district" required>
+                        <option value="">-- เลือกอำเภอ --</option>
+                    </select>
                 </div>
                 <div class="mb-3">
-                    <label for="province" class="form-label">จังหวัด</label>
-                    <input type="text" class="form-control" id="province" name="province" required>
+                    <label for="subdistrict" class="form-label">ตำบล</label>
+                    <select class="form-control" id="subdistrict" name="sub_district" required>
+                        <option value="">-- เลือกตำบล --</option>
+                    </select>
                 </div>
                 <div class="mb-3">
                     <label for="postal-code" class="form-label">รหัสไปรษณีย์</label>
@@ -134,6 +140,77 @@
         $("#cart-summary").html(summaryHtml);
     }
 
+    let provinces = [];
+    let districts = [];
+    let subdistricts = [];
+
+    // ดึงข้อมูลจาก API
+    Promise.all([
+        fetch('../data/api_province.json')
+            .then(res => res.text()) // ใช้ .text() เพื่อดูข้อมูลที่ได้รับ
+            .then(data => {
+                console.log("Response data:", data); // ตรวจสอบข้อมูลใน Console
+                return JSON.parse(data); // แปลงเป็น JSON หากข้อมูลถูกต้อง
+            })
+            .catch(error => console.error("Error parsing JSON:", error)),
+        fetch('../data/thai_amphures.json').then(res => {
+            if (!res.ok) throw new Error(`Error loading thai_amphures.json: ${res.status}`);
+            return res.json();
+        }),
+        fetch('../data/thai_tambons.json').then(res => {
+            if (!res.ok) throw new Error(`Error loading thai_tambons.json: ${res.status}`);
+            return res.json();
+        })
+    ]).then(([provData, distData, subDistData]) => {
+        provinces = provData;
+        districts = distData;
+        subdistricts = subDistData;
+        loadProvinces(); // เริ่มต้นด้วยการโหลดจังหวัด
+    }).catch(error => {
+        console.error("Error loading data:", error);
+        Swal.fire("เกิดข้อผิดพลาด", "ไม่สามารถโหลดข้อมูลที่อยู่ได้", "error");
+    });
+
+    // โหลดข้อมูลจังหวัด
+    function loadProvinces() {
+        const provSelect = document.getElementById("province");
+        provSelect.innerHTML = '<option value="">-- เลือกจังหวัด --</option>';
+        provinces.forEach(prov => {
+            provSelect.innerHTML += `<option value="${prov.id}">${prov.name_th}</option>`;
+        });
+
+        provSelect.onchange = function () {
+            const provId = this.value;
+            loadDistricts(provId); // โหลดอำเภอเมื่อเลือกจังหวัด
+            document.getElementById("subdistrict").innerHTML = '<option value="">-- เลือกตำบล --</option>'; // รีเซ็ตตำบล
+        };
+    }
+
+    // โหลดข้อมูลอำเภอ
+    function loadDistricts(provinceId) {
+        const distSelect = document.getElementById("district");
+        distSelect.innerHTML = '<option value="">-- เลือกอำเภอ --</option>';
+        const filteredDistricts = districts.filter(dist => dist.province_id == provinceId); // กรองอำเภอตาม province_id
+        filteredDistricts.forEach(dist => {
+            distSelect.innerHTML += `<option value="${dist.id}">${dist.name_th}</option>`;
+        });
+
+        distSelect.onchange = function () {
+            const distId = this.value;
+            loadSubdistricts(distId); // โหลดตำบลเมื่อเลือกอำเภอ
+        };
+    }
+
+    // โหลดข้อมูลตำบล
+    function loadSubdistricts(districtId) {
+        const subDistSelect = document.getElementById("subdistrict");
+        subDistSelect.innerHTML = '<option value="">-- เลือกตำบล --</option>';
+        const filteredSubdistricts = subdistricts.filter(sub => sub.amphure_id == districtId); // กรองตำบลตาม amphure_id
+        filteredSubdistricts.forEach(sub => {
+            subDistSelect.innerHTML += `<option value="${sub.id}">${sub.name_th}</option>`;
+        });
+    }
+
     $(document).ready(function () {
         loadCartSummary();
 
@@ -183,7 +260,7 @@
         let formData = new FormData(this); // สร้าง FormData จากฟอร์ม
         formData.append("cart", JSON.stringify(cart)); // เพิ่มข้อมูล cart ลงใน FormData
 
-        fetch("process_checkout.php", {
+        fetch("checkout.php", { // เปลี่ยนเส้นทางเป็น checkout.php
             method: "POST",
             body: formData
         })
@@ -197,9 +274,72 @@
                 Swal.fire("ผิดพลาด!", data.message, "error");
             }
         })
-        .catch(error => console.error("Error:", error));
+        .catch(error => {
+            console.error("Error:", error);
+            Swal.fire("เกิดข้อผิดพลาด", "ไม่สามารถดำเนินการได้", "error");
+        });
     });
 </script>
 
 </body>
 </html>
+
+<?php
+require_once '../admin/db.php'; // เชื่อมต่อฐานข้อมูล
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // รับข้อมูลจากฟอร์ม
+    $customer_name = $_POST['customer_name'];
+    $customer_phone = $_POST['customer_phone'];
+    $address_number = $_POST['address_number'];
+    $sub_district = $_POST['sub_district'];
+    $district = $_POST['district'];
+    $province = $_POST['province'];
+    $postal_code = $_POST['postal_code'];
+    $payment_method = $_POST['payment_method'];
+    $cart = json_decode($_POST['cart'], true);
+
+    // ตรวจสอบว่ามีการแนบไฟล์สลิปหรือไม่
+    $slip_data = null;
+    if ($payment_method === 'bank' || $payment_method === 'promptpay') {
+        if (isset($_FILES['payment_slip']) && $_FILES['payment_slip']['error'] === UPLOAD_ERR_OK) {
+            $slip_data = base64_encode(file_get_contents($_FILES['payment_slip']['tmp_name']));
+        }
+    }
+
+    // คำนวณยอดรวม
+    $total_price = 0;
+    foreach ($cart as $item) {
+        $total_price += $item['price'] * $item['quantity'];
+    }
+
+    // บันทึกคำสั่งซื้อในตาราง `orders`
+    $query = "INSERT INTO orders (customer_name, customer_phone, address_number, sub_district, district, province, postal_code, payment_method, total_price, slip_path, status, created_at) 
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("ssssssssdss", $customer_name, $customer_phone, $address_number, $sub_district, $district, $province, $postal_code, $payment_method, $total_price, $slip_data);
+    if (!$stmt->execute()) {
+        echo json_encode(['success' => false, 'message' => 'ไม่สามารถบันทึกคำสั่งซื้อได้']);
+        exit;
+    }
+
+    // รับ ID ของคำสั่งซื้อที่เพิ่งบันทึก
+    $order_id = $stmt->insert_id;
+
+    // บันทึกรายการสินค้าในตาราง `order_items`
+    foreach ($cart as $item) {
+        $product_id = $item['id'];
+        $quantity = $item['quantity'];
+        $price = $item['price'];
+
+        $query = "INSERT INTO order_items (order_id, product_id, quantity, price, created_at) VALUES (?, ?, ?, ?, NOW())";
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("iiid", $order_id, $product_id, $quantity, $price);
+        $stmt->execute();
+    }
+
+    echo json_encode(['success' => true, 'message' => 'การสั่งซื้อสำเร็จ', 'order_id' => $order_id]);
+    exit;
+}
+?>
+
