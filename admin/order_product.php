@@ -1,5 +1,16 @@
 <?php
 require_once 'auth.php';
+require_once 'db.php'; // เชื่อมต่อฐานข้อมูล
+
+// ดึงข้อมูลคำสั่งซื้อจากฐานข้อมูล
+$query = "SELECT id, created_at, status, total_price, customer_name 
+          FROM orders 
+          ORDER BY created_at DESC";
+$result = $conn->query($query);
+
+if (!$result) {
+    die("เกิดข้อผิดพลาดในการดึงข้อมูลคำสั่งซื้อ: " . $conn->error);
+}
 ?>
 
 <!DOCTYPE html>
@@ -19,8 +30,7 @@ require_once 'auth.php';
 <div class="d-flex">
     <div class="p-4" style="margin-left: 250px; flex: 2;">
         <h2>📦 จัดการคำสั่งซื้อ</h2>
-        <input type="text" id="searchBox" class="form-control mb-3" placeholder="🔍 ค้นหาคำสั่งซื้อ...">
-        <table  class="table table-bordered">
+        <table id="ordersTable" class="table table-bordered">
             <thead>
                 <tr>
                     <th>#</th>
@@ -32,36 +42,61 @@ require_once 'auth.php';
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>1001</td>
-                    <td>สมชาย ใจดี</td>
-                    <td>2025-03-30</td>
-                    <td><span class="badge bg-warning">รอดำเนินการ</span></td>
-                    <td>฿500</td>
-                    <td class="d-flex ">
-                        <a href="order_details.php" class="btn btn-info btn-sm">🔍 ดูรายละเอียด</a>
-                        <button class="btn btn-success btn-sm" onclick="updateStatus(1001, 'กำลังจัดส่ง')">🚚 จัดส่ง</button>
-                    </td>
-                </tr>
-                <!-- เพิ่มรายการอื่น ๆ -->
+                <?php while ($row = $result->fetch_assoc()): ?>
+                    <tr>
+                        <td><?php echo $row['id']; ?></td>
+                        <td><?php echo htmlspecialchars($row['customer_name']); ?></td>
+                        <td><?php echo htmlspecialchars($row['created_at']); ?></td>
+                        <td>
+                            <?php
+                            $status = $row['status'];
+                            $badgeClass = $status === 'รอดำเนินการ' ? 'bg-warning' :
+                                          ($status === 'กำลังจัดส่ง' ? 'bg-primary' : 'bg-success');
+                            ?>
+                            <span class="badge <?php echo $badgeClass; ?>"><?php echo htmlspecialchars($status); ?></span>
+                        </td>
+                        <td>฿<?php echo number_format($row['total_price'], 2); ?></td>
+                        <td class="d-flex">
+                            <a href="order_details.php?order_id=<?php echo $row['id']; ?>" class="btn btn-info btn-sm">🔍 ดูรายละเอียด</a>
+                        </td>
+                    </tr>
+                <?php endwhile; ?>
             </tbody>
         </table>
-       <div class="ps-4">
-       <a href="manage_product.php" class=" btn btn-info " >🔙 กลับ</a>
-
-       </div>
-
     </div>
 </div>
 
 <script>
 $(document).ready(function () {
-    $("#ordersTable").DataTable();
+    $("#ordersTable").DataTable({
+        language: {
+            search: "ค้นหา:",
+            lengthMenu: "แสดง _MENU_ รายการ",
+            info: "แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ",
+            paginate: {
+                first: "หน้าแรก",
+                last: "หน้าสุดท้าย",
+                next: "ถัดไป",
+                previous: "ก่อนหน้า"
+            }
+        }
+    });
 });
 
 function updateStatus(orderId, status) {
     if (confirm("ต้องการเปลี่ยนสถานะเป็น '" + status + "' ใช่หรือไม่?")) {
-        alert("อัปเดตสถานะเป็น '" + status + "' สำเร็จ!");
+        $.ajax({
+            url: "update_order_status.php",
+            type: "POST",
+            data: { order_id: orderId, status: status },
+            success: function (response) {
+                alert("อัปเดตสถานะเป็น '" + status + "' สำเร็จ!");
+                location.reload();
+            },
+            error: function () {
+                alert("เกิดข้อผิดพลาดในการอัปเดตสถานะ");
+            }
+        });
     }
 }
 </script>

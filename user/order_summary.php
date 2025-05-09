@@ -15,7 +15,10 @@ $stmt->execute();
 $order = $stmt->get_result()->fetch_assoc();
 
 // ดึงรายการสินค้า
-$query = "SELECT oi.*, p.name AS product_name FROM order_items oi JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?";
+$query = "SELECT oi.*, p.name AS product_name, p.images AS product_image 
+          FROM order_items oi 
+          JOIN products p ON oi.product_id = p.id 
+          WHERE oi.order_id = ?";
 $stmt = $conn->prepare($query);
 $stmt->bind_param("i", $order_id);
 $stmt->execute();
@@ -51,6 +54,7 @@ $items = $stmt->get_result();
     <table class="table table-bordered">
         <thead>
             <tr>
+                <th>รูปภาพ</th>
                 <th>สินค้า</th>
                 <th>จำนวน</th>
                 <th>ราคา (ต่อหน่วย)</th>
@@ -59,7 +63,16 @@ $items = $stmt->get_result();
         </thead>
         <tbody>
             <?php while ($item = $items->fetch_assoc()): ?>
+                <?php 
+                $images = json_decode($item['product_image'], true); 
+                $product_image = isset($images[0]) ? $images[0] : 'default.jpg';
+                ?>
                 <tr>
+                    <td>
+                        <img src="productsimage/<?php echo htmlspecialchars($product_image); ?>" 
+                             alt="<?php echo htmlspecialchars($item['product_name']); ?>" 
+                             style="width: 50px; height: 50px; object-fit: cover; border: 1px solid #ddd; border-radius: 5px;">
+                    </td>
                     <td><?php echo htmlspecialchars($item['product_name']); ?></td>
                     <td><?php echo htmlspecialchars($item['quantity']); ?></td>
                     <td>฿<?php echo number_format($item['price'], 2); ?></td>
