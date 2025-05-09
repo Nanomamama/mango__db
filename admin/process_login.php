@@ -3,38 +3,28 @@
 session_start();
 require_once 'db.php'; // ไฟล์เชื่อมต่อฐานข้อมูล
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+$login = $_POST['login'] ?? '';
+$password = $_POST['password'] ?? '';
 
-    // ตรวจสอบข้อมูลในฐานข้อมูล
-    $stmt = $conn->prepare("SELECT id, password FROM admin_users WHERE username = ?");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $stmt->store_result();
-
-    if ($stmt->num_rows > 0) {
-        $stmt->bind_result($id, $hashed_password);
-        $stmt->fetch();
-
-        // ตรวจสอบรหัสผ่าน
-        if (password_verify($password, $hashed_password)) {
-            $_SESSION['admin_logged_in'] = true;
-            $_SESSION['admin_id'] = $id;
-            header("Location: index.php"); // เปลี่ยนเส้นทางไปยังหน้า Dashboard
-            exit();
-        } else {
-            $error_message = "รหัสผ่านไม่ถูกต้อง";
-        }
-    } else {
-        $error_message = "ไม่พบชื่อผู้ใช้";
-    }
-
-    $stmt->close();
-    $conn->close();
+if (!$login || !$password) {
+    header("Location: admin_login.php?error=กรุณากรอกข้อมูลให้ครบถ้วน");
+    exit;
 }
 
-// แสดงข้อความข้อผิดพลาดและเปลี่ยนเส้นทางกลับไปยังหน้า Login
-header("Location: admin_login.php?error=" . urlencode($error_message));
-exit();
+// ค้นหาจาก username หรือ email
+$stmt = $conn->prepare("SELECT * FROM admin_users WHERE username = ? OR email = ? LIMIT 1");
+$stmt->bind_param("ss", $login, $login);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
+
+if ($user && password_verify($password, $user['password'])) {
+    $_SESSION['username'] = $user['username'];
+    $_SESSION['admin_id'] = $user['id'];
+    header("Location: index.php");
+    exit;
+} else {
+    header("Location: admin_login.php?error=ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
+    exit;
+}
 ?>
