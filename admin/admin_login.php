@@ -37,8 +37,8 @@
         <h2 class="text-center mb-4">Admin Login</h2>
 
         <div class="mb-3">
-            <label for="username" class="form-label">Username</label>
-            <input type="text" class="form-control" id="username" name="username" placeholder="Enter username" required>
+            <label for="login" class="form-label">Username หรือ Email</label>
+            <input type="text" class="form-control" id="login" name="login" placeholder="กรอก Username หรือ Email" required>
         </div>
 
         <div class="mb-3">
