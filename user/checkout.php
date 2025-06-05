@@ -38,19 +38,19 @@
                 </div>
                 <div class="mb-3">
                     <label for="province" class="form-label">จังหวัด</label>
-                    <select class="form-control" id="province" name="province" required>
+                    <select class="form-control" id="province" name="province_id" required>
                         <option value="">-- เลือกจังหวัด --</option>
                     </select>
                 </div>
                 <div class="mb-3">
                     <label for="district" class="form-label">อำเภอ</label>
-                    <select class="form-control" id="district" name="district" required>
+                    <select class="form-control" id="district" name="district_id" required>
                         <option value="">-- เลือกอำเภอ --</option>
                     </select>
                 </div>
                 <div class="mb-3">
                     <label for="subdistrict" class="form-label">ตำบล</label>
-                    <select class="form-control" id="subdistrict" name="sub_district" required>
+                    <select class="form-control" id="subdistrict" name="subdistrict_id" required>
                         <option value="">-- เลือกตำบล --</option>
                     </select>
                 </div>
@@ -146,21 +146,9 @@
 
     // ดึงข้อมูลจาก API
     Promise.all([
-        fetch('../data/api_province.json')
-            .then(res => res.text()) // ใช้ .text() เพื่อดูข้อมูลที่ได้รับ
-            .then(data => {
-                console.log("Response data:", data); // ตรวจสอบข้อมูลใน Console
-                return JSON.parse(data); // แปลงเป็น JSON หากข้อมูลถูกต้อง
-            })
-            .catch(error => console.error("Error parsing JSON:", error)),
-        fetch('../data/thai_amphures.json').then(res => {
-            if (!res.ok) throw new Error(`Error loading thai_amphures.json: ${res.status}`);
-            return res.json();
-        }),
-        fetch('../data/thai_tambons.json').then(res => {
-            if (!res.ok) throw new Error(`Error loading thai_tambons.json: ${res.status}`);
-            return res.json();
-        })
+        fetch('../data/api_province.json').then(res => res.json()),
+        fetch('../data/thai_amphures.json').then(res => res.json()),
+        fetch('../data/thai_tambons.json').then(res => res.json())
     ]).then(([provData, distData, subDistData]) => {
         provinces = provData;
         districts = distData;
@@ -260,7 +248,7 @@
         let formData = new FormData(this); // สร้าง FormData จากฟอร์ม
         formData.append("cart", JSON.stringify(cart)); // เพิ่มข้อมูล cart ลงใน FormData
 
-        fetch("checkout.php", { // เปลี่ยนเส้นทางเป็น checkout.php
+        fetch("process_checkout.php", {
             method: "POST",
             body: formData
         })
@@ -284,62 +272,5 @@
 </body>
 </html>
 
-<?php
-require_once '../admin/db.php'; // เชื่อมต่อฐานข้อมูล
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // รับข้อมูลจากฟอร์ม
-    $customer_name = $_POST['customer_name'];
-    $customer_phone = $_POST['customer_phone'];
-    $address_number = $_POST['address_number'];
-    $sub_district = $_POST['sub_district'];
-    $district = $_POST['district'];
-    $province = $_POST['province'];
-    $postal_code = $_POST['postal_code'];
-    $payment_method = $_POST['payment_method'];
-    $cart = json_decode($_POST['cart'], true);
-
-    // ตรวจสอบว่ามีการแนบไฟล์สลิปหรือไม่
-    $slip_data = null;
-    if ($payment_method === 'bank' || $payment_method === 'promptpay') {
-        if (isset($_FILES['payment_slip']) && $_FILES['payment_slip']['error'] === UPLOAD_ERR_OK) {
-            $slip_data = base64_encode(file_get_contents($_FILES['payment_slip']['tmp_name']));
-        }
-    }
-
-    // คำนวณยอดรวม
-    $total_price = 0;
-    foreach ($cart as $item) {
-        $total_price += $item['price'] * $item['quantity'];
-    }
-
-    // บันทึกคำสั่งซื้อในตาราง `orders`
-    $query = "INSERT INTO orders (customer_name, customer_phone, address_number, sub_district, district, province, postal_code, payment_method, total_price, slip_path, status, created_at) 
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())";
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param("ssssssssdss", $customer_name, $customer_phone, $address_number, $sub_district, $district, $province, $postal_code, $payment_method, $total_price, $slip_data);
-    if (!$stmt->execute()) {
-        echo json_encode(['success' => false, 'message' => 'ไม่สามารถบันทึกคำสั่งซื้อได้']);
-        exit;
-    }
-
-    // รับ ID ของคำสั่งซื้อที่เพิ่งบันทึก
-    $order_id = $stmt->insert_id;
-
-    // บันทึกรายการสินค้าในตาราง `order_items`
-    foreach ($cart as $item) {
-        $product_id = $item['id'];
-        $quantity = $item['quantity'];
-        $price = $item['price'];
-
-        $query = "INSERT INTO order_items (order_id, product_id, quantity, price, created_at) VALUES (?, ?, ?, ?, NOW())";
-        $stmt = $conn->prepare($query);
-        $stmt->bind_param("iiid", $order_id, $product_id, $quantity, $price);
-        $stmt->execute();
-    }
-
-    echo json_encode(['success' => true, 'message' => 'การสั่งซื้อสำเร็จ', 'order_id' => $order_id]);
-    exit;
-}
-?>
 

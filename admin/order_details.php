@@ -5,7 +5,7 @@ require_once 'db.php';
 $order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
 
 // ดึงข้อมูลคำสั่งซื้อ
-$query_order = "SELECT customer_name, address_number, sub_district, district, province, postal_code, payment_method, total_price, created_at, status 
+$query_order = "SELECT customer_name, address_number, province_id, district_id, subdistrict_id, postal_code, payment_method, total_price, created_at, status, slip_path 
                 FROM orders 
                 WHERE id = ?";
 $stmt_order = $conn->prepare($query_order);
@@ -17,6 +17,21 @@ $order = $result_order->fetch_assoc();
 if (!$order) {
     die("ไม่พบคำสั่งซื้อที่ระบุ");
 }
+
+// โหลด json จังหวัด/อำเภอ/ตำบล
+function getNameById($array, $id) {
+    foreach ($array as $item) {
+        if ($item['id'] == $id) return $item['name_th'];
+    }
+    return '';
+}
+$provinces = json_decode(file_get_contents('../data/api_province.json'), true);
+$districts = json_decode(file_get_contents('../data/thai_amphures.json'), true);
+$subdistricts = json_decode(file_get_contents('../data/thai_tambons.json'), true);
+
+$province_name = getNameById($provinces, $order['province_id']);
+$district_name = getNameById($districts, $order['district_id']);
+$subdistrict_name = getNameById($subdistricts, $order['subdistrict_id']);
 
 // ดึงข้อมูลสินค้าในคำสั่งซื้อ
 $query_items = "SELECT products.name AS product_name, products.images AS product_image, 
@@ -48,10 +63,23 @@ $result_items = $stmt_items->get_result();
         <h2>📄 รายละเอียดคำสั่งซื้อ #<?php echo $order_id; ?></h2>
         
         <h5>👤 ลูกค้า: <?php echo htmlspecialchars($order['customer_name']); ?></h5>
-        <h5>📍 ที่อยู่จัดส่ง: <?php echo htmlspecialchars($order['address_number'] . ', ' . $order['sub_district'] . ', ' . $order['district'] . ', ' . $order['province'] . ', ' . $order['postal_code']); ?></h5>
+        <h5>📍 ที่อยู่จัดส่ง: 
+            <?php
+                echo htmlspecialchars($order['address_number']) . ', ';
+                echo htmlspecialchars($subdistrict_name) . ', ';
+                echo htmlspecialchars($district_name) . ', ';
+                echo htmlspecialchars($province_name) . ', ';
+                echo htmlspecialchars($order['postal_code']);
+            ?>
+        </h5>
         <h5>💳 วิธีชำระเงิน: <?php echo htmlspecialchars($order['payment_method']); ?></h5>
         <h5>🕒 วันที่สั่งซื้อ: <?php echo htmlspecialchars($order['created_at']); ?></h5>
         <h5>💰 ยอดรวม: ฿<?php echo number_format($order['total_price'], 2); ?></h5>
+
+        <?php if (!empty($order['slip_path'])): ?>
+            <h5>สลิปโอนเงิน:</h5>
+            <img src="data:image/png;base64,<?php echo $order['slip_path']; ?>" style="max-width:200px;max-height:200px;">
+        <?php endif; ?>
 
         <table class="table table-bordered mt-3">
             <thead>
@@ -66,22 +94,17 @@ $result_items = $stmt_items->get_result();
             <tbody>
                 <?php while ($item = $result_items->fetch_assoc()): ?>
                     <?php 
-                    // ตรวจสอบว่ามีชื่อไฟล์รูปภาพในฐานข้อมูลหรือไม่
-                    $product_image = !empty($item['product_image']) ? $item['product_image'] : 'default.jpg';
-
-                    // สร้างเส้นทางไปยังโฟลเดอร์รูปภาพ
-                    $image_path = "productsimage/" . htmlspecialchars($product_image);
-
-                    // ตรวจสอบว่ารูปภาพมีอยู่ในโฟลเดอร์หรือไม่
-                    if (!file_exists($image_path)) {
-                        $image_path = "productsimage/default.jpg"; // ใช้รูปภาพเริ่มต้นหากไม่พบไฟล์
-                    }
+                    // ดึงชื่อไฟล์รูปแรกจาก JSON
+                    $images = json_decode($item['product_image'], true);
+                    $product_image = (is_array($images) && isset($images[0]) && !empty($images[0])) ? $images[0] : 'default.jpg';
+                    $image_path = "../admin/productsimage/" . htmlspecialchars($product_image);
                     ?>
                     <tr>
                         <td>
                             <img src="<?php echo $image_path; ?>" 
                                  alt="<?php echo htmlspecialchars($item['product_name']); ?>" 
-                                 style="width: 50px; height: 50px; object-fit: cover; border: 1px solid #ddd; border-radius: 5px;">
+                                 style="width: 50px; height: 50px; object-fit: cover; border: 1px solid #ddd; border-radius: 5px;"
+                                 onerror="this.onerror=null;this.src='../admin/productsimage/default.jpg';">
                         </td>
                         <td><?php echo htmlspecialchars($item['product_name']); ?></td>
                         <td><?php echo $item['quantity']; ?></td>
