@@ -82,12 +82,12 @@
         <a href="./index.php" class="nav-link<?php if(basename($_SERVER['PHP_SELF'])=='index.php') echo ' active'; ?>">
             <i class='bx bxs-dashboard'></i> Dashboard
         </a>
-        <!-- <a href="./edit_home.php" class="nav-link<?php if(basename($_SERVER['PHP_SELF'])=='edit_home.php') echo ' active'; ?>">
+        <a href="./edit_home.php" class="nav-link<?php if(basename($_SERVER['PHP_SELF'])=='edit_home.php') echo ' active'; ?>">
             <i class='bx bx-notepad'></i> จัดการหน้าแรก
         </a>
         <a href="./edit_owner.php" class="nav-link<?php if(basename($_SERVER['PHP_SELF'])=='edit_owner.php') echo ' active'; ?>">
             <i class='bx bx-user'></i> ข้อมูลเจ้าของ
-        </a> -->
+        </a>
         <a href="./manage_mango.php" class="nav-link<?php if(basename($_SERVER['PHP_SELF'])=='manage_mango.php') echo ' active'; ?>">
             <i class='bx bx-detail'></i> สายพันธุ์มะม่วง
         </a>
@@ -100,7 +100,10 @@
         <a href="./booking_list.php" class="nav-link<?php if(basename($_SERVER['PHP_SELF'])=='booking_list.php') echo ' active'; ?>">
             <i class='bx bxs-calendar'></i> ตารางรายการจอง
         </a>
-        <a href="logout.php" class="nav-link">
+        <a href="./update_calendar_view.php" class="nav-link<?php if(basename($_SERVER['PHP_SELF'])=='update_calendar_view.php') echo ' active'; ?>">
+            <i class='bx bxs-calendar'></i> อัพเดทปฏิทิน
+        </a>
+        <a href="logout.php" class="nav-link mt-5">
             <i class='bx bx-log-out'></i> ออกจากระบบ
         </a>
     </nav>

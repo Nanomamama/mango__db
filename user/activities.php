@@ -1,5 +1,19 @@
 <?php
 session_start();
+require_once '../admin/db.php';
+
+// ดึงข้อมูลวันว่าง/ไม่ว่างจากฐานข้อมูล (เช่น calendar_dates)
+$dates = [];
+$res = $conn->query("SELECT date, status FROM calendar_dates");
+while ($row = $res->fetch_assoc()) {
+    $dates[] = $row;
+}
+// ดึงวันจองที่อนุมัติแล้ว
+$approved = [];
+$res2 = $conn->query("SELECT date FROM bookings WHERE status='อนุมัติแล้ว'");
+while ($row = $res2->fetch_assoc()) {
+    $approved[] = $row['date'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -73,12 +87,22 @@ session_start();
                                 <label class="form-label">แนบเอกสาร (ถ้ามี)</label>
                                 <input type="file" class="form-control" name="document">
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label">แนบสลิป</label>
+                                <input type="file" class="form-control" name="slip">
+                            </div>
                             <button type="submit" class="btn btn-success">จอง</button>
                         </form>
                     </div>
                 </div>
             </div>
         </div>
+
+        <?php if (isset($_GET['success'])): ?>
+        <div class="alert alert-success">จองสำเร็จ! กรุณารอการอนุมัติ</div>
+        <?php elseif (isset($_GET['error'])): ?>
+        <div class="alert alert-danger">เกิดข้อผิดพลาดในการจอง</div>
+        <?php endif; ?>
     </div>
 
 <?php include 'footer.php'; ?>
@@ -87,21 +111,22 @@ session_start();
     <script>
         $(document).ready(function() {
             moment.locale('th');
-
-            // ข้อมูลการจองจาก PHP (Session)
-            var bookedDates = <?php echo json_encode($_SESSION['bookings'] ?? []); ?>;
-
-            // กำหนดสถานะและสีของวัน
-            var today = moment().format('YYYY-MM-DD'); // วันที่ปัจจุบัน
-
-            var formattedEvents = bookedDates.map(event => {
-                var eventDate = moment(event.booking_date);
-                var isPast = eventDate.isBefore(today, 'day'); // ตรวจสอบว่าผ่านวันไปแล้วหรือไม่
-
+            var calendarDates = <?php echo json_encode($dates); ?>;
+            var approvedDates = <?php echo json_encode($approved); ?>;
+            var events = calendarDates.map(function(d) {
+                if (approvedDates.includes(d.date)) {
+                    return {
+                        title: 'จองแล้ว',
+                        start: d.date,
+                        color: '#2196f3',
+                        allDay: true
+                    };
+                }
                 return {
-                    title: isPast ? "เข้าชมสวนแล้ว" : "จองแล้ว", // ถ้าผ่านวันแล้วให้แสดง "เข้าชมสวนแล้ว"
-                    start: event.booking_date,
-                    color: isPast ? "green" : "orange" // สีเขียวถ้าผ่านไปแล้ว, สีส้มถ้าจองไว้
+                    title: d.status === 'available' ? 'ว่าง' : 'ไม่ว่าง',
+                    start: d.date,
+                    color: d.status === 'available' ? 'green' : 'red',
+                    allDay: true
                 };
             });
 
@@ -109,18 +134,27 @@ session_start();
                 locale: 'th',
                 selectable: true,
                 selectHelper: true,
+                dayRender: function(date, cell) {
+                    var found = calendarDates.find(d => d.date === date.format('YYYY-MM-DD'));
+                    if (approvedDates.includes(date.format('YYYY-MM-DD'))) {
+                        cell.css('background-color', '#bbdefb');
+                    } else if (found && found.status === 'unavailable') {
+                        cell.css('background-color', '#ffd6d6');
+                    }
+                },
                 select: function(startDate) {
                     var selectedDate = moment(startDate).format('YYYY-MM-DD');
-                    var isBooked = formattedEvents.some(event => event.start === selectedDate);
-
-                    if (isBooked) {
-                        alert("วันที่เลือกนี้ถูกจองไปแล้ว กรุณาเลือกวันอื่น");
+                    var found = calendarDates.find(d => d.date === selectedDate);
+                    if (approvedDates.includes(selectedDate)) {
+                        alert("วันนี้มีผู้จองแล้ว กรุณาเลือกวันอื่น");
+                    } else if (found && found.status === 'unavailable') {
+                        alert("วันที่เลือกนี้ไม่ว่าง กรุณาเลือกวันอื่น");
                     } else {
                         $('#booking_date').val(selectedDate);
                         $('#bookingModal').modal('show');
                     }
                 },
-                events: formattedEvents // ใช้ข้อมูลที่มีการจัดการสถานะและสี
+                events: events
             });
         });
     </script>
