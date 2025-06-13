@@ -12,7 +12,7 @@
                     --green-color: #016A70;
                     --white-color: #fff;
                     --Primary: #4e73df;
-                    --Success:rgb(20, 58, 44);
+                    --Success:rgb(27, 78, 59);
                     --Info: #36b9cc;
                     --Warning: #f6c23e;
                     --Danger: #e74a3b;
@@ -53,21 +53,21 @@
             font-size: 1.25rem;
             font-weight: 600;
             margin-bottom: 25px;
-            color: var(--Danger);
+            color: var(--Light);
             position: relative;
             padding-bottom: 12px;
         }
         
-        .footer-section h3::after {
+        /* .footer-section h3::after {
             content: "";
             position: absolute;
             bottom: 0;
             left: 0;
             width: 50px;
             height: 3px;
-            background-color: var(--Danger);
+            background-color: var(--Light);
             border-radius: 3px;
-        }
+        } */
         
         .footer-section p {
             margin-bottom: 15px;
@@ -103,7 +103,7 @@
             text-align: center;
             padding-top: 30px;
             margin-top: 40px;
-            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            border-top: 2px solid rgb(162, 165, 165);
             font-size: 0.9rem;
             color:var(--Light);
         }
@@ -205,7 +205,7 @@
         .logo-section {
             display: flex;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         
         .logo {
@@ -305,11 +305,9 @@
                 </div>
             </div>
         </div>
-        
         <div class="copyright">
             <p>Developed and maintained by Nuengdiaw Thiaksiboon and Sukanda Somsiamg, Full-Stack Developer</p>
-            <p>© 2025 Mango Database.</p>
-            <p>คณะวิทยาศาสตร์และเทคโนโลยี มหาวิทยาลัยราชภัฏเลย</p>
+            <p>© 2025 Mango Database. คณะวิทยาศาสตร์และเทคโนโลยี มหาวิทยาลัยราชภัฏเลย</p>
         </div>
     </footer>
 </body>
