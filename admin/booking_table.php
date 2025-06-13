@@ -26,14 +26,14 @@ if (!isset($bookings_show)) $bookings_show = [];
             <td><?php echo htmlspecialchars($booking['people']); ?></td>
             <td>
                 <?php if (!empty($booking['doc'])): ?>
-                    <a href="uploads/<?php echo htmlspecialchars($booking['doc']); ?>" target="_blank" class="btn btn-primary btn-sm">ดูไฟล์</a>
+                    <a href="../uploads/<?php echo htmlspecialchars($booking['doc']); ?>" target="_blank" class="btn btn-primary btn-sm">ดูไฟล์</a>
                 <?php else: ?>
                     -
                 <?php endif; ?>
             </td>
             <td>
                 <?php if (!empty($booking['slip'])): ?>
-                    <a href="uploads/<?php echo htmlspecialchars($booking['slip']); ?>" target="_blank" class="btn btn-primary btn-sm">ดูสลิป</a>
+                    <a href="../uploads/<?php echo htmlspecialchars($booking['slip']); ?>" target="_blank" class="btn btn-primary btn-sm">ดูสลิป</a>
                 <?php else: ?>
                     -
                 <?php endif; ?>

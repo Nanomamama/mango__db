@@ -11,9 +11,13 @@
             --Light: #f8f9fc;
             --Dark: #5a5c69;
         }
+
+    .footer-1 {
+        background-color:var(--Danger);
+    }
     .container h2 {
             font-weight: 600;
-            color: var(--Danger);
+            color: var(--Light);
         }
 
 </style>
@@ -22,7 +26,7 @@
 <!-- Footer -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
-<footer id="footer" class="footer-1 bg-dark text-light py-4">
+<footer id="footer" class="footer-1 text-light py-4">
     <div class="container">
         <br>
         <div class="row">
@@ -78,8 +82,8 @@
         <hr class="text-light">
         <!-- <hr class="text-light"> -->
         <div class="text-center">
-            <p class="text-secondary">Developed and maintained by Nuengdiaw Thiaksiboon and Sukanda Somsiamg, Full-Stack Developer</p>
-            <p class="text-secondary">
+            <p class="text-dark">Developed and maintained by Nuengdiaw Thiaksiboon and Sukanda Somsiamg, Full-Stack Developer</p>
+            <p class="text-dark">
                 © 2025 Mango Database. / 
                 <a href="terms_of_use.php" class="text-light">Terms of Use</a> / 
                 <a href="privacy_policy.php" class="text-light">Privacy Policy</a> / 
