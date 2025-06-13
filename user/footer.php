@@ -247,7 +247,7 @@
                 <p>ดำเนินงานภายใต้ความร่วมมือระหว่างสถาบันการศึกษาและภาคเอกชน</p>
                 
                 <div class="social-links">
-                    <a href="https://facebook.com/" target="_blank" class="social-fb" title="Facebook">
+                    <a href="https://www.facebook.com/lungphuakgarden" target="_blank" class="social-fb" title="Facebook">
                         <i class="fab fa-facebook-f"></i>
                     </a>
                     <a href="https://line.me/" target="_blank" class="social-line" title="Line">
@@ -281,11 +281,11 @@
                 </div>
                 <div class="contact-info">
                     <i class="fas fa-phone-alt"></i>
-                    <p><a href="tel:0858572991">065-107-8576</a></p>
+                    <p><a href="tel:0621970420">062-197-0420</a></p>
                 </div>
                 <div class="contact-info">
                     <i class="fas fa-envelope"></i>
-                    <p><a href="mailto:kwanhata.i@ku.th">Nano@gmail.com</a></p>
+                    <p><a href="mailto:kwanhata.i@ku.th">psrimachan@gmail.com</a></p>
                 </div>
                  <div class="contact-info">
                     <i class="fas fa-building"></i>
