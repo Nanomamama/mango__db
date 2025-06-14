@@ -35,7 +35,7 @@
             width: 100%;
             height: 5rem;
             /* background-color: var(--Success); */
-            /* box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             z-index: 1000;
             transition: background-color 0.3s ease;
         }
@@ -119,7 +119,7 @@
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg ">
+    <nav class="navbar navbar-expand-lg bg-white ">
         <div class="container">
             <a class="navbar-brand" href="../user/index.php">
                 <img src="../user/image/สวนลุงเผือก4-Photoroom.png" alt="สวนลุงเผือก" style="max-height:80px;">
