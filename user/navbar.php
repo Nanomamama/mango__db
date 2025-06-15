@@ -14,13 +14,13 @@
             --green-color: #016A70;
             --white-color: #fff;
             --Primary: #4e73df;
-            --Success: #1cc88a;
+            --Success:#277859;
             --Info: #36b9cc;
             --Warning: #f6c23e;
             --Danger: #e74a3b;
-            --Secondary: #858796;
             --Light: #f8f9fc;
             --Dark: #5a5c69;
+            --Darks: #000;
         }
 
         * {
@@ -34,7 +34,7 @@
             position: fixed;
             width: 100%;
             height: 5rem;
-            background-color: var(--Light);
+            /* background-color: var(--Success); */
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             z-index: 1000;
             transition: background-color 0.3s ease;
@@ -57,13 +57,13 @@
         }
 
         .navbar-toggler-icon {
-            background-image: url('https://cdn-icons-png.flaticon.com/512/1828/1828859.png'); /* ใช้ไอคอน Hamburger */
+            background-image: url('https://cdn-icons-png.flaticon.com/512/1828/1828859.png');
             width: 30px;
             height: 30px;
         }
 
         .navbar-nav .nav-link {
-            color: var(--Dark);
+            color: var(--Success);
             margin-right: 1rem;
             font-size: 18px;
             font-weight: 500;
@@ -79,7 +79,7 @@
             bottom: 0;
             width: 0%;
             height: 4px;
-            background-color: var(--Danger);
+            background-color: var(--Success);
             transition: width 0.3s ease-in-out;
         }
 
@@ -88,7 +88,7 @@
         }
 
         .navbar-nav .nav-link:hover {
-            color: var(--Danger);
+            color: var(--Success);
         }
 
         .cta-button {
@@ -119,38 +119,40 @@
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg">
+    <nav class="navbar navbar-expand-lg bg-white ">
         <div class="container">
-        <a class="navbar-logo" href="#home">
-            <img src="image/สวนลุงเผือก4-Photoroom.png" alt="สวนลุงเผือก" 
-            class="img-fluid d-block mx-auto mx-lg-0" 
-            style="max-height: 95px; height: auto; width: auto;">
-        </a>
-
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <i class='bx bx-menu-alt-left'></i>เมนู
+            <a class="navbar-brand" href="../user/index.php">
+                <img src="../user/image/สวนลุงเผือก4-Photoroom.png" alt="สวนลุงเผือก" style="max-height:80px;">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar"
+                aria-controls="offcanvasNavbar" aria-label="Toggle navigation">
+                <span class="">เมนู</span> 
             </button>
-            <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="../user/index.php">หน้าแรก</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="../user/mango_varieties.php">สายพันธุ์ทั้งหมด</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="../user/products.php">สินค้าผลิตภัณฑ์</a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link" href="course.php">หลักสูตรการเรียนรู้</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="../user/activities.php">จองวันเข้าดูงาน</a>
-                    </li>
-                </ul>
+            <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
+                <div class="offcanvas-header">
+                    <img src="../user/image/สวนลุงเผือก4-Photoroom.png" alt="สวนลุงเผือก" style="max-height:100px;">
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                </div>
+                <div class="offcanvas-body">
+                    <ul class="navbar-nav justify-content-end flex-grow-1 pe-3">
+                        <li class="nav-item">
+                            <a class="nav-link" href="../user/index.php">หน้าแรก</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="../user/mango_varieties.php">สายพันธุ์ทั้งหมด</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="../user/products.php">สินค้าผลิตภัณฑ์</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="../user/course.php">หลักสูตรการเรียนรู้</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="../user/activities.php">จองวันเข้าดูงาน</a>
+                        </li>
+                    </ul>
+                </div>
             </div>
-            
         </div>
     </nav>
 

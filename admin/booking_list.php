@@ -12,6 +12,7 @@ while ($row = $result->fetch_assoc()) {
 // แยกข้อมูลตามสถานะ
 $approved = array_filter($bookings, fn($b) => $b['status'] === 'อนุมัติแล้ว');
 $rejected = array_filter($bookings, fn($b) => $b['status'] === 'ถูกปฏิเสธ');
+$pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุมัติ');
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -34,6 +35,9 @@ $rejected = array_filter($bookings, fn($b) => $b['status'] === 'ถูกปฏ�
                 <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab">ทั้งหมด</button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">รออนุมัติ</button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="approved-tab" data-bs-toggle="tab" data-bs-target="#approved" type="button" role="tab">อนุมัติแล้ว</button>
             </li>
             <li class="nav-item" role="presentation">
@@ -44,6 +48,10 @@ $rejected = array_filter($bookings, fn($b) => $b['status'] === 'ถูกปฏ�
             <!-- แท็บทั้งหมด -->
             <div class="tab-pane fade show active" id="all" role="tabpanel">
                 <?php $bookings_show = $bookings; include 'booking_table.php'; ?>
+            </div>
+            <!-- แท็บรออนุมัติ -->
+            <div class="tab-pane fade" id="pending" role="tabpanel">
+                <?php $bookings_show = $pending; include 'booking_table.php'; ?>
             </div>
             <!-- แท็บอนุมัติแล้ว -->
             <div class="tab-pane fade" id="approved" role="tabpanel">
