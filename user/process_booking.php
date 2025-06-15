@@ -57,11 +57,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // คำนวณยอดรวม ยอดมัดจำ และยอดคงเหลือ
+    $price_per_person = 150;
+    $total_amount = $people * $price_per_person;
+    $deposit_amount = round($total_amount * 0.3, 2);
+    $remain_amount = $total_amount - $deposit_amount;
+
     // เพิ่มข้อมูลลง bookings (status เริ่มต้น "รออนุมัติ")
-    $stmt = $conn->prepare("INSERT INTO bookings (name, date, time, people, doc, slip, status) VALUES (?, ?, ?, ?, ?, ?, 'รออนุมัติ')");
-    $stmt->bind_param("sssiss", $name, $date, $time, $people, $doc, $slip);
+    $stmt = $conn->prepare("INSERT INTO bookings 
+        (name, date, time, people, phone, doc, slip, status, total_amount, deposit_amount, remain_amount) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'รออนุมัติ', ?, ?, ?)");
+    $stmt->bind_param("sssissdddd", $name, $date, $time, $people, $phone, $doc, $slip, $total_amount, $deposit_amount, $remain_amount);
     if ($stmt->execute()) {
-        header("Location: activities.php?success=1");
+        $booking_id = $stmt->insert_id; // รับ id ล่าสุด
+        header("Location: receipt.php?id=" . $booking_id);
         exit;
     } else {
         header("Location: activities.php?error=1");

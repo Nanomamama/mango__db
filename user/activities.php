@@ -14,6 +14,15 @@ $res2 = $conn->query("SELECT date FROM bookings WHERE status='อนุมัต
 while ($row = $res2->fetch_assoc()) {
     $approved[] = $row['date'];
 }
+
+$sql = "SELECT date, name FROM bookings";
+$result = $conn->query($sql);
+
+$booking_names = [];
+while ($row = $result->fetch_assoc()) {
+    // สมมุติว่า 1 วันมีได้หลายคณะ ให้เก็บเป็น array
+    $booking_names[$row['date']][] = $row['name'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -39,42 +48,49 @@ while ($row = $res2->fetch_assoc()) {
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/promptpay-qr@1.2.0/dist/promptpay-qr.min.js"></script>
 
-<style>
-    :root {
-        --green-color: #016A70;
-        --white-color: #fff;
-        --Primary: #4e73df;
-        --Success: #1cc88a;
-        --Info: #36b9cc;
-        --Warning: #f6c23e;
-        --Danger: #e74a3b;
-        --Secondary: #858796;
-        --Light: #f8f9fc;
-        --Dark: #5a5c69;
-        --Darkss:#000;
-    }
+    <style>
+        :root {
+            --green-color: #016A70;
+            --white-color: #fff;
+            --Primary: #4e73df;
+            --Success: #1cc88a;
+            --Info: #36b9cc;
+            --Warning: #f6c23e;
+            --Danger: #e74a3b;
+            --Secondary: #858796;
+            --Light: #f8f9fc;
+            --Dark: #5a5c69;
+            --Darkss:#000;
+        }
 
-    .container h2 {
-        margin-top: 2rem;
-        font-weight: 600;
-        color: var(--Darkss);
-    }
-    .container h4 {
-        font-size: 18px;
-    }
+        .calendar-cell {
+        vertical-align: middle;
+        text-align: center;
+        height: 80px;
+        }
 
-    body {
-        background-color: #f8f9fa;
-    }
+        .container h2 {
+            margin-top: 2rem;
+            font-weight: 600;
+            color: var(--Darkss);
+        }
+        .container h4 {
+            font-size: 18px;
+        }
 
-    .container {
-        max-width: 1200px;
-    }
+        body {
+            background-color: #f8f9fa;
+        }
 
-    .calendar-container {
-        margin-bottom: 20px;
-    }
+        .container {
+            max-width: 1200px;
+        }
+
+        .calendar-container {
+            margin-bottom: 20px;
+        }
     </style>
+
 </head>
 
 <body>
@@ -92,6 +108,7 @@ while ($row = $res2->fetch_assoc()) {
         </button>
 
         <div id="calendar" class="calendar-container"></div>
+
 
         <!-- Modal แจ้งเตือนจองสำเร็จ -->
         <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
@@ -267,18 +284,29 @@ while ($row = $res2->fetch_assoc()) {
             moment.locale('th');
             var calendarDates = <?php echo json_encode($dates); ?>;
             var approvedDates = <?php echo json_encode($approved); ?>;
+            var bookingNames = <?php echo json_encode($booking_names); ?>;
             var events = calendarDates.map(function(d) {
-                if (approvedDates.includes(d.date)) {
+                var date = d.date;
+                var title = '';
+                if (approvedDates.includes(date)) {
+                    // ถ้ามีชื่อคณะในวันนั้น
+                    if (bookingNames[date]) {
+                        title = bookingNames[date].map(function(name){
+                        return name + " จองแล้ว";
+                    }).join(', ');
+                    } else {
+                        title = 'จองแล้ว';
+                    }
                     return {
-                        title: 'จองแล้ว',
-                        start: d.date,
+                        title: title,
+                        start: date,
                         color: '#2196f3',
                         allDay: true
                     };
                 }
                 return {
                     title: d.status === 'available' ? 'ว่าง' : 'ไม่ว่าง',
-                    start: d.date,
+                    start: date,
                     color: d.status === 'available' ? 'green' : 'red',
                     allDay: true
                 };
@@ -346,3 +374,4 @@ while ($row = $res2->fetch_assoc()) {
 
 </body>
 </html>
+
