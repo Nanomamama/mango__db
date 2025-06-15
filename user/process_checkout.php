@@ -68,6 +68,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt2->bind_param("iiid", $order_id, $product_id, $quantity, $price);
             $stmt2->execute();
         }
+
+        // ลดสต๊อกสินค้า
+        $updateStock = $conn->prepare("UPDATE products SET stock = stock - ? WHERE id = ?");
+        if ($updateStock) {
+            $updateStock->bind_param("ii", $quantity, $product_id);
+            $updateStock->execute();
+        }
     }
 
     echo json_encode(['success' => true, 'message' => 'การสั่งซื้อสำเร็จ', 'order_id' => $order_id]);

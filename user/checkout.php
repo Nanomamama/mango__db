@@ -9,6 +9,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>  <!-- สำหรับ ocr อ่านสลิป -->
 </head>
 <body>
 <?php include 'navbar.php'; ?>
@@ -108,6 +109,7 @@
                     <a href="cart.php" class="btn btn-warning">🔙 กลับ</a>
                     <button type="submit" class="btn btn-primary">ยืนยันการสั่งซื้อ</button>
                 </div>
+                <input type="hidden" name="cart" id="cart-data">
             </form>
         </div>
     </div>
@@ -242,30 +244,118 @@
     });
 
     document.getElementById("checkout-form").addEventListener("submit", function (e) {
-        e.preventDefault(); // ป้องกันการส่งฟอร์มแบบปกติ
+        // ถ้าเลือกวิธีโอนเงิน/พร้อมเพย์ ต้องตรวจสอบ slipVerified
+        const paymentMethod = document.querySelector('input[name="payment_method"]:checked')?.value;
+        if ((paymentMethod === 'bank' || paymentMethod === 'promptpay') && !slipVerified) {
+            e.preventDefault();
+            Swal.fire("กรุณาแนบสลิปที่ถูกต้อง", "ยอดเงินหรือเลขพร้อมเพย์ไม่ถูกต้อง", "error");
+            return;
+        }
 
-        let cart = JSON.parse(localStorage.getItem("cart")) || []; // ดึงข้อมูลจาก localStorage
-        let formData = new FormData(this); // สร้าง FormData จากฟอร์ม
-        formData.append("cart", JSON.stringify(cart)); // เพิ่มข้อมูล cart ลงใน FormData
+        e.preventDefault();
+
+        let cart = JSON.parse(localStorage.getItem("cart")) || [];
+        let formData = new FormData(this);
+        formData.set("cart", JSON.stringify(cart)); // ใช้ set เพื่อแทนที่ค่าเดิม
 
         fetch("process_checkout.php", {
             method: "POST",
             body: formData
         })
-        .then(response => response.json())
+        .then(async response => {
+            const text = await response.text();
+            try {
+                return JSON.parse(text);
+            } catch (err) {
+                // แสดง error ที่อ่านง่าย
+                Swal.fire("เกิดข้อผิดพลาด", "Response ไม่ใช่ JSON:<br><pre style='text-align:left'>" + text + "</pre>", "error");
+                throw new Error("Invalid JSON: " + text);
+            }
+        })
         .then(data => {
-            if (data.success) {
+            if (data && data.success) {
                 Swal.fire("สำเร็จ!", "การสั่งซื้อของคุณถูกบันทึกเรียบร้อยแล้ว", "success");
-                localStorage.removeItem("cart"); // ล้างตะกร้าสินค้า
-                setTimeout(() => window.location.href = `order_summary.php?order_id=${data.order_id}`, 2000); // เปลี่ยนเส้นทางไปยัง order_summary.php
-            } else {
+                localStorage.removeItem("cart");
+                setTimeout(() => window.location.href = `order_summary.php?order_id=${data.order_id}`, 2000);
+            } else if (data) {
                 Swal.fire("ผิดพลาด!", data.message, "error");
             }
         })
         .catch(error => {
             console.error("Error:", error);
-            Swal.fire("เกิดข้อผิดพลาด", "ไม่สามารถดำเนินการได้", "error");
+            // ไม่ต้องแสดง Swal ซ้ำ เพราะแสดงไปแล้วใน try-catch ข้างบน
         });
+    });
+
+    let slipVerified = false; // สถานะการตรวจสอบสลิป
+
+    document.getElementById('payment-slip').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        slipVerified = false; // reset
+
+        // กำหนดค่าที่ต้องตรวจสอบ
+        const expectedAmount = parseFloat(
+            (JSON.parse(localStorage.getItem("cart")) || [])
+            .reduce((sum, item) => sum + item.price * item.quantity, 0)
+            .toFixed(2)
+        );
+        const expectedAccount = "1429500011543"; // เลขพร้อมเพย์หรือเลขบัญชีที่ต้องการ
+        // ตรวจสอบชื่อบัญชี (ไม่สนช่องว่างและตัวพิมพ์เล็ก/ใหญ่)
+        let expectedName = "สุกานดา สมเสียง";
+        let foundName = text.replace(/\s/g, '').includes(expectedName.replace(/\s/g, ''));
+
+        Swal.fire({title: 'กำลังอ่านข้อมูลจากสลิป...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            Tesseract.recognize(
+                evt.target.result,
+                'tha+eng',
+                { logger: m => console.log(m) }
+            ).then(({ data: { text } }) => {
+                Swal.close();
+                // แสดงผลลัพธ์ OCR
+                Swal.fire("ผลลัพธ์ OCR", `<pre style="text-align:left">${text}</pre>`, "info");
+
+                // ตรวจสอบยอดเงิน
+                let amountMatch = text.replace(/,/g, '').match(/ยอด(?:เงิน)?\s*([\d\.]+)/i);
+                let foundAmount = amountMatch ? parseFloat(amountMatch[1]) : null;
+
+                // ตรวจสอบเลขพร้อมเพย์/บัญชี (หาเลข 10-13 หลัก)
+                let accountMatch = text.match(/\d{10,13}/g);
+                let foundAccount = accountMatch ? accountMatch.find(acc => acc === expectedAccount) : null;
+
+                // เงื่อนไขผ่าน
+                if (
+                    foundAccount &&
+                    foundAmount !== null &&
+                    Math.abs(foundAmount - expectedAmount) < 0.01 && // ยอมให้คลาดเคลื่อนทศนิยมเล็กน้อย
+                    foundName
+                ) {
+                    slipVerified = true;
+                    Swal.fire("✅ สำเร็จ", "ยอดเงิน เลขพร้อมเพย์ และชื่อบัญชีถูกต้อง สามารถดำเนินการสั่งซื้อได้", "success");
+                    document.querySelector('button[type="submit"]').disabled = false;
+                } else {
+                    slipVerified = false;
+                    let msg = "";
+                    if (foundAmount === null || Math.abs(foundAmount - expectedAmount) >= 0.01)
+                        msg += `❌ ยอดเงินไม่ตรง (พบ ${foundAmount ?? "ไม่พบ"} ต้องเป็น ${expectedAmount})<br>`;
+                    if (!foundAccount)
+                        msg += `❌ ไม่พบเลขพร้อมเพย์/บัญชีที่ถูกต้อง (${expectedAccount})<br>`;
+                    if (!foundName)
+                        msg += `❌ ไม่พบชื่อบัญชี "${expectedName}"<br>`;
+                    Swal.fire("ผิดพลาด", msg, "error");
+                    document.querySelector('button[type="submit"]').disabled = true;
+                }
+            }).catch(err => {
+                Swal.close();
+                Swal.fire("เกิดข้อผิดพลาด", "ไม่สามารถอ่านข้อมูลจากสลิปได้", "error");
+                document.querySelector('button[type="submit"]').disabled = true;
+            });
+        };
+        reader.readAsDataURL(file);
     });
 </script>
 

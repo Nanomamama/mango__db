@@ -31,7 +31,7 @@
 
         <a href="products.php" class="btn btn-warning">🔙 เลือกสินค้า</a>
         <button class="btn btn-danger" onclick="resetCart()">🗑️ ทิ้งตะกร้า</button>
-        <a href="checkout.php" class="btn btn-primary "> ดำเนินการชำระเงิน</a>
+        <button id="checkout-btn" class="btn btn-primary" onclick="window.location.href='checkout.php'" disabled>ดำเนินการชำระเงิน</button>
     </div>
 </div>
 
@@ -45,9 +45,13 @@
         container.empty();
         let total = 0;
 
+        let checkoutBtn = $('#checkout-btn');
+
         if (cart.length === 0) {
             container.append(`<div class="text-center text-muted">🛒 ไม่มีสินค้าในตะกร้า</div>`);
+            checkoutBtn.prop('disabled', true);
         } else {
+            checkoutBtn.prop('disabled', false);
             cart.forEach((item, index) => {
                 let price = parseFloat(item.price); // แปลงราคาเป็นตัวเลข
                 let subtotal = price * item.quantity;

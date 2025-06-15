@@ -63,6 +63,7 @@ if (!$result) {
                 <?php endwhile; ?>
             </tbody>
         </table>
+     <a href="manage_product.php" class="btn btn-info mt-3">🔙 กลับ</a>    
     </div>
 </div>
 
