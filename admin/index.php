@@ -1,456 +1,277 @@
 <?php
-  require_once 'auth.php';
-  require_once 'db.php';
-  
-  $mango_count = 200;
-  $mango_max = 1000;
+require_once 'auth.php';
+require_once 'db.php';
 
-  $booking_count = 400;
-  $booking_max = 1000;
+// ตัวอย่าง: ดึงยอดขายรายวัน 7 วันล่าสุด
+$sales_day = [];
+$labels_day = [];
+$sql = "SELECT DATE(created_at) as day, SUM(total_price) as total 
+        FROM orders 
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+        GROUP BY day ORDER BY day";
+$result = $conn->query($sql);
+while ($row = $result->fetch_assoc()) {
+    $labels_day[] = $row['day'];
+    $sales_day[] = (float)$row['total'];
+}
 
-  $course_total = 500;
-  $course_max = 1000;
+// ดึงยอดขายรายสัปดาห์ 8 สัปดาห์ล่าสุด
+$sales_week = [];
+$labels_week = [];
+$sql = "SELECT YEARWEEK(created_at, 1) as week, SUM(total_price) as total 
+        FROM orders 
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 WEEK)
+        GROUP BY week ORDER BY week";
+$result = $conn->query($sql);
+while ($row = $result->fetch_assoc()) {
+    $labels_week[] = $row['week'];
+    $sales_week[] = (float)$row['total'];
+}
 
-  $product_count = 300;
-  $product_max = 1000;
+// ดึงยอดขายรายเดือน 12 เดือนล่าสุด
+$sales_month = [];
+$labels_month = [];
+$sql = "SELECT DATE_FORMAT(created_at, '%Y-%m') as month, SUM(total_price) as total 
+        FROM orders 
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
+        GROUP BY month ORDER BY month";
+$result = $conn->query($sql);
+while ($row = $result->fetch_assoc()) {
+    $labels_month[] = $row['month'];
+    $sales_month[] = (float)$row['total'];
+}
+
+// ดึงยอดขายรายปี 5 ปีล่าสุด
+$sales_year = [];
+$labels_year = [];
+$sql = "SELECT YEAR(created_at) as year, SUM(total_price) as total 
+        FROM orders 
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 4 YEAR)
+        GROUP BY year ORDER BY year";
+$result = $conn->query($sql);
+while ($row = $result->fetch_assoc()) {
+    $labels_year[] = $row['year'];
+    $sales_year[] = (float)$row['total'];
+}
+
+// ดึงจำนวนการจองเข้าชมสวน รายเดือน 12 เดือนล่าสุด
+$booking_month = [];
+$labels_booking_month = [];
+$sql = "SELECT DATE_FORMAT(date, '%Y-%m') as month, COUNT(*) as total 
+        FROM bookings 
+        WHERE date >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
+        GROUP BY month ORDER BY month";
+$result = $conn->query($sql);
+while ($row = $result->fetch_assoc()) {
+    $labels_booking_month[] = $row['month'];
+    $booking_month[] = (int)$row['total'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
-      font-family: 'Kanit', sans-serif;
-    }
+    <meta charset="UTF-8">
+    <title>Dashboard ข้อมูลการขายและการจอง</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
 
-    .dashboard-title {
-      font-weight: 700;
-      color: #4e73df;
-      letter-spacing: 1px;
-      margin-bottom: 32px;
-    }
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    .chart-container {
-      background: #fff;
-      border-radius: 18px;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-      padding: 10px 4px 4px 4px;
-      margin-bottom: 24px;
-      min-height: 80px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      transition: box-shadow 0.3s;
-      position: relative;
-    }
+        <style>
+          * {
+              font-family: "Kanit", sans-serif;
+          }
+        </style>
 
-    .chart-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #5a5c69;
-      margin-bottom: 12px;
-      letter-spacing: 0.5px;
-    }
-
-    .chart-center {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-weight: bold;
-      font-size: 1.2rem;
-      pointer-events: none;
-    }
-
-    canvas {
-      width: 150px !important;
-      height: 150px !important;
-    }
-
-    /* เพิ่มใน <style> */
-    .line-sales-chart {
-      width: 100% !important;
-      height: 220px !important;
-      max-width: 100%;
-      display: block;
-      margin: 0 auto;
-    }
-
-  </style>
 </head>
 
 <body>
-  <?php include 'sidebar.php'; ?>
 
-  <div class="d-flex">
-    <div class="p-4" style="margin-left: 250px; flex: 1;">
-      <h1 class="dashboard-title mb-5">Admin Dashboard</h1>
-      <div class="row g-4 justify-content-center">
-        <div class="col-lg-3 col-md-6">
-          <div class="chart-container">
-            <div class="chart-title text-center mb-2"><i class='bx bxs-leaf text-success'></i> จำนวนสายพันธุ์มะม่วง</div>
-            <div class="chart-center text-primary" id="mangoCenterText"></div>
-            <canvas id="mangoChart"></canvas>
-            <div class="mt-3 fs-5 fw-bold text-primary"><?= number_format($mango_count) ?> สายพันธุ์</div>
-          </div>
-        </div>
-        <div class="col-lg-3 col-md-6">
-          <div class="chart-container">
-            <div class="chart-title text-center mb-2"><i class='bx bxs-group text-warning'></i> จำนวนคณะจองเข้าชมสวน</div>
-            <div class="chart-center text-warning" id="bookingCenterText"></div>
-            <canvas id="bookingChart"></canvas>
-            <div class="mt-3 fs-5 fw-bold text-warning"><?= number_format($booking_count) ?> คณะ</div>
-          </div>
-        </div>
-        <div class="col-lg-3 col-md-6">
-          <div class="chart-container">
-            <div class="chart-title text-center mb-2"><i class='bx bxs-book-content text-info'></i> จำนวนหลักสูตร</div>
-            <div class="chart-center text-info" id="courseCenterText"></div>
-            <canvas id="courseChart"></canvas>
-            <div class="mt-3 fs-5 fw-bold text-info"><?= number_format($course_total) ?> หลักสูตร</div>
-          </div>
-        </div>
-        <div class="col-lg-3 col-md-6">
-          <div class="chart-container">
-            <div class="chart-title text-center mb-2"><i class='bx bx-package text-success'></i> จำนวนผลิตภัณฑ์</div>
-            <div class="chart-center text-success" id="productCenterText"></div>
-            <canvas id="productChart"></canvas>
-            <div class="mt-3 fs-5 fw-bold text-success"><?= number_format($product_count) ?> ผลิตภัณฑ์</div>
-          </div>
-        </div>
-      </div>
+    <?php include 'sidebar.php'; ?>
 
-      <!-- ออเดอร์สินค้า -->
-
-      <div class="row g-4 justify-content-center">
-        <div class="col-lg-6 col-md-6">
-          <div class="chart-container">
-            <div class="chart-title text-center mb-2"><i class='bx bx-cart text-danger'></i> ออเดอร์วันนี้</div>
-            <div class="chart-center text-danger" id="orderTodayCenterText"></div>
-            <canvas id="orderTodayChart"></canvas>
-            <div class="mt-3 fs-5 fw-bold text-danger"><?= number_format($order_today_count ?? 0) ?> ออเดอร์</div>
-          </div>
-        </div>
-        <div class="col-lg-3 col-md-6">
-          <div class="chart-container">
-            <div class="chart-title text-center mb-2"><i class='bx bx-calendar text-success'></i> ออเดอร์เดือนนี้</div>
-            <div class="chart-center text-success" id="orderMonthCenterText"></div>
-            <canvas id="orderMonthChart"></canvas>
-            <div class="mt-3 fs-5 fw-bold text-success"><?= number_format($order_month_count ?? 0) ?> ออเดอร์</div>
-          </div>
-        </div>
-        <div class="col-lg-3 col-md-6">
-          <div class="chart-container">
-            <div class="chart-title text-center mb-2"><i class='bx bx-calendar-alt text-primary'></i> ออเดอร์ปีนี้</div>
-            <div class="chart-center text-primary" id="orderYearCenterText"></div>
-            <canvas id="orderYearChart"></canvas>
-            <div class="mt-3 fs-5 fw-bold text-primary"><?= number_format($order_year_count ?? 0) ?> ออเดอร์</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- เพิ่มกราฟยอดขายรายวัน รายเดือน รายปี -->
-      <div class="row mt-4">
-        <div class="col-lg-6 col-md-6 mb-4">
-          <div class="chart-container" style="max-width:100%; margin:auto;">
-            <div class="chart-title text-center mb-2">
-              <i class='bx bx-line-chart text-danger'></i> กราฟยอดขายรายวัน
+    <div class="d-flex">
+        <div class="p-4" style="margin-left: 250px; flex: 1;">
+    <h2 class="mb-4">Dashboard ข้อมูลการขายสินค้า</h2>
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card p-3">
+                <h5 class="mb-3">ยอดขายรายวัน (7 วันล่าสุด)</h5>
+                <canvas id="salesDayChart"></canvas>
             </div>
-            <canvas id="salesDayChart" class="line-sales-chart"></canvas>
-          </div>
         </div>
-        <div class="col-lg-6 col-md-6 mb-4">
-          <div class="chart-container" style="max-width:100%; margin:auto;">
-            <div class="chart-title text-center mb-2">
-              <i class='bx bx-line-chart text-success'></i> กราฟยอดขายรายเดือน
+        <div class="col-lg-6">
+            <div class="card p-3">
+                <h5 class="mb-3">ยอดขายรายสัปดาห์ (8 สัปดาห์ล่าสุด)</h5>
+                <canvas id="salesWeekChart"></canvas>
             </div>
-            <canvas id="salesMonthChart" class="line-sales-chart"></canvas>
-          </div>
         </div>
-        <div class="col-lg-6 col-md-12 mb-4">
-          <div class="chart-container" style="max-width:100%; margin:auto;">
-            <div class="chart-title text-center mb-2">
-              <i class='bx bx-line-chart text-primary'></i> กราฟยอดขายรายปี
+        <div class="col-lg-6">
+            <div class="card p-3">
+                <h5 class="mb-3">ยอดขายรายเดือน (12 เดือนล่าสุด)</h5>
+                <canvas id="salesMonthChart"></canvas>
             </div>
-            <canvas id="salesYearChart" class="line-sales-chart"></canvas>
-          </div>
         </div>
-      </div>
+        <div class="col-lg-6">
+            <div class="card p-3">
+                <h5 class="mb-3">ยอดขายรายปี (5 ปีล่าสุด)</h5>
+                <canvas id="salesYearChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <h2 class="mt-5 mb-4">กราฟการจองเข้าชมสวน (รายเดือน)</h2>
+    <div class="card p-3">
+        <canvas id="bookingMonthChart"></canvas>
+    </div>
+</div>
 
-      <script>
-        // ฟังก์ชันสร้าง Doughnut Chart แบบหมุน
-        function createRotatingDonutChart(canvasId, count, max, color) {
-          const ctx = document.getElementById(canvasId).getContext('2d');
-          const chart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-              datasets: [{
-                data: [count, max - count],
-                backgroundColor: [color, '#e0e7ff'],
-                borderColor: ['#fff', '#fff'],
-                borderWidth: 1,
-                hoverOffset: 10
-              }]
-            },
-            options: {
-              cutout: '70%',
-              plugins: {
-                legend: {
-                  display: false
-                },
-                tooltip: {
-                  enabled: false
-                }
-              },
-              animation: false // ปิด animation ปกติ
-            }
-          });
+<div class="container my-5">
+    <h2 class="mb-4">กราฟยอดขายสินค้า</h2>
+    <div class="mb-3">
+        <select id="salesType" class="form-select" style="max-width:250px;">
+            <option value="day">รายวัน</option>
+            <option value="week">รายสัปดาห์</option>
+            <option value="month">รายเดือน</option>
+            <option value="year">รายปี</option>
+        </select>
+    </div>
+    <div class="card p-3">
+        <canvas id="salesChart"></canvas>
+    </div>
+</div>
 
-          // หมุนกราฟ
-          let angle = 0;
+<script>
+const salesDayLabels = <?= json_encode($labels_day) ?>;
+const salesDayData = <?= json_encode($sales_day) ?>;
+const salesWeekLabels = <?= json_encode($labels_week) ?>;
+const salesWeekData = <?= json_encode($sales_week) ?>;
+const salesMonthLabels = <?= json_encode($labels_month) ?>;
+const salesMonthData = <?= json_encode($sales_month) ?>;
+const salesYearLabels = <?= json_encode($labels_year) ?>;
+const salesYearData = <?= json_encode($sales_year) ?>;
+const bookingMonthLabels = <?= json_encode($labels_booking_month) ?>;
+const bookingMonthData = <?= json_encode($booking_month) ?>;
 
-          function rotate() {
-            angle += 0.5; // ปรับความเร็วหมุน
-            chart.options.rotation = angle;
-            chart.update('none');
-            requestAnimationFrame(rotate);
-          }
-          rotate();
-        }
+// กราฟยอดขายรายวัน
+new Chart(document.getElementById('salesDayChart'), {
+    type: 'line',
+    data: {
+        labels: salesDayLabels,
+        datasets: [{
+            label: 'ยอดขาย (บาท)',
+            data: salesDayData,
+            borderColor: '#4e73df',
+            backgroundColor: 'rgba(78,115,223,0.08)',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 3
+        }]
+    }
+});
 
-        // เรียกใช้สำหรับแต่ละกราฟ
-        createRotatingDonutChart('mangoChart', <?= $mango_count ?>, <?= $mango_max ?>, '#4e73df');
-        createRotatingDonutChart('bookingChart', <?= $booking_count ?>, <?= $booking_max ?>, '#f6c23e');
-        createRotatingDonutChart('courseChart', <?= $course_total ?>, <?= $course_max ?>, '#36b9cc');
-        createRotatingDonutChart('productChart', <?= $product_count ?>, <?= $product_max ?>, '#1cc88a');
+// กราฟยอดขายรายสัปดาห์
+new Chart(document.getElementById('salesWeekChart'), {
+    type: 'line',
+    data: {
+        labels: salesWeekLabels,
+        datasets: [{
+            label: 'ยอดขาย (บาท)',
+            data: salesWeekData,
+            borderColor: '#1cc88a',
+            backgroundColor: 'rgba(28,200,138,0.08)',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 3
+        }]
+    }
+});
+// กราฟยอดขายรายเดือน
+new Chart(document.getElementById('salesMonthChart'), {
+    type: 'line',
+    data: {
+        labels: salesMonthLabels,
+        datasets: [{
+            label: 'ยอดขาย (บาท)',
+            data: salesMonthData,
+            borderColor: '#e74a3b',
+            backgroundColor: 'rgba(231,74,59,0.08)',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 3
+        }]
+    }
+});
+// กราฟยอดขายรายปี
+new Chart(document.getElementById('salesYearChart'), {
+    type: 'line',
+    data: {
+        labels: salesYearLabels,
+        datasets: [{
+            label: 'ยอดขาย (บาท)',
+            data: salesYearData,
+            borderColor: '#36b9cc',
+            backgroundColor: 'rgba(54,185,204,0.08)',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 3
+        }]
+    }
+});
+// กราฟการจองเข้าชมสวน (รายเดือน)
+new Chart(document.getElementById('bookingMonthChart'), {
+    type: 'bar',
+    data: {
+        labels: bookingMonthLabels,
+        datasets: [{
+            label: 'จำนวนการจอง',
+            data: bookingMonthData,
+            backgroundColor: '#f6c23e'
+        }]
+    }
+});
 
-        // ตัวอย่างค่าจาก PHP (หรือดึงจากฐานข้อมูลจริง)
-        const orderTodayCount = <?= isset($order_today_count) ? (int)$order_today_count : 12 ?>;
-        const orderTodayMax = 100;
-        const orderMonthCount = <?= isset($order_month_count) ? (int)$order_month_count : 320 ?>;
-        const orderMonthMax = 3000;
-        const orderYearCount = <?= isset($order_year_count) ? (int)$order_year_count : 2500 ?>;
-        const orderYearMax = 20000;
+const salesData = {
+    day: {
+        labels: <?= json_encode($labels_day) ?>,
+        data: <?= json_encode($sales_day) ?>
+    },
+    week: {
+        labels: <?= json_encode($labels_week) ?>,
+        data: <?= json_encode($sales_week) ?>
+    },
+    month: {
+        labels: <?= json_encode($labels_month) ?>,
+        data: <?= json_encode($sales_month) ?>
+    },
+    year: {
+        labels: <?= json_encode($labels_year) ?>,
+        data: <?= json_encode($sales_year) ?>
+    }
+};
 
-        createRotatingDonutChart('orderTodayChart', orderTodayCount, orderTodayMax, '#e74a3b');
-        createRotatingDonutChart('orderMonthChart', orderMonthCount, orderMonthMax, '#1cc88a');
-        createRotatingDonutChart('orderYearChart', orderYearCount, orderYearMax, '#4e73df');
+const ctx = document.getElementById('salesChart').getContext('2d');
+let chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: salesData.day.labels,
+        datasets: [{
+            label: 'ยอดขาย (บาท)',
+            data: salesData.day.data,
+            borderColor: '#4e73df',
+            backgroundColor: 'rgba(78,115,223,0.08)',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 3
+        }]
+    }
+});
 
-        document.getElementById('orderTodayCenterText').innerText = ((orderTodayCount / orderTodayMax * 100).toFixed(1)) + '%';
-        document.getElementById('orderMonthCenterText').innerText = ((orderMonthCount / orderMonthMax * 100).toFixed(1)) + '%';
-        document.getElementById('orderYearCenterText').innerText = ((orderYearCount / orderYearMax * 100).toFixed(1)) + '%';
-
-        // ใส่ % ตรงกลาง
-        document.getElementById('mangoCenterText').innerText = '<?= round($mango_count / $mango_max * 100, 1) ?>%';
-        document.getElementById('bookingCenterText').innerText = '<?= round($booking_count / $booking_max * 100, 1) ?>%';
-        document.getElementById('courseCenterText').innerText = '<?= round($course_total / $course_max * 100, 1) ?>%';
-        document.getElementById('productCenterText').innerText = '<?= round($product_count / $product_max * 100, 1) ?>%';
-
-        // ตัวอย่างข้อมูลยอดขาย (สุ่ม)
-        let salesDay = Array.from({
-          length: 7
-        }, () => Math.floor(Math.random() * 1000) + 500);
-        let salesMonth = Array.from({
-          length: 12
-        }, () => Math.floor(Math.random() * 20000) + 10000);
-        let salesYear = Array.from({
-          length: 5
-        }, () => Math.floor(Math.random() * 300000) + 100000);
-
-        // ฟังก์ชันสุ่มข้อมูลใหม่ (สำหรับ animation)
-        function randomSales(arr, min, max) {
-          for (let i = 0; i < arr.length; i++) {
-            arr[i] += Math.floor(Math.random() * 200 - 100); // ขยับขึ้นลง
-            arr[i] = Math.max(min, Math.min(max, arr[i]));
-          }
-        }
-
-        // กราฟรายวัน
-        const salesDayChart = new Chart(document.getElementById('salesDayChart').getContext('2d'), {
-          type: 'line',
-          data: {
-            labels: ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'],
-            datasets: [{
-              label: 'ยอดขาย (บาท)',
-              data: salesDay,
-              borderColor: '#e74a3b',
-              backgroundColor: 'rgba(231,74,59,0.08)',
-              tension: 0.4,
-              fill: true,
-              pointRadius: 3
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: {
-                display: false
-              },
-              tooltip: {
-                enabled: true,
-                backgroundColor: '#232946',
-                titleColor: '#fff',
-                bodyColor: '#fff'
-              }
-            },
-            scales: {
-              x: {
-                grid: {
-                  display: false
-                },
-                ticks: {
-                  font: {
-                    family: 'Kanit'
-                  }
-                }
-              },
-              y: {
-                beginAtZero: true,
-                grid: {
-                  color: '#e0e7ff'
-                },
-                ticks: {
-                  font: {
-                    family: 'Kanit'
-                  }
-                }
-              }
-            },
-            animation: false
-          }
-        });
-
-        // กราฟรายเดือน
-        const salesMonthChart = new Chart(document.getElementById('salesMonthChart').getContext('2d'), {
-          type: 'line',
-          data: {
-            labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
-            datasets: [{
-              label: 'ยอดขาย (บาท)',
-              data: salesMonth,
-              borderColor: '#1cc88a',
-              backgroundColor: 'rgba(28,200,138,0.08)',
-              tension: 0.4,
-              fill: true,
-              pointRadius: 3
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: {
-                display: false
-              },
-              tooltip: {
-                enabled: true,
-                backgroundColor: '#232946',
-                titleColor: '#fff',
-                bodyColor: '#fff'
-              }
-            },
-            scales: {
-              x: {
-                grid: {
-                  display: false
-                },
-                ticks: {
-                  font: {
-                    family: 'Kanit'
-                  }
-                }
-              },
-              y: {
-                beginAtZero: true,
-                grid: {
-                  color: '#e0e7ff'
-                },
-                ticks: {
-                  font: {
-                    family: 'Kanit'
-                  }
-                }
-              }
-            },
-            animation: false
-          }
-        });
-
-        // กราฟรายปี
-        const salesYearChart = new Chart(document.getElementById('salesYearChart').getContext('2d'), {
-          type: 'line',
-          data: {
-            labels: ['2021', '2022', '2023', '2024', '2025'],
-            datasets: [{
-              label: 'ยอดขาย (บาท)',
-              data: salesYear,
-              borderColor: '#4e73df',
-              backgroundColor: 'rgba(78,115,223,0.08)',
-              tension: 0.4,
-              fill: true,
-              pointRadius: 3
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: {
-                display: false
-              },
-              tooltip: {
-                enabled: true,
-                backgroundColor: '#232946',
-                titleColor: '#fff',
-                bodyColor: '#fff'
-              }
-            },
-            scales: {
-              x: {
-                grid: {
-                  display: false
-                },
-                ticks: {
-                  font: {
-                    family: 'Kanit'
-                  }
-                }
-              },
-              y: {
-                beginAtZero: true,
-                grid: {
-                  color: '#e0e7ff'
-                },
-                ticks: {
-                  font: {
-                    family: 'Kanit'
-                  }
-                }
-              }
-            },
-            animation: false
-          }
-        });
-
-        // Animation: ขยับเส้นตลอดเวลา
-        function animateSalesCharts() {
-          randomSales(salesDay, 200, 2000);
-          randomSales(salesMonth, 2000, 15000);
-          randomSales(salesYear, 25000, 85000); 
-          salesDayChart.update('none');
-          salesMonthChart.update('none');
-          salesYearChart.update('none');
-          setTimeout(animateSalesCharts, 100);
-        }
-        animateSalesCharts();
-      </script>
+document.getElementById('salesType').addEventListener('change', function() {
+    const type = this.value;
+    chart.data.labels = salesData[type].labels;
+    chart.data.datasets[0].data = salesData[type].data;
+    chart.update();
+});
+</script>
 </body>
-
 </html>
