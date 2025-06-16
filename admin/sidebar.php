@@ -21,8 +21,8 @@
         top: 0;
         z-index: 100;
         box-shadow: 2px 0 16px rgba(0,0,0,0.07);
-        border-top-right-radius: var(--sidebar-radius);
-        border-bottom-right-radius: var(--sidebar-radius);
+        /* border-top-right-radius: var(--sidebar-radius);
+        border-bottom-right-radius: var(--sidebar-radius); */
         display: flex;
         flex-direction: column;
         padding: 32px 0 16px 0;
@@ -81,12 +81,6 @@
     <nav class="nav flex-column">
         <a href="./index.php" class="nav-link<?php if(basename($_SERVER['PHP_SELF'])=='index.php') echo ' active'; ?>">
             <i class='bx bxs-dashboard'></i> Dashboard
-        </a>
-        <a href="./edit_home.php" class="nav-link<?php if(basename($_SERVER['PHP_SELF'])=='edit_home.php') echo ' active'; ?>">
-            <i class='bx bx-notepad'></i> จัดการหน้าแรก
-        </a>
-        <a href="./edit_owner.php" class="nav-link<?php if(basename($_SERVER['PHP_SELF'])=='edit_owner.php') echo ' active'; ?>">
-            <i class='bx bx-user'></i> ข้อมูลเจ้าของ
         </a>
         <a href="./manage_mango.php" class="nav-link<?php if(basename($_SERVER['PHP_SELF'])=='manage_mango.php') echo ' active'; ?>">
             <i class='bx bx-detail'></i> สายพันธุ์มะม่วง
