@@ -66,6 +66,13 @@ while ($row = $result->fetch_assoc()) {
     $labels_booking_month[] = $row['month'];
     $booking_month[] = (int)$row['total'];
 }
+
+// ดึงยอดมัดจำรวมและยอดคงเหลือรวมจาก bookings
+$sql = "SELECT SUM(deposit_amount) AS deposit_total, SUM(remain_amount) AS remain_total FROM bookings";
+$result = $conn->query($sql);
+$row = $result->fetch_assoc();
+$deposit_total = $row['deposit_total'] ?? 0;
+$remain_total = $row['remain_total'] ?? 0;
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -77,6 +84,7 @@ while ($row = $result->fetch_assoc()) {
     <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 
         <style>
           * {
@@ -120,25 +128,46 @@ while ($row = $result->fetch_assoc()) {
         </div>
     </div>
     <h2 class="mt-5 mb-4">กราฟการจองเข้าชมสวน (รายเดือน)</h2>
-    <div class="card p-3">
-        <canvas id="bookingMonthChart"></canvas>
+    <div class="card shadow-sm p-4" style="max-width:600px;margin:auto;">
+        <div class="d-flex flex-column align-items-center">
+            <canvas id="bookingMonthChart" style="max-width:350px;max-height:350px;"></canvas>
+            <div class="row mt-4 w-100 justify-content-center">
+                <div class="col-auto">
+                    <div class="card border-0 bg-gradient-info text-white shadow-sm px-4 py-2 mb-2" style="background: linear-gradient(90deg, #36b9cc 0%, #4e73df 100%);">
+                        <span class="fw-bold">ยอดมัดจำรวม</span>
+                        <span class="fs-5 ms-2"><?= number_format($deposit_total, 2) ?> <small>บาท</small></span>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div class="card border-0 bg-gradient-warning text-dark shadow-sm px-4 py-2 mb-2" style="background: linear-gradient(90deg, #f6c23e 0%, #f8f9fc 100%);">
+                        <span class="fw-bold">ยอดคงเหลือรวม</span>
+                        <span class="fs-5 ms-2"><?= number_format($remain_total, 2) ?> <small>บาท</small></span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <div class="container my-5">
     <h2 class="mb-4">กราฟยอดขายสินค้า</h2>
-    <div class="mb-3">
-        <select id="salesType" class="form-select" style="max-width:250px;">
+    <div class="mb-3" style="max-width:350px;">
+        <select id="salesType" class="form-select">
             <option value="day">รายวัน</option>
             <option value="week">รายสัปดาห์</option>
             <option value="month">รายเดือน</option>
             <option value="year">รายปี</option>
         </select>
     </div>
+    <div class="mb-2">
+        <span id="totalLabel" class="badge bg-primary fs-5"></span>
+    </div>
     <div class="card p-3">
         <canvas id="salesChart"></canvas>
     </div>
 </div>
+
+
 
 <script>
 const salesDayLabels = <?= json_encode($labels_day) ?>;
@@ -151,6 +180,7 @@ const salesYearLabels = <?= json_encode($labels_year) ?>;
 const salesYearData = <?= json_encode($sales_year) ?>;
 const bookingMonthLabels = <?= json_encode($labels_booking_month) ?>;
 const bookingMonthData = <?= json_encode($booking_month) ?>;
+const total = bookingMonthData.reduce((a, b) => a + Number(b), 0); // เพิ่มบรรทัดนี้
 
 // กราฟยอดขายรายวัน
 new Chart(document.getElementById('salesDayChart'), {
@@ -217,17 +247,42 @@ new Chart(document.getElementById('salesYearChart'), {
         }]
     }
 });
-// กราฟการจองเข้าชมสวน (รายเดือน)
+// กราฟการจองเข้าชมสวน (รายเดือน) แบบวงกลม
 new Chart(document.getElementById('bookingMonthChart'), {
-    type: 'bar',
+    type: 'doughnut',
     data: {
         labels: bookingMonthLabels,
         datasets: [{
             label: 'จำนวนการจอง',
             data: bookingMonthData,
-            backgroundColor: '#f6c23e'
+            backgroundColor: bookingMonthLabels.map(() => '#f6c23e')
         }]
-    }
+    },
+    options: {
+        plugins: {
+            legend: { position: 'bottom' },
+            centerText: {
+                display: true,
+                text: total.toLocaleString() + ' คน'
+            }
+        }
+    },
+    plugins: [{
+        id: 'centerText',
+        afterDraw(chart) {
+            if (chart.config.options.plugins.centerText && chart.config.options.plugins.centerText.display) {
+                const ctx = chart.ctx;
+                const text = chart.config.options.plugins.centerText.text;
+                ctx.save();
+                ctx.font = 'bold 1.5rem sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#333';
+                ctx.fillText(text, chart.getDatasetMeta(0).data[0].x, chart.getDatasetMeta(0).data[0].y);
+                ctx.restore();
+            }
+        }
+    }]
 });
 
 const salesData = {
@@ -249,28 +304,53 @@ const salesData = {
     }
 };
 
+function updateTotalLabel(type) {
+    const total = salesData[type].data.reduce((a, b) => a + Number(b), 0);
+    let label = '';
+    switch(type) {
+        case 'day': label = 'ยอดขายรวม 7 วันล่าสุด: '; break;
+        case 'week': label = 'ยอดขายรวม 8 สัปดาห์ล่าสุด: '; break;
+        case 'month': label = 'ยอดขายรวม 12 เดือนล่าสุด: '; break;
+        case 'year': label = 'ยอดขายรวม 5 ปีล่าสุด: '; break;
+    }
+    document.getElementById('totalLabel').textContent = label + total.toLocaleString() + ' บาท';
+}
+
 const ctx = document.getElementById('salesChart').getContext('2d');
 let chart = new Chart(ctx, {
-    type: 'line',
+    type: 'bar',
     data: {
         labels: salesData.day.labels,
         datasets: [{
             label: 'ยอดขาย (บาท)',
             data: salesData.day.data,
-            borderColor: '#4e73df',
-            backgroundColor: 'rgba(78,115,223,0.08)',
-            tension: 0.4,
-            fill: true,
-            pointRadius: 3
+            backgroundColor: '#4e73df'
         }]
+    },
+    options: {
+        plugins: {
+            legend: { display: false },
+            tooltip: { enabled: true }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) { return value.toLocaleString(); }
+                }
+            }
+        }
     }
 });
+
+updateTotalLabel('day');
 
 document.getElementById('salesType').addEventListener('change', function() {
     const type = this.value;
     chart.data.labels = salesData[type].labels;
     chart.data.datasets[0].data = salesData[type].data;
     chart.update();
+    updateTotalLabel(type);
 });
 </script>
 </body>
