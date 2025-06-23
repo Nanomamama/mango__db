@@ -1,6 +1,15 @@
 <?php
 require_once 'db.php'; // เชื่อมต่อฐานข้อมูล
 require_once 'auth.php';
+
+// นับจำนวนออเดอร์ที่รอยืนยัน (pending)
+$orderCount = 0;
+$orderCountQuery = "SELECT COUNT(*) AS cnt FROM orders WHERE status = 'pending'";
+$orderCountResult = $conn->query($orderCountQuery);
+if ($orderCountResult) {
+    $orderCountRow = $orderCountResult->fetch_assoc();
+    $orderCount = $orderCountRow['cnt'];
+}
 ?>
 
 <!DOCTYPE html>
@@ -47,6 +56,31 @@ require_once 'auth.php';
             border: 1px solid #ddd; /* เพิ่มเส้นขอบ */
             border-radius: 5px; /* เพิ่มมุมโค้งมน */
         }
+
+        /* ตกแต่งช่องค้นหา DataTables ให้เข้ากับ Bootstrap */
+        .dataTables_filter {
+            margin-bottom: 1rem;
+        }
+        .dataTables_filter label {
+            font-weight: bold;
+            color: #0d6efd;
+        }
+        .dataTables_filter input[type="search"] {
+            border-radius: 2rem;
+            border: 1px solid #0d6efd;
+            padding: 8px 18px;
+            width: 250px;
+            transition: box-shadow 0.2s;
+            box-shadow: 0 2px 8px rgba(13,110,253,0.07);
+            background: #fff;
+            font-size: 1rem;
+        }
+        .dataTables_filter input[type="search"]:focus {
+            outline: none;
+            border-color: #6610f2;
+            box-shadow: 0 0 0 2px #b6d4fe;
+            background: #f8f9fa;
+        }
     </style>
 </head>
 
@@ -58,7 +92,12 @@ require_once 'auth.php';
     <div class="p-4" style="margin-left: 250px; flex: 2;">
         <h2>📋 จัดการสินค้าผลิตภัณฑ์</h2>
         <a href="add_product.php" class="btn btn-primary mb-3">➕ เพิ่มสินค้า</a>
-        <a href="order_product.php" class="btn btn-warning mb-3">คำสั่งซื้อ</a>
+        <a href="order_product.php" class="btn btn-warning mb-3">
+            คำสั่งซื้อ
+            <?php if ($orderCount > 0): ?>
+                <span class="badge bg-danger"><?= $orderCount ?></span>
+            <?php endif; ?>
+        </a>
         <a href="sales_report.php" class="btn btn-warning mb-3">รายงานการขาย</a>
 
         <table id="productTable" class="table table-bordered">
