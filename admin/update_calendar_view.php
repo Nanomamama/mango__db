@@ -25,11 +25,12 @@ while ($row = $res->fetch_assoc()) {
     <?php include 'sidebar.php'; ?>
     <div class="d-flex">
         <div class="container mt-5" style="margin-left: 250px; flex: 1;">
-            <h2 class="mb-4">🗓️ อัพเดทปฏิทินวันว่าง/ไม่ว่าง</h2>
+            <h2 class="mb-4">อัพเดทปฏิทินวันว่าง/ไม่ว่าง</h2>
             <div id="calendar"></div>
             <div class="mt-3">
                 <button class="btn btn-success" onclick="updateStatus('available')">อัพเดทเป็นวันว่าง</button>
                 <button class="btn btn-danger" onclick="updateStatus('unavailable')">อัพเดทเป็นวันไม่ว่าง</button>
+                <button class="btn btn-warning" onclick="clearSelectedDates()">ล้างวันที่เลือก</button>
             </div>
             <br>
         </div>
@@ -67,6 +68,15 @@ while ($row = $res->fetch_assoc()) {
                     events: events
                 });
                 calendar.render();
+
+                // สมมุติ selectedDates คือ array ของวันที่ที่ต้องการลบ (เช่น ['2025-06-20', '2025-06-21'])
+                selectedDates.forEach(function(dateStr) {
+                    calendar.getEvents().forEach(function(event) {
+                        if (event.startStr === dateStr) {
+                            event.remove();
+                        }
+                    });
+                });
             });
 
             function updateStatus(status) {
@@ -93,6 +103,28 @@ while ($row = $res->fetch_assoc()) {
                             alert('เกิดข้อผิดพลาด');
                         }
                     });
+            }
+
+            function clearSelectedDates() {
+                if (selectedDates.length === 0) {
+                    alert('กรุณาเลือกวันที่');
+                    return;
+                }
+                if (!confirm('ยืนยันการลบวันที่อัปเดตเหล่านี้?')) return;
+                fetch('clear_update_date.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({dates: selectedDates})
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('ลบวันที่อัปเดตสำเร็จ');
+                        location.reload(); // รีเฟรชหน้าทันทีหลังยืนยัน
+                    } else {
+                        alert('เกิดข้อผิดพลาด');
+                    }
+                });
             }
         </script>
     </div>
