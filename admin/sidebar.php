@@ -76,7 +76,7 @@
 
 
 
- /* เพิ่ม这部分ใน CSS ของคุณ */
+ /* เพิ่ม这部分ใน CSS ของ您 */
 .notification-bell {
     position: relative;
     display: inline-block;
@@ -178,37 +178,23 @@
 // ตรวจสอบการจองใหม่
 function checkNotifications() {
     fetch('get_new_bookings.php')
-        .then(response => {
-            if (!response.ok) throw new Error('Network error');
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
             const bell = document.querySelector('.notification-bell');
-            const badge = document.querySelector('.notification-badge');
-            
-            console.log('New bookings count:', data.count);
-            
+            const bellIcon = bell.querySelector('.bell-icon');
+            let badge = bell.querySelector('.notification-badge');
             if (data.count > 0) {
-                // อัปเดตหรือสร้าง badge
                 if (!badge) {
-                    const newBadge = document.createElement('span');
-                    newBadge.className = 'notification-badge';
-                    newBadge.textContent = data.count;
-                    bell.appendChild(newBadge);
+                    badge = document.createElement('span');
+                    badge.className = 'notification-badge';
+                    badge.textContent = data.count;
+                    bell.appendChild(badge);
                 } else {
                     badge.textContent = data.count;
                 }
-                
-                // เพิ่มคลาสสั่น
-                if (!bell.classList.contains('has-notification')) {
-                    bell.classList.add('has-notification');
-                    console.log('Added has-notification class');
-                }
+                bell.classList.add('has-notification');
             } else {
-                // ลบ badge และคลาสสั่น
-                if (badge) {
-                    badge.remove();
-                }
+                if (badge) badge.remove();
                 bell.classList.remove('has-notification');
             }
         })

@@ -32,7 +32,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ตารางรายการจอง</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 
 <body>
@@ -42,16 +42,24 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
         <h2 class="mb-4">📅 ตารางรายการจองวันเข้าชมสวนมะม่วงลุงเผือก</h2>
         <ul class="nav nav-tabs mb-3" id="bookingTab" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab">ทั้งหมด</button>
+                <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab">
+                    ทั้งหมด <span class="badge bg-secondary"><?= count($bookings) ?></span>
+                </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">รออนุมัติ</button>
+                <button class="nav-link" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
+                    รออนุมัติ <span class="badge bg-warning"><?= count($pending) ?></span>
+                </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="approved-tab" data-bs-toggle="tab" data-bs-target="#approved" type="button" role="tab">อนุมัติแล้ว</button>
+                <button class="nav-link" id="approved-tab" data-bs-toggle="tab" data-bs-target="#approved" type="button" role="tab">
+                    อนุมัติแล้ว <span class="badge bg-success"><?= count($approved) ?></span>
+                </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="rejected-tab" data-bs-toggle="tab" data-bs-target="#rejected" type="button" role="tab">ถูกปฏิเสธ</button>
+                <button class="nav-link" id="rejected-tab" data-bs-toggle="tab" data-bs-target="#rejected" type="button" role="tab">
+                    ถูกปฏิเสธ <span class="badge bg-danger"><?= count($rejected) ?></span>
+                </button>
             </li>
         </ul>
         <div class="tab-content" id="bookingTabContent">
@@ -71,7 +79,8 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
             <div class="tab-pane fade" id="rejected" role="tabpanel">
                 <?php $bookings_show = $rejected; include 'booking_table.php'; ?>
             </div>
-        </div>
+        </div> <!-- ปิด .tab-content -->
+
     </div>
 
     <script>
@@ -88,7 +97,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                     })
                 })
                 .then(res => res.json())
-                .then(data => {
+                .then(data => { // <-- แก้ไขตรงนี้
                     if (data.success) {
                         location.reload();
                     } else {
@@ -117,7 +126,49 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                     }
                 });
         }
+
+        // ฟังก์ชันสำหรับแสดงรายละเอียดการจองในโมดัล
+        document.addEventListener('DOMContentLoaded', function() {
+            var detailModal = document.getElementById('detailModal');
+            detailModal.addEventListener('show.bs.modal', function (event) {
+                var button = event.relatedTarget;
+                if (!button) return;
+                var booking = JSON.parse(button.getAttribute('data-booking'));
+                var body = detailModal.querySelector('#modalDetailBody');
+                if (!body) return;
+                body.innerHTML = `
+                    <tr><th>ชื่อคณะ</th><td>${booking.name || '-'}</td></tr>
+                    <tr><th>วันที่จอง</th><td>${booking.date || '-'}</td></tr>
+                    <tr><th>เวลา</th><td>${booking.time || '-'}</td></tr>
+                    <tr><th>จำนวนผู้เข้าชม</th><td>${booking.people || '-'}</td></tr>
+                    <tr><th>สถานะ</th><td>${booking.status || '-'}</td></tr>
+                    <tr><th>ยอดรวม</th><td>${Number(booking.total_amount).toLocaleString()} บาท</td></tr>
+                    <tr><th>ยอดมัดจำ</th><td>${Number(booking.deposit_amount).toLocaleString()} บาท</td></tr>
+                    <tr><th>ยอดคงเหลือ</th><td>${Number(booking.remain_amount).toLocaleString()} บาท</td></tr>
+                    <tr><th>เบอร์โทร</th><td>${booking.phone || '-'}</td></tr>
+                    <tr><th>เอกสาร</th><td>${booking.doc ? `<a href="../uploads/${booking.doc}" target="_blank">ดูไฟล์</a>` : '-'}</td></tr>
+                    <tr><th>สลิป</th><td>${booking.slip ? `<a href="../uploads/${booking.slip}" target="_blank">ดูไฟล์</a>` : '-'}</td></tr>
+                `;
+            });
+        });
     </script>
+
+    <!-- booking_list.php -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detailModalLabel">รายละเอียดการจอง</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-bordered">
+          <tbody id="modalDetailBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 
 </html>
