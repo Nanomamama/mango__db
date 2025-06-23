@@ -108,7 +108,7 @@ $remain_total = $row['remain_total'] ?? 0;
 
     <div class="d-flex">
         <div class="p-4" style="margin-left: 250px; flex: 1;">
-            <h2 class="mb-4">Dashboard ข้อมูลการขายสินค้า</h2>
+            <!-- <h2 class="mb-4">Dashboard ข้อมูลการขายสินค้า</h2> -->
 
             <div class="d-flex justify-content-center mt-4">
             </div>
