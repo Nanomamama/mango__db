@@ -55,23 +55,38 @@ function checkOrderStatus() {
                                 <p>👤 <strong>ลูกค้า:</strong> ${order.customer_name}</p>
                                 <p>📍 <strong>ที่อยู่:</strong> ${order.address_number}</p>
                                 <p>📦 <strong>สถานะ:</strong> ${order.status}</p>
+                                <h6 class="mt-3">🛒 รายการสินค้า</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm align-middle">
+                                        <thead>
+                                            <tr>
+                                                <th>รูป</th>
+                                                <th>สินค้า</th>
+                                                <th>จำนวน</th>
+                                                <th>ราคา</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${order.items.map(item => `
+                                                <tr>
+                                                    <td>
+                                                        <img src="../admin/productsimage/${item.product_image || 'default.jpg'}" 
+                                                             alt="${item.product_name}" 
+                                                             style="width:40px;height:40px;object-fit:cover;border-radius:4px;">
+                                                    </td>
+                                                    <td>${item.product_name}</td>
+                                                    <td>${item.quantity}</td>
+                                                    <td>฿${Number(item.price).toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     `;
                 });
                 resultDiv.innerHTML = html;
-            } else if (data.success && data.order) {
-                let order = data.order;
-                resultDiv.innerHTML = `
-                    <div class="card border-primary">
-                        <div class="card-body">
-                            <h5 class="card-title">🆔 คำสั่งซื้อ #${order.id}</h5>
-                            <p>👤 <strong>ลูกค้า:</strong> ${order.customer}</p>
-                            <p>📍 <strong>ที่อยู่:</strong> ${order.address}</p>
-                            <p>📦 <strong>สถานะ:</strong> ${order.status}</p>
-                        </div>
-                    </div>
-                `;
             } else {
                 resultDiv.innerHTML = `<div class="alert alert-danger">❌ ไม่พบข้อมูลคำสั่งซื้อ</div>`;
             }

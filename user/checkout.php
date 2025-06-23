@@ -9,6 +9,11 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <!-- ลบ tesseract.js ออก -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>  สำหรับ ocr อ่านสลิป -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+    <!-- เพิ่ม html5-qrcode -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
 <?php include 'navbar.php'; ?>
@@ -100,6 +105,7 @@
                 <div class="mb-3" id="slip-upload" style="display: none;">
                     <label for="payment-slip" class="form-label">แนบสลิปโอนเงิน</label>
                     <input type="file" class="form-control" id="payment-slip" name="payment_slip" accept="image/*">
+                    <button type="button" id="show-ocr-btn" class="btn btn-info mt-2" style="display:none;">ดูข้อมูล OCR</button>
                 </div>
                 
                 <h4>รายการสินค้า</h4>
@@ -108,6 +114,7 @@
                     <a href="cart.php" class="btn btn-warning">🔙 กลับ</a>
                     <button type="submit" class="btn btn-primary">ยืนยันการสั่งซื้อ</button>
                 </div>
+                <input type="hidden" name="cart" id="cart-data">
             </form>
         </div>
     </div>
@@ -241,30 +248,38 @@
         });
     });
 
+    // แก้ไข event submit ไม่ต้องเช็ค slipVerified อีกต่อไป
     document.getElementById("checkout-form").addEventListener("submit", function (e) {
-        e.preventDefault(); // ป้องกันการส่งฟอร์มแบบปกติ
+        e.preventDefault();
 
-        let cart = JSON.parse(localStorage.getItem("cart")) || []; // ดึงข้อมูลจาก localStorage
-        let formData = new FormData(this); // สร้าง FormData จากฟอร์ม
-        formData.append("cart", JSON.stringify(cart)); // เพิ่มข้อมูล cart ลงใน FormData
+        let cart = JSON.parse(localStorage.getItem("cart")) || [];
+        let formData = new FormData(this);
+        formData.set("cart", JSON.stringify(cart)); // ใช้ set เพื่อแทนที่ค่าเดิม
 
         fetch("process_checkout.php", {
             method: "POST",
             body: formData
         })
-        .then(response => response.json())
+        .then(async response => {
+            const text = await response.text();
+            try {
+                return JSON.parse(text);
+            } catch (err) {
+                Swal.fire("เกิดข้อผิดพลาด", "Response ไม่ใช่ JSON:<br><pre style='text-align:left'>" + text + "</pre>", "error");
+                throw new Error("Invalid JSON: " + text);
+            }
+        })
         .then(data => {
-            if (data.success) {
+            if (data && data.success) {
                 Swal.fire("สำเร็จ!", "การสั่งซื้อของคุณถูกบันทึกเรียบร้อยแล้ว", "success");
-                localStorage.removeItem("cart"); // ล้างตะกร้าสินค้า
-                setTimeout(() => window.location.href = `order_summary.php?order_id=${data.order_id}`, 2000); // เปลี่ยนเส้นทางไปยัง order_summary.php
-            } else {
+                localStorage.removeItem("cart");
+                setTimeout(() => window.location.href = `order_summary.php?order_id=${data.order_id}`, 2000);
+            } else if (data) {
                 Swal.fire("ผิดพลาด!", data.message, "error");
             }
         })
         .catch(error => {
             console.error("Error:", error);
-            Swal.fire("เกิดข้อผิดพลาด", "ไม่สามารถดำเนินการได้", "error");
         });
     });
 </script>

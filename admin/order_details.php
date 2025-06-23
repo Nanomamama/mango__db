@@ -4,6 +4,18 @@ require_once 'db.php';
 
 $order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
 
+// --- ส่วนอัปเดตสถานะ ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status'], $_POST['order_id'])) {
+    $new_status = $_POST['status'];
+    $update = $conn->prepare("UPDATE orders SET status=? WHERE id=?");
+    $update->bind_param("si", $new_status, $_POST['order_id']);
+    $update->execute();
+    // reload หน้าเพื่อแสดงสถานะใหม่
+    header("Location: order_details.php?order_id=" . $_POST['order_id']);
+    exit;
+}
+// --- จบส่วนอัปเดตสถานะ ---
+
 // ดึงข้อมูลคำสั่งซื้อ
 $query_order = "SELECT customer_name, address_number, province_id, district_id, subdistrict_id, postal_code, payment_method, total_price, created_at, status, slip_path 
                 FROM orders 
@@ -44,6 +56,18 @@ $stmt_items = $conn->prepare($query_items);
 $stmt_items->bind_param("i", $order_id);
 $stmt_items->execute();
 $result_items = $stmt_items->get_result();
+
+// ฟังก์ชันแปลงสถานะเป็นภาษาไทยและสี
+function getStatusInfo($status) {
+    switch($status) {
+        case 'pending':   return ['รอยืนยัน', 'bg-warning'];
+        case 'confirmed': return ['ยืนยันคำสั่งซื้อ', 'bg-info'];
+        case 'shipping':  return ['กำลังจัดส่ง', 'bg-primary'];
+        case 'completed': return ['สำเร็จ', 'bg-success'];
+        case 'cancelled': return ['ยกเลิก', 'bg-danger'];
+    }
+}
+list($statusText, $statusColor) = getStatusInfo($order['status']);
 ?>
 
 <!DOCTYPE html>
@@ -115,47 +139,32 @@ $result_items = $stmt_items->get_result();
             </tbody>
         </table>
 
-        <h5>สถานะคำสั่งซื้อ:
-            <span id="order-status" class="badge 
-                <?php echo $order['status'] === 'รอดำเนินการ' ? 'bg-warning' : 
-                           ($order['status'] === 'กำลังจัดส่ง' ? 'bg-primary' : 
-                           ($order['status'] === 'สำเร็จ' ? 'bg-success' : 'bg-danger')); ?>">
-                <?php echo htmlspecialchars($order['status']); ?>
-            </span>
-        </h5>
         
-        <select id="statusSelect" class="form-select w-25" onchange="updateStatus(<?php echo $order_id; ?>)">
-            <option value="รอดำเนินการ" <?php echo $order['status'] === 'รอดำเนินการ' ? 'selected' : ''; ?>>รอดำเนินการ</option>
-            <option value="กำลังจัดส่ง" <?php echo $order['status'] === 'กำลังจัดส่ง' ? 'selected' : ''; ?>>กำลังจัดส่ง</option>
-            <option value="สำเร็จ" <?php echo $order['status'] === 'สำเร็จ' ? 'selected' : ''; ?>>สำเร็จ</option>
-            <option value="ยกเลิก" <?php echo $order['status'] === 'ยกเลิก' ? 'selected' : ''; ?>>ยกเลิก</option>
-        </select>
+      
+        <!-- แสดงสถานะและปุ่มอัปเดต -->
+        <div class="mt-3 mb-4 d-flex align-items-center gap-3">
+            <form method="post" class="d-flex align-items-center gap-2 mb-0">
+                <input type="hidden" name="order_id" value="<?= $order_id ?>">
+                <label for="statusSelect" class="form-label mb-0">สถานะคำสั่งซื้อ:</label>
+                <select name="status" id="statusSelect" class="form-select w-auto">
+                    <option value="pending"   <?= $order['status']=='pending'?'selected':''; ?>>รอยืนยัน</option>
+                    <option value="confirmed" <?= $order['status']=='confirmed'?'selected':''; ?>>ยืนยันคำสั่งซื้อ</option>
+                    <option value="shipping"  <?= $order['status']=='shipping'?'selected':''; ?>>กำลังจัดส่ง</option>
+                    <option value="completed" <?= $order['status']=='completed'?'selected':''; ?>>สำเร็จ</option>
+                    <option value="cancelled" <?= $order['status']=='cancelled'?'selected':''; ?>>ยกเลิก</option>
+                </select>
+                <button type="submit" class="btn btn-primary">อัปเดตสถานะ</button>
+            </form>
+            <span class="badge <?= $statusColor ?>">
+                <?= $statusText ?>
+            </span>
+        </div>
+
         <div class="ps-4">
-        <a href="order_product.php" class="btn btn-info mt-3">🔙 กลับ</a>
+            <a href="order_product.php" class="btn btn-info mt-3">🔙 กลับ</a>
         </div>
     </div>
 </div>
-
-<script>
-function updateStatus(orderId) {
-    let status = document.getElementById("statusSelect").value;
-    
-    $.post('update_order_status.php', { order_id: orderId, status: status }, function(response) {
-        alert(response);
-        
-        let statusBadge = $('#order-status');
-        statusBadge.text(status);
-        statusBadge.removeClass().addClass('badge');
-        
-        switch(status) {
-            case 'รอดำเนินการ': statusBadge.addClass('bg-warning'); break;
-            case 'กำลังจัดส่ง': statusBadge.addClass('bg-primary'); break;
-            case 'สำเร็จ': statusBadge.addClass('bg-success'); break;
-            case 'ยกเลิก': statusBadge.addClass('bg-danger'); break;
-        }
-    });
-}
-</script>
 
 </body>
 </html>
