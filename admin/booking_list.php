@@ -2,18 +2,28 @@
 require_once 'auth.php';
 require_once 'db.php';
 
+// อัปเดตสถานะการดูเมื่อโหลดหน้านี้
+// if (!isset($_SESSION['viewed_updated'])) {
+//     $conn->query("UPDATE bookings SET viewed = 1 WHERE viewed = 0");
+//     $_SESSION['viewed_updated'] = true;
+// }
+
+// อัปเดตสถานะการดูเมื่อโหลดหน้านี้
+$conn->query("UPDATE bookings SET viewed = 1 WHERE viewed = 0");
+
 // ดึงข้อมูลจองจากฐานข้อมูล
 $bookings = [];
 $result = $conn->query("SELECT * FROM bookings ORDER BY date ASC");
 while ($row = $result->fetch_assoc()) {
     $bookings[] = $row;
 }
-
 // แยกข้อมูลตามสถานะ
 $approved = array_filter($bookings, fn($b) => $b['status'] === 'อนุมัติแล้ว');
 $rejected = array_filter($bookings, fn($b) => $b['status'] === 'ถูกปฏิเสธ');
 $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุมัติ');
 ?>
+
+
 <!DOCTYPE html>
 <html lang="th">
 

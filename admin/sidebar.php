@@ -73,6 +73,63 @@
         margin-top: 24px;
         padding-bottom: 8px;
     }
+
+
+
+ /* เพิ่ม这部分ใน CSS ของคุณ */
+.notification-bell {
+    position: relative;
+    display: inline-block;
+    margin-left: auto;
+}
+
+.notification-badge {
+    background-color: #ff4757;
+    color: white;
+    border-radius: 50%;
+    padding: 3px 6px;
+    min-width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    animation: pulse 1.5s infinite ease-in-out;
+    box-shadow: 0 0 5px rgba(255, 71, 87, 0.5);
+}
+
+.bell-icon {
+    font-size: 1.3rem;
+    color: var(--sidebar-icon);
+    transition: all 0.3s ease;
+}
+
+/* แก้ไข animation ให้ชัดเจนขึ้น */
+.notification-bell.has-notification .bell-icon {
+    animation: bellShake 0.5s ease-in-out infinite;
+    transform-origin: top center;
+    display: inline-block; /* เพิ่ม這一行 */
+}
+
+@keyframes bellShake {
+    0% { transform: rotate(0deg); }
+    25% { transform: rotate(15deg); }
+    50% { transform: rotate(-15deg); }
+    75% { transform: rotate(10deg); }
+    100% { transform: rotate(0deg); }
+}
+
+/* อนิเมชันการเต้นของตัวเลข */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
 </style>
 <div class="modern-sidebar">
     <div class="sidebar-logo">
@@ -91,9 +148,20 @@
         <a href="./edit_courses.php" class="nav-link<?php if(basename($_SERVER['PHP_SELF'])=='edit_courses.php') echo ' active'; ?>">
             <i class='bx bx-book'></i> หลักสูตร
         </a>
+
         <a href="./booking_list.php" class="nav-link<?php if(basename($_SERVER['PHP_SELF'])=='booking_list.php') echo ' active'; ?>">
-            <i class='bx bxs-calendar'></i> ตารางรายการจอง
+            <i class='bx bxs-calendar'></i> รายการจอง
+            <div class="notification-bell ms-auto">
+                <i class='bx bxs-bell bell-icon'></i>
+                <?php
+                require_once 'db.php';
+                $newBookings = $conn->query("SELECT COUNT(*) FROM bookings WHERE viewed = 0")->fetch_row()[0];
+                if ($newBookings > 0): ?>
+                    <span class="notification-badge"><?= $newBookings ?></span>
+                <?php endif; ?>
+            </div>
         </a>
+        
         <a href="./update_calendar_view.php" class="nav-link<?php if(basename($_SERVER['PHP_SELF'])=='update_calendar_view.php') echo ' active'; ?>">
             <i class='bx bxs-calendar'></i> อัพเดทปฏิทิน
         </a>
@@ -105,3 +173,56 @@
         &copy; <?= date('Y') ?> Mango Admin
     </div>
 </div>
+
+<script>
+// ตรวจสอบการจองใหม่
+function checkNotifications() {
+    fetch('get_new_bookings.php')
+        .then(response => {
+            if (!response.ok) throw new Error('Network error');
+            return response.json();
+        })
+        .then(data => {
+            const bell = document.querySelector('.notification-bell');
+            const badge = document.querySelector('.notification-badge');
+            
+            console.log('New bookings count:', data.count);
+            
+            if (data.count > 0) {
+                // อัปเดตหรือสร้าง badge
+                if (!badge) {
+                    const newBadge = document.createElement('span');
+                    newBadge.className = 'notification-badge';
+                    newBadge.textContent = data.count;
+                    bell.appendChild(newBadge);
+                } else {
+                    badge.textContent = data.count;
+                }
+                
+                // เพิ่มคลาสสั่น
+                if (!bell.classList.contains('has-notification')) {
+                    bell.classList.add('has-notification');
+                    console.log('Added has-notification class');
+                }
+            } else {
+                // ลบ badge และคลาสสั่น
+                if (badge) {
+                    badge.remove();
+                }
+                bell.classList.remove('has-notification');
+            }
+        })
+        .catch(error => console.error('Fetch error:', error));
+}
+
+// เรียกครั้งแรกเมื่อโหลดหน้า
+document.addEventListener('DOMContentLoaded', checkNotifications);
+
+// ตั้งเวลาเรียกทุก 30 วินาที
+const notificationInterval = setInterval(checkNotifications, 30000);
+
+// อัปเดตเมื่อคลิกเมนู
+document.querySelector('a[href="./booking_list.php"]').addEventListener('click', function() {
+    setTimeout(checkNotifications, 300);
+});
+</script>
