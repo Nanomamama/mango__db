@@ -141,14 +141,15 @@
 
         .mango-card {
             border-radius: 12px;
-            transition: transform 0.3s;
+            transition: box-shadow 0.3s;
             cursor: pointer;
             background-color: #f8f9fa;
+            overflow: hidden;
         }
 
         .mango-card:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.13);
+            /* ไม่มี transform: scale() */
         }
 
         .mango-card img {
@@ -156,6 +157,13 @@
             height: 250px;
             object-fit: contain;
             padding: 15px;
+            transition: transform 0.35s cubic-bezier(.34,1.56,.64,1);
+            will-change: transform;
+            display: block;
+        }
+
+        .mango-card:hover img {
+            transform: translateY(-10px) scale(1.05) rotate(-2deg);
         }
 
         .mango-card .card-body {
