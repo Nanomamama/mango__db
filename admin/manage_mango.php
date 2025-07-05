@@ -34,6 +34,9 @@ $result = $conn->query($sql);
         * {
             font-family: "Kanit", sans-serif;
         }
+        body{
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e7f1 100%);
+        }
 
         .btn {
             transition: transform 0.3s ease;

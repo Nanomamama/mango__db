@@ -142,6 +142,7 @@ document.getElementById('downloadImgBtn').addEventListener('click', function() {
         link.click();
     });
 });
+
 </script>
 </body>
 </html>

@@ -69,12 +69,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         VALUES (?, ?, ?, ?, ?, ?, ?, 'รออนุมัติ', ?, ?, ?)");
     $stmt->bind_param("sssissdddd", $name, $date, $time, $people, $phone, $doc, $slip, $total_amount, $deposit_amount, $remain_amount);
     if ($stmt->execute()) {
-        $booking_id = $stmt->insert_id; // รับ id ล่าสุด
-        header("Location: receipt.php?id=" . $booking_id);
+        $booking_id = $stmt->insert_id; // รับ id ล่าสุด  
+        header("Location: activities.php?success=1&id=" . $booking_id);
         exit;
     } else {
         header("Location: activities.php?error=1");
         exit;
     }
+} else {
+    header("Location: activities.php?success=1");
+    exit;
 }
 ?>

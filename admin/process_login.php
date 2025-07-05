@@ -19,8 +19,9 @@ $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 
 if ($user && password_verify($password, $user['password'])) {
-    $_SESSION['username'] = $user['username'];
     $_SESSION['admin_id'] = $user['id'];
+    $_SESSION['admin_name'] = $user['username'];
+    $_SESSION['admin_email'] = $user['email'];
     header("Location: index.php");
     exit;
 } else {
