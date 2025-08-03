@@ -21,7 +21,7 @@
 
         .hero {
             height: 100vh;
-            background-image: url('./image/1-9.jpg');
+            background-image: url('./image/พื้นหลัง-002.jpg');
             background-size: cover;
             background-position: center;
             display: flex;

@@ -35,7 +35,7 @@ if (isset($_GET['id'])) {
 
 <body>
 <div class="container mt-5">
-    <h2 class="mb-4">✏️ แก้ไขสินค้า</h2>
+    <h2 class="mb-4">แก้ไขสินค้า</h2>
 
     <form action="update_product.php" method="POST" enctype="multipart/form-data">
         <!-- ส่ง ID สินค้าไปด้วย -->

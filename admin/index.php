@@ -1,5 +1,5 @@
 <?php
-require_once 'auth.php'; // ตรวจสอบ session
+require_once 'auth.php';
 require_once 'db.php';
 
 // ดึงชื่อ admin จาก session
@@ -78,13 +78,16 @@ $result = $conn->query($sql);
 $row = $result->fetch_assoc();
 $variety_count = $row['variety_count'];
 
-// ดึงยอดมัดจำรวมและยอดคงเหลือรวมจาก bookings
-$sql = "SELECT SUM(deposit_amount) AS deposit_total, SUM(remain_amount) AS remain_total FROM bookings";
+// ดึงยอดมัดจำรวมและยอดคงเหลือรวมจาก bookings เฉพาะที่อนุมัติแล้ว
+$sql = "SELECT SUM(deposit_amount) AS deposit_total, SUM(remain_amount) AS remain_total 
+        FROM bookings 
+        WHERE status = 'อนุมัติแล้ว'";
 $result = $conn->query($sql);
 $row = $result->fetch_assoc();
 $deposit_total = $row['deposit_total'] ?? 0;
 $remain_total = $row['remain_total'] ?? 0;
 ?>
+
 <!DOCTYPE html>
 <html lang="th">
 

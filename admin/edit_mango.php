@@ -47,7 +47,7 @@ if (!$mango) {
 </head>
 
 <body class="container py-4">
-    <h2 class="mb-4 ">✏️ แก้ไขสายพันธุ์มะม่วง</h2>
+    <h2 class="mb-4 ">แก้ไขสายพันธุ์มะม่วง</h2>
     <form action="update_mango.php" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="id" value="<?= $mango['id'] ?>">
 

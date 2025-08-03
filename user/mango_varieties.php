@@ -37,6 +37,18 @@ if (!$result) {
             background-color: #f8f9fa;
         }
 
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         .mango-card {
             border-radius: 12px;
             transition: transform 0.3s;
@@ -44,6 +56,7 @@ if (!$result) {
             background-color: #f8f9fa;
             perspective: 600px;
             overflow: hidden;
+            animation: fadeIn 0.7s;
         }
 
         .mango-card:hover {
@@ -76,6 +89,10 @@ if (!$result) {
         .container h2 {
             font-weight: 600;
             /* color: var(--Danger); */
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s forwards;
         }
     </style>
 </head>
@@ -152,12 +169,30 @@ if (!$result) {
             let category = document.getElementById('categorySelect').value;
             let mangoItems = document.querySelectorAll('.mango-item');
 
+            let visibleIndex = 0;
             mangoItems.forEach(function(item) {
                 let name = item.querySelector('.card-title').textContent.toLowerCase();
                 let cat = item.getAttribute('data-category');
                 let nameMatch = name.includes(filter);
                 let catMatch = !category || cat === category;
-                item.style.display = (nameMatch && catMatch) ? "block" : "none";
+                let card = item.querySelector('.mango-card');
+
+                // รีเซ็ต animation ก่อน
+                card.style.animation = 'none';
+                card.offsetHeight; // trigger reflow
+
+                if (nameMatch && catMatch) {
+                    item.style.display = "block";
+                    card.classList.add('fade-in');
+                    card.style.animation = `fadeIn 0.7s`;
+                    card.style.animationDelay = `${visibleIndex * 0.1}s`;
+                    visibleIndex++;
+                } else {
+                    item.style.display = "none";
+                    card.classList.remove('fade-in');
+                    card.style.animation = 'none';
+                    card.style.animationDelay = '0s';
+                }
             });
         }
     </script>
