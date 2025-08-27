@@ -1,3 +1,4 @@
+<?php include 'navbar.php'; ?>
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -210,7 +211,6 @@
     </style>
 </head>
 <body>
-    <?php include 'navbar.php'; ?>
     <div class="hero text-center">
         <div class="hero-contact">
             <h1>สวนมะม่วงลุงเผือก<br />จังหวัดเลย</h1>

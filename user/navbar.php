@@ -1,3 +1,8 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -99,6 +104,7 @@
             background-color: var(--Danger);
             border: 1px solid var(--Danger);
             transition: background-color 0.5s ease, color 0.5s ease;
+            text-decoration: none;
         }
 
         .cta-button:hover {
@@ -114,6 +120,34 @@
         .navbar-toggler {
             font-style: 24px;
             color:var(--Danger);
+        }
+        .profile-link:hover .profile-img-wrapper {
+            box-shadow: 0 0 0 3px #27785933;
+            transition: box-shadow 0.2s;
+        }
+        .profile-img-wrapper {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #e4e7f1 0%, #f5f7fa 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #277859;
+            box-shadow: 0 2px 8px rgba(67,97,238,0.08);
+            transition: box-shadow 0.2s;
+        }
+        .profile-img {
+            width: 38px;
+            height: 38px;
+            object-fit: cover;
+            border-radius: 50%;
+            display: block;
+        }
+        .profile-link span {
+            font-size: 1.08rem;
+            letter-spacing: 0.5px;
         }
     </style>
 </head>
@@ -151,6 +185,18 @@
                             <a class="nav-link" href="../user/activities.php">จองวันเข้าดูงาน</a>
                         </li>
                     </ul>
+                    <div class="d-flex mt-3 mt-lg-0 align-items-center">
+                        <?php if (!isset($_SESSION['member_id'])): ?>
+                            <a href="../user/register.php" class="cta-button ms-lg-3">สมัครสมาชิก</a>
+                        <?php else: ?>
+                            <a href="../user/member_profile.php" class="ms-3 d-flex align-items-center profile-link" title="โปรไฟล์">
+                                <div class="profile-img-wrapper me-2">
+                                    <img src="../user/image/profile.png" alt="โปรไฟล์" class="profile-img">
+                                </div>
+                                <span class="d-none d-lg-inline fw-semibold text-success">โปรไฟล์</span>
+                            </a>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -167,26 +213,26 @@
             }
         });
 
-        document.addEventListener("DOMContentLoaded", function () {
-            const navbarToggler = document.querySelector(".navbar-toggler");
-            const navbarNav = document.getElementById("navbarNav");
-            const bsCollapse = new bootstrap.Collapse(navbarNav, { toggle: false });
+        // document.addEventListener("DOMContentLoaded", function () {
+        //     const navbarToggler = document.querySelector(".navbar-toggler");
+        //     const navbarNav = document.getElementById("navbarNav");
+        //     const bsCollapse = new bootstrap.Collapse(navbarNav, { toggle: false });
             
-            navbarToggler.addEventListener("click", function () {
-                const isExpanded = navbarToggler.getAttribute("aria-expanded") === "true";
-                if (!isExpanded) {
-                    bsCollapse.show();
-                } else {
-                    bsCollapse.hide();
-                }
-            });
+        //     navbarToggler.addEventListener("click", function () {
+        //         const isExpanded = navbarToggler.getAttribute("aria-expanded") === "true";
+        //         if (!isExpanded) {
+        //             bsCollapse.show();
+        //         } else {
+        //             bsCollapse.hide();
+        //         }
+        //     });
 
-            document.addEventListener("click", function (event) {
-                if (!navbarNav.contains(event.target) && !navbarToggler.contains(event.target)) {
-                    bsCollapse.hide();
-                }
-            });
-        });
+        //     document.addEventListener("click", function (event) {
+        //         if (!navbarNav.contains(event.target) && !navbarToggler.contains(event.target)) {
+        //             bsCollapse.hide();
+        //         }
+        //     });
+        // });
     </script>
 </body>
 
