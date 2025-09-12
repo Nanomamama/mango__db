@@ -15,8 +15,8 @@
             --success: #4cc9f0;
             --light: #f8f9fa;
             --dark: #212529;
-            --gradient-start: #4361ee;
-            --gradient-end: #3a0ca3;
+            --success-dark: rgb(20, 58, 44);
+            --success-end: rgba(13, 201, 132, 1);
         }
         
         body {
@@ -38,7 +38,7 @@
             left: 0;
             right: 0;
             height: 300px;
-            background: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
+            background: linear-gradient(to right, var(--success-dark), var(--success-end));
             clip-path: polygon(0 0, 100% 0, 100% 80%, 0 100%);
             z-index: -1;
         }
@@ -54,7 +54,7 @@
         }
         
         .login-hero {
-            background: linear-gradient(to bottom right, var(--gradient-start), var(--gradient-end));
+            background: linear-gradient(to bottom right, var(--success-dark), var(--success-end));
             color: white;
             padding: 40px;
             display: flex;
@@ -142,7 +142,7 @@
         .form-title {
             font-family: 'Mitr', sans-serif;
             font-weight: 600;
-            color: var(--primary);
+            color: var(--success-end);
             font-size: 2rem;
             margin-bottom: 8px;
             position: relative;
@@ -180,7 +180,7 @@
         
         .form-label i {
             margin-right: 8px;
-            color: var(--primary);
+            color: var(--success-end);
         }
         
         .form-control {
@@ -196,16 +196,8 @@
             box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
         }
         
-        /* .input-icon {
-            position: absolute;
-            left: 15px;
-            top: 10px;
-            color: #6c757d;
-            font-size: 1.1rem;
-        } */
-        
         .btn-submit {
-            background: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
+            background: linear-gradient(to right, var(--success-dark), var(--success-end));
             border: none;
             border-radius: 30px;
             padding: 14px;
@@ -271,43 +263,6 @@
             text-decoration: underline;
         }
         
-        .social-login {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 20px;
-        }
-        
-        .social-btn {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.2rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        
-        .social-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.15);
-        }
-        
-        .facebook {
-            background: #3b5998;
-        }
-        
-        .google {
-            background: #dd4b39;
-        }
-        
-        .twitter {
-            background: #1da1f2;
-        }
-        
         /* Animation for form elements */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
@@ -333,7 +288,7 @@
         .hero-icon {
             font-size: 3rem;
             margin-bottom: 20px;
-            color: var(--success);
+            color: var(--success-end);
             animation: float 4s ease-in-out infinite;
             text-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
@@ -430,14 +385,12 @@
                     <form action="login_check.php" method="POST" id="loginForm">
                         <div class="form-group">
                             <label class="form-label"><i class="fas fa-envelope"></i> อีเมล์</label>
-                            <!-- <i class="input-icon fas fa-envelope"></i> -->
                             <input type="email" class="form-control" name="email" required placeholder="example@domain.com">
                         </div>
                         
                         <div class="form-group">
                             <label class="form-label"><i class="fas fa-lock"></i> รหัสผ่าน</label>
                             <div class="password-container">
-                                <!-- <i class="input-icon fas fa-lock"></i> -->
                                 <input type="password" class="form-control" name="password" id="password" required minlength="6" placeholder="กรอกรหัสผ่านของคุณ">
                                 <i class="toggle-password fas fa-eye" id="togglePassword"></i>
                             </div>
@@ -448,7 +401,7 @@
                                 <input class="form-check-input" type="checkbox" id="rememberMe">
                                 <label class="form-check-label" for="rememberMe">จดจำฉัน</label>
                             </div>
-                            <a href="#" class="text-decoration-none">ลืมรหัสผ่าน?</a>
+                            <a href="password_recovery.php" class="text-decoration-none">ลืมรหัสผ่าน?</a>
                         </div>
                         
                         <div class="form-group mt-4">
@@ -459,20 +412,8 @@
                         
                         <div class="text-center my-4 position-relative">
                             <hr>
-                            <span class="bg-white px-3 position-absolute" style="top: -12px; left: 50%; transform: translateX(-50%);">หรือเข้าสู่ระบบด้วย</span>
                         </div>
-                        
-                        <div class="social-login">
-                            <a href="#" class="social-btn facebook">
-                                <i class="fab fa-facebook-f"></i>
-                            </a>
-                            <a href="#" class="social-btn google">
-                                <i class="fab fa-google"></i>
-                            </a>
-                            <a href="#" class="social-btn twitter">
-                                <i class="fab fa-twitter"></i>
-                            </a>
-                        </div>
+
                     </form>
                     
                     <div class="form-footer">
@@ -484,44 +425,5 @@
         </div>
     </div>
 
-    <!-- <script>
-        // Password toggle visibility
-        const togglePassword = document.querySelector('#togglePassword');
-        const password = document.querySelector('#password');
-        
-        togglePassword.addEventListener('click', function() {
-            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
-            password.setAttribute('type', type);
-            this.classList.toggle('fa-eye');
-            this.classList.toggle('fa-eye-slash');
-        });
-        
-        // Form submission handler
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            // Show loading animation on submit
-            const submitBtn = this.querySelector('button[type="submit"]');
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> กำลังดำเนินการ...';
-            submitBtn.disabled = true;
-            
-            // Simulate form submission delay
-            setTimeout(() => {
-                // This is where the actual form submission would happen
-                // For demo purposes, we'll reset the button after 1.5 seconds
-                submitBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i> เข้าสู่ระบบ';
-                submitBtn.disabled = false;
-                
-                // Show success message (demo only)
-                alert('เข้าสู่ระบบสำเร็จ! ยินดีต้อนรับกลับมา');
-            }, 1500);
-            
-            // Prevent actual form submission for this demo
-            e.preventDefault();
-        });
-        
-        // Animation on scroll for form groups
-        document.querySelectorAll('.form-group').forEach((group, index) => {
-            group.style.animationDelay = `${0.1 + index * 0.1}s`;
-        });
-    </script> -->
 </body>
 </html>

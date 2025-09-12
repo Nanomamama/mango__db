@@ -101,15 +101,15 @@ if (session_status() === PHP_SESSION_NONE) {
             padding: 0.5rem 1.5rem;
             font-weight: bold;
             color: var(--white-color);
-            background-color: var(--Danger);
-            border: 1px solid var(--Danger);
+            background-color: var(--Success);
+            border: 1px solid var(--Success);
             transition: background-color 0.5s ease, color 0.5s ease;
             text-decoration: none;
         }
 
         .cta-button:hover {
             background-color: var(--white-color);
-            color: var(--Danger);
+            color: var(--Success);
         }
 
         .navbar-collapse {
@@ -153,7 +153,7 @@ if (session_status() === PHP_SESSION_NONE) {
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg bg-white ">
+    <nav class="navbar navbar-expand-xl bg-white ">
         <div class="container">
             <a class="navbar-brand" href="../user/index.php">
                 <img src="../user/image/สวนลุงเผือก4-Photoroom.png" alt="สวนลุงเผือก" style="max-height:80px;">
@@ -212,27 +212,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 navbar.classList.remove('scrolled');
             }
         });
-
-        // document.addEventListener("DOMContentLoaded", function () {
-        //     const navbarToggler = document.querySelector(".navbar-toggler");
-        //     const navbarNav = document.getElementById("navbarNav");
-        //     const bsCollapse = new bootstrap.Collapse(navbarNav, { toggle: false });
-            
-        //     navbarToggler.addEventListener("click", function () {
-        //         const isExpanded = navbarToggler.getAttribute("aria-expanded") === "true";
-        //         if (!isExpanded) {
-        //             bsCollapse.show();
-        //         } else {
-        //             bsCollapse.hide();
-        //         }
-        //     });
-
-        //     document.addEventListener("click", function (event) {
-        //         if (!navbarNav.contains(event.target) && !navbarToggler.contains(event.target)) {
-        //             bsCollapse.hide();
-        //         }
-        //     });
-        // });
+     
     </script>
 </body>
 
