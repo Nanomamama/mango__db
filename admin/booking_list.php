@@ -75,7 +75,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
             <div class="tab-pane fade show active" id="all" role="tabpanel">
                 <?php $bookings_show = $bookings; include 'booking_table.php'; ?>
             </div>
-            <!-- แท็บรออนุมัติ -->
+            <!-- แท็บยังไม่อนุมัติ'); -->
             <div class="tab-pane fade" id="pending" role="tabpanel">
                 <?php $bookings_show = $pending; include 'booking_table.php'; ?>
             </div>

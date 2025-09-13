@@ -1,3 +1,4 @@
+<?php include 'navbar.php'; ?>
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -21,7 +22,7 @@
 
         .hero {
             height: 100vh;
-            background-image: url('./image/1-9.jpg');
+            background-image: url('./image/พื้นหลัง-002.jpg');
             background-size: cover;
             background-position: center;
             display: flex;
@@ -210,7 +211,6 @@
     </style>
 </head>
 <body>
-    <?php include 'navbar.php'; ?>
     <div class="hero text-center">
         <div class="hero-contact">
             <h1>สวนมะม่วงลุงเผือก<br />จังหวัดเลย</h1>
