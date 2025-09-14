@@ -64,7 +64,7 @@
                     <input type="text" class="form-control" id="postal-code" name="postal_code" required>
                 </div>
 
-                <h4>วิธีการชำระเงิน</h4>
+                <h4>วิธีชำระเงิน</h4>
                 <div class="mb-3">
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="payment_method" id="payment-bank" value="bank" required>
@@ -98,7 +98,7 @@
                 </div>
                 <!-- เพิ่มโค้ด QR Payment -->
                 <div id="qr-payment" class="text-center mt-4" style="display: none;">
-                    <h5>📱 สแกนเพื่อชำระเงิน (PromptPay)</h5>
+                    <h5>สแกนเพื่อชำระเงิน (PromptPay)</h5>
                     <img id="promptpay-qr" alt="PromptPay QR Code" style="width: 250px; height: 250px;">
                     <p class="mt-2" style="color: green;">โปรดชำระเงินให้ตรงยอด และแนบสลิปในขั้นตอนถัดไป</p>
                 </div>
