@@ -51,11 +51,11 @@ function checkOrderStatus() {
                     html += `
                         <div class="card border-primary mb-2">
                             <div class="card-body">
-                                <h5 class="card-title">🆔 คำสั่งซื้อ #${order.id}</h5>
-                                <p>👤 <strong>ลูกค้า:</strong> ${order.customer_name}</p>
-                                <p>📍 <strong>ที่อยู่:</strong> ${order.address_number}</p>
-                                <p>📦 <strong>สถานะ:</strong> ${order.status}</p>
-                                <h6 class="mt-3">🛒 รายการสินค้า</h6>
+                                <h5class="card-title"> คำสั่งซื้อ #${order.id}</h5class=>
+                                <p><strong>ลูกค้า:</strong> ${order.customer_name}</p>
+                                <p><strong>ที่อยู่:</strong> ${order.address_number}</p>
+                                <p><strong>สถานะ:</strong> ${order.status}</p>
+                                <h6 class="mt-3">รายการสินค้า</h6>
                                 <div class="table-responsive">
                                     <table class="table table-sm align-middle">
                                         <thead>

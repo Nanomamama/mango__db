@@ -30,7 +30,7 @@ while ($row = $result->fetch_assoc()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>กิจกรรมและการจองวันเข้าชมสวนมะม่วงลุงเผือก</title>
+    <title>กิจกรรมและการจองวันเข้าดูงานสวนมะม่วงลุงเผือก</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@3.2.0/dist/fullcalendar.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -294,7 +294,7 @@ while ($row = $result->fetch_assoc()) {
     <br>
     <div class="container py-5">      
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>เลือกวันที่ต้องการจองเข้าชมสวน</h2>
+            <h2>เลือกวันที่ต้องการจองเข้าดูงาน</h2>
             
             <!-- ปุ่มแสดง Modal -->
             <button type="button" class="btn btn-dark text-white" data-bs-toggle="modal" data-bs-target="#howtoModal">
