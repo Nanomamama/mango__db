@@ -653,5 +653,14 @@ while ($row = $result->fetch_assoc()) {
         });
     </script>
     <?php endif; ?>
+    <script>
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const slipInput = document.querySelector('input[name="slip"]');
+            if (!slipInput.value) {
+                alert('กรุณาแนบสลิปก่อนยืนยันการจอง');
+                e.preventDefault();
+            }
+        });
+    </script>
 </body>
 </html>

@@ -35,11 +35,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_FILES['document']) && $_FILES['document']['error'] === UPLOAD_ERR_OK) {
         if (is_valid_file($_FILES['document'], $allowed_types)) {
             $targetDir = "../uploads/";
-            $ext = pathinfo($_FILES["document"]["name"], PATHINFO_EXTENSION);
-            $fileName = uniqid() . "." . $ext;
-            $targetFile = $targetDir . $fileName;
-            if (move_uploaded_file($_FILES["document"]["tmp_name"], $targetFile)) {
-                $doc = $fileName;
+            $ext = strtolower(pathinfo($_FILES["document"]["name"], PATHINFO_EXTENSION));
+            if ($ext) {
+                $fileName = uniqid() . "." . $ext;
+                $targetFile = $targetDir . $fileName;
+                if (move_uploaded_file($_FILES["document"]["tmp_name"], $targetFile)) {
+                    $doc = $fileName;
+                }
             }
         }
     }
@@ -48,11 +50,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_FILES['slip']) && $_FILES['slip']['error'] === UPLOAD_ERR_OK) {
         if (is_valid_file($_FILES['slip'], $allowed_types)) {
             $targetDir = "../uploads/";
-            $ext = pathinfo($_FILES["slip"]["name"], PATHINFO_EXTENSION);
-            $fileName = uniqid() . "." . $ext;
-            $targetFile = $targetDir . $fileName;
-            if (move_uploaded_file($_FILES["slip"]["tmp_name"], $targetFile)) {
-                $slip = $fileName;
+            $ext = strtolower(pathinfo($_FILES["slip"]["name"], PATHINFO_EXTENSION));
+            if ($ext) {
+                // รีชื่อไฟล์ใหม่เป็น yyyymmdd_His_สุ่ม4หลัก.นามสกุลเดิม
+                $fileName = date('Ymd_His') . '_' . substr(md5(mt_rand()), 0, 4) . '.' . $ext;
+                $targetFile = $targetDir . $fileName;
+                if (move_uploaded_file($_FILES["slip"]["tmp_name"], $targetFile)) {
+                    $slip = $fileName; // บันทึกชื่อไฟล์ใหม่ลงฐานข้อมูล
+                }
             }
         }
     }
@@ -67,9 +72,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt = $conn->prepare("INSERT INTO bookings 
         (name, date, time, people, phone, doc, slip, status, total_amount, deposit_amount, remain_amount) 
         VALUES (?, ?, ?, ?, ?, ?, ?, 'รออนุมัติ', ?, ?, ?)");
-    $stmt->bind_param("sssissdddd", $name, $date, $time, $people, $phone, $doc, $slip, $total_amount, $deposit_amount, $remain_amount);
+    $stmt->bind_param("sssisssddd", $name, $date, $time, $people, $phone, $doc, $slip, $total_amount, $deposit_amount, $remain_amount);
     if ($stmt->execute()) {
-        $booking_id = $stmt->insert_id; // รับ id ล่าสุด  
+        $booking_id = $stmt->insert_id; // รับ id ล่าสุด
         header("Location: activities.php?success=1&id=" . $booking_id);
         exit;
     } else {
