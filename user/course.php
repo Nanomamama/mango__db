@@ -100,10 +100,10 @@
                   </button>
                 </div>
                 <div class="card-body text-center">
-                  <h5 class="card-title"><?php echo $row['course_name']; ?></h5>
-                  <a role="button" class="btn toggle-details" data-bs-toggle="collapse" data-bs-target="#details-<?php echo $row['id']; ?>">ดูรายละเอียด</a>
+                  <h5 class="card-title"><?php echo htmlspecialchars($row['course_name']); ?></h5>
+                  <a role="button" class="btn btn-outline-danger toggle-details" data-bs-toggle="collapse" data-bs-target="#details-<?php echo $row['id']; ?>">ดูรายละเอียด</a>
                   <div id="details-<?php echo $row['id']; ?>" class="collapse">
-                    <p><?php echo $row['course_description']; ?></p>
+                    <p><?php echo htmlspecialchars($row['course_description']); ?></p>
                   </div>
                 </div>
               </div>

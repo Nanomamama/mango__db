@@ -12,7 +12,7 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <div class="container py-4" style="max-width: 700px;">
-    <h2 class="text-center mb-4">📦 ตรวจสอบสถานะคำสั่งซื้อ</h2>
+    <h2 class="text-center mb-4">ตรวจสอบสถานะคำสั่งซื้อ</h2>
     <p class="text-center text-muted">กรอกหมายเลขคำสั่งซื้อของคุณเพื่อดูสถานะ</p>
 
     <div class="input-group mb-3">
@@ -51,11 +51,11 @@ function checkOrderStatus() {
                     html += `
                         <div class="card border-primary mb-2">
                             <div class="card-body">
-                                <h5 class="card-title">🆔 คำสั่งซื้อ #${order.id}</h5>
-                                <p>👤 <strong>ลูกค้า:</strong> ${order.customer_name}</p>
-                                <p>📍 <strong>ที่อยู่:</strong> ${order.address_number}</p>
-                                <p>📦 <strong>สถานะ:</strong> ${order.status}</p>
-                                <h6 class="mt-3">🛒 รายการสินค้า</h6>
+                                <h5class="card-title"> คำสั่งซื้อ #${order.id}</h5class=>
+                                <p><strong>ลูกค้า:</strong> ${order.customer_name}</p>
+                                <p><strong>ที่อยู่:</strong> ${order.address_number}</p>
+                                <p><strong>สถานะ:</strong> ${order.status}</p>
+                                <h6 class="mt-3">รายการสินค้า</h6>
                                 <div class="table-responsive">
                                     <table class="table table-sm align-middle">
                                         <thead>

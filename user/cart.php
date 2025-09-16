@@ -22,16 +22,16 @@
     <br>
     <br>
     <br>
-    <h1 class="text-center">🛒 ตะกร้าสินค้า</h1>
+    <h1 class="text-center">ตะกร้าสินค้า</h1>
     <div id="cart-container" class="row g-4 mt-4">
         <!-- การ์ดสินค้าจะถูกเพิ่มที่นี่ -->
     </div>
     <h3 class="mt-4 text-end">ยอดรวม: <span id="total-price">฿0.00</span></h3>
     <div class="text-end">
 
-        <a href="products.php" class="btn btn-warning">🔙 เลือกสินค้า</a>
-        <button class="btn btn-danger" onclick="resetCart()">🗑️ ทิ้งตะกร้า</button>
-        <button id="checkout-btn" class="btn btn-primary" onclick="window.location.href='checkout.php'" disabled>ดำเนินการชำระเงิน</button>
+        <a href="products.php" class="btn btn-warning">เลือกสินค้า</a>
+        <button class="btn btn-danger" onclick="resetCart()">ทิ้งตะกร้า</button>
+        <button id="checkout-btn" class="btn btn-primary" onclick="window.location.href='checkout.php'" disabled>ดำเนินการสั่งซื้อ</button>
     </div>
 </div>
 

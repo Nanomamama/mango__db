@@ -64,7 +64,7 @@
                 <div class="container mt-4 text-center">
 
                     <br>
-                    <h1>📦 สินค้าผลิตภัณฑ์แปรรูป</h1>
+                    <h1>สินค้าผลิตภัณฑ์</h1>
                     <a href="order_status.php" class="btn btn-info mb-3">ติดตามสินค้า</a>
                     <a href="cart.php" class="btn btn-primary mb-3"> ไปที่ตะกร้าสินค้า</a>
                     <input type="text" id="searchInput" class="form-control mb-3" placeholder=" ค้นหาสินค้า...">

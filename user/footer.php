@@ -243,8 +243,8 @@
                     </div>
                     <div class="logo-text">การเกษตร</div>
                 </div>
-                <p>เราคือหน่วยงานวิจัยที่มุ่งเน้นการพัฒนาเทคโนโลยีทางการเกษตรและระบบสารสนเทศเพื่อยกระดับภาคการเกษตรไทย</p>
-                <p>ดำเนินงานภายใต้ความร่วมมือระหว่างสถาบันการศึกษาและภาคเอกชน</p>
+                <p>เพียงพอ.ก็.พอเพียง แบ่ง...ปั่น</p>
+                <h1><strong>สวนลุงเผือก</strong></h1>
                 
                 <div class="social-links">
                     <a href="https://www.facebook.com/lungphuakgarden" target="_blank" class="social-fb" title="Facebook">

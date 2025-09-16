@@ -25,7 +25,7 @@
         .modern-sidebar {
             font-family: "Kanit", sans-serif;
             background: var(--light);
-            color: #333333;
+            color: #671515ff;
             width: 240px;
             min-height: 100vh;
             position: fixed;

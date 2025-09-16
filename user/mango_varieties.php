@@ -101,7 +101,7 @@ if (!$result) {
     <?php include 'navbar.php'; ?>
     <div class="container py-5">
         <br>
-        <h2 class="text-center mb-4 mt-5">สายพันธุ์มะม่วง ในจังหวัดเลย</h2>
+        <h2 class="text-center mb-4 mt-5">สายพันธุ์มะม่วงของเรา</h2>
         <br>
         <div class="mb-4 d-flex justify-content-center">
             <div class="input-group" style="max-width: 500px;">
