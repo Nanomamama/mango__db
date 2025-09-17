@@ -87,6 +87,7 @@
         .logo-text {
             background: linear-gradient(90deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
             font-size: 1.7rem;

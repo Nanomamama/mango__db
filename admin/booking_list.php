@@ -410,7 +410,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                 font-size: 1.5rem;
             }
         }
-    </style>
+</style>
 </head>
 
 <body>
@@ -495,16 +495,16 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                 </div>
                 <div class="col-md-6">
                     <div class="d-flex flex-wrap gap-2">
-                        <select class="form-select" style="border-radius: 50px;">
-                            <option selected>สถานะทั้งหมด</option>
-                            <option>รออนุมัติ</option>
-                            <option>อนุมัติแล้ว</option>
-                            <option>ถูกปฏิเสธ</option>
+                        <select class="form-select" style="border-radius: 50px;" id="statusFilter">
+                            <option value="all" selected>สถานะทั้งหมด</option>
+                            <option value="pending">รออนุมัติ</option>
+                            <option value="approved">อนุมัติแล้ว</option>
+                            <option value="rejected">ถูกปฏิเสธ</option>
                         </select>
-                        <select class="form-select" style="border-radius: 50px;">
-                            <option selected>เรียงตามวันที่</option>
-                            <option>เรียงตามชื่อ</option>
-                            <option>เรียงตามจำนวนคน</option>
+                        <select class="form-select" style="border-radius: 50px;" id="sortFilter">
+                            <option value="date" selected>เรียงตามวันที่</option>
+                            <option value="name">เรียงตามชื่อ</option>
+                            <option value="people">เรียงตามจำนวนคน</option>
                         </select>
                     </div>
                 </div>
@@ -837,8 +837,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                         key: 'slip',
                         label: 'สลิป',
                         format: value => value ?
-                            `<img src="/mango/uploads/${value}" alt="slip" class="slip-img" style="max-width:180px;max-height:180px;cursor:pointer;border-radius:8px;box-shadow:0 2px 8px #0002;" onclick="showSlipModal('/mango/uploads/${value}')">` :
-                            '-'
+                            `<img src="/mango/uploads/${value}" alt="slip" class="slip-img" style="max-width:180px;max-height:180px;cursor:pointer;border-radius:8px;box-shadow:0 2px 8px #0002;" onclick="showSlipModal('/mango/uploads/${value}')">` : '-'
                     },
                 ];
                 fields.forEach(field => {
@@ -915,6 +914,51 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
             document.getElementById('slipModalImg').src = imageUrl;
             slipModal.show();
         }
+
+        // กรองสถานะ
+        document.getElementById('statusFilter').addEventListener('change', function() {
+            const val = this.value;
+            document.querySelectorAll('.booking-card').forEach(card => {
+                const status = card.querySelector('.status-badge').textContent.trim();
+                if (
+                    val === 'all' ||
+                    (val === 'pending' && status === 'รออนุมัติ') ||
+                    (val === 'approved' && status === 'อนุมัติแล้ว') ||
+                    (val === 'rejected' && status === 'ถูกปฏิเสธ')
+                ) {
+                    card.parentElement.style.display = 'block';
+                } else {
+                    card.parentElement.style.display = 'none';
+                }
+            });
+        });
+
+        // เรียงลำดับ
+        document.getElementById('sortFilter').addEventListener('change', function() {
+            const val = this.value;
+            // หา .row ที่อยู่ใน tab ปัจจุบัน
+            const activeTab = document.querySelector('.tab-pane.active.show');
+            if (!activeTab) return;
+            const row = activeTab.querySelector('.row');
+            if (!row) return;
+            const cards = Array.from(row.children);
+            cards.sort((a, b) => {
+                if (val === 'name') {
+                    const nameA = a.querySelector('h5').textContent.trim();
+                    const nameB = b.querySelector('h5').textContent.trim();
+                    return nameA.localeCompare(nameB, 'th');
+                } else if (val === 'people') {
+                    const peopleA = parseInt(a.querySelector('.booking-info-value').textContent) || 0;
+                    const peopleB = parseInt(b.querySelector('.booking-info-value').textContent) || 0;
+                    return peopleB - peopleA;
+                } else { // date
+                    const idA = parseInt(a.querySelector('small').textContent.replace('ID: ', ''));
+                    const idB = parseInt(b.querySelector('small').textContent.replace('ID: ', ''));
+                    return idB - idA; // id มากสุด = ใหม่สุด
+                }
+            });
+            cards.forEach(card => row.appendChild(card));
+        });
     </script>
 </body>
 

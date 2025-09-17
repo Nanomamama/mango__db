@@ -446,14 +446,14 @@ while ($row = $result->fetch_assoc()) {
                 </div>
                 <div class="col-md-6">
                     <div class="d-flex flex-wrap gap-2">
-                        <select class="form-select" style="border-radius: 50px;">
-                            <option selected>สถานะทั้งหมด</option>
-                            <option>เปิดใช้งาน</option>
-                            <option>ปิดใช้งาน</option>
+                        <select class="form-select" style="border-radius: 50px;" id="statusFilter">
+                            <option value="all" selected>สถานะทั้งหมด</option>
+                            <option value="active">เปิดใช้งาน</option>
+                            <option value="inactive">ปิดใช้งาน</option>
                         </select>
-                        <select class="form-select" style="border-radius: 50px;">
-                            <option selected>เรียงตามวันที่</option>
-                            <option>เรียงตามชื่อ</option>
+                        <select class="form-select" style="border-radius: 50px;" id="sortFilter">
+                            <option value="date" selected>เรียงตามวันที่</option>
+                            <option value="name">เรียงตามชื่อ</option>
                         </select>
                     </div>
                 </div>
@@ -594,6 +594,42 @@ while ($row = $result->fetch_assoc()) {
                 card.parentElement.style.display = 'none';
             }
         });
+    });
+    
+    // กรองสถานะ
+    document.getElementById('statusFilter').addEventListener('change', function() {
+        const val = this.value;
+        document.querySelectorAll('.user-card').forEach(card => {
+            const status = card.querySelector('.status-badge').textContent.trim();
+            if (
+                val === 'all' ||
+                (val === 'active' && status === 'เปิดใช้งาน') ||
+                (val === 'inactive' && status === 'ปิดใช้งาน')
+            ) {
+                card.parentElement.style.display = 'block';
+            } else {
+                card.parentElement.style.display = 'none';
+            }
+        });
+    });
+
+    // เรียงลำดับ
+    document.getElementById('sortFilter').addEventListener('change', function() {
+        const val = this.value;
+        const row = document.querySelector('.row');
+        const cards = Array.from(row.children);
+        cards.sort((a, b) => {
+            if (val === 'name') {
+                const nameA = a.querySelector('h5').textContent.trim();
+                const nameB = b.querySelector('h5').textContent.trim();
+                return nameA.localeCompare(nameB, 'th');
+            } else { // date
+                const idA = parseInt(a.querySelector('small').textContent.replace('ID: ', ''));
+                const idB = parseInt(b.querySelector('small').textContent.replace('ID: ', ''));
+                return idB - idA; // id มากสุด = ใหม่สุด
+            }
+        });
+        cards.forEach(card => row.appendChild(card));
     });
     </script>
 </body>
