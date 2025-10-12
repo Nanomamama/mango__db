@@ -234,22 +234,23 @@
             </div>
             <div class="logo-text">Mango Admin</div>
         </div>
+
         <nav class="nav flex-column">
             <a href="./index.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'index.php') echo ' active'; ?>">
                 <i class='bx bxs-dashboard'></i> Dashboard
             </a>
             <a href="./manage_mango.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'manage_mango.php') echo ' active'; ?>">
-                <i class='bx bx-detail'></i> สายพันธุ์มะม่วง
+                <i class='bx bxs-tree'></i> สายพันธุ์มะม่วง
             </a>
             <a href="./manage_product.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'manage_product.php') echo ' active'; ?>">
-                <i class='bx bx-package'></i> สินค้าผลิตภัณฑ์
+                <i class='bx bxs-package'></i> สินค้าผลิตภัณฑ์
             </a>
             <a href="./edit_courses.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'edit_courses.php') echo ' active'; ?>">
-                <i class='bx bx-book'></i> หลักสูตร
+                <i class='bx bxs-graduation'></i> หลักสูตร
             </a>
 
             <a href="./booking_list.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'booking_list.php') echo ' active'; ?>">
-                <i class='bx bxs-calendar'></i> รายการจอง
+                <i class='bx bxs-calendar-check'></i> รายการจอง
                 <div class="notification-bell ms-auto">
                     <i class='bx bxs-bell bell-icon'></i>
                     <?php
@@ -262,15 +263,16 @@
             </a>
 
             <a href="./update_calendar_view.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'update_calendar_view.php') echo ' active'; ?>">
-                <i class='bx bxs-calendar'></i> อัพเดทปฏิทิน
+                <i class='bx bxs-calendar-edit'></i> อัพเดทปฏิทิน
             </a>
             <a href="./admin_users.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'admin_users.php') echo ' active'; ?>">
-                <i class='bx bxs-calendar'></i> จัดการข้อมูลผู้ใช้
+                <i class='bx bxs-user-account'></i> จัดการข้อมูลผู้ใช้
             </a>
             <a href="logout.php" class="nav-link mt-5">
-                <i class='bx bx-log-out'></i> ออกจากระบบ
+                <i class='bx bx-log-out-circle'></i> ออกจากระบบ
             </a>
         </nav>
+
         <div class="sidebar-footer">
             &copy; <?= date('Y') ?> สวนลุงเผือก
         </div>

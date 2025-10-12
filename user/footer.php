@@ -157,6 +157,7 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.07);
             transition: background 0.2s, color 0.2s, transform 0.2s;
             border: 2px solid #e0e0e0;
+            text-decoration: none;
         }
         
         .social-links a:hover {

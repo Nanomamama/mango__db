@@ -2,12 +2,19 @@
 session_start();
 require_once '../admin/db.php';
 
+// ตรวจสอบว่า login แล้วหรือยัง
+$loggedIn = false;
+if (isset($_SESSION['member_id']) && !empty($_SESSION['member_id'])) {
+    $loggedIn = true;
+}
+
 // ดึงข้อมูลวันว่าง/ไม่ว่างจากฐานข้อมูล (เช่น calendar_dates)
 $dates = [];
 $res = $conn->query("SELECT date, status FROM calendar_dates");
 while ($row = $res->fetch_assoc()) {
     $dates[] = $row;
 }
+
 // ดึงวันจองที่อนุมัติแล้ว
 $approved = [];
 $res2 = $conn->query("SELECT date FROM bookings WHERE status='อนุมัติแล้ว'");
@@ -15,15 +22,19 @@ while ($row = $res2->fetch_assoc()) {
     $approved[] = $row['date'];
 }
 
+// ดึงชื่อผู้จองในแต่ละวัน
 $sql = "SELECT date, name FROM bookings";
 $result = $conn->query($sql);
 
 $booking_names = [];
 while ($row = $result->fetch_assoc()) {
-    // สมมุติว่า 1 วันมีได้หลายคณะ ให้เก็บเป็น array
     $booking_names[$row['date']][] = $row['name'];
 }
+
+// debug เช็ค session (เอาออกได้หลังจากทดสอบเสร็จ)
+// echo '<pre>'; print_r($_SESSION); echo '</pre>';
 ?>
+
 <!DOCTYPE html>
 <html lang="th">
 
@@ -553,88 +564,98 @@ while ($row = $result->fetch_assoc()) {
             });
         });
     </script>
-    <script>
-        $(document).ready(function() {
-            moment.locale('th');
-            var calendarDates = <?php echo json_encode($dates); ?>;
-            var approvedDates = <?php echo json_encode($approved); ?>;
-            var bookingNames = <?php echo json_encode($booking_names); ?>;
-            var events = calendarDates.map(function(d) {
-                var date = d.date;
-                var title = '';
-                var className = '';
-                if (approvedDates.includes(date)) {
-                    // ถ้ามีชื่อคณะในวันนั้น
-                    if (bookingNames[date]) {
-                        title = bookingNames[date].map(function(name){
+   <script>
+    var isLoggedIn = <?php echo json_encode($loggedIn); ?>; 
+    console.log("isLoggedIn =", isLoggedIn); // debug ดูค่า
+
+    $(document).ready(function() {
+        moment.locale('th');
+        var calendarDates = <?php echo json_encode($dates); ?>;
+        var approvedDates = <?php echo json_encode($approved); ?>;
+        var bookingNames = <?php echo json_encode($booking_names); ?>;
+
+        var events = calendarDates.map(function(d) {
+            var date = d.date;
+            var title = '';
+            var className = '';
+            if (approvedDates.includes(date)) {
+                if (bookingNames[date]) {
+                    title = bookingNames[date].map(function(name){
                         return name;
                     }).join(', ');
-                    } else {
-                        title = 'จองแล้ว';
-                    }
-                    className = 'booked';
-                    return {
-                        title: title,
-                        start: date,
-                        className: className,
-                        allDay: true
-                    };
+                } else {
+                    title = 'จองแล้ว';
                 }
-                className = d.status === 'available' ? 'available' : 'unavailable';
-                title = d.status === 'available' ? 'ว่าง' : 'ไม่ว่าง';
+                className = 'booked';
                 return {
                     title: title,
                     start: date,
                     className: className,
                     allDay: true
                 };
-            });
+            }
+            className = d.status === 'available' ? 'available' : 'unavailable';
+            title = d.status === 'available' ? 'ว่าง' : 'ไม่ว่าง';
+            return {
+                title: title,
+                start: date,
+                className: className,
+                allDay: true
+            };
+        });
 
-            $('#calendar').fullCalendar({
-                locale: 'th',
-                selectable: true,
-                selectHelper: true,
-                dayRender: function(date, cell) {
-                    var found = calendarDates.find(d => d.date === date.format('YYYY-MM-DD'));
-                    if (approvedDates.includes(date.format('YYYY-MM-DD'))) {
-                        cell.css('background-color', '#e3f2fd');
-                    } else if (found && found.status === 'unavailable') {
-                        cell.css('background-color', '#fde8e8');
-                    }
-                },
-                select: function(startDate) {
-                    var selectedDate = moment(startDate).format('YYYY-MM-DD');
-                    var found = calendarDates.find(d => d.date === selectedDate);
-                    if (approvedDates.includes(selectedDate)) {
-                        alert("วันนี้มีผู้จองแล้ว กรุณาเลือกวันอื่น");
-                    } else if (found && found.status === 'unavailable') {
-                        alert("วันที่เลือกนี้ไม่ว่าง กรุณาเลือกวันอื่น");
-                    } else {
-                        $('#booking_date').val(selectedDate);
-                        $('#bookingModal').modal('show');
-                    }
-                },
-                events: events,
-                eventAfterRender: function(event, element) {
-                    // เพิ่ม tooltip สำหรับวันที่จองแล้ว
-                    if (event.className.includes('booked')) {
-                        element.attr('title', event.title);
-                        element.tooltip({ container: 'body' });
-                    }
+        $('#calendar').fullCalendar({
+            locale: 'th',
+            selectable: true,
+            selectHelper: true,
+            dayRender: function(date, cell) {
+                var found = calendarDates.find(d => d.date === date.format('YYYY-MM-DD'));
+                if (approvedDates.includes(date.format('YYYY-MM-DD'))) {
+                    cell.css('background-color', '#e3f2fd');
+                } else if (found && found.status === 'unavailable') {
+                    cell.css('background-color', '#fde8e8');
                 }
-            });
+            },
+            select: function(startDate) {
+                var selectedDate = moment(startDate).format('YYYY-MM-DD');
+                var found = calendarDates.find(d => d.date === selectedDate);
 
-                flatpickr("#visit_time", {
-                    enableTime: true,
-                    noCalendar: true,
-                    dateFormat: "H:i", // 24 ชั่วโมง
-                    time_24hr: true,
-                    minTime: "08:00",
-                    maxTime: "17:30",
-                    minuteIncrement: 30
-                });
-            });
-    </script>
+                if (!isLoggedIn) {
+                    alert("กรุณาเข้าสู่ระบบก่อนทำการจอง");
+                    window.location.href = "member_login.php";
+                    return;
+                }
+
+                if (approvedDates.includes(selectedDate)) {
+                    alert("วันนี้มีผู้จองแล้ว กรุณาเลือกวันอื่น");
+                } else if (found && found.status === 'unavailable') {
+                    alert("วันที่เลือกนี้ไม่ว่าง กรุณาเลือกวันอื่น");
+                } else {
+                    $('#booking_date').val(selectedDate);
+                    $('#bookingModal').modal('show');
+                }
+            },
+            events: events,
+            eventAfterRender: function(event, element) {
+                if (event.className.includes('booked')) {
+                    element.attr('title', event.title);
+                    element.tooltip({ container: 'body' });
+                }
+            }
+        });
+
+        flatpickr("#visit_time", {
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "H:i",
+            time_24hr: true,
+            minTime: "08:00",
+            maxTime: "17:30",
+            minuteIncrement: 30
+        });
+    });
+</script>
+
     <?php if (isset($_GET['success'])): ?>
     <script>
         document.addEventListener('DOMContentLoaded', function() {

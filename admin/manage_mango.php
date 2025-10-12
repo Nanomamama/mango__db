@@ -1,19 +1,7 @@
 <?php
+session_start();
 require_once 'auth.php';
-
-// ตั้งค่าการเชื่อมต่อฐานข้อมูล
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "db_mango";
-
-// สร้างการเชื่อมต่อ
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// เช็คการเชื่อมต่อ
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+require_once '../admin/db.php';
 
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $sql = "SELECT * FROM mango_varieties WHERE mango_name LIKE ?";

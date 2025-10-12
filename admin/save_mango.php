@@ -1,22 +1,23 @@
 <!-- ฟังก์ชันสำหรับ การเพิ่มข้อมูลลงในฐานข้อมูล -->
-
 <?php
-
 session_start();
+require_once 'auth.php';
+require_once '../admin/db.php';
 
-$servername = "localhost"; 
-$username = "root";         
-$password = "";            
-$dbname = "db_mango";      
+// $servername = "localhost"; 
+// $username = "root";         
+// $password = "";            
+// $dbname = "db_mango";      
 
-$conn = new mysqli($servername, $username, $password, $dbname);
+// $conn = new mysqli($servername, $username, $password, $dbname);
 
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+// if ($conn->connect_error) {
+//     die("Connection failed: " . $conn->connect_error);
+// }
 
 // ฟังก์ชันสำหรับการอัปโหลดไฟล์
-function uploadFile($file, $targetDir = "uploads/") {
+function uploadFile($file, $targetDir = "uploads/")
+{
     $targetFile = $targetDir . basename($file["name"]);
     $fileType = strtolower(pathinfo($targetFile, PATHINFO_EXTENSION));
 
@@ -84,3 +85,5 @@ if ($conn->query($sql) === TRUE) {
 
 $conn->close();
 ?>
+
+

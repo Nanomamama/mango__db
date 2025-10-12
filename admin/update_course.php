@@ -1,6 +1,7 @@
 <?php
 // เชื่อมต่อฐานข้อมูล
-$conn = new mysqli("localhost", "root", "", "db_mango");
+// $conn = new mysqli("localhost", "root", "", "db_mango");
+require_once 'db.php';
 
 if ($conn->connect_error) {
     die("การเชื่อมต่อล้มเหลว: " . $conn->connect_error);

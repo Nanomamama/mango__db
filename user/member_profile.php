@@ -55,49 +55,76 @@ function thaiDate($datetime) {
         :root {
             --primary: #277859;
             --primary-light: #3d9e78;
+            --primary-dark: #1a5c43;
             --secondary: #f5b553;
             --accent: #e74a3b;
             --light: #f8f9fa;
             --dark: #2c3e50;
             --gray: #6c757d;
             --border: #e1e5eb;
+            --card-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
         
         body {
-            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
             font-family: 'Kanit', sans-serif;
             min-height: 100vh;
             padding: 20px;
+            color: var(--dark);
         }
         
         .profile-container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            border-radius: 24px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
             overflow: hidden;
+            position: relative;
         }
         
         .profile-header {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
             color: white;
-            padding: 30px;
+            padding: 40px 30px 60px;
             text-align: center;
             position: relative;
+            overflow: hidden;
+        }
+        
+        .profile-header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.1" d="M0,96L48,112C96,128,192,160,288,186.7C384,213,480,235,576,213.3C672,192,768,128,864,128C960,128,1056,192,1152,192C1248,192,1344,128,1392,96L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.1;
         }
         
         .profile-avatar {
-            width: 120px;
-            height: 120px;
+            width: 140px;
+            height: 140px;
             border-radius: 50%;
             border: 5px solid rgba(255, 255, 255, 0.3);
             background: #fff;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 15px;
+            margin: 0 auto 20px;
             overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            position: relative;
+            z-index: 2;
         }
         
         .profile-avatar img {
@@ -108,16 +135,20 @@ function thaiDate($datetime) {
         }
         
         .profile-title {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 600;
             margin-bottom: 5px;
             letter-spacing: 0.5px;
+            position: relative;
+            z-index: 2;
         }
         
         .profile-subtitle {
             font-size: 18px;
             font-weight: 300;
             opacity: 0.9;
+            position: relative;
+            z-index: 2;
         }
         
         .profile-content {
@@ -125,65 +156,89 @@ function thaiDate($datetime) {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 25px;
+            position: relative;
+            z-index: 1;
         }
         
-        @media (max-width: 768px) {
+        @media (max-width: 992px) {
             .profile-content {
                 grid-template-columns: 1fr;
             }
         }
         
         .info-card {
-            background: var(--light);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            background: white;
+            border-radius: 18px;
+            padding: 25px;
+            box-shadow: var(--card-shadow);
             border: 1px solid var(--border);
-            transition: transform 0.3s ease;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .info-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--primary), var(--secondary));
         }
         
         .info-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+            transform: translateY(-8px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
         }
         
         .card-header {
             display: flex;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             padding-bottom: 15px;
             border-bottom: 1px solid var(--border);
         }
         
         .card-header i {
-            font-size: 24px;
+            font-size: 26px;
             color: var(--primary);
-            margin-right: 12px;
+            margin-right: 15px;
+            background: rgba(39, 120, 89, 0.1);
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .card-header h3 {
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 600;
             margin: 0;
-            color: var(--primary);
+            color: var(--dark);
         }
         
         .info-item {
             display: flex;
-            margin-bottom: 15px;
+            margin-bottom: 18px;
+            align-items: flex-start;
         }
         
         .info-label {
-            min-width: 120px;
+            min-width: 140px;
             font-weight: 500;
             color: var(--dark);
             display: flex;
             align-items: center;
+            font-size: 16px;
         }
         
         .info-label i {
-            margin-right: 8px;
-            color: var(--gray);
+            margin-right: 10px;
+            color: var(--primary);
+            font-size: 20px;
         }
         
         .info-value {
@@ -191,13 +246,14 @@ function thaiDate($datetime) {
             color: var(--dark);
             font-weight: 400;
             word-break: break-word;
+            font-size: 16px;
         }
         
         .action-buttons {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 15px;
-            margin-top: 25px;
+            margin-top: 20px;
         }
         
         .action-btn {
@@ -208,23 +264,25 @@ function thaiDate($datetime) {
             background: white;
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 20px 15px;
+            padding: 18px 12px;
             text-align: center;
             transition: all 0.3s ease;
             color: var(--dark);
             text-decoration: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.03);
         }
         
         .action-btn:hover {
             background: var(--primary);
             color: white;
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(39, 120, 89, 0.2);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(39, 120, 89, 0.2);
             border-color: var(--primary);
         }
         
         .action-btn:hover i {
             color: white;
+            transform: scale(1.1);
         }
         
         .action-btn i {
@@ -235,81 +293,18 @@ function thaiDate($datetime) {
         }
         
         .action-btn span {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 500;
         }
         
-        .logout-btn {
-            background: linear-gradient(135deg, var(--accent) 0%, #f6c23e 100%);
-            color: white;
-            border: none;
-            border-radius: 50px;
-            padding: 12px 30px;
-            font-size: 18px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 30px auto 0;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(231, 74, 59, 0.25);
-        }
-        
-        .logout-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(231, 74, 59, 0.35);
-        }
-        
-        .logout-btn i {
-            margin-right: 8px;
-            font-size: 24px;
-        }
-        
-        .edit-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: none;
-            border-radius: 50px;
-            padding: 8px 20px;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            transition: all 0.3s ease;
-        }
-        
-        .edit-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-        
-        .edit-btn i {
-            margin-right: 5px;
-        }
-        
-        .badge-status {
-            padding: 5px 12px;
-            border-radius: 50px;
-            font-size: 14px;
-            font-weight: 500;
-            background: #e8f5e9;
-            color: var(--primary);
-        }
-        
-        .full-address {
-            background: white;
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 10px;
-            border: 1px solid var(--border);
-        }
-         .main-buttons {
+        .main-buttons {
             display: flex;
             justify-content: center;
             gap: 20px;
-            padding: 20px;
+            padding: 30px;
             flex-wrap: wrap;
+            background: rgba(248, 249, 250, 0.8);
+            border-top: 1px solid var(--border);
         }
         
         .main-btn {
@@ -412,17 +407,31 @@ function thaiDate($datetime) {
             gap: 8px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             margin-top: 15px;
+            position: relative;
+            z-index: 2;
         }
         
         .full-address {
-            background: white;
+            background: #f8f9fa;
             border-radius: 12px;
             padding: 18px;
             margin-top: 15px;
             border: 1px solid var(--border);
-            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.03);
             font-size: 16px;
             line-height: 1.6;
+            position: relative;
+        }
+        
+        .full-address::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary);
+            border-radius: 4px 0 0 4px;
         }
         
         .header-decoration {
@@ -436,6 +445,55 @@ function thaiDate($datetime) {
             z-index: 2;
         }
         
+        .floating-shapes {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+        
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .shape-1 {
+            width: 80px;
+            height: 80px;
+            top: 10%;
+            left: 5%;
+            animation: float 15s infinite ease-in-out;
+        }
+        
+        .shape-2 {
+            width: 120px;
+            height: 120px;
+            top: 60%;
+            right: 10%;
+            animation: float 20s infinite ease-in-out reverse;
+        }
+        
+        .shape-3 {
+            width: 60px;
+            height: 60px;
+            bottom: 20%;
+            left: 15%;
+            animation: float 12s infinite ease-in-out;
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-20px) rotate(10deg);
+            }
+        }
+        
         @media (max-width: 768px) {
             .profile-content {
                 padding: 20px 15px;
@@ -446,8 +504,8 @@ function thaiDate($datetime) {
             }
             
             .profile-avatar {
-                width: 110px;
-                height: 110px;
+                width: 120px;
+                height: 120px;
             }
             
             .profile-title {
@@ -466,7 +524,7 @@ function thaiDate($datetime) {
             .main-buttons {
                 flex-direction: column;
                 gap: 15px;
-                padding: 15px;
+                padding: 20px;
             }
             
             .main-btn {
@@ -480,6 +538,16 @@ function thaiDate($datetime) {
                 padding: 8px 16px;
                 font-size: 14px;
             }
+            
+            .card-header i {
+                width: 40px;
+                height: 40px;
+                font-size: 22px;
+            }
+            
+            .card-header h3 {
+                font-size: 20px;
+            }
         }
 
     </style>
@@ -488,6 +556,12 @@ function thaiDate($datetime) {
     <div class="profile-container">
         <!-- ส่วนหัวโปรไฟล์ -->
         <div class="profile-header">
+            <div class="floating-shapes">
+                <div class="shape shape-1"></div>
+                <div class="shape shape-2"></div>
+                <div class="shape shape-3"></div>
+            </div>
+            
             <button class="edit-btn">
                 <i class='bx bx-edit'></i> แก้ไขโปรไฟล์
             </button>
@@ -504,6 +578,8 @@ function thaiDate($datetime) {
                     <i class='bx bx-check-circle'></i> สถานะ: ใช้งานได้ปกติ
                 </span>
             </div>
+            
+            <div class="header-decoration"></div>
         </div>
         
         <!-- เนื้อหาโปรไฟล์ -->
@@ -556,9 +632,8 @@ function thaiDate($datetime) {
                         <i class='bx bx-map'></i> ที่อยู่:
                     </div>
                     <div class="info-value">
-                        <div></div>
                         <div class="full-address">
-                          บ้าน  <?php echo htmlspecialchars($address); ?> ตำบล <?php echo htmlspecialchars($subdistrict_name); ?> อำเภอ <?php echo htmlspecialchars($district_name); ?> จังหวัด <?php echo htmlspecialchars($province_name); ?> <?php echo htmlspecialchars($zipcode); ?>
+                          บ้าน <?php echo htmlspecialchars($address); ?> ตำบล <?php echo htmlspecialchars($subdistrict_name); ?> อำเภอ <?php echo htmlspecialchars($district_name); ?> จังหวัด <?php echo htmlspecialchars($province_name); ?> <?php echo htmlspecialchars($zipcode); ?>
                         </div>
                     </div>
                 </div>
@@ -631,7 +706,7 @@ function thaiDate($datetime) {
             </div>
         </div>
         
-         <!-- ปุ่มหลัก -->
+        <!-- ปุ่มหลัก -->
         <div class="main-buttons">
             <a href="index.php" class="main-btn home-btn">
                 <i class='bx bx-home-alt'></i> กลับหน้าหลัก

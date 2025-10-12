@@ -463,19 +463,13 @@ $remain_total = $row['remain_total'] ?? 0;
 
         .booking-count {
             position: absolute;
-            top: 40%;
+            top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 1.5rem;
+            font-size: 24px;
             font-weight: bold;
-            color: #f6c23e;
-            /* หรือสีที่ต้องการ */
-            pointer-events: none;
-            z-index: 2;
-            width: 100%;
-            /* เพิ่มให้เลขอยู่ตรงกลางแนวนอน */
+            color: #4e73df;
             text-align: center;
-            line-height: 1;
         }
 
         .deposit-card {
@@ -645,7 +639,7 @@ $remain_total = $row['remain_total'] ?? 0;
                         <!-- ยอดขายรายวัน -->
                         <div class="col-12 col-md-6 col-lg-3">
                             <div class="chart-card h-100">
-                                <div class="chart-card-header">ยอดขายรายวัน (7 วัน)</div>
+                                <div class="chart-card-header">ยอดขายรายวัน</div>
                                 <div class="chart-card-content">
                                     <canvas id="salesDayChart"></canvas>
                                 </div>
@@ -657,7 +651,7 @@ $remain_total = $row['remain_total'] ?? 0;
                         <!-- ยอดขายรายสัปดาห์ -->
                         <div class="col-12 col-md-6 col-lg-3">
                             <div class="chart-card h-100">
-                                <div class="chart-card-header">ยอดขายรายสัปดาห์ (8 สัปดาห์)</div>
+                                <div class="chart-card-header">ยอดขายรายสัปดาห์</div>
                                 <div class="chart-card-content">
                                     <canvas id="salesWeekChart"></canvas>
                                 </div>
@@ -669,7 +663,7 @@ $remain_total = $row['remain_total'] ?? 0;
                         <!-- ยอดขายรายเดือน -->
                         <div class="col-12 col-md-6 col-lg-3">
                             <div class="chart-card h-100">
-                                <div class="chart-card-header">ยอดขายรายเดือน (12 เดือน)</div>
+                                <div class="chart-card-header">ยอดขายรายเดือน</div>
                                 <div class="chart-card-content">
                                     <canvas id="salesMonthChart"></canvas>
                                 </div>
@@ -681,7 +675,7 @@ $remain_total = $row['remain_total'] ?? 0;
                         <!-- ยอดขายรายปี -->
                         <div class="col-12 col-md-6 col-lg-3">
                             <div class="chart-card h-100">
-                                <div class="chart-card-header">ยอดขายรายปี (5 ปี)</div>
+                                <div class="chart-card-header">ยอดขายรายปี</div>
                                 <div class="chart-card-content">
                                     <canvas id="salesYearChart"></canvas>
                                 </div>
@@ -695,13 +689,14 @@ $remain_total = $row['remain_total'] ?? 0;
                     <div class="all-charts-container">
                         <!-- กราฟการจองเข้าชมสวน -->
                         <div class="chart-card">
-                            <div class="chart-card-header">การจองเข้าชมสวน</div>
+                            <div class="chart-card-header">การจองเข้าชมสวน (เดือนล่าสุด)</div>
                             <div class="chart-card-content">
                                 <div class="d-flex flex-column align-items-center h-100">
                                     <div style="position:relative; width:250px; height:250px;">
                                         <canvas id="bookingMonthChart"></canvas>
                                         <div class="booking-count" id="centerBookingCount"></div>
                                     </div>
+                                    <div id="monthLabel" class="mt-2 text-muted"></div>
                                 </div>
                             </div>
                         </div>
@@ -711,8 +706,6 @@ $remain_total = $row['remain_total'] ?? 0;
                             <div class="deposit-title">ยอดมัดจำรวม</div>
                             <div class="deposit-value"><?= number_format($deposit_total, 2) ?> บาท</div>
                             <div class="data-card-extra">
-                                <i class="bi bi-arrow-up-circle"></i>
-                                <span>เพิ่มขึ้น 15%</span>
                             </div>
                         </div>
 
@@ -721,8 +714,6 @@ $remain_total = $row['remain_total'] ?? 0;
                             <div class="deposit-title">ยอดคงเหลือรวม</div>
                             <div class="remain-value"><?= number_format($remain_total, 2) ?> บาท</div>
                             <div class="data-card-extra">
-                                <i class="bi bi-arrow-down-circle"></i>
-                                <span>ลดลง 8%</span>
                             </div>
                         </div>
 
@@ -771,7 +762,7 @@ $remain_total = $row['remain_total'] ?? 0;
                 <div id="bookingCompareChartWrapper" class="d-none">
                     <div class="compare-chart-container">
                         <div class="chart-header">
-                            <h5>กราฟเปรียบเทียบการจองเข้าชมสวน (รายเดือน)</h5>
+                            <h5>กราฟเปรียบเทียบการจองเข้าชมสวน</h5>
                         </div>
                         <div class="chart-wrapper">
                             <canvas id="bookingCompareChart"></canvas>
@@ -954,40 +945,41 @@ $remain_total = $row['remain_total'] ?? 0;
                 });
 
                 // กราฟการจองเข้าชมสวน (รายเดือน)
-                const bookingTotal = bookingMonthData.reduce((a, b) => a + Number(b), 0);
-                document.getElementById('centerBookingCount').textContent = bookingTotal.toLocaleString() + ' คณะ';
-                new Chart(document.getElementById('bookingMonthChart'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: bookingMonthLabels,
-                        datasets: [{
-                            label: 'จำนวนการจอง',
-                            data: bookingMonthData,
-                            backgroundColor: [
-                                '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e',
-                                '#e74a3b', '#6f42c1', '#fd7e14', '#20c997',
-                                '#6610f2', '#6f42c1', '#e83e8c', '#20c997'
-                            ]
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom'
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        return context.label + ': ' + context.parsed.toLocaleString() + ' คณะ';
-                                    }
-                                }
-                            }
-                        },
-                        cutout: '70%'
-                    }
-                });
+                // const latestMonthCount = bookingMonthData.length > 0 ? bookingMonthData[bookingMonthData.length - 1] : 0;
+                // กราฟการจองเข้าชมสวน (เดือนล่าสุด)
+const latestMonthCount = bookingMonthData.length > 0 ? bookingMonthData[bookingMonthData.length - 1] : 0;
+const latestMonthLabel = bookingMonthLabels.length > 0 ? bookingMonthLabels[bookingMonthLabels.length - 1] : 'เดือนปัจจุบัน';
+
+document.getElementById('centerBookingCount').textContent = latestMonthCount.toLocaleString() + ' คณะ';
+
+new Chart(document.getElementById('bookingMonthChart'), {
+    type: 'doughnut',
+    data: {
+        labels: [latestMonthLabel, 'ส่วนที่เหลือ'],
+        datasets: [{
+            label: 'จำนวนการจอง',
+            data: [latestMonthCount, 100 - latestMonthCount], // ใช้ 100 เป็นฐานเพื่อให้เห็นสัดส่วน
+            backgroundColor: [
+                '#4e73df', // สีสำหรับเดือนล่าสุด
+                '#e8e8e8'  // สีเทาอ่อนสำหรับส่วนที่เหลือ
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                display: false // ซ่อนคำอธิบายสัญลักษณ์
+            },
+            tooltip: {
+                enabled: false // ปิดการแสดง tooltip
+            }
+        },
+        cutout: '70%'
+    }
+});
 
                 // กราฟจำนวนสายพันธุ์มะม่วง
                 new Chart(document.getElementById('mangoVarietyCountChart'), {

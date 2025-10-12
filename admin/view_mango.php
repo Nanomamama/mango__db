@@ -1,13 +1,6 @@
 <?php
 require_once 'auth.php';
-
-// ตั้งค่าการเชื่อมต่อฐานข้อมูล
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "db_mango";
-$conn = new mysqli($servername, $username, $password, $dbname);
-if ($conn->connect_error) { die("Connection failed: " . $conn->connect_error); }
+require_once '../admin/db.php';
 
 // รับ id จาก query string
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
