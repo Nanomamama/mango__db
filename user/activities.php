@@ -3,9 +3,20 @@ session_start();
 require_once '../admin/db.php';
 
 // ตรวจสอบว่า login แล้วหรือยัง
+
 $loggedIn = false;
+$memberName = '';
+$memberPhone = '';
 if (isset($_SESSION['member_id']) && !empty($_SESSION['member_id'])) {
     $loggedIn = true;
+    // ดึงชื่อและเบอร์โทรสมาชิก
+    $member_id = $_SESSION['member_id'];
+    $stmt = $conn->prepare("SELECT fullname, phone FROM members WHERE id = ?");
+    $stmt->bind_param("i", $member_id);
+    $stmt->execute();
+    $stmt->bind_result($memberName, $memberPhone);
+    $stmt->fetch();
+    $stmt->close();
 }
 
 // ดึงข้อมูลวันว่าง/ไม่ว่างจากฐานข้อมูล (เช่น calendar_dates)
@@ -350,23 +361,24 @@ while ($row = $result->fetch_assoc()) {
                                 </div>
                                 
                                 <div class="col-md-6 mb-3">
+                                    <label class="form-label">ชื่อผู้จอง</label>
+                                    <input type="text" class="form-control" name="group_name" value="<?php echo htmlspecialchars($memberName); ?>" <?php echo $loggedIn ? 'readonly' : ''; ?> required placeholder="ชื่อ-นามสกุล">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">หมายเลขโทรศัพท์</label>
+                                    <input type="tel" class="form-control" name="phone_number" value="<?php echo htmlspecialchars($memberPhone); ?>" <?php echo $loggedIn ? 'readonly' : ''; ?> pattern="[0-9]{10}" required placeholder="เช่น 0812345678">
+                                </div>
+                                <!-- <div class="col-md-6 mb-3">
                                     <label class="form-label">ชื่อคณะ</label>
                                     <input type="text" class="form-control" name="group_name" required placeholder="เช่น คณะครูและนักเรียนโรงเรียน...">
-                                </div>
-                                
+                                </div> -->
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">เวลาเข้าชม</label>
                                     <input type="text" class="form-control" id="visit_time" name="visit_time" required placeholder="เลือกเวลา">
                                 </div>
-                                
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">จำนวนผู้เข้าชม</label>
                                     <input type="number" class="form-control" name="number_of_people" required min="1" placeholder="เช่น 30">
-                                </div>
-                                
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">หมายเลขโทรศัพท์</label>
-                                    <input type="tel" class="form-control" name="phone_number" pattern="[0-9]{10}" required placeholder="เช่น 0812345678">
                                 </div>
                                 
                                 <div class="col-md-6 mb-3">

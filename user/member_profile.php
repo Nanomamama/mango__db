@@ -47,7 +47,7 @@ function thaiDate($datetime) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>โปรไฟล์สมาชิก - สวนพฤกษชาติไทย</title>
+    <title>โปรไฟล์สมาชิก</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -692,12 +692,10 @@ function thaiDate($datetime) {
                         <i class='bx bx-history'></i>
                         <span>ประวัติการจอง</span>
                     </a>
-                    
                     <a href="booking_status.php" class="action-btn">
                         <i class='bx bx-check-circle'></i>
                         <span>สถานะการจอง</span>
                     </a>
-                    
                     <a href="activities.php" class="action-btn">
                         <i class='bx bx-plus-circle'></i>
                         <span>จองเข้าชมใหม่</span>
