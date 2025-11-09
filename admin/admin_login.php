@@ -373,7 +373,7 @@
             </form>
 
             <div class="register-link">
-                <!-- ยังไม่มีบัญชี? <a href="./admin_register.php">ลงทะเบียนที่นี่</a> -->
+                ยังไม่มีบัญชี? <a href="./admin_register.php">ลงทะเบียนที่นี่</a>
             </div>
             
             <div class="security-notice">

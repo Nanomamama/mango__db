@@ -1,17 +1,12 @@
 <?php
 // filepath: c:\xampp\htdocs\mango\admin\save_admin.php
 
+require_once 'db.php';
 session_start();
 if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
     die("CSRF Token ไม่ถูกต้อง");
 }
-// เชื่อมต่อฐานข้อมูล
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "db_mango"; // ชื่อฐานข้อมูลของคุณ
 
-$conn = new mysqli($servername, $username, $password, $dbname);
 
 // ตรวจสอบการเชื่อมต่อ
 if ($conn->connect_error) {
