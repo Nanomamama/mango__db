@@ -773,86 +773,77 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
     </div>
 
     <!-- Slip Modal -->
-    <div class="modal fade" id="slipModal" tabindex="-1" aria-labelledby="slipModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-transparent border-0">
-                <div class="modal-body text-center p-0">
-                    <img id="slipModalImg" src="" alt="slip" style="max-width:100%;max-height:80vh;border-radius:12px;box-shadow:0 4px 24px #0006;">
-                </div>
+<div class="modal fade" id="slipModal" tabindex="-1" aria-labelledby="slipModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-body text-center p-0">
+                <img id="slipModalImg" src="" alt="slip" 
+                     style="max-width:100%;max-height:80vh;border-radius:12px;box-shadow:0 4px 24px #0006;">
             </div>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.querySelectorAll('.view-booking-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const booking = JSON.parse(this.getAttribute('data-booking'));
-                let html = '';
-                const fields = [{
-                        key: 'name',
-                        label: 'ชื่อคณะ'
-                    },
-                    {
-                        key: 'date',
-                        label: 'วันที่จอง'
-                    },
-                    {
-                        key: 'time',
-                        label: 'เวลา'
-                    },
-                    {
-                        key: 'people',
-                        label: 'จำนวนผู้เข้าชม'
-                    },
-                    {
-                        key: 'status',
-                        label: 'สถานะ'
-                    },
-                    {
-                        key: 'total_amount',
-                        label: 'ยอดรวม',
-                        format: value => Number(value).toLocaleString() + ' บาท'
-                    },
-                    {
-                        key: 'deposit_amount',
-                        label: 'ยอดมัดจำ',
-                        format: value => Number(value).toLocaleString() + ' บาท'
-                    },
-                    {
-                        key: 'remain_amount',
-                        label: 'ยอดคงเหลือ',
-                        format: value => Number(value).toLocaleString() + ' บาท'
-                    },
-                    {
-                        key: 'phone',
-                        label: 'เบอร์โทร'
-                    },
-                    {
-                        key: 'doc',
-                        label: 'เอกสาร',
-                        format: value => value ? `<a href="/mango/uploads/${value}" target="_blank">ดูไฟล์</a>` : '-'
-                    },
-                    {
-                        key: 'slip',
-                        label: 'สลิป',
-                        format: value => value ?
-                            `<img src="/mango/uploads/${value}" alt="slip" class="slip-img" style="max-width:180px;max-height:180px;cursor:pointer;border-radius:8px;box-shadow:0 2px 8px #0002;" onclick="showSlipModal('/mango/uploads/${value}')">` : '-'
-                    },
-                ];
-                fields.forEach(field => {
-                    let value = booking[field.key] !== null ? booking[field.key] : '';
-                    if (field.format) {
-                        value = field.format(value);
-                    }
-                    html += `<tr>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.querySelectorAll('.view-booking-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const bookingData = this.getAttribute('data-booking');
+        if (!bookingData) return;
+
+        let booking;
+        try {
+            booking = JSON.parse(bookingData);
+        } catch (e) {
+            console.error("Invalid JSON:", bookingData);
+            return;
+        }
+
+        let html = '';
+        const fields = [
+            { key: 'name', label: 'ชื่อคณะ' },
+            { key: 'date', label: 'วันที่จอง' },
+            { key: 'time', label: 'เวลา' },
+            { key: 'people', label: 'จำนวนผู้เข้าชม' },
+            { key: 'status', label: 'สถานะ' },
+            { key: 'total_amount', label: 'ยอดรวม', format: v => Number(v).toLocaleString() + ' บาท' },
+            { key: 'deposit_amount', label: 'ยอดมัดจำ', format: v => Number(v).toLocaleString() + ' บาท' },
+            { key: 'remain_amount', label: 'ยอดคงเหลือ', format: v => Number(v).toLocaleString() + ' บาท' },
+            { key: 'phone', label: 'เบอร์โทร' },
+            { key: 'doc', label: 'เอกสาร', format: v => v ? `<a href="../uploads/${v}" target="_blank">ดูไฟล์</a>` : '-' },
+            { 
+                key: 'slip', 
+                label: 'สลิป', 
+                format: v => v 
+                    ? `<img src="../uploads/${v}" alt="slip" class="slip-img"
+                        style="max-width:180px;max-height:180px;cursor:pointer;border-radius:8px;box-shadow:0 2px 8px #0002;"
+                        onclick="showSlipModal('../uploads/${v}')">` 
+                    : '-' 
+            },
+        ];
+
+        fields.forEach(field => {
+            let value = booking[field.key] ?? '';
+            if (field.format) value = field.format(value);
+            html += `
+                <tr>
                     <th style="width:180px; background-color: #f8f9fa;">${field.label}</th>
                     <td>${value}</td>
-                </tr>`;
-                });
-                document.getElementById('bookingDetailTable').innerHTML = html;
-            });
+                </tr>
+            `;
         });
+
+        document.getElementById('bookingDetailTable').innerHTML = html;
+    });
+});
+
+function showSlipModal(src) {
+    const modalImg = document.getElementById('slipModalImg');
+    modalImg.src = src;
+
+    const slipModal = new bootstrap.Modal(document.getElementById('slipModal'));
+    slipModal.show();
+}
 
         // ฟังก์ชันค้นหาการจอง
         document.querySelector('.search-box input').addEventListener('keyup', function() {

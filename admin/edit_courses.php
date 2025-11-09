@@ -1,4 +1,5 @@
 <?php
+session_start();
 require_once 'auth.php';
 require_once 'db.php';
 
@@ -10,7 +11,15 @@ $admin_email = $_SESSION['admin_email'] ?? '';
 $courses = [];
 $result = $conn->query("SELECT * FROM courses ORDER BY id DESC");
 while ($row = $result->fetch_assoc()) {
-    $courses[] = $row;
+    // ปรับปรุงชื่อคอลัมน์จากฐานข้อมูลให้สอดคล้องกับโค้ด JavaScript
+    $courses[] = [
+        'id' => $row['id'],
+        'course_name' => $row['course_name'],
+        'course_description' => $row['course_description'],
+        'image1' => $row['image1'],
+        'image2' => $row['image2'],
+        'image3' => $row['image3']
+    ];
 }
 ?>
 
@@ -285,7 +294,7 @@ while ($row = $result->fetch_assoc()) {
 
         .modal-image {
             width: 100%;
-            height: 200px;
+            max-height: 250px; /* ปรับขนาดความสูงให้เหมาะสมขึ้น */
             object-fit: cover;
             border-radius: 8px;
             margin-bottom: 1rem;
@@ -359,6 +368,10 @@ while ($row = $result->fetch_assoc()) {
             .dashboard-title {
                 font-size: 1.5rem;
             }
+            
+            .p-4 {
+                margin-left: 0 !important; /* ยกเลิก margin-left สำหรับ Mobile */
+            }
         }
     </style>
 </head>
@@ -367,7 +380,6 @@ while ($row = $result->fetch_assoc()) {
     <?php include 'sidebar.php'; ?>
 
     <div class="p-4" style="margin-left: 250px; flex: 1;">
-        <!-- Header -->
         <header class="dashboard-header pb-4 mb-4">
             <div class="container">
                 <div class="d-flex justify-content-between align-items-center flex-wrap">
@@ -392,16 +404,26 @@ while ($row = $result->fetch_assoc()) {
             </div>
         </header>
 
-        <!-- Courses List -->
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+            <div class="search-box flex-grow-1">
+                <input type="text" class="form-control" placeholder="ค้นหาชื่อหลักสูตร...">
+                <i class="bi bi-search"></i>
+            </div>
+            <button type="button" class="btn btn-add-course" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+                <i class="bi bi-plus-circle"></i> เพิ่มหลักสูตรใหม่
+            </button>
+        </div>
+
+
         <div class="row">
             <?php foreach ($courses as $course): ?>
-            <div class="col-lg-4 col-md-6">
+            <div class="col-lg-4 col-md-6 course-col">
                 <div class="course-card">
                     <div class="course-card-header">
                         <h5 class="mb-0"><?= htmlspecialchars($course['course_name']) ?></h5>
                     </div>
                     <div class="course-card-body">
-                        <img src="<?= $course['image1'] ? '/mango/uploads/' . $course['image1'] : 'https://via.placeholder.com/400x200?text=No+Image' ?>"
+                        <img src="<?= $course['image1'] ? '../uploads/' . $course['image1'] : 'https://via.placeholder.com/400x200?text=No+Image' ?>"
                              class="course-image" alt="<?= htmlspecialchars($course['course_name']) ?>">
                         <p class="course-description"><?= htmlspecialchars($course['course_description']) ?></p>
                         <div class="d-flex flex-wrap gap-2">
@@ -441,14 +463,7 @@ while ($row = $result->fetch_assoc()) {
             <?php endforeach; ?>
         </div>
 
-        <!-- Add Course Button -->
-        <div class="text-center mt-4">
-            <button type="button" class="btn btn-add-course" data-bs-toggle="modal" data-bs-target="#addCourseModal">
-                <i class="bi bi-plus-circle"></i> เพิ่มหลักสูตรใหม่
-            </button>
         </div>
-    </div>
-    <!-- Course Detail Modal -->
     <div class="modal fade course-modal" id="courseModal" tabindex="-1" aria-labelledby="courseModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -459,8 +474,7 @@ while ($row = $result->fetch_assoc()) {
                 <div class="modal-body">
                     <div class="table-responsive">
                         <table class="table table-bordered" id="courseDetailTable">
-                            <!-- ข้อมูลจะถูกเติมโดย JavaScript -->
-                        </table>
+                            </table>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -470,7 +484,6 @@ while ($row = $result->fetch_assoc()) {
         </div>
     </div>
 
-    <!-- Add Course Modal -->
     <div class="modal fade course-modal" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -513,7 +526,6 @@ while ($row = $result->fetch_assoc()) {
         </div>
     </div>
 
-    <!-- Edit Course Modal -->
     <div class="modal fade course-modal" id="editCourseModal" tabindex="-1" aria-labelledby="editCourseModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -557,7 +569,6 @@ while ($row = $result->fetch_assoc()) {
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
     <div class="modal fade" id="deleteCourseModal" tabindex="-1" aria-labelledby="deleteCourseModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -578,6 +589,9 @@ while ($row = $result->fetch_assoc()) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // ใช้พาธ '../uploads/' ที่แก้แล้ว
+        const UPLOADS_PATH = '../uploads/';
+
         document.querySelectorAll('.view-course-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const course = JSON.parse(this.getAttribute('data-course'));
@@ -594,17 +608,17 @@ while ($row = $result->fetch_assoc()) {
                     {
                         key: 'image1',
                         label: 'รูปภาพ 1',
-                        format: value => value ? `<img src="../uploads/${value}" class="modal-image" alt="Image 1">` : 'ไม่มีรูปภาพ'
+                        format: value => value ? `<img src="${UPLOADS_PATH}${value}" class="modal-image" alt="Image 1">` : 'ไม่มีรูปภาพ'
                     },
                     {
                         key: 'image2',
                         label: 'รูปภาพ 2',
-                        format: value => value ? `<img src="../uploads/${value}" class="modal-image" alt="Image 2">` : 'ไม่มีรูปภาพ'
+                        format: value => value ? `<img src="${UPLOADS_PATH}${value}" class="modal-image" alt="Image 2">` : 'ไม่มีรูปภาพ'
                     },
                     {
                         key: 'image3',
                         label: 'รูปภาพ 3',
-                        format: value => value ? `<img src="../uploads/${value}" class="modal-image" alt="Image 3">` : 'ไม่มีรูปภาพ'
+                        format: value => value ? `<img src="${UPLOADS_PATH}${value}" class="modal-image" alt="Image 3">` : 'ไม่มีรูปภาพ'
                     }
                 ];
 
@@ -612,7 +626,11 @@ while ($row = $result->fetch_assoc()) {
                     let value = course[field.key] !== null ? course[field.key] : '';
                     if (field.format) {
                         value = field.format(value);
+                    } else if (field.key === 'description') {
+                        // เพื่อให้แสดงผลเป็นบรรทัดใหม่
+                        value = value.replace(/\n/g, '<br>');
                     }
+
 
                     html += `<tr>
                     <th style="width:180px; background-color: #f8f9fa;">${field.label}</th>
@@ -632,35 +650,47 @@ while ($row = $result->fetch_assoc()) {
                 document.getElementById('editCourseName').value = course.name;
                 document.getElementById('editCourseDescription').value = course.description;
 
-                // ตั้งค่าภาพ预览 (ถ้ามี)
-                if (course.image1) {
-                    document.getElementById('previewEdit1').src = '../uploads/' + course.image1;
-                    document.getElementById('previewEdit1').style.display = 'block';
+                // ฟังก์ชันสำหรับตั้งค่ารูปภาพ
+                function setPreviewImage(courseImage, previewElementId) {
+                    const preview = document.getElementById(previewElementId);
+                    if (courseImage) {
+                        // แก้ไข JavaScript: ใช้พาธสัมพัทธ์ '../uploads/'
+                        preview.src = UPLOADS_PATH + courseImage;
+                        preview.style.display = 'block';
+                    } else {
+                        preview.src = '#';
+                        preview.style.display = 'none';
+                    }
                 }
-                if (course.image2) {
-                    document.getElementById('previewEdit2').src = '../uploads/' + course.image2;
-                    document.getElementById('previewEdit2').style.display = 'block';
-                }
-                if (course.image3) {
-                    document.getElementById('previewEdit3').src = '../uploads/' + course.image3;
-                    document.getElementById('previewEdit3').style.display = 'block';
-                }
+
+                setPreviewImage(course.image1, 'previewEdit1');
+                setPreviewImage(course.image2, 'previewEdit2');
+                setPreviewImage(course.image3, 'previewEdit3');
             });
         });
 
         // ฟังก์ชันค้นหาหลักสูตร
-        document.querySelector('.search-box input').addEventListener('keyup', function() {
-            const searchText = this.value.toLowerCase();
-            document.querySelectorAll('.course-card').forEach(card => {
-                const name = card.querySelector('h5').textContent.toLowerCase();
-                if (name.includes(searchText)) {
-                    card.parentElement.style.display = 'block';
-                } else {
-                    card.parentElement.style.display = 'none';
-                }
+        // ต้องเลือก card.parentElement เพราะ course-card อยู่ภายใน col-lg-4
+        const searchInput = document.querySelector('.search-box input');
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                const searchText = this.value.toLowerCase();
+                document.querySelectorAll('.course-col').forEach(col => { // เลือก col แทน card
+                    const card = col.querySelector('.course-card');
+                    if (card) {
+                        const nameElement = card.querySelector('h5');
+                        const name = nameElement ? nameElement.textContent.toLowerCase() : '';
+                        
+                        if (name.includes(searchText)) {
+                            col.style.display = 'block';
+                        } else {
+                            col.style.display = 'none';
+                        }
+                    }
+                });
             });
-        });
-
+        }
+        
         function previewImage(event, previewId) {
             const input = event.target;
             const preview = document.getElementById(previewId);

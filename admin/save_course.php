@@ -1,18 +1,7 @@
 <?php
-// filepath: c:\xampp\htdocs\mango\admin\save_course.php
-
-// เชื่อมต่อฐานข้อมูล
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "db_mango"; // ชื่อฐานข้อมูลของคุณ
-
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// ตรวจสอบการเชื่อมต่อ
-if ($conn->connect_error) {
-    die("การเชื่อมต่อล้มเหลว: " . $conn->connect_error);
-}
+session_start();
+require_once 'auth.php';
+require_once 'db.php';
 
 // รับข้อมูลจากฟอร์ม
 $course_name = htmlspecialchars($_POST['course_name'], ENT_QUOTES, 'UTF-8');

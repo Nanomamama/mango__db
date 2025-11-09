@@ -1,4 +1,6 @@
 <?php include 'navbar.php'; ?>
+<?php include 'user/index.php'; ?>
+
 <!DOCTYPE html>
 <html lang="th">
 <head>

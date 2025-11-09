@@ -342,6 +342,14 @@
     </style>
 </head>
 <body>
+    <?php
+        session_start();
+        if (isset($_SESSION['error'])) {
+            echo '<div class="alert alert-danger text-center">'.$_SESSION['error'].'</div>';
+            unset($_SESSION['error']);
+        }
+    ?>
+
     <div class="login-container shadow-lg">
         <div class="row g-0">
             <div class="col-lg-5">
