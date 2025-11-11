@@ -238,10 +238,16 @@
         .toggle-password {
             position: absolute;
             right: 15px;
-            top: 20px;
+            top: 50%;
+            transform: translateY(-50%);
             cursor: pointer;
             color: #6c757d;
             z-index: 10;
+            transition: color 0.3s ease;
+        }
+        
+        .toggle-password:hover {
+            color: var(--primary);
         }
         
         .form-footer {
@@ -433,5 +439,45 @@
         </div>
     </div>
 
+    <!-- JavaScript สำหรับการแสดง/ซ่อนรหัสผ่าน -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const togglePassword = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('password');
+            
+            if (togglePassword && passwordInput) {
+                togglePassword.addEventListener('click', function() {
+                    // สลับประเภทของ input ระหว่าง password และ text
+                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordInput.setAttribute('type', type);
+                    
+                    // สลับไอคอนระหว่างตาเปิดและตาปิด
+                    this.classList.toggle('fa-eye');
+                    this.classList.toggle('fa-eye-slash');
+                });
+            }
+            
+            // เพิ่มการตรวจสอบฟอร์มเบื้องต้น
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', function(event) {
+                    const email = this.querySelector('input[name="email"]').value;
+                    const password = this.querySelector('input[name="password"]').value;
+                    
+                    if (!email || !password) {
+                        event.preventDefault();
+                        alert('กรุณากรอกอีเมล์และรหัสผ่าน');
+                        return false;
+                    }
+                    
+                    if (password.length < 6) {
+                        event.preventDefault();
+                        alert('รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร');
+                        return false;
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

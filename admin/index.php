@@ -689,7 +689,7 @@ $remain_total = $row['remain_total'] ?? 0;
                     <div class="all-charts-container">
                         <!-- กราฟการจองเข้าชมสวน -->
                         <div class="chart-card">
-                            <div class="chart-card-header">การจองเข้าชมสวน (เดือนล่าสุด)</div>
+                            <div class="chart-card-header">การจองเข้าชมสวน</div>
                             <div class="chart-card-content">
                                 <div class="d-flex flex-column align-items-center h-100">
                                     <div style="position:relative; width:250px; height:250px;">
@@ -786,46 +786,51 @@ $remain_total = $row['remain_total'] ?? 0;
                 const bookingMonthData = <?= json_encode($booking_month) ?>;
 
                 // กราฟยอดขายรายวัน
-                new Chart(document.getElementById('salesDayChart'), {
-                    type: 'line',
-                    data: {
-                        labels: salesDayLabels,
-                        datasets: [{
-                            label: 'ยอดขาย (บาท)',
-                            data: salesDayData,
-                            borderColor: '#4e73df',
-                            backgroundColor: 'rgba(78, 115, 223, 0.05)',
-                            tension: 0.4,
-                            fill: true,
-                            borderWidth: 3
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: false
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    display: false
-                                },
-                                ticks: {
-                                    callback: value => '฿' + value.toLocaleString()
-                                }
-                            },
-                            x: {
-                                grid: {
-                                    display: false
-                                }
-                            }
-                        }
+new Chart(document.getElementById('salesDayChart'), {
+    type: 'bar',
+    data: {
+        labels: salesDayLabels,
+        datasets: [{
+            label: 'ยอดขาย (บาท)',
+            data: salesDayData,
+            backgroundColor: '#4e73df',
+            borderRadius: 5,
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return 'ยอดขาย: ฿' + context.parsed.y.toLocaleString();
                     }
-                });
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    display: false
+                },
+                ticks: {
+                    callback: value => '฿' + value.toLocaleString()
+                }
+            },
+            x: {
+                grid: {
+                    display: false
+                }
+            }
+        }
+    }
+});
 
                 // กราฟยอดขายรายสัปดาห์
                 new Chart(document.getElementById('salesWeekChart'), {
@@ -943,25 +948,27 @@ $remain_total = $row['remain_total'] ?? 0;
                         }
                     }
                 });
-
-                // กราฟการจองเข้าชมสวน (รายเดือน)
-                // const latestMonthCount = bookingMonthData.length > 0 ? bookingMonthData[bookingMonthData.length - 1] : 0;
-                // กราฟการจองเข้าชมสวน (เดือนล่าสุด)
-const latestMonthCount = bookingMonthData.length > 0 ? bookingMonthData[bookingMonthData.length - 1] : 0;
+                
+// กราฟการจองเข้าชมสวน - แสดงทั้งหมดทุกเดือน
+const totalAllMonths = bookingMonthData.reduce((sum, count) => sum + count, 0);
 const latestMonthLabel = bookingMonthLabels.length > 0 ? bookingMonthLabels[bookingMonthLabels.length - 1] : 'เดือนปัจจุบัน';
 
-document.getElementById('centerBookingCount').textContent = latestMonthCount.toLocaleString() + ' คณะ';
+// อัพเดทตัวเลขกลางและ label
+document.getElementById('centerBookingCount').textContent = totalAllMonths.toLocaleString() + ' คณะ';
+document.getElementById('monthLabel').textContent = 'ทั้งหมด ' + bookingMonthData.length + ' เดือน';
 
+// กราฟแบบแสดงทุกเดือน (แต่ละเดือนเป็นส่วนในวง)
 new Chart(document.getElementById('bookingMonthChart'), {
     type: 'doughnut',
     data: {
-        labels: [latestMonthLabel, 'ส่วนที่เหลือ'],
+        labels: bookingMonthLabels,
         datasets: [{
             label: 'จำนวนการจอง',
-            data: [latestMonthCount, 100 - latestMonthCount], // ใช้ 100 เป็นฐานเพื่อให้เห็นสัดส่วน
+            data: bookingMonthData,
             backgroundColor: [
-                '#4e73df', // สีสำหรับเดือนล่าสุด
-                '#e8e8e8'  // สีเทาอ่อนสำหรับส่วนที่เหลือ
+                '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+                '#5a5c69', '#858796', '#b7b9cc', '#dfe0eb', '#f8f9fc',
+                '#2e59d9', '#17a673'
             ]
         }]
     },
@@ -971,15 +978,24 @@ new Chart(document.getElementById('bookingMonthChart'), {
         plugins: {
             legend: {
                 position: 'bottom',
-                display: false // ซ่อนคำอธิบายสัญลักษณ์
+                display: false // ซ่อน legend เพราะมีหลายเดือน
             },
             tooltip: {
-                enabled: false // ปิดการแสดง tooltip
+                enabled: true,
+                callbacks: {
+                    label: function(context) {
+                        return context.label + ': ' + context.raw.toLocaleString() + ' คณะ';
+                    }
+                }
             }
         },
         cutout: '70%'
     }
 });
+
+// ตัวเลขกลางยังแสดงผลรวมทั้งหมด
+document.getElementById('centerBookingCount').textContent = totalAllMonths.toLocaleString() + ' คณะ';
+document.getElementById('monthLabel').textContent = 'ทั้งหมด ' + bookingMonthData.length + ' เดือน';
 
                 // กราฟจำนวนสายพันธุ์มะม่วง
                 new Chart(document.getElementById('mangoVarietyCountChart'), {
@@ -1105,7 +1121,10 @@ new Chart(document.getElementById('bookingMonthChart'), {
                                 display: true,
                                 labels: {
                                     color: '#185a9d',
-                                    font: { weight: 'bold', size: 14 }
+                                    font: {
+                                        weight: 'bold',
+                                        size: 14
+                                    }
                                 }
                             },
                             tooltip: {
@@ -1126,7 +1145,9 @@ new Chart(document.getElementById('bookingMonthChart'), {
                                 beginAtZero: true,
                                 ticks: {
                                     color: '#185a9d',
-                                    font: { size: 13 },
+                                    font: {
+                                        size: 13
+                                    },
                                     callback: value => value + ' คณะ'
                                 },
                                 grid: {
@@ -1136,7 +1157,9 @@ new Chart(document.getElementById('bookingMonthChart'), {
                             x: {
                                 ticks: {
                                     color: '#185a9d',
-                                    font: { size: 13 }
+                                    font: {
+                                        size: 13
+                                    }
                                 },
                                 grid: {
                                     display: false

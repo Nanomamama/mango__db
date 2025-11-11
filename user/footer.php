@@ -1,315 +1,281 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Footer</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
-    
-    <style>
-        :root {
-                    --green-color: #016A70;
-                    --white-color: #fff;
-                    --Primary: #4e73df;
-                    --Success:rgb(27, 78, 59);
-                    --Info: #36b9cc;
-                    --Warning: #f6c23e;
-                    --Danger: #e74a3b;
-                    --Secondary: #858796;
-                    --Light: #f8f9fc;
-                    --Dark: #5a5c69;
-            }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Animated Footer Waves (Smooth)</title>
 
+  <!-- Remix Icon -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <!-- BEGIN sections: footer-group -->
+  <div id="shopify-section-sections--16959639289946__footer" class="shopify-section shopify-section-group-footer-group">
+    <link href="//houkandbank.com/cdn/shop/t/1/assets/section-footer.css?v=60318643098753476351739943633" rel="stylesheet" type="text/css" media="all" />
+    <link href="//houkandbank.com/cdn/shop/t/1/assets/component-newsletter.css?v=4727253280200485261739943631" rel="stylesheet" type="text/css" media="all" />
+    <link href="//houkandbank.com/cdn/shop/t/1/assets/component-list-menu.css?v=151968516119678728991739943631" rel="stylesheet" type="text/css" media="all" />
+    <link href="//houkandbank.com/cdn/shop/t/1/assets/component-list-payment.css?v=69253961410771838501739943631" rel="stylesheet" type="text/css" media="all" />
+    <link href="//houkandbank.com/cdn/shop/t/1/assets/component-list-social.css?v=35792976012981934991739943631" rel="stylesheet" type="text/css" media="all" />
+    <style data-shopify>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Kanit", sans-serif;
-        }
-        
+      body {
+        font-family: "Prompt", sans-serif;
+        background-color: #f9f9f9;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .content {
+        flex: 1;
+        padding: 2rem;
+        text-align: center;
+      }
+
+      .footer {
+        text-align: center;
+        background: #fff;
+        border-top: 1px solid #eaeaea;
+        position: relative;
+        overflow: hidden;
+        padding-top: 2rem;
+        margin-top: auto;
+      }
+
+      .footer__container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+      }
+
+      .footer__social {
+        margin: 1rem 0 2rem;
+      }
+
+      .footer__social a {
+        margin: 0 12px;
+        color: #333;
+        font-size: 1.8rem;
+        transition: all 0.3s ease;
+        display: inline-block;
+        text-decoration: none;
+      }
+
+      .footer__social a:hover {
+        color: #555;
+        transform: translateY(-3px);
+      }
+
+      .footer__bottom {
+        font-size: 0.9rem;
+        color: #444;
+        margin-bottom: 1.5rem;
+        line-height: 1.8;
+      }
+
+      .footer__bottom a {
+        color: #444;
+        text-decoration: none;
+        margin: 0 6px;
+        transition: color 0.3s;
+      }
+
+      .footer__bottom a:hover {
+        color: #000;
+        text-decoration: underline;
+      }
+
+      .section-sections--16959639289946__footer-padding {
+        padding-top: 0px;
+        padding-bottom: 0px;
+      }
+
+      @media screen and (min-width: 750px) {
         .footer {
-            background-color: var(--Success);
-            color: #ffffff;
-            padding: 50px 20px 20px;
-            font-size: 0.95rem;
-            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1);
+          margin-top: 60px;
         }
-        
-        .footer-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 30px;
-        }
-        
-        .footer-section {
-            padding: 0 10px;
-        }
-        
-        .footer-section h3 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 25px;
-            color: var(--Light);
-            position: relative;
-            padding-bottom: 12px;
-        }
-        
-        /* .footer-section h3::after {
-            content: "";
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 50px;
-            height: 3px;
-            background-color: var(--Light);
-            border-radius: 3px;
-        } */
-        
-        .footer-section p {
-            margin-bottom: 15px;
-            line-height: 1.7;
-            color: var(--Light);
-        }
-        
-        .contact-info {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 15px;
-        }
-        
-        .contact-info i {
-            margin-right: 12px;
-            color:var(--Light);
-            min-width: 20px;
-            font-size: 1.1rem;
-            margin-top: 4px;
-        }
-        
-        .contact-info a {
-            color:var(--Light);
-            transition: all 0.3s;
-        }
-        
-        .contact-info a:hover {
-            color: var(--Danger);
-            text-decoration: underline;
-        }
-        
-        .copyright {
-            text-align: center;
-            padding-top: 30px;
-            margin-top: 40px;
-            border-top: 2px solid rgb(162, 165, 165);
-            font-size: 0.9rem;
-            color:var(--Light);
-        }
-        
-        .footer-links {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .footer-links a {
-            display: block;
-            color:var(--Light);
-            text-decoration: none;
-            padding: 10px 0;
-            transition: all 0.3s;
-            position: relative;
-            padding-left: 25px;
-        }
-        
-        .footer-links a:hover {
-            color:var(--Danger);
-            transform: translateX(5px);
-        }
-        
-        .footer-links a::before {
-            content: "•";
-            position: absolute;
-            left: 0;
-            top: 10px;
-            color:var(--Light);
-            font-size: 1.2rem;
-        }
-        
-        .social-links {
-            display: flex;
-            gap: 15px;
-            margin-top: 20px;
-        }
-        
-        .social-links a {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: #fff;
-            color: #009688;
-            font-size: 1.4rem;
-            margin: 0 6px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-            transition: background 0.2s, color 0.2s, transform 0.2s;
-            border: 2px solid #e0e0e0;
-            text-decoration: none;
-        }
-        
-        .social-links a:hover {
-            color: #fff;
-            transform: translateY(-4px) scale(1.08);
-        }
-        
-        .social-fb { background: #1877f2; color: #fff; border-color: #1877f2; }
-        .social-fb:hover { background: #145db2; }
-        .social-line { background: #00c300; color: #fff; border-color: #00c300; }
-        .social-line:hover { background: #009900; }
-        .social-yt { background: #ff0000; color: #fff; border-color: #ff0000; }
-        .social-yt:hover { background: #b20000; }
-        .social-ig { 
-            background: linear-gradient(135deg, #fdc468 0%, #df4996 100%);
-            color: #fff; 
-            border: none;
-        }
-        .social-ig:hover { 
-            background: linear-gradient(135deg, #df4996 0%, #fdc468 100%);
-        }
-        
-        /* Responsive Design */
-        @media (max-width: 992px) {
-            .footer-container {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 40px 20px;
-            }
-        }
-        
-        @media (max-width: 576px) {
-            .footer-container {
-                grid-template-columns: 1fr;
-                gap: 30px;
-            }
-            
-            .footer-section {
-                margin-bottom: 15px;
-            }
-            
-            .footer-section h3 {
-                margin-bottom: 20px;
-            }
-        }
-        
-        .logo-section {
-            display: flex;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        
-        .logo {
-            width: 60px;
-            height: 60px;
-            background: var(--Danger);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-        }
-        
-        .logo i {
-            font-size: 2rem;
-            color: var(--Light);
-        }
-        
-        .logo-text {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: var(--Danger);
-        }
-    </style>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=Sarabun:wght@300;400;500&display=swap" rel="stylesheet">
-</head>
-<body>
 
-    <footer class="footer">
-        <div class="footer-container">
-            <div class="footer-section">
-                <div class="logo-section">
-                    <div class="logo">
-                        <i class="fas fa-seedling"></i>
-                    </div>
-                    <div class="logo-text">การเกษตร</div>
-                </div>
-                <p>เพียงพอ.ก็.พอเพียง แบ่ง...ปั่น</p>
-                <h1><strong>สวนลุงเผือก</strong></h1>
-                
-                <div class="social-links">
-                    <a href="https://www.facebook.com/lungphuakgarden" target="_blank" class="social-fb" title="Facebook">
-                        <i class="fab fa-facebook-f"></i>
-                    </a>
-                    <a href="https://line.me/" target="_blank" class="social-line" title="Line">
-                        <i class="fab fa-line"></i>
-                    </a>
-                    <a href="https://youtube.com/" target="_blank" class="social-yt" title="YouTube">
-                        <i class="fab fa-youtube"></i>
-                    </a>
-                    <a href="https://instagram.com/" target="_blank" class="social-ig" title="Instagram">
-                        <i class="fab fa-instagram"></i>
-                    </a>
-                </div>
-            </div>
-            
-            <div class="footer-section">
-                <h3>เมนู</h3>
-                <div class="footer-links">
-                    <a href="../user/index.php">หน้าแรก</a>
-                    <a href="../user/mango_varieties.php">สายพันธุ์ทั้งหมด</a>
-                    <a href="../user/course.php">หลักสูตรการเรียนรู้</a>
-                    <a href="../user/products.php">สินค้าผลิตภัณฑ์</a>
-                    <a href="../user/activities.php">จองวันเข้าดูงาน</a>
-                </div>
-            </div>
-            
-            <div class="footer-section">
-                <h3>ติดต่อเรา</h3>
-                <div class="contact-info">
-                    <i class="fas fa-map-marker-alt"></i>
-                    <p>สวนลุงเผือก บ.บุฮม อ.เชียงคาน จ.เลย</p>
-                </div>
-                <div class="contact-info">
-                    <i class="fas fa-phone-alt"></i>
-                    <p><a href="tel:0621970420">062-197-0420</a></p>
-                </div>
-                <div class="contact-info">
-                    <i class="fas fa-envelope"></i>
-                    <p><a href="mailto:kwanhata.i@ku.th">psrimachan@gmail.com</a></p>
-                </div>
-                 <div class="contact-info">
-                    <i class="fas fa-building"></i>
-                    <p>สถาฐานที่ บ.บุฮม</p>
-                </div>
-            </div>
-            
-            <div class="footer-section">
-                <h3>ลิงก์ที่เกี่ยวข้อง</h3>
-                <div class="footer-links">
-                    <a href="#">งานวิจัยล่าสุด</a>
-                    <a href="#">ข่าวสารและกิจกรรม</a>
-                    <a href="#">เอกสารเผยแพร่</a>
-                    <a href="#">ร่วมงานกับเรา</a>
-                    <a href="#">ถามตอบ (Q&A)</a>
-                    <a href="#">แผนผังเว็บไซต์</a>
-                </div>
-            </div>
-        </div>
-        <div class="copyright">
-            <p>Developed and maintained by Nuengdiaw Thiaksiboon and Sukanda Somsiamg, Full-Stack Developer</p>
-            <p>© 2025 Mango Database. คณะวิทยาศาสตร์และเทคโนโลยี มหาวิทยาลัยราชภัฏเลย</p>
-        </div>
-    </footer>
+        .section-sections--16959639289946__footer-padding {
+          padding-top: 0px;
+          padding-bottom: 0px;
+        }
+      }
+    </style>
+</head>
+
+<body>
+  <footer class="footer">
+    <div class="footer__container">
+      <div class="footer__social">
+        <a href="#"><i class="ri-facebook-fill"></i></a>
+        <a href="#"><i class="ri-instagram-line"></i></a>
+        <a href="#"><i class="ri-youtube-fill"></i></a>
+        <a href="#"><i class="ri-tiktok-fill"></i></a>
+      </div>
+
+      <hr>
+
+      <div class="footer__bottom">
+        <p>
+        <a>© 2025, Nuengdiaw & Sukanda</a>
+          <a href="#">นโยบายความเป็นส่วนตัว</a> ·
+          <a href="#">นโยบายการคืนเงิน</a> ·
+          <a href="#">นโยบายการจัดส่ง</a> ·
+          <a href="#">ข้อกำหนดในการใช้บริการ</a> ·
+          <a href="#">ข้อมูลติดต่อ</a>
+        </p>
+      </div>
+    </div>
+  </footer>
+  <div class="section-sections--16959639289946__ss_wave_2_txMHjA wave-sections--16959639289946__ss_wave_2_txMHjA" style="background-color:#ffffff; background-image: none;">
+    <div class="section-sections--16959639289946__ss_wave_2_txMHjA-settings">
+      <div class="wave-item-sections--16959639289946__ss_wave_2_txMHjA">
+        <svg class="waves-animated-1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 24 150 28" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          <defs>
+            <path id="gentle-wave" d="M-160 44c30 0
+              58-18 88-18s
+              58 18 88 18
+              58-18 88-18
+              58 18 88 18
+              v44h-352z"></path>
+          </defs>
+          <g class="wave-parallax1-sections--16959639289946__ss_wave_2_txMHjA">
+            <use xlink:href="#gentle-wave" x="50" y="3" fill="currentColor"></use>
+          </g>
+          <g class="wave-parallax2-sections--16959639289946__ss_wave_2_txMHjA">
+            <use xlink:href="#gentle-wave" x="50" y="0" fill="currentColor"></use>
+          </g>
+          <g class="wave-parallax3-sections--16959639289946__ss_wave_2_txMHjA">
+            <use xlink:href="#gentle-wave" x="50" y="9" fill="currentColor"></use>
+          </g>
+          <g class="wave-parallax4-sections--16959639289946__ss_wave_2_txMHjA">
+            <use xlink:href="#gentle-wave" x="50" y="6" fill="currentColor"></use>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div id="shopify-section-sections--16959639289946__ss_wave_2_txMHjA" class="shopify-section shopify-section-group-footer-group">
+    <style data-shopify>
+      .section-sections--16959639289946__ss_wave_2_txMHjA {
+        border-top: solid #000000 0px;
+        border-bottom: solid #000000 0px;
+        margin-top: 0px;
+        margin-bottom: 0px;
+      }
+
+      .section-sections--16959639289946__ss_wave_2_txMHjA-settings {
+        margin: 0 auto;
+        padding-top: 0px;
+        padding-bottom: 0px;
+        padding-left: 0rem;
+        padding-right: 0rem;
+      }
+
+      .wave-item-sections--16959639289946__ss_wave_2_txMHjA svg {
+        color: #121212;
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: hidden;
+        max-height: 80px;
+      }
+
+      .wave-parallax2-sections--16959639289946__ss_wave_2_txMHjA>use {
+        opacity: .4;
+      }
+
+      .wave-parallax3-sections--16959639289946__ss_wave_2_txMHjA>use {
+        opacity: .3;
+      }
+
+      .wave-parallax4-sections--16959639289946__ss_wave_2_txMHjA>use {
+        opacity: .2;
+      }
+
+      @media(min-width: 1024px) {
+
+        .section-sections--16959639289946__ss_wave_2_txMHjA {
+          margin-top: 0px;
+          margin-bottom: 0px;
+        }
+
+        .section-sections--16959639289946__ss_wave_2_txMHjA-settings {
+          padding: 0 5rem;
+          padding-top: 0px;
+          padding-bottom: 0px;
+          padding-left: 0rem;
+          padding-right: 0rem;
+        }
+
+        .wave-item-sections--16959639289946__ss_wave_2_txMHjA svg {
+          max-height: 120px;
+        }
+      }
+    </style>
+    <style>
+      .wave-parallax1-sections--16959639289946__ss_wave_2_txMHjA>use {
+        animation: move-forever1sections--16959639289946__ss_wave_2_txMHjA 10s linear infinite;
+      }
+
+      .wave-parallax2-sections--16959639289946__ss_wave_2_txMHjA>use {
+        animation: move-forever2sections--16959639289946__ss_wave_2_txMHjA 10s linear infinite;
+      }
+
+      .wave-parallax3-sections--16959639289946__ss_wave_2_txMHjA>use {
+        animation: move-forever3sections--16959639289946__ss_wave_2_txMHjA 10s linear infinite;
+      }
+
+      .wave-parallax3-sections--16959639289946__ss_wave_2_txMHjA>use {
+        animation: move-forever4sections--16959639289946__ss_wave_2_txMHjA 10s linear infinite;
+      }
+
+      @keyframes move-forever1sections--16959639289946__ss_wave_2_txMHjA {
+        0% {
+          transform: translate(85px);
+        }
+
+        100% {
+          transform: translate(-90px);
+        }
+      }
+
+      @keyframes move-forever2sections--16959639289946__ss_wave_2_txMHjA {
+        0% {
+          transform: translate(-90px);
+        }
+
+        100% {
+          transform: translate(85px);
+        }
+      }
+
+      @keyframes move-forever3sections--16959639289946__ss_wave_2_txMHjA {
+        0% {
+          transform: translate(85px);
+        }
+
+        100% {
+          transform: translate(-90px);
+        }
+      }
+
+      @keyframes move-forever4sections--16959639289946__ss_wave_2_txMHjA {
+        0% {
+          transform: translate(-90px);
+        }
+
+        100% {
+          transform: translate(85px);
+        }
+      }
+    </style>
+  </div>
 </body>
 </html>

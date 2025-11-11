@@ -20,6 +20,10 @@
             --Darkss:#000;
         }
 
+        body{
+            background-color: #fff;
+        }
+
         .hero {
             height: 100vh;
             background-image: url('./image/พื้นหลัง-002.jpg');
@@ -144,7 +148,7 @@
             border-radius: 12px;
             transition: box-shadow 0.3s;
             cursor: pointer;
-            background-color: #f8f9fa;
+            background-color: #fff;
             overflow: hidden;
         }
 
