@@ -76,7 +76,7 @@ mysqli_report(MYSQLI_REPORT_OFF);
 $checkStmt = $conn->prepare("SELECT id FROM courses WHERE id = ?");
 if (!$checkStmt) {
     error_log('check prepare error: ' . $conn->error);
-    echo json_encode(['success' => false, 'error' => 'Database error']);
+    echo json_encode(['success' => false, 'error' => 'Database error']); 
     exit;
 }
 
