@@ -204,11 +204,25 @@ require_once '../admin/db.php';
       align-items: center;
       gap: .5rem;
       margin-top: .5rem;
+      margin-bottom: 1rem;
     }
-    .stars-display { display:flex; gap:4px; }
-    .star-icon { font-size:1.05rem; line-height:1; color:#ddd; }
-    .star-filled { color:#ffc107; }
-    .rating-text { color:#666; font-size:0.85rem; margin-left:.35rem; }
+    .stars-display { 
+      display: flex; 
+      gap: 4px; 
+    }
+    .star-icon { 
+      font-size: 1.05rem; 
+      line-height: 1; 
+      color: #ddd; 
+    }
+    .star-filled { 
+      color: #ffc107; 
+    }
+    .rating-text { 
+      color: #666; 
+      font-size: 0.85rem; 
+      margin-left: .35rem; 
+    }
 
     @media (max-width: 768px) {
       .hero-section h2 {
@@ -310,8 +324,13 @@ require_once '../admin/db.php';
           <?php while ($row = $result->fetch_assoc()): ?>
             <div class="col-md-6 col-lg-4">
               <div class="course-card">
+                <?php
+                  $courseId = (int)($row['courses_id'] ?? 0);
+                  $courseName = htmlspecialchars($row['course_name'] ?? 'ชื่อหลักสูตร', ENT_QUOTES, 'UTF-8');
+                  $courseDesc = htmlspecialchars($row['course_description'] ?? 'ไม่มีรายละเอียด', ENT_QUOTES, 'UTF-8');
+                ?>
                 <!-- Carousel -->
-                <div id="carouselCourse<?php echo htmlspecialchars($row['courses_id']); ?>" class="carousel slide" data-bs-ride="carousel">
+                <div id="carouselCourse<?php echo $courseId; ?>" class="carousel slide" data-bs-ride="carousel">
                   <div class="carousel-inner">
                     <?php
                     // รวมรูปภาพที่มีและกรองค่า empty
@@ -350,52 +369,55 @@ require_once '../admin/db.php';
                     }
                     ?>
                   </div>
-                  <button class="carousel-control-prev" type="button" data-bs-target="#carouselCourse<?php echo htmlspecialchars($row['id']); ?>" data-bs-slide="prev" aria-label="ภาพก่อนหน้า">
+                  <button class="carousel-control-prev" type="button" data-bs-target="#carouselCourse<?php echo $courseId; ?>" data-bs-slide="prev" aria-label="ภาพก่อนหน้า">
                     <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                   </button>
-                  <button class="carousel-control-next" type="button" data-bs-target="#carouselCourse<?php echo htmlspecialchars($row['id']); ?>" data-bs-slide="next" aria-label="ภาพถัดไป">
+                  <button class="carousel-control-next" type="button" data-bs-target="#carouselCourse<?php echo $courseId; ?>" data-bs-slide="next" aria-label="ภาพถัดไป">
                     <span class="carousel-control-next-icon" aria-hidden="true"></span>
                   </button>
                 </div>
-
                 <!-- Card Body -->
                 <div class="card-body">
                   <div>
-                    <h5 class="card-title"><?php echo htmlspecialchars($row['course_name'] ?? 'ชื่อหลักสูตร'); ?></h5>
-                    <p class="card-description"><?php echo htmlspecialchars($row['course_description'] ?? 'ไม่มีรายละเอียด'); ?></p>
+                    <h5 class="card-title"><?php echo $courseName; ?></h5>
+                    <p class="card-description"><?php echo $courseDesc; ?></p>
 
-                    <?php
-                    // ดึงคะแนนเฉลี่ยและจำนวนโหวตสำหรับแต่ละหลักสูตร
-                    $avg_rating = 0;
-                    $rating_count = 0;
-                    $cid = (int)$row['courses_id'];
-                    $stmtRating = $conn->prepare("SELECT AVG(rating) AS avg_rating, COUNT(*) AS cnt FROM course_ratings WHERE course_id = ?");
-                    if ($stmtRating) {
-                        $stmtRating->bind_param('i', $cid);
-                        $stmtRating->execute();
-                        $resR = $stmtRating->get_result()->fetch_assoc();
-                        if ($resR) {
-                            $avg_rating = $resR['avg_rating'] !== null ? (float)$resR['avg_rating'] : 0;
-                            $rating_count = (int)$resR['cnt'];
-                        }
-                        $stmtRating->close();
-                    }
+                   <!-- Rating Display -->
+                   <?php
+                   // ดึงคะแนนเฉลี่ยจาก course_ratings
+                   $ratingStmt = $conn->prepare("SELECT AVG(rating) AS avg_rating, COUNT(*) AS cnt FROM course_ratings WHERE course_id = ?");
+                   if ($ratingStmt) {
+                       $ratingStmt->bind_param('i', $courseId);
+                       $ratingStmt->execute();
+                       $ratingRes = $ratingStmt->get_result()->fetch_assoc();
+                       $avg_rating = $ratingRes['avg_rating'] ? round((float)$ratingRes['avg_rating'], 1) : 0;
+                       $rating_count = (int)$ratingRes['cnt'];
+                       $ratingStmt->close();
 
-                    // แสดงดาว (rounded)
-                    $filled = (int) round($avg_rating);
-                    echo '<div class="course-rating" aria-hidden="true">';
-                    echo '<div class="stars-display">';
-                    for ($s = 1; $s <= 5; $s++) {
-                        $cls = $s <= $filled ? 'star-icon star-filled' : 'star-icon';
-                        echo '<span class="'. $cls .'">&#9733;</span>';
-                    }
-                    echo '</div>';
-                    echo '<div class="rating-text">'. number_format($avg_rating,1) .' / 5 (' . $rating_count . ')</div>';
-                    echo '</div>';
-                    ?>
+                       if ($rating_count > 0):
+                   ?>
+                       <div class="course-rating">
+                           <div class="stars-display">
+                               <?php
+                               $rounded = (int) round($avg_rating);
+                               for ($i = 1; $i <= 5; $i++) {
+                                   $class = $i <= $rounded ? 'star-icon star-filled' : 'star-icon';
+                                   echo '<span class="' . $class . '">&#9733;</span>';
+                               }
+                               ?>
+                           </div>
+                           <span class="rating-text">
+                               <strong><?php echo number_format($avg_rating, 1, '.', ''); ?></strong>/5
+                               (<?php echo $rating_count; ?> คะแนน)
+                           </span>
+                       </div>
+                   <?php
+                       endif;
+                   }
+                   ?>
                   </div>
-                  <a href="course_detail.php?id=<?php echo htmlspecialchars($row['courses_id']); ?>" class="btn-learn-more">
-                    ดูรายละเอียด <i class="fas fa-arrow-right ms-2"></i>
+                  <a href="course_detail.php?id=<?php echo $courseId; ?>" class="btn-learn-more">
+                     ดูรายละเอียด <i class="fas fa-arrow-right ms-2"></i>
                   </a>
                 </div>
               </div>

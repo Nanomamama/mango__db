@@ -11,6 +11,7 @@ require_once '../admin/db.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
+// ตั้ง exception/error handlers
 set_exception_handler(function($e) {
     error_log("rate_course exception: " . $e->getMessage());
     http_response_code(500);
@@ -23,6 +24,7 @@ set_error_handler(function($errno, $errstr, $errfile, $errline) {
     throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
 });
 
+// อ่าน JSON input
 $raw = file_get_contents('php://input');
 $data = json_decode($raw, true);
 
@@ -34,11 +36,26 @@ if (!is_array($data)) {
 $course_id = isset($data['course_id']) ? (int)$data['course_id'] : 0;
 $rating = isset($data['rating']) ? (int)$data['rating'] : 0;
 
+// Validation
 if ($course_id <= 0 || $rating < 1 || $rating > 5) {
     echo json_encode(['success' => false, 'error' => 'Invalid course or rating']);
     exit;
 }
 
+// Verify course exists
+$verifyCourse = $conn->prepare("SELECT courses_id FROM courses WHERE courses_id = ?");
+if (!$verifyCourse) {
+    throw new Exception('DB prepare error: ' . $conn->error);
+}
+$verifyCourse->bind_param('i', $course_id);
+$verifyCourse->execute();
+if ($verifyCourse->get_result()->num_rows === 0) {
+    echo json_encode(['success' => false, 'error' => 'Course not found']);
+    exit;
+}
+$verifyCourse->close();
+
+// Get client IP as guest identifier
 function getClientIP() {
     if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
         return $_SERVER['HTTP_CLIENT_IP'];
@@ -50,20 +67,27 @@ function getClientIP() {
     return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 }
 
-$ip = getClientIP();
+$guestId = getClientIP();
+$member_id = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
 
 mysqli_report(MYSQLI_REPORT_OFF);
 
 $conn->begin_transaction();
 
 try {
-    // Check if rating exists for this IP
-    $stmt = $conn->prepare("SELECT id FROM course_ratings WHERE course_id = ? AND ip_address = ? AND user_id IS NULL");
-    if (!$stmt) {
-        throw new Exception('Prepare failed: ' . $conn->error);
+    // Check if already rated (by member_id or guest_identifier)
+    if ($member_id) {
+        $stmt = $conn->prepare("SELECT id FROM course_ratings WHERE course_id = ? AND member_id = ?");
+        $stmt->bind_param('ii', $course_id, $member_id);
+    } else {
+        $stmt = $conn->prepare("SELECT id FROM course_ratings WHERE course_id = ? AND guest_identifier = ? AND member_id IS NULL");
+        $stmt->bind_param('is', $course_id, $guestId);
     }
 
-    $stmt->bind_param('is', $course_id, $ip);
+    if (!$stmt) {
+        throw new Exception('Prepare select failed: ' . $conn->error);
+    }
+
     $stmt->execute();
     $res = $stmt->get_result();
 
@@ -74,16 +98,20 @@ try {
             throw new Exception('Prepare update failed: ' . $conn->error);
         }
         $updateStmt->bind_param('ii', $rating, $row['id']);
-        $updateStmt->execute();
+        if (!$updateStmt->execute()) {
+            throw new Exception('Update failed: ' . $updateStmt->error);
+        }
         $updateStmt->close();
     } else {
         // Insert new rating
-        $insertStmt = $conn->prepare("INSERT INTO course_ratings (course_id, user_id, rating, ip_address) VALUES (?, NULL, ?, ?)");
+        $insertStmt = $conn->prepare("INSERT INTO course_ratings (course_id, member_id, guest_identifier, rating, created_at) VALUES (?, ?, ?, ?, NOW())");
         if (!$insertStmt) {
             throw new Exception('Prepare insert failed: ' . $conn->error);
         }
-        $insertStmt->bind_param('iis', $course_id, $rating, $ip);
-        $insertStmt->execute();
+        $insertStmt->bind_param('iiii', $course_id, $member_id, $guestId, $rating);
+        if (!$insertStmt->execute()) {
+            throw new Exception('Insert failed: ' . $insertStmt->error);
+        }
         $insertStmt->close();
     }
 
@@ -118,3 +146,4 @@ try {
     echo json_encode(['success' => false, 'error' => 'Server error']);
     exit;
 }
+?>

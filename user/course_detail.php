@@ -2,7 +2,16 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+// กำหนดค่าเริ่มต้นของชื่อผู้ใช้
+$loggedInUserName = '';
 
+// ตรวจสอบว่ามีข้อมูลผู้ใช้ใน Session หรือไม่
+// **สมมติว่า** เมื่อผู้ใช้ Login สำเร็จ คุณจะเก็บชื่อผู้ใช้ไว้ใน $_SESSION['username']
+if (isset($_SESSION['username']) && !empty($_SESSION['username'])) {
+    $loggedInUserName = htmlspecialchars($_SESSION['username']);
+} 
+// หากใช้ $_SESSION['user_name'] หรือ $_SESSION['user_display_name'] ให้ปรับตามระบบของคุณ
+// หากใช้ $_SESSION['user_id'] คุณอาจต้องทำการ Query เพื่อดึงชื่อผู้ใช้จากฐานข้อมูลอีกครั้ง
 require_once '../admin/db.php';
 
 // validate id (must be integer >= 1)
@@ -31,25 +40,23 @@ $course = $result->fetch_assoc();
 $stmt->close();
 
 if (!$course) {
-    http_response_code(404);
-    echo "หลักสูตรไม่พบ";
+    header('Location: course.php');
     exit;
 }
 
-// ดึงข้อมูลคะแนนเฉลี่ยและจำนวนโหวต (ตาราง course_ratings ควรมี: id, course_id, user_id (nullable), rating INT, created_at)
-$avgRating = 0;
-$ratingCount = 0;
-$stmt = $conn->prepare("SELECT AVG(rating) AS avg_rating, COUNT(*) AS cnt FROM course_ratings WHERE course_id = ?");
-if ($stmt) {
-    $stmt->bind_param('i', $id);
-    $stmt->execute();
-    $res = $stmt->get_result()->fetch_assoc();
-    if ($res) {
-        $avgRating = round((float)$res['avg_rating'], 2);
-        $ratingCount = (int)$res['cnt'];
-    }
-    $stmt->close();
+// ดึงข้อมูลคะแนนเฉลี่ยและจำนวนโหวต
+$ratingStmt = $conn->prepare("SELECT AVG(rating) AS avg_rating, COUNT(*) AS cnt FROM course_ratings WHERE course_id = ?");
+if (!$ratingStmt) {
+    throw new Exception('DB prepare error: ' . $conn->error);
 }
+
+$courseId = (int)$course['courses_id'];  // ใช้ courses_id จากตาราง courses
+$ratingStmt->bind_param('i', $courseId);
+$ratingStmt->execute();
+$ratingRes = $ratingStmt->get_result()->fetch_assoc();
+$avg_rating = $ratingRes['avg_rating'] ? round((float)$ratingRes['avg_rating'], 1) : 0;
+$rating_count = (int)$ratingRes['cnt'];
+$ratingStmt->close();
 
 // เตรียมพาธ uploads และ placeholder (user page อยู่ใน /user/ ดังนั้น URL ../uploads/)
 $uploadsDir = __DIR__ . '/../uploads/';
@@ -84,6 +91,24 @@ $images = array_filter([
         .btn-enroll { border-radius: 999px; padding:0.6rem 1.2rem; }
         .meta { color:#666; font-size:0.95rem; }
 
+        /* Carousel image sizing - responsive */
+        #courseCarousel {
+            overflow: hidden;
+        }
+        #courseCarousel .carousel-inner {
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+        }
+        #courseCarousel .carousel-item {
+            height: 100%;
+        }
+        #courseCarousel img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;  /* ภาพไม่บิดเบี้ยว, crop ตามสัดส่วน */
+            display: block;
+        }
+
         /* Rating styles */
         .rating { display:flex; align-items:center; gap:0.5rem; user-select:none; }
         .stars { display:flex; gap:6px; }
@@ -112,7 +137,7 @@ $images = array_filter([
                     <div class="carousel-inner">
                         <?php
                         if (empty($images)) {
-                            echo '<div class="carousel-item active"><img src="' . $placeholderSrc . '" class="d-block w-100" alt="placeholder" loading="lazy"></div>';
+                            echo '<div class="carousel-item active"><img src="' . $placeholderSrc . '" class="d-block w-100 img-fluid" alt="placeholder" loading="lazy"></div>';
                         } else {
                             $first = true;
                             foreach ($images as $img) {
@@ -125,7 +150,7 @@ $images = array_filter([
                                 }
                                 $active = $first ? ' active' : '';
                                 echo '<div class="carousel-item' . $active . '">';
-                                echo '<img src="' . $src . '" class="d-block w-100" alt="' . htmlspecialchars($course['course_name']) . '" loading="lazy" onerror="this.src=\'' . $placeholderSrc . '\'">';
+                                echo '<img src="' . $src . '" class="d-block w-100 img-fluid" alt="' . htmlspecialchars($course['course_name']) . '" loading="lazy" onerror="this.src=\'' . $placeholderSrc . '\'">';
                                 echo '</div>';
                                 $first = false;
                             }
@@ -161,7 +186,7 @@ $images = array_filter([
                             <div class="stars" id="stars" data-course-id="<?php echo (int)$course['courses_id']; ?>">
                                 <?php
                                 // แสดง 5 ดาว (filled ตามค่าเฉลี่ย)
-                                $rounded = (int) round($avgRating);
+                                $rounded = (int) round($avg_rating);
                                 for ($i = 1; $i <= 5; $i++) {
                                     $class = $i <= $rounded ? 'star filled' : 'star';
                                     echo '<span class="' . $class . '" data-value="' . $i . '" role="button" aria-label="' . $i . ' ดาว">&#9733;</span>';
@@ -169,15 +194,12 @@ $images = array_filter([
                                 ?>
                             </div>
                             <div class="rating-info ms-2">
-                                <strong id="avgRating"><?php echo $avgRating > 0 ? $avgRating : '0.00'; ?></strong>
+                                <strong id="avgRating"><?php echo $avg_rating > 0 ? $avg_rating : '0.00'; ?></strong>
                                 <small>/5</small>
-                                <div><small id="ratingCount"><?php echo $ratingCount; ?></small> คะแนน</div>
+                                <div><small id="ratingCount"><?php echo $rating_count; ?></small> คะแนน</div>
                             </div>
                         </div>
 
-                        <div>
-                            <a href="booking.php?course_id=<?php echo (int)$course['courses_id']; ?>" class="btn btn-success btn-enroll">ลงทะเบียนทันที</a>
-                        </div>
                     </div>
 
                     <div class="rate-feedback" id="rateFeedback">ขอบคุณสำหรับการให้คะแนน</div>
@@ -203,7 +225,16 @@ $images = array_filter([
               
               <div class="mb-3">
                 <label for="userName" class="form-label">ชื่อของคุณ</label>
-                <input type="text" class="form-control" id="userName" placeholder="กรุณากรอกชื่อของคุณ" maxlength="100" required>
+                <input 
+                    type="text" 
+                    class="form-control" 
+                    id="userName" 
+                    placeholder="กรุณากรอกชื่อของคุณ" 
+                    maxlength="100" 
+                    required
+                    value="<?php echo $loggedInUserName; ?>"
+                    <?php if ($loggedInUserName): echo 'readonly'; endif; ?>
+                >
               </div>
 
               <div class="mb-3">
@@ -367,6 +398,24 @@ $images = array_filter([
       document.getElementById('charCount').textContent = this.value.length;
   });
 
+  // Load user name from session or localStorage
+  (function() {
+      const userNameInput = document.getElementById('userName');
+      const loggedInName = '<?php echo $loggedInUserName; ?>';
+      
+      // ถ้ามีผู้ใช้เข้าสู่ระบบแล้ว ไม่ต้องโหลดจาก localStorage
+      if (loggedInName) {
+          userNameInput.value = loggedInName;
+          userNameInput.readOnly = true;  // ห้ามแก้ไขชื่อ
+      } else {
+          // ถ้าไม่มี ให้โหลดจาก localStorage (guest)
+          const savedName = localStorage.getItem('courseCommentUserName');
+          if (savedName) {
+              userNameInput.value = savedName;
+          }
+      }
+  })();
+
   // Submit comment (async: send rating first if provided, then save comment)
   document.getElementById('commentForm').addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -393,7 +442,7 @@ $images = array_filter([
               const r = await fetch('rate_course.php', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ course_id: parseInt(courseId,10), rating: rating })
+                  body: JSON.stringify({ course_id: parseInt(courseId, 10), rating: rating })
               }).then(async res => {
                   const ct = res.headers.get('content-type') || '';
                   const text = await res.text();
@@ -437,6 +486,12 @@ $images = array_filter([
           }).then(r => r.json());
 
           if (res.success) {
+             // Save user name to localStorage เฉพาะ guest (ไม่มี session login)
+             const loggedInName = '<?php echo $loggedInUserName; ?>';
+             if (!loggedInName) {
+                 localStorage.setItem('courseCommentUserName', userName);
+             }
+             
               const noComments = document.getElementById('noComments');
               if (noComments) noComments.remove();
 
@@ -467,6 +522,8 @@ $images = array_filter([
               const cs = document.querySelectorAll('#commentStars .star');
               cs.forEach(s => s.classList.remove('filled'));
               document.getElementById('commentRatingText').textContent = 'ยังไม่ได้ให้คะแนน';
+             // Restore saved name after reset
+             document.getElementById('userName').value = userName;
 
               feedback.style.display = 'block';
               setTimeout(() => { feedback.style.display = 'none'; }, 3000);
