@@ -270,7 +270,7 @@ require_once '../admin/db.php';
         $offset = 0;
       }
 
-      $query = "SELECT * FROM courses ORDER BY id DESC LIMIT ? OFFSET ?";
+      $query = "SELECT * FROM courses ORDER BY courses_id DESC LIMIT ? OFFSET ?";
       $stmt = $conn->prepare($query);
 
       if (!$stmt) {
@@ -311,7 +311,7 @@ require_once '../admin/db.php';
             <div class="col-md-6 col-lg-4">
               <div class="course-card">
                 <!-- Carousel -->
-                <div id="carouselCourse<?php echo htmlspecialchars($row['id']); ?>" class="carousel slide" data-bs-ride="carousel">
+                <div id="carouselCourse<?php echo htmlspecialchars($row['courses_id']); ?>" class="carousel slide" data-bs-ride="carousel">
                   <div class="carousel-inner">
                     <?php
                     // รวมรูปภาพที่มีและกรองค่า empty
@@ -368,7 +368,7 @@ require_once '../admin/db.php';
                     // ดึงคะแนนเฉลี่ยและจำนวนโหวตสำหรับแต่ละหลักสูตร
                     $avg_rating = 0;
                     $rating_count = 0;
-                    $cid = (int)$row['id'];
+                    $cid = (int)$row['courses_id'];
                     $stmtRating = $conn->prepare("SELECT AVG(rating) AS avg_rating, COUNT(*) AS cnt FROM course_ratings WHERE course_id = ?");
                     if ($stmtRating) {
                         $stmtRating->bind_param('i', $cid);
@@ -394,7 +394,7 @@ require_once '../admin/db.php';
                     echo '</div>';
                     ?>
                   </div>
-                  <a href="course_detail.php?id=<?php echo htmlspecialchars($row['id']); ?>" class="btn-learn-more">
+                  <a href="course_detail.php?id=<?php echo htmlspecialchars($row['courses_id']); ?>" class="btn-learn-more">
                     ดูรายละเอียด <i class="fas fa-arrow-right ms-2"></i>
                   </a>
                 </div>

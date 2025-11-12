@@ -19,7 +19,7 @@ if ($id === false || $id === null) {
 }
 
 // เตรียม statement ดึงหลักสูตร
-$stmt = $conn->prepare("SELECT id, course_name, course_description, image1, image2, image3 FROM courses WHERE id = ?");
+$stmt = $conn->prepare("SELECT courses_id, course_name, course_description, image1, image2, image3 FROM courses WHERE courses_id = ?");
 if (!$stmt) {
     echo "Database error: " . htmlspecialchars($conn->error);
     exit;
@@ -148,7 +148,7 @@ $images = array_filter([
             <div class="course-card p-4 h-100 d-flex flex-column justify-content-between">
                 <div>
                     <h1 class="course-title mb-2"><?php echo htmlspecialchars($course['course_name']); ?></h1>
-                    <p class="meta mb-2">รหัสหลักสูตร: <strong><?php echo (int)$course['id']; ?></strong></p>
+                    <p class="meta mb-2">รหัสหลักสูตร: <strong><?php echo (int)$course['courses_id']; ?></strong></p>
                     <hr>
                     <h5 class="mt-3">รายละเอียด</h5>
                     <p><?php echo nl2br(htmlspecialchars($course['course_description'] ?? 'ไม่มีรายละเอียดเพิ่มเติม')); ?></p>
@@ -158,7 +158,7 @@ $images = array_filter([
                     <!-- Rating block -->
                     <div class="d-flex align-items-center justify-content-between">
                         <div class="rating" aria-label="ให้คะแนนหลักสูตร">
-                            <div class="stars" id="stars" data-course-id="<?php echo (int)$course['id']; ?>">
+                            <div class="stars" id="stars" data-course-id="<?php echo (int)$course['courses_id']; ?>">
                                 <?php
                                 // แสดง 5 ดาว (filled ตามค่าเฉลี่ย)
                                 $rounded = (int) round($avgRating);
@@ -176,7 +176,7 @@ $images = array_filter([
                         </div>
 
                         <div>
-                            <a href="booking.php?course_id=<?php echo (int)$course['id']; ?>" class="btn btn-success btn-enroll">ลงทะเบียนทันที</a>
+                            <a href="booking.php?course_id=<?php echo (int)$course['courses_id']; ?>" class="btn btn-success btn-enroll">ลงทะเบียนทันที</a>
                         </div>
                     </div>
 
@@ -199,7 +199,7 @@ $images = array_filter([
           <div class="card p-4 mb-4">
             <h6 class="mb-3">เพิ่มความคิดเห็นของคุณ</h6>
             <form id="commentForm">
-              <input type="hidden" name="course_id" value="<?php echo (int)$course['id']; ?>">
+              <input type="hidden" name="course_id" value="<?php echo (int)$course['courses_id']; ?>">
               
               <div class="mb-3">
                 <label for="userName" class="form-label">ชื่อของคุณ</label>
@@ -216,7 +216,7 @@ $images = array_filter([
               <div class="mb-3">
                 <label class="form-label">ให้คะแนนความพึงพอใจ (ถ้ามี)</label>
                 <div class="d-flex align-items-center">
-                  <div class="stars" id="commentStars" data-course-id="<?php echo (int)$course['id']; ?>" aria-hidden="false" role="radiogroup">
+                  <div class="stars" id="commentStars" data-course-id="<?php echo (int)$course['courses_id']; ?>" aria-hidden="false" role="radiogroup">
                     <?php for ($i=1;$i<=5;$i++): ?>
                       <span class="star" data-value="<?php echo $i; ?>" role="radio" aria-checked="false">&#9733;</span>
                     <?php endfor; ?>
@@ -307,7 +307,7 @@ $images = array_filter([
         fetch('rate_course.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ course_id: parseInt(courseId,10), rating: value })
+            body: JSON.stringify({ courses_id: parseInt(courseId,10), rating: value })
         })
         .then(r => r.json())
         .then(data => {

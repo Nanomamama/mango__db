@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $input = file_get_contents('php://input');
 $data = json_decode($input, true);
 
-$courseId = $data['course_id'] ?? 0;
+$courseId = $data['courses_id'] ?? 0;
 $userName = $data['user_name'] ?? '';
 $commentText = $data['comment_text'] ?? '';
 
