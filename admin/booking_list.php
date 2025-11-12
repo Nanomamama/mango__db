@@ -12,8 +12,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = (int)$_POST['id'];
         if ($_POST['action'] === 'change_status' && isset($_POST['status'])) {
             $status = $_POST['status'];
-            $stmt = $conn->prepare("UPDATE bookings SET status=? WHERE id=?");
-            $stmt->bind_param("si", $status, $id);
+            $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW() WHERE id=?");
+            $stmt->bind_param("ssi", $status, $admin_name, $id);
             $stmt->execute();
             echo json_encode(['success' => true]);
             exit;
@@ -33,7 +33,9 @@ $conn->query("UPDATE bookings SET viewed = 1 WHERE viewed = 0");
 
 // ดึงข้อมูลจองจากฐานข้อมูล
 $bookings = [];
-$result = $conn->query("SELECT * FROM bookings ORDER BY date ASC");
+$result = $conn->query("SELECT *, 
+                        DATE_FORMAT(approved_at, '%d/%m/%Y %H:%i') as approved_at_formatted 
+                        FROM bookings ORDER BY date ASC");
 while ($row = $result->fetch_assoc()) {
     $bookings[] = $row;
 }
@@ -130,7 +132,6 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
             color: white;
             font-size: 0.9rem;
         }
-
 
         .stats-card {
             background: white;
@@ -392,6 +393,32 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
             color: var(--primary);
         }
 
+        /* CSS สำหรับแสดงข้อมูล Admin ที่อนุมัติ */
+        .approval-info {
+            background: rgba(67, 97, 238, 0.05);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-top: 1rem;
+            border-left: 4px solid var(--primary);
+        }
+
+        .approval-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.3rem;
+            font-size: 0.85rem;
+        }
+
+        .approval-info-label {
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .approval-info-value {
+            color: #495057;
+            font-weight: 400;
+        }
+
         @media (max-width: 768px) {
             .booking-card-body {
                 padding: 1rem;
@@ -410,7 +437,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                 font-size: 1.5rem;
             }
         }
-</style>
+    </style>
 </head>
 
 <body>
@@ -423,7 +450,6 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                 <div class="d-flex justify-content-between align-items-center flex-wrap">
                     <div>
                         <h2 class="dashboard-title mb-0">จัดการรายการจอง</h2>
-                        <!-- <p class="mb-0 mt-2 text-white-20">Manage Mango Orchard and Ordering System</p> -->
                     </div>
                     <div class="d-flex align-items-center gap-3 mt-2 mt-md-0">
                         <div class="position-relative">
@@ -442,7 +468,6 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                 </div>
             </div>
         </header>
-
 
         <!-- Stats Overview -->
         <div class="row mb-4">
@@ -585,6 +610,22 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                                         </div>
                                     </div>
 
+                                    <!-- ส่วนแสดงข้อมูล Admin ที่อนุมัติ -->
+                                    <?php if ($booking['status'] !== 'รออนุมัติ' && !empty($booking['approved_by'])): ?>
+                                    <div class="approval-info">
+                                        <div class="approval-info-item">
+                                            <span class="approval-info-label">อนุมัติโดย:</span>
+                                            <span class="approval-info-value"><?= htmlspecialchars($booking['approved_by']) ?></span>
+                                        </div>
+                                        <?php if (!empty($booking['approved_at_formatted'])): ?>
+                                        <div class="approval-info-item">
+                                            <span class="approval-info-label">เมื่อ:</span>
+                                            <span class="approval-info-value"><?= $booking['approved_at_formatted'] ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php endif; ?>
+
                                     <div class="d-flex flex-wrap gap-2 mt-3">
                                         <button class="btn action-btn btn-view view-booking-btn"
                                             data-bs-toggle="modal"
@@ -619,7 +660,6 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                     <?php foreach ($pending as $booking): ?>
                         <div class="col-lg-6 col-xl-4">
                             <div class="booking-card pending">
-                                <!-- เนื้อหาการ์ดเหมือนในแท็บทั้งหมด -->
                                 <div class="booking-card-header">
                                     <div>
                                         <h5 class="mb-0"><?= htmlspecialchars($booking['name']) ?></h5>
@@ -684,7 +724,6 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                     <?php foreach ($approved as $booking): ?>
                         <div class="col-lg-6 col-xl-4">
                             <div class="booking-card approved">
-                                <!-- เนื้อหาการ์ดเหมือนในแท็บทั้งหมด -->
                                 <div class="booking-card-header">
                                     <div>
                                         <h5 class="mb-0"><?= htmlspecialchars($booking['name']) ?></h5>
@@ -693,7 +732,22 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                                     <span class="status-badge status-approved">อนุมัติแล้ว</span>
                                 </div>
                                 <div class="booking-card-body">
-                                    <!-- ข้อมูลการจอง -->
+                                    <!-- ส่วนแสดงข้อมูล Admin ที่อนุมัติ -->
+                                    <?php if (!empty($booking['approved_by'])): ?>
+                                    <div class="approval-info">
+                                        <div class="approval-info-item">
+                                            <span class="approval-info-label">อนุมัติโดย:</span>
+                                            <span class="approval-info-value"><?= htmlspecialchars($booking['approved_by']) ?></span>
+                                        </div>
+                                        <?php if (!empty($booking['approved_at_formatted'])): ?>
+                                        <div class="approval-info-item">
+                                            <span class="approval-info-label">เมื่อ:</span>
+                                            <span class="approval-info-value"><?= $booking['approved_at_formatted'] ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php endif; ?>
+
                                     <div class="d-flex flex-wrap gap-2 mt-3">
                                         <button class="btn action-btn btn-view view-booking-btn"
                                             data-bs-toggle="modal"
@@ -719,7 +773,6 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                     <?php foreach ($rejected as $booking): ?>
                         <div class="col-lg-6 col-xl-4">
                             <div class="booking-card rejected">
-                                <!-- เนื้อหาการ์ดเหมือนในแท็บทั้งหมด -->
                                 <div class="booking-card-header">
                                     <div>
                                         <h5 class="mb-0"><?= htmlspecialchars($booking['name']) ?></h5>
@@ -728,7 +781,22 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                                     <span class="status-badge status-rejected">ถูกปฏิเสธ</span>
                                 </div>
                                 <div class="booking-card-body">
-                                    <!-- ข้อมูลการจอง -->
+                                    <!-- ส่วนแสดงข้อมูล Admin ที่อนุมัติ -->
+                                    <?php if (!empty($booking['approved_by'])): ?>
+                                    <div class="approval-info">
+                                        <div class="approval-info-item">
+                                            <span class="approval-info-label">ปฏิเสธโดย:</span>
+                                            <span class="approval-info-value"><?= htmlspecialchars($booking['approved_by']) ?></span>
+                                        </div>
+                                        <?php if (!empty($booking['approved_at_formatted'])): ?>
+                                        <div class="approval-info-item">
+                                            <span class="approval-info-label">เมื่อ:</span>
+                                            <span class="approval-info-value"><?= $booking['approved_at_formatted'] ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php endif; ?>
+
                                     <div class="d-flex flex-wrap gap-2 mt-3">
                                         <button class="btn action-btn btn-view view-booking-btn"
                                             data-bs-toggle="modal"
@@ -773,77 +841,79 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
     </div>
 
     <!-- Slip Modal -->
-<div class="modal fade" id="slipModal" tabindex="-1" aria-labelledby="slipModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content bg-transparent border-0">
-            <div class="modal-body text-center p-0">
-                <img id="slipModalImg" src="" alt="slip" 
-                     style="max-width:100%;max-height:80vh;border-radius:12px;box-shadow:0 4px 24px #0006;">
+    <div class="modal fade" id="slipModal" tabindex="-1" aria-labelledby="slipModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-transparent border-0">
+                <div class="modal-body text-center p-0">
+                    <img id="slipModalImg" src="" alt="slip" 
+                        style="max-width:100%;max-height:80vh;border-radius:12px;box-shadow:0 4px 24px #0006;">
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-document.querySelectorAll('.view-booking-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const bookingData = this.getAttribute('data-booking');
-        if (!bookingData) return;
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    document.querySelectorAll('.view-booking-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const bookingData = this.getAttribute('data-booking');
+            if (!bookingData) return;
 
-        let booking;
-        try {
-            booking = JSON.parse(bookingData);
-        } catch (e) {
-            console.error("Invalid JSON:", bookingData);
-            return;
-        }
+            let booking;
+            try {
+                booking = JSON.parse(bookingData);
+            } catch (e) {
+                console.error("Invalid JSON:", bookingData);
+                return;
+            }
 
-        let html = '';
-        const fields = [
-            { key: 'name', label: 'ชื่อคณะ' },
-            { key: 'date', label: 'วันที่จอง' },
-            { key: 'time', label: 'เวลา' },
-            { key: 'people', label: 'จำนวนผู้เข้าชม' },
-            { key: 'status', label: 'สถานะ' },
-            { key: 'total_amount', label: 'ยอดรวม', format: v => Number(v).toLocaleString() + ' บาท' },
-            { key: 'deposit_amount', label: 'ยอดมัดจำ', format: v => Number(v).toLocaleString() + ' บาท' },
-            { key: 'remain_amount', label: 'ยอดคงเหลือ', format: v => Number(v).toLocaleString() + ' บาท' },
-            { key: 'phone', label: 'เบอร์โทร' },
-            { key: 'doc', label: 'เอกสาร', format: v => v ? `<a href="../uploads/${v}" target="_blank">ดูไฟล์</a>` : '-' },
-            { 
-                key: 'slip', 
-                label: 'สลิป', 
-                format: v => v 
-                    ? `<img src="../uploads/${v}" alt="slip" class="slip-img"
-                        style="max-width:180px;max-height:180px;cursor:pointer;border-radius:8px;box-shadow:0 2px 8px #0002;"
-                        onclick="showSlipModal('../uploads/${v}')">` 
-                    : '-' 
-            },
-        ];
+            let html = '';
+            const fields = [
+                { key: 'name', label: 'ชื่อคณะ' },
+                { key: 'date', label: 'วันที่จอง' },
+                { key: 'time', label: 'เวลา' },
+                { key: 'people', label: 'จำนวนผู้เข้าชม' },
+                { key: 'status', label: 'สถานะ' },
+                { key: 'total_amount', label: 'ยอดรวม', format: v => Number(v).toLocaleString() + ' บาท' },
+                { key: 'deposit_amount', label: 'ยอดมัดจำ', format: v => Number(v).toLocaleString() + ' บาท' },
+                { key: 'remain_amount', label: 'ยอดคงเหลือ', format: v => Number(v).toLocaleString() + ' บาท' },
+                { key: 'phone', label: 'เบอร์โทร' },
+                { key: 'approved_by', label: 'อนุมัติโดย' },
+                { key: 'approved_at_formatted', label: 'อนุมัติเมื่อ' },
+                { key: 'doc', label: 'เอกสาร', format: v => v ? `<a href="../uploads/${v}" target="_blank">ดูไฟล์</a>` : '-' },
+                { 
+                    key: 'slip', 
+                    label: 'สลิป', 
+                    format: v => v 
+                        ? `<img src="../uploads/${v}" alt="slip" class="slip-img"
+                            style="max-width:180px;max-height:180px;cursor:pointer;border-radius:8px;box-shadow:0 2px 8px #0002;"
+                            onclick="showSlipModal('../uploads/${v}')">` 
+                        : '-' 
+                },
+            ];
 
-        fields.forEach(field => {
-            let value = booking[field.key] ?? '';
-            if (field.format) value = field.format(value);
-            html += `
-                <tr>
-                    <th style="width:180px; background-color: #f8f9fa;">${field.label}</th>
-                    <td>${value}</td>
-                </tr>
-            `;
+            fields.forEach(field => {
+                let value = booking[field.key] ?? '';
+                if (field.format) value = field.format(value);
+                html += `
+                    <tr>
+                        <th style="width:180px; background-color: #f8f9fa;">${field.label}</th>
+                        <td>${value}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('bookingDetailTable').innerHTML = html;
         });
-
-        document.getElementById('bookingDetailTable').innerHTML = html;
     });
-});
 
-function showSlipModal(src) {
-    const modalImg = document.getElementById('slipModalImg');
-    modalImg.src = src;
+    function showSlipModal(src) {
+        const modalImg = document.getElementById('slipModalImg');
+        modalImg.src = src;
 
-    const slipModal = new bootstrap.Modal(document.getElementById('slipModal'));
-    slipModal.show();
-}
+        const slipModal = new bootstrap.Modal(document.getElementById('slipModal'));
+        slipModal.show();
+    }
 
         // ฟังก์ชันค้นหาการจอง
         document.querySelector('.search-box input').addEventListener('keyup', function() {
@@ -952,5 +1022,4 @@ function showSlipModal(src) {
         });
     </script>
 </body>
-
 </html>

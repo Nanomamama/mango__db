@@ -3,7 +3,6 @@ session_start();
 require_once '../admin/db.php';
 
 // ตรวจสอบว่า login แล้วหรือยัง
-
 $loggedIn = false;
 $memberName = '';
 $memberPhone = '';
@@ -42,8 +41,20 @@ while ($row = $result->fetch_assoc()) {
     $booking_names[$row['date']][] = $row['name'];
 }
 
-// debug เช็ค session (เอาออกได้หลังจากทดสอบเสร็จ)
-// echo '<pre>'; print_r($_SESSION); echo '</pre>';
+// สร้างข้อมูลสำหรับแสดงในคอลัมน์ขวา
+$approved_bookings = array();
+$total_approved_bookings = 0;
+foreach ($approved as $date) {
+    if (isset($booking_names[$date])) {
+        $approved_bookings[$date] = $booking_names[$date];
+        $total_approved_bookings += count($booking_names[$date]);
+    }
+}
+
+// เรียงจากวันที่ล่าสุดไปเก่าสุด
+krsort($approved_bookings);
+// แสดงเพียง 10 รายการ
+$approved_bookings_display = array_slice($approved_bookings, 0, 10, true);
 ?>
 
 <!DOCTYPE html>
@@ -52,7 +63,7 @@ while ($row = $result->fetch_assoc()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>กิจกรรมและการจองวันเข้าดูงานสวนมะม่วงลุงเผือก</title>
+    <title>ระบบจองเข้าดูงานสวนมะม่วงลุงเผือก</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@3.2.0/dist/fullcalendar.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -72,6 +83,7 @@ while ($row = $result->fetch_assoc()) {
         :root {
             --primary: #016A70;
             --primary-light: #018992;
+            --primary-gradient: linear-gradient(135deg, #016A70 0%, #018992 100%);
             --secondary: #4e73df;
             --success: #1cc88a;
             --info: #36b9cc;
@@ -81,6 +93,17 @@ while ($row = $result->fetch_assoc()) {
             --dark: #5a5c69;
             --darker: #000;
             --card-shadow: 0 10px 20px rgba(0,0,0,0.08);
+            --card-hover-shadow: 0 15px 30px rgba(0,0,0,0.12);
+        }
+
+        * {
+            font-family: 'Kanit', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+            color: #444;
         }
 
         .calendar-cell {
@@ -89,46 +112,52 @@ while ($row = $result->fetch_assoc()) {
             height: 80px;
         }
 
-        .container h2 {
-            margin-top: 2rem;
+        .page-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .page-header h2 {
             font-weight: 700;
-            color: var(--darker);
+            margin: 0;
             position: relative;
             padding-bottom: 15px;
         }
 
-        .container h2:after {
+        .page-header h2:after {
             content: '';
             position: absolute;
             bottom: 0;
             left: 0;
             width: 70px;
             height: 4px;
-            background: linear-gradient(90deg, var(--primary), var(--success));
+            background: rgba(255,255,255,0.7);
             border-radius: 10px;
         }
 
-        body {
-            background-color: #f8f9fa;
-            font-family: 'Roboto', sans-serif;
-            color: #444;
-        }
-
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
         }
 
         .calendar-container {
-            margin-bottom: 20px;
             background: white;
             border-radius: 16px;
             box-shadow: var(--card-shadow);
             padding: 25px;
-            margin-top: 20px;
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .calendar-container:hover {
+            box-shadow: var(--card-hover-shadow);
         }
         
         .btn-booking {
-            background: var(--primary);
+            background: var(--primary-gradient);
             border: none;
             border-radius: 50px;
             padding: 12px 25px;
@@ -191,10 +220,11 @@ while ($row = $result->fetch_assoc()) {
         .modal-content {
             border-radius: 16px;
             overflow: hidden;
+            border: none;
         }
         
         .modal-header {
-            background-color: var(--primary);
+            background: var(--primary-gradient);
             color: white;
             padding: 20px;
         }
@@ -213,6 +243,7 @@ while ($row = $result->fetch_assoc()) {
             border-radius: 10px;
             padding: 12px 15px;
             border: 1px solid #ddd;
+            transition: all 0.3s;
         }
         
         .form-control:focus {
@@ -221,7 +252,7 @@ while ($row = $result->fetch_assoc()) {
         }
         
         .btn-success {
-            background-color: var(--success);
+            background: var(--primary-gradient);
             border: none;
             padding: 12px 25px;
             border-radius: 10px;
@@ -232,7 +263,7 @@ while ($row = $result->fetch_assoc()) {
         }
         
         .btn-success:hover {
-            background-color: #17a673;
+            background: var(--primary-light);
             transform: translateY(-2px);
         }
         
@@ -242,6 +273,11 @@ while ($row = $result->fetch_assoc()) {
             padding: 20px;
             margin-top: 15px;
             border: 1px solid #eaeaea;
+            transition: all 0.3s;
+        }
+        
+        .payment-card:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
         }
         
         .payment-card h6 {
@@ -291,12 +327,109 @@ while ($row = $result->fetch_assoc()) {
             align-items: center;
         }
         
+        .info-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s;
+        }
+        
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--card-hover-shadow);
+        }
+        
+        .status-badge {
+            padding: 8px 15px;
+            border-radius: 50px;
+            font-weight: 500;
+            display: inline-block;
+        }
+        
+        .status-available {
+            background-color: rgba(28, 200, 138, 0.1);
+            color: var(--success);
+        }
+        
+        .status-unavailable {
+            background-color: rgba(231, 74, 59, 0.1);
+            color: var(--danger);
+        }
+        
+        .status-booked {
+            background-color: rgba(78, 115, 223, 0.1);
+            color: var(--secondary);
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .booking-item {
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-left: 4px solid transparent;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .booking-item:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .booking-item.active {
+            background: #e3f2fd;
+            border-left-color: var(--primary);
+        }
+
+        .booking-date {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .booking-names {
+            font-size: 0.9em;
+            color: var(--dark);
+        }
+        
+        .sidebar-section {
+            margin-bottom: 25px;
+        }
+        
+        .calendar-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 8px;
+        }
+        
         @media (max-width: 768px) {
-            .hero-section {
-                padding: 30px 0;
+            .page-header {
+                padding: 1.5rem 0;
             }
             
-            .container h2 {
+            .page-header h2 {
                 font-size: 1.8rem;
             }
             
@@ -307,23 +440,122 @@ while ($row = $result->fetch_assoc()) {
             .fc-event {
                 font-size: 0.7em;
             }
+            
+            .header-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .header-actions .btn {
+                width: 100%;
+                margin-top: 10px;
+            }
         }
     </style>
 </head>
 <body>
     <?php include 'navbar.php'; ?>
-    <br>
-    <br>
-    <div class="container py-5">      
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>เลือกวันที่ต้องการจองเข้าดูงาน</h2>
-            
-            <!-- ปุ่มแสดง Modal -->
-            <button type="button" class="btn btn-dark text-white" data-bs-toggle="modal" data-bs-target="#howtoModal">
-                <i class="bi bi-info-circle me-2"></i>ขั้นตอนการจอง
-            </button>
+
+    <div class="page-header mt-5">
+        <div class="container">
+            <div class="row align-items-center mt-5">
+                <div class="col-md-8">
+                    <h2>ระบบจองเข้าดูงานสวนมะม่วงลุงเผือก</h2>
+                    <p class="mb-0 mt-2">เลือกวันที่ต้องการจองเข้าดูงานได้จากปฏิทินด้านล่าง</p>
+                </div>
+                <div class="col-md-4">
+                    <div class="header-actions">
+                        <button type="button" class="btn btn-light text-dark" data-bs-toggle="modal" data-bs-target="#howtoModal">
+                            <i class="bi bi-info-circle me-2"></i>ขั้นตอนการจอง
+                        </button>
+                        <?php if (!$loggedIn): ?>
+                            <a href="member_login.php" class="btn btn-outline-light">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>เข้าสู่ระบบ
+                            </a>
+                        <?php else: ?>
+                            <div class="text-white">
+                                <i class="bi bi-person-circle me-2"></i>ยินดีต้อนรับ, <?php echo htmlspecialchars($memberName); ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div id="calendar" class="calendar-container"></div>
+    </div>
+    
+    <div class="container py-4">
+        <div class="row">
+            <!-- คอลัมน์ซ้ายสำหรับปฏิทิน -->
+            <div class="col-lg-8 mb-4">
+                <div class="calendar-container">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="mb-0"><i class="bi bi-calendar-week me-2"></i>ปฏิทินการจอง</h5>
+                        <div class="calendar-legend">
+                            <div class="legend-item">
+                                <div class="legend-color" style="background-color: #1cc88a;"></div>
+                                <span>ว่าง</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background-color: #e74a3b;"></div>
+                                <span>ไม่ว่าง</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background-color: #4e73df;"></div>
+                                <span>จองแล้ว</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="calendar"></div>
+                </div>
+            </div>
+            
+            <!-- คอลัมน์ขวาสำหรับข้อมูลการจอง -->
+            <div class="col-lg-4">
+                <div class="sidebar-section">
+                    <div class="info-card">
+                        <h5 class="mb-3"><i class="bi bi-graph-up me-2"></i>สรุปการจอง</h5>
+                        <div class="row text-center">
+                            <div class="col-6 mb-3">
+                                <div class="fs-4 fw-bold text-primary"><?php echo $total_approved_bookings; ?></div>
+                                <div class="small">การจองทั้งหมด</div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <div class="fs-4 fw-bold text-success"><?php echo count($approved); ?></div>
+                                <div class="small">วันที่มีการจอง</div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <p class="mb-2"><i class="bi bi-currency-dollar me-2"></i>ราคาต่อคน: 150 บาท</p>
+                            <p class="mb-2"><i class="bi bi-credit-card me-2"></i>มัดจำ: 30% ของยอดรวม</p>
+                            <p class="mb-0"><i class="bi bi-clock me-2"></i>เวลาเปิด: 08:00 - 17:30 น.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="info-card">
+                        <h5 class="mb-3"><i class="bi bi-calendar-check me-2"></i>การจองล่าสุด</h5>
+                        <div id="booking-list">
+                            <?php
+                            $count = 0;
+                            foreach ($approved_bookings_display as $date => $names) {
+                                $count++;
+                                $thaiDate = date('d/m/Y', strtotime($date));
+                                echo '<div class="booking-item" data-date="'.$date.'">';
+                                echo '<div class="booking-date">'.$thaiDate.'</div>';
+                                echo '<div class="booking-names">'.implode(', ', $names).'</div>';
+                                echo '</div>';
+                            }
+                            if ($count == 0) {
+                                echo '<div class="text-center text-muted py-3">ไม่มีข้อมูลการจอง</div>';
+                            }
+                            ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Modal แจ้งเตือนจองสำเร็จ -->
         <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
@@ -341,13 +573,14 @@ while ($row = $result->fetch_assoc()) {
                 </div>
             </div>
         </div>
+        
         <!-- Modal สำหรับกรอกข้อมูลการจอง -->
         <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title"><i class="bi bi-calendar-check me-2"></i>กรอกข้อมูลการจอง</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <form method="POST" action="process_booking.php" enctype="multipart/form-data">
@@ -355,8 +588,11 @@ while ($row = $result->fetch_assoc()) {
                             
                             <div class="row mb-4">
                                 <div class="col-md-12 mb-3">
-                                    <div class="alert alert-primary">
-                                        <i class="bi bi-calendar-event me-2"></i>วันที่จอง: <strong id="display-booking-date"></strong>
+                                    <div class="alert alert-primary d-flex align-items-center">
+                                        <i class="bi bi-calendar-event me-2 fs-4"></i>
+                                        <div>
+                                            <strong>วันที่จอง:</strong> <span id="display-booking-date"></span>
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -368,10 +604,6 @@ while ($row = $result->fetch_assoc()) {
                                     <label class="form-label">หมายเลขโทรศัพท์</label>
                                     <input type="tel" class="form-control" name="phone_number" value="<?php echo htmlspecialchars($memberPhone); ?>" <?php echo $loggedIn ? 'readonly' : ''; ?> pattern="[0-9]{10}" required placeholder="เช่น 0812345678">
                                 </div>
-                                <!-- <div class="col-md-6 mb-3">
-                                    <label class="form-label">ชื่อคณะ</label>
-                                    <input type="text" class="form-control" name="group_name" required placeholder="เช่น คณะครูและนักเรียนโรงเรียน...">
-                                </div> -->
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">เวลาเข้าชม</label>
                                     <input type="text" class="form-control" id="visit_time" name="visit_time" required placeholder="เลือกเวลา">
@@ -439,13 +671,14 @@ while ($row = $result->fetch_assoc()) {
                 </div>
             </div>
         </div>
+        
         <!-- Modal ขั้นตอนการจอง -->
         <div class="modal fade" id="howtoModal" tabindex="-1" aria-labelledby="howtoModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
-                    <div class="modal-header bg-primary text-white">
+                    <div class="modal-header">
                         <h5 class="modal-title" id="howtoModalLabel"><i class="bi bi-list-check me-2"></i>ขั้นตอนการจองเข้าชมสวน</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <div class="step-card">
@@ -472,30 +705,6 @@ while ($row = $result->fetch_assoc()) {
                             <h5><span class="step-number">5</span>รอการอนุมัติจากเจ้าหน้าที่</h5>
                             <p class="mb-0">เจ้าหน้าที่จะตรวจสอบและอนุมัติการจองของคุณภายใน 24 ชั่วโมง</p>
                         </div>
-                        
-                        <div class="mt-4">
-                            <h5 class="mb-3">สัญลักษณ์ในปฏิทิน:</h5>
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <div class="d-flex align-items-center">
-                                        <div style="width:20px;height:20px;background:#1cc88a;border-radius:5px;margin-right:10px;"></div>
-                                        <div>วันว่าง</div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <div class="d-flex align-items-center">
-                                        <div style="width:20px;height:20px;background:#e74a3b;border-radius:5px;margin-right:10px;"></div>
-                                        <div>วันไม่ว่าง</div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <div class="d-flex align-items-center">
-                                        <div style="width:20px;height:20px;background:#4e73df;border-radius:5px;margin-right:10px;"></div>
-                                        <div>มีคนจองแล้ว</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-primary" data-bs-dismiss="modal">เข้าใจแล้ว</button>
@@ -504,7 +713,9 @@ while ($row = $result->fetch_assoc()) {
             </div>
         </div>
     </div>
+    
     <?php include 'footer.php'; ?>
+    
     <script>
         $(document).ready(function() {
             // รีเซ็ต QR ทุกครั้งที่เปิด modal
@@ -574,9 +785,19 @@ while ($row = $result->fetch_assoc()) {
                 $('#remain-amount').html(`${remain.toLocaleString()} บาท`);
                 $('#qrcode-section').show();
             });
+            
+            // เมื่อคลิกที่รายการจองในคอลัมน์ขวา
+            $('.booking-item').on('click', function() {
+                var date = $(this).data('date');
+                $('#calendar').fullCalendar('gotoDate', date);
+                // ไฮไลต์ item ที่คลิก
+                $('.booking-item').removeClass('active');
+                $(this).addClass('active');
+            });
         });
     </script>
-   <script>
+    
+    <script>
     var isLoggedIn = <?php echo json_encode($loggedIn); ?>; 
     console.log("isLoggedIn =", isLoggedIn); // debug ดูค่า
 
@@ -646,6 +867,10 @@ while ($row = $result->fetch_assoc()) {
                     $('#booking_date').val(selectedDate);
                     $('#bookingModal').modal('show');
                 }
+                
+                // ไฮไลต์ booking-item ที่ถูกเลือก
+                $('.booking-item').removeClass('active');
+                $('.booking-item[data-date="' + selectedDate + '"]').addClass('active');
             },
             events: events,
             eventAfterRender: function(event, element) {
@@ -686,6 +911,7 @@ while ($row = $result->fetch_assoc()) {
         });
     </script>
     <?php endif; ?>
+    
     <script>
         document.querySelector('form').addEventListener('submit', function(e) {
             const slipInput = document.querySelector('input[name="slip"]');
