@@ -8,11 +8,11 @@ $admin_email = $_SESSION['admin_email'] ?? '';
 
 // ดึงข้อมูลหลักสูตรทั้งหมด
 $courses = [];
-$result = $conn->query("SELECT * FROM courses ORDER BY id DESC");
+$result = $conn->query("SELECT * FROM courses ORDER BY courses_id DESC");
 while ($row = $result->fetch_assoc()) {
     // ปรับปรุงชื่อคอลัมน์จากฐานข้อมูลให้สอดคล้องกับโค้ด JavaScript
     $courses[] = [
-        'id' => $row['id'],
+        'id' => $row['courses_id'],
         'course_name' => $row['course_name'],
         'course_description' => $row['course_description'],
         'image1' => $row['image1'],
