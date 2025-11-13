@@ -1,4 +1,7 @@
-<?php include 'navbar.php'; ?>
+<?php
+session_start();
+?>
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -6,7 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>หน้าแรกผู้ใช้</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap"rel="stylesheet">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         :root {
             --Primary: #4e73df;
@@ -26,19 +29,38 @@
 
         .hero {
             height: 100vh;
-            background-image: url('./image/พื้นหลัง-002.jpg');
-            background-size: cover;
-            background-position: center;
+            position: relative;
+            overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-direction: column;
+        }
+
+        .hero-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
-            background-blend-mode: darken;
+            z-index: 0;
         }
 
         .hero-contact {
             margin-top: 10rem;
+            position: relative;
+            z-index: 1;
         }
 
         .hero h1 {
@@ -215,7 +237,13 @@
     </style>
 </head>
 <body>
+    <?php include 'navbar.php'; ?>
     <div class="hero text-center">
+        <!-- วิดีโอพื้นหลัง -->
+        <video class="hero-video" autoplay muted loop playsinline>
+            <source src="/video/background-video.mp4" type="video/mp4">
+        </video>
+        <div class="hero-overlay"></div>
         <div class="hero-contact">
             <h1>สวนมะม่วงลุงเผือก<br />จังหวัดเลย</h1>
             <p>เว็บไซต์ศูนย์การเรียนรู้เศรษฐกิจพอเพียง และเปิดให้เข้าศึกษาดูงาน 
