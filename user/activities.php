@@ -53,8 +53,8 @@ foreach ($approved as $date) {
 
 // เรียงจากวันที่ล่าสุดไปเก่าสุด
 krsort($approved_bookings);
-// แสดงเพียง 10 รายการ
-$approved_bookings_display = array_slice($approved_bookings, 0, 10, true);
+// แสดงเพียง 6 รายการ
+$approved_bookings_display = array_slice($approved_bookings, 0, 6, true);
 ?>
 
 <!DOCTYPE html>
@@ -106,11 +106,7 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 10, true);
             color: #444;
         }
 
-        .calendar-cell {
-            vertical-align: middle;
-            text-align: center;
-            height: 80px;
-        }
+
 
         .page-header {
             background: var(--primary-gradient);
@@ -156,21 +152,7 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 10, true);
             box-shadow: var(--card-hover-shadow);
         }
         
-        .btn-booking {
-            background: var(--primary-gradient);
-            border: none;
-            border-radius: 50px;
-            padding: 12px 25px;
-            font-weight: 600;
-            transition: all 0.3s;
-            box-shadow: 0 4px 10px rgba(1, 106, 112, 0.3);
-        }
         
-        .btn-booking:hover {
-            background: var(--primary-light);
-            transform: translateY(-3px);
-            box-shadow: 0 6px 15px rgba(1, 106, 112, 0.4);
-        }
         
         .fc-day {
             border-radius: 8px !important;
@@ -251,21 +233,7 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 10, true);
             box-shadow: 0 0 0 0.25rem rgba(1, 106, 112, 0.25);
         }
         
-        .btn-success {
-            background: var(--primary-gradient);
-            border: none;
-            padding: 12px 25px;
-            border-radius: 10px;
-            font-weight: 600;
-            transition: all 0.3s;
-            width: 100%;
-            margin-top: 15px;
-        }
-        
-        .btn-success:hover {
-            background: var(--primary-light);
-            transform: translateY(-2px);
-        }
+         
         
         .payment-card {
             background: var(--light);
@@ -339,28 +307,6 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 10, true);
         .info-card:hover {
             transform: translateY(-5px);
             box-shadow: var(--card-hover-shadow);
-        }
-        
-        .status-badge {
-            padding: 8px 15px;
-            border-radius: 50px;
-            font-weight: 500;
-            display: inline-block;
-        }
-        
-        .status-available {
-            background-color: rgba(28, 200, 138, 0.1);
-            color: var(--success);
-        }
-        
-        .status-unavailable {
-            background-color: rgba(231, 74, 59, 0.1);
-            color: var(--danger);
-        }
-        
-        .status-booked {
-            background-color: rgba(78, 115, 223, 0.1);
-            color: var(--secondary);
         }
         
         .header-actions {
@@ -451,6 +397,18 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 10, true);
                 margin-top: 10px;
             }
         }
+
+        .is-invalid {
+            border-color: #e74a3b !important;
+        }
+
+        .invalid-feedback {
+            display: block;
+            width: 100%;
+            margin-top: 0.25rem;
+            font-size: 0.875em;
+            color: #e74a3b;
+        }
     </style>
 </head>
 <body>
@@ -466,15 +424,15 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 10, true);
                 <div class="col-md-4">
                     <div class="header-actions">
                         <button type="button" class="btn btn-light text-dark" data-bs-toggle="modal" data-bs-target="#howtoModal">
-                            <i class="bi bi-info-circle me-2"></i>ขั้นตอนการจอง
+                            <i class="bi bi-info-circle me-2"></i>ขั้นตอน
                         </button>
                         <?php if (!$loggedIn): ?>
                             <a href="member_login.php" class="btn btn-outline-light">
-                                <i class="bi bi-box-arrow-in-right me-2"></i>เข้าสู่ระบบ
+                                <!-- <i class="bi bi-box-arrow-in-right me-2"></i>เข้าสู่ระบบ -->
                             </a>
                         <?php else: ?>
                             <div class="text-white">
-                                <i class="bi bi-person-circle me-2"></i>ยินดีต้อนรับ, <?php echo htmlspecialchars($memberName); ?>
+                                <i class="bi bi-person-circle me-2"></i>ยินดีต้อนรับ <?php echo htmlspecialchars($memberName); ?>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -574,7 +532,7 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 10, true);
             </div>
         </div>
         
-        <!-- Modal สำหรับกรอกข้อมูลการจอง -->
+        <!-- แทนที่ Modal สำหรับกรอกข้อมูลการจองด้วยโค้ดใหม่นี้ -->
         <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -583,89 +541,192 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 10, true);
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <form method="POST" action="process_booking.php" enctype="multipart/form-data">
+                        <form method="POST" action="process_booking.php" enctype="multipart/form-data" id="bookingForm">
                             <input type="hidden" id="booking_date" name="booking_date">
+                            <input type="hidden" id="deposit_amount" name="deposit_amount">
+                            <input type="hidden" id="total_amount" name="total_amount">
                             
-                            <div class="row mb-4">
-                                <div class="col-md-12 mb-3">
-                                    <div class="alert alert-primary d-flex align-items-center">
-                                        <i class="bi bi-calendar-event me-2 fs-4"></i>
-                                        <div>
-                                            <strong>วันที่จอง:</strong> <span id="display-booking-date"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">ชื่อผู้จอง</label>
-                                    <input type="text" class="form-control" name="group_name" value="<?php echo htmlspecialchars($memberName); ?>" <?php echo $loggedIn ? 'readonly' : ''; ?> required placeholder="ชื่อ-นามสกุล">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">หมายเลขโทรศัพท์</label>
-                                    <input type="tel" class="form-control" name="phone_number" value="<?php echo htmlspecialchars($memberPhone); ?>" <?php echo $loggedIn ? 'readonly' : ''; ?> pattern="[0-9]{10}" required placeholder="เช่น 0812345678">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">เวลาเข้าชม</label>
-                                    <input type="text" class="form-control" id="visit_time" name="visit_time" required placeholder="เลือกเวลา">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">จำนวนผู้เข้าชม</label>
-                                    <input type="number" class="form-control" name="number_of_people" required min="1" placeholder="เช่น 30">
-                                </div>
-                                
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">แนบเอกสาร (ถ้ามี)</label>
-                                    <input type="file" class="form-control" name="document">
-                                </div>
-                                
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">แนบสลิป</label>
-                                    <input type="file" class="form-control" name="slip">
-                                </div>
-                            </div>
-                            
-                            <div class="payment-card" id="qrcode-section" style="display:none;">
-                                <h6><i class="bi bi-qr-code me-2"></i>ชำระค่ามัดจำ 30%</h6>
-                                
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <div class="d-flex justify-content-center">
-                                                <div id="qrcode"></div>
+                            <!-- ขั้นตอนที่ 1: ข้อมูลพื้นฐาน -->
+                            <div id="step1">
+                                <div class="row mb-4">
+                                    <div class="col-md-12 mb-3">
+                                        <div class="alert alert-primary d-flex align-items-center">
+                                            <i class="bi bi-calendar-event me-2 fs-4"></i>
+                                            <div>
+                                                <strong>วันที่จอง:</strong> <span id="display-booking-date"></span>
                                             </div>
-                                        </div>
-                                        
-                                        <div class="alert alert-light">
-                                            <small>บัญชีธนาคาร: นายหนึ่งเดียว เทียกสีบุญ<br>เลขบัญชี: 065-107-8576</small>
                                         </div>
                                     </div>
                                     
-                                    <div class="col-md-6">
-                                        <div class="mb-2">
-                                            <strong>ยอดรวมทั้งหมด:</strong>
-                                            <div id="total-amount" class="fw-bold fs-5 text-success"></div>
-                                        </div>
-                                        
-                                        <div class="mb-2">
-                                            <strong>ยอดมัดจำ (30%):</strong>
-                                            <div id="deposit-amount" class="fw-bold fs-5 text-primary"></div>
-                                        </div>
-                                        
-                                        <div class="mb-2">
-                                            <strong>ยอดคงเหลือชำระวันเข้าชม:</strong>
-                                            <div id="remain-amount" class="fw-bold fs-5 text-danger"></div>
-                                        </div>
-                                        
-                                        <div class="alert alert-warning small mt-3">
-                                            <i class="bi bi-info-circle me-2"></i>กรุณาชำระค่ามัดจำภายใน 24 ชั่วโมงเพื่อยืนยันการจอง
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">ชื่อผู้จอง</label>
+                                        <input type="text" class="form-control" name="group_name" value="<?php echo htmlspecialchars($memberName); ?>" <?php echo $loggedIn ? 'readonly' : ''; ?> required placeholder="ชื่อ-นามสกุล">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">หมายเลขโทรศัพท์</label>
+                                        <input type="tel" class="form-control" name="phone_number" value="<?php echo htmlspecialchars($memberPhone); ?>" <?php echo $loggedIn ? 'readonly' : ''; ?> pattern="[0-9]{10}" required placeholder="เช่น 0812345678">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">เวลาเข้าชม</label>
+                                        <input type="text" class="form-control" id="visit_time" name="visit_time" required placeholder="เลือกเวลา">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">จำนวนผู้เข้าชม</label>
+                                        <input type="number" class="form-control" id="number_of_people" name="number_of_people" required min="1" placeholder="เช่น 30">
+                                    </div>
+                                </div>
+                                
+                                <!-- แสดงการคำนวณราคาในขั้นตอนที่ 1 -->
+                                <div class="payment-card" id="calculation-section" style="display:none;">
+                                    <h6><i class="bi bi-calculator me-2"></i>สรุปราคา</h6>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="mb-2">
+                                                <strong>ยอดรวมทั้งหมด:</strong>
+                                                <div id="total-amount-preview" class="fw-bold fs-5 text-success"></div>
+                                            </div>
+                                            
+                                            <div class="mb-2">
+                                                <strong>ยอดมัดจำ (30%):</strong>
+                                                <div id="deposit-amount-preview" class="fw-bold fs-5 text-primary"></div>
+                                            </div>
+                                            
+                                            <div class="mb-2">
+                                                <strong>ยอดคงเหลือชำระวันเข้าชม:</strong>
+                                                <div id="remain-amount-preview" class="fw-bold fs-5 text-danger"></div>
+                                            </div>
+                                            
+                                            <div class="alert alert-info small mt-3">
+                                                <i class="bi bi-info-circle me-2"></i>ในขั้นตอนถัดไป จะมี QR Code สำหรับชำระค่ามัดจำ
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
+                                
+                                <div class="d-flex justify-content-end mt-4">
+                                    <!-- ปุ่มกลับ -->
+                                    <button type="button" id="nextBtn" class="ant-btn ant-btn-default" style="
+                                        border-radius: 10px;
+                                        padding: 10px 25px;
+                                        background: rgba(255,255,255,0.7);
+                                        backdrop-filter: blur(12px);
+                                        border: 1px solid rgba(200,200,200,0.5);
+                                        display: flex;
+                                        align-items: center;
+                                        gap: 8px;
+                                    ">
+                                        <span class="anticon">
+                                            <i class="bi bi-arrow-right"></i>
+                                        </span>
+                                        ถัดไป
+                                    </button>
+                                </div>
                             </div>
                             
-                            <button type="submit" class="btn btn-success">
-                                <i class="bi bi-check-circle me-2"></i>ยืนยันการจอง
-                            </button>
+                            <!-- ขั้นตอนที่ 2: อัพโหลดไฟล์และชำระเงิน -->
+                            <div id="step2" style="display:none;">
+                                <div class="row mb-4">
+                                    <div class="col-md-12 mb-3">
+                                        <div class="alert alert-info d-flex align-items-center">
+                                            <i class="bi bi-info-circle me-2 fs-4"></i>
+                                            <div>
+                                                <strong>ขั้นตอนที่ 2:</strong> ชำระค่ามัดจำและอัพโหลดไฟล์
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- QR พร้อมเพย์ในขั้นตอนที่ 2 -->
+                                    <div class="payment-card" id="qrcode-section">
+                                        <h6><i class="bi bi-qr-code me-2"></i>ชำระค่ามัดจำ 30%</h6>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <div class="d-flex justify-content-center">
+                                                        <div id="qrcode"></div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="alert alert-light">
+                                                    <small>บัญชีธนาคาร: นายหนึ่งเดียว เทียกสีบุญ<br>เลขบัญชี: 065-107-8576</small>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <strong>ยอดรวมทั้งหมด:</strong>
+                                                    <div id="total-amount-display" class="fw-bold fs-5 text-success"></div>
+                                                </div>
+                                                
+                                                <div class="mb-2">
+                                                    <strong>ยอดมัดจำ (30%):</strong>
+                                                    <div id="deposit-amount-display" class="fw-bold fs-5 text-primary"></div>
+                                                </div>
+                                                
+                                                <div class="mb-2">
+                                                    <strong>ยอดคงเหลือชำระวันเข้าชม:</strong>
+                                                    <div id="remain-amount-display" class="fw-bold fs-5 text-danger"></div>
+                                                </div>
+                                                
+                                                <div class="alert alert-warning small mt-3">
+                                                    <i class="bi bi-info-circle me-2"></i>กรุณาชำระค่ามัดจำเพื่อยืนยันการจอง
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label">แนบสลิปการชำระเงิน <span class="text-danger">*</span></label>
+                                        <input type="file" class="form-control" name="slip" required>
+                                        <div class="form-text">กรุณาแนบสลิปการชำระเงินค่ามัดจำ 30%</div>
+                                    </div>
+                                    
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label">แนบเอกสารเพิ่มเติม (ถ้ามี)</label>
+                                        <input type="file" class="form-control" name="document">
+                                        <div class="form-text">เช่น เอกสารการขอเข้าศึกษาดูงานจากสถาบันการศึกษา</div>
+                                    </div>
+                                </div>
+                                
+                                <div style="display: flex; justify-content:space-between; margin-top: 20px;">
+
+                                    <!-- ปุ่มกลับ -->
+                                    <button type="button" id="backBtn" class="ant-btn ant-btn-default" style="
+                                        border-radius: 10px;
+                                        padding: 10px 25px;
+                                        background: rgba(255,255,255,0.7);
+                                        backdrop-filter: blur(12px);
+                                        border: 1px solid rgba(200,200,200,0.5);
+                                        display: flex;
+                                        align-items: center;
+                                        gap: 8px;
+                                    ">
+                                        <span class="anticon">
+                                            <i class="bi bi-arrow-left"></i>
+                                        </span>
+                                        กลับ
+                                    </button>
+
+                                    <!-- ปุ่มยืนยัน -->
+                                    <button type="submit" class="ant-btn ant-btn-primary" style="
+                                        border-radius: 10px;
+                                        padding: 10px 25px;
+                                        background: linear-gradient(135deg, #2ecc71, #27ae60);
+                                        border: none;
+                                        display: flex;
+                                        align-items: center;
+                                        gap: 8px;
+                                    ">
+                                        <span class="anticon">
+                                            <i class="bi bi-check-circle"></i>
+                                        </span>
+                                        ยืนยันการจอง
+                                    </button>
+
+                            </div>
+
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -716,210 +777,374 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 10, true);
     
     <?php include 'footer.php'; ?>
     
-    <script>
-        $(document).ready(function() {
-            // รีเซ็ต QR ทุกครั้งที่เปิด modal
-            $('#bookingModal').on('show.bs.modal', function(e) {
-                $('#qrcode-section').hide();
-                $('#qrcode').empty();
-                $('#deposit-amount').empty();
-                $('#total-amount').empty();
-                $('#remain-amount').empty();
-                $('input[name="number_of_people"]').val('');
-                
-                // แสดงวันที่เลือก
-                var selectedDate = $('#booking_date').val();
-                var thaiDate = moment(selectedDate).locale('th').format('LL');
-                $('#display-booking-date').text(thaiDate);
-            });
-
-            // สร้าง QR พร้อมเพย์ เมื่อกรอกจำนวนผู้เข้าชม
-            $('input[name="number_of_people"]').on('input', function() {
-                let people = parseInt($(this).val());
-                if (isNaN(people)) {
-                    $('#qrcode-section').hide();
-                    return;
-                }
-                
-                if (people < 1) {
-                    $('#qrcode-section').hide();
-                    $('#qrcode').empty();
-                    $('#deposit-amount').empty();
-                    $('#total-amount').empty();
-                    $('#remain-amount').empty();
-                    return;
-                }
-
-                let total = people * 150;
-                let deposit = Math.ceil(total * 0.3);
-                let remain = total - deposit;
-                let promptpayId = "0651078576";
-
-                // วิธีที่ 1: ใช้ PromptPayQR ถ้าโหลดสำเร็จ
-                if (typeof PromptPayQR !== 'undefined') {
-                    let qrData = PromptPayQR.generate({
-                        mobileNumber: promptpayId,
-                        amount: deposit
-                    });
-                    $('#qrcode').empty();
-                    new QRCode(document.getElementById("qrcode"), {
-                        text: qrData,
-                        width: 180,
-                        height: 180
-                    });
-                }
-                // วิธีที่ 2: fallback เป็นรูปภาพจาก promptpay.io
-                else {
-                    $('#qrcode').empty();
-                    let depositFixed = deposit.toFixed(1); // สำคัญ!
-                    let qrImg = $('<img>').attr('src',
-                        `https://promptpay.io/${promptpayId}/${depositFixed}.png`).css({
-                        width: 180,
-                        height: 180
-                    });
-                    $('#qrcode').append(qrImg);
-                }
-
-                $('#deposit-amount').html(`${deposit.toLocaleString()} บาท`);
-                $('#total-amount').html(`${total.toLocaleString()} บาท`);
-                $('#remain-amount').html(`${remain.toLocaleString()} บาท`);
-                $('#qrcode-section').show();
-            });
-            
-            // เมื่อคลิกที่รายการจองในคอลัมน์ขวา
-            $('.booking-item').on('click', function() {
-                var date = $(this).data('date');
-                $('#calendar').fullCalendar('gotoDate', date);
-                // ไฮไลต์ item ที่คลิก
-                $('.booking-item').removeClass('active');
-                $(this).addClass('active');
-            });
-        });
-    </script>
-    
-    <script>
-    var isLoggedIn = <?php echo json_encode($loggedIn); ?>; 
-    console.log("isLoggedIn =", isLoggedIn); // debug ดูค่า
-
+<script>
     $(document).ready(function() {
-        moment.locale('th');
-        var calendarDates = <?php echo json_encode($dates); ?>;
-        var approvedDates = <?php echo json_encode($approved); ?>;
-        var bookingNames = <?php echo json_encode($booking_names); ?>;
+        // ตัวแปร global
+        let isLoggedIn = <?php echo json_encode($loggedIn); ?>;
+        let bookingData = { total: 0, deposit: 0, remain: 0 };
+        
+        console.log("isLoggedIn =", isLoggedIn); // debug ดูค่า
 
-        var events = calendarDates.map(function(d) {
-            var date = d.date;
-            var title = '';
-            var className = '';
-            if (approvedDates.includes(date)) {
-                if (bookingNames[date]) {
-                    title = bookingNames[date].map(function(name){
-                        return name;
-                    }).join(', ');
+        // ตั้งค่า Calendar
+        initializeCalendar();
+        
+        // ตั้งค่า Time Picker
+        initializeTimePicker();
+        
+        // จัดการ Modal Booking
+        initializeBookingModal();
+
+        // จัดการ Success Modal
+        initializeSuccessModal();
+
+        // จัดการ Form Submission
+        initializeFormValidation();
+
+        function initializeCalendar() {
+            moment.locale('th');
+            var calendarDates = <?php echo json_encode($dates); ?>;
+            var approvedDates = <?php echo json_encode($approved); ?>;
+            var bookingNames = <?php echo json_encode($booking_names); ?>;
+
+            var events = calendarDates.map(function(d) {
+                var date = d.date;
+                var title = '';
+                var className = '';
+                
+                if (approvedDates.includes(date)) {
+                    title = bookingNames[date] ? bookingNames[date].join(', ') : 'จองแล้ว';
+                    className = 'booked';
                 } else {
-                    title = 'จองแล้ว';
+                    className = d.status === 'available' ? 'available' : 'unavailable';
+                    title = d.status === 'available' ? 'ว่าง' : 'ไม่ว่าง';
                 }
-                className = 'booked';
+                
                 return {
                     title: title,
                     start: date,
                     className: className,
                     allDay: true
                 };
-            }
-            className = d.status === 'available' ? 'available' : 'unavailable';
-            title = d.status === 'available' ? 'ว่าง' : 'ไม่ว่าง';
-            return {
-                title: title,
-                start: date,
-                className: className,
-                allDay: true
-            };
-        });
+            });
 
-        $('#calendar').fullCalendar({
-            locale: 'th',
-            selectable: true,
-            selectHelper: true,
-            dayRender: function(date, cell) {
-                var found = calendarDates.find(d => d.date === date.format('YYYY-MM-DD'));
-                if (approvedDates.includes(date.format('YYYY-MM-DD'))) {
-                    cell.css('background-color', '#e3f2fd');
-                } else if (found && found.status === 'unavailable') {
-                    cell.css('background-color', '#fde8e8');
-                }
-            },
-            select: function(startDate) {
-                var selectedDate = moment(startDate).format('YYYY-MM-DD');
-                var found = calendarDates.find(d => d.date === selectedDate);
-
-                if (!isLoggedIn) {
-                    alert("กรุณาเข้าสู่ระบบก่อนทำการจอง");
-                    window.location.href = "member_login.php";
-                    return;
-                }
-
-                if (approvedDates.includes(selectedDate)) {
-                    alert("วันนี้มีผู้จองแล้ว กรุณาเลือกวันอื่น");
-                } else if (found && found.status === 'unavailable') {
-                    alert("วันที่เลือกนี้ไม่ว่าง กรุณาเลือกวันอื่น");
-                } else {
-                    $('#booking_date').val(selectedDate);
-                    $('#bookingModal').modal('show');
-                }
-                
-                // ไฮไลต์ booking-item ที่ถูกเลือก
-                $('.booking-item').removeClass('active');
-                $('.booking-item[data-date="' + selectedDate + '"]').addClass('active');
-            },
-            events: events,
-            eventAfterRender: function(event, element) {
-                if (event.className.includes('booked')) {
-                    element.attr('title', event.title);
-                    element.tooltip({ container: 'body' });
-                }
-            }
-        });
-
-        flatpickr("#visit_time", {
-            enableTime: true,
-            noCalendar: true,
-            dateFormat: "H:i",
-            time_24hr: true,
-            minTime: "08:00",
-            maxTime: "17:30",
-            minuteIncrement: 30
-        });
-    });
-</script>
-
-    <?php if (isset($_GET['success'])): ?>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var modal = new bootstrap.Modal(document.getElementById('successModal'));
-            modal.show();
-            document.getElementById('successModalOkBtn').addEventListener('click', function() {
-                // ดึง id จาก URL
-                const urlParams = new URLSearchParams(window.location.search);
-                const id = urlParams.get('id');
-                if(id) {
-                    window.location.href = 'receipt.php?id=' + id;
-                } else {
-                    window.location.href = 'receipt.php';
+            $('#calendar').fullCalendar({
+                locale: 'th',
+                selectable: true,
+                selectHelper: true,
+                dayRender: function(date, cell) {
+                    var dateStr = date.format('YYYY-MM-DD');
+                    var found = calendarDates.find(d => d.date === dateStr);
+                    
+                    if (approvedDates.includes(dateStr)) {
+                        cell.css('background-color', '#e3f2fd');
+                    } else if (found && found.status === 'unavailable') {
+                        cell.css('background-color', '#fde8e8');
+                    } else if (!found) {
+                        cell.css('background-color', '#f8f9fa');
+                        cell.css('opacity', '0.5');
+                        cell.css('cursor', 'not-allowed');
+                    }
+                },
+                select: function(startDate) {
+                    handleDateSelection(startDate, calendarDates, approvedDates);
+                },
+                events: events,
+                eventAfterRender: function(event, element) {
+                    if (event.className.includes('booked')) {
+                        element.attr('title', event.title);
+                        element.tooltip({ container: 'body' });
+                    }
                 }
             });
-        });
-    </script>
-    <?php endif; ?>
-    
-    <script>
-        document.querySelector('form').addEventListener('submit', function(e) {
-            const slipInput = document.querySelector('input[name="slip"]');
-            if (!slipInput.value) {
-                alert('กรุณาแนบสลิปก่อนยืนยันการจอง');
-                e.preventDefault();
+        }
+
+        function initializeTimePicker() {
+            flatpickr("#visit_time", {
+                enableTime: true,
+                noCalendar: true,
+                dateFormat: "H:i",
+                time_24hr: true,
+                minTime: "08:00",
+                maxTime: "17:30",
+                minuteIncrement: 30
+            });
+        }
+
+        function initializeBookingModal() {
+            // รีเซ็ตฟอร์มทุกครั้งที่เปิด modal
+            $('#bookingModal').on('show.bs.modal', function(e) {
+                resetBookingForm();
+            });
+
+            // ไปขั้นตอนที่ 2
+            $('#nextBtn').on('click', function() {
+                if (validateStep1()) {
+                    generateQRCode();
+                    $('#step1').hide();
+                    $('#step2').show();
+                }
+            });
+
+            // กลับไปขั้นตอนที่ 1
+            $('#backBtn').on('click', function() {
+                $('#step2').hide();
+                $('#step1').show();
+            });
+
+            // คำนวณราคา
+            $('#number_of_people').on('input', calculatePrice);
+        }
+
+        function initializeSuccessModal() {
+            <?php if (isset($_GET['success'])): ?>
+            document.addEventListener('DOMContentLoaded', function() {
+                var modal = new bootstrap.Modal(document.getElementById('successModal'));
+                modal.show();
+                
+                document.getElementById('successModalOkBtn').addEventListener('click', function() {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const id = urlParams.get('id');
+                    window.location.href = id ? 'receipt.php?id=' + id : 'receipt.php';
+                });
+            });
+            <?php endif; ?>
+        }
+
+        function initializeFormValidation() {
+            document.querySelector('form').addEventListener('submit', function(e) {
+                const slipInput = document.querySelector('input[name="slip"]');
+                if (!slipInput.value) {
+                    showWarningModal('กรุณาแนบสลิป', 'กรุณาแนบสลิปการชำระเงินก่อนยืนยันการจอง', 'error');
+                    e.preventDefault();
+                }
+            });
+        }
+
+        function handleDateSelection(startDate, calendarDates, approvedDates) {
+            var selectedDate = moment(startDate).format('YYYY-MM-DD');
+            var found = calendarDates.find(d => d.date === selectedDate);
+
+            if (!isLoggedIn) {
+                showLoginModal({
+                    title: 'กรุณาเข้าสู่ระบบ',
+                    content: 'คุณต้องเข้าสู่ระบบก่อนทำการจอง',
+                    okText: 'เข้าสู่ระบบ',
+                    cancelText: 'ยกเลิก',
+                    onOk() { window.location.href = "member_login.php"; },
+                    onCancel() { console.log('Cancel'); }
+                });
+                return;
             }
-        });
-    </script>
+
+            // ตรวจสอบเงื่อนไขทั้งหมดที่ทำให้ไม่สามารถจองได้
+            if (!found) {
+                showWarningModal('ไม่สามารถจองได้', 'วันที่เลือกนี้ยังไม่เปิดให้จอง กรุณาเลือกวันอื่น', 'error');
+            } else if (approvedDates.includes(selectedDate)) {
+                showWarningModal('วันนี้มีผู้จองแล้ว', 'กรุณาเลือกวันอื่น', 'warning');
+            } else if (found.status === 'unavailable') {
+                showWarningModal('วันที่เลือกนี้ไม่ว่าง', 'กรุณาเลือกวันอื่น', 'warning');
+            } else if (found.status !== 'available') {
+                showWarningModal('ไม่สามารถจองได้', 'สถานะวันที่เลือกไม่ถูกต้อง กรุณาเลือกวันอื่น', 'error');
+            } else {
+                // เฉพาะกรณีที่ available เท่านั้น
+                $('#booking_date').val(selectedDate);
+                $('#bookingModal').modal('show');
+            }
+            
+            // ไฮไลต์ booking-item ที่ถูกเลือก
+            $('.booking-item').removeClass('active');
+            $(`.booking-item[data-date="${selectedDate}"]`).addClass('active');
+        }
+
+        // ฟังก์ชันแสดง Modal Login
+        function showLoginModal(config) {
+            const modalHtml = `
+                <div class="ant-modal-mask" style="position: fixed; inset: 0px; z-index: 1050; background: rgba(0, 0, 0, 0.45);">
+                    <div class="ant-modal-wrap" style="position: fixed; inset: 0px; overflow: auto; outline: 0px;">
+                        <div class="ant-modal" style="width: 400px; margin: 100px auto; padding-bottom: 24px; pointer-events: auto;">
+                            <div class="ant-modal-content" style="box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05); border-radius: 8px; background: #fff;">
+                                <div class="ant-modal-header" style="padding: 16px 24px; border-bottom: 1px solid #f0f0f0; border-radius: 8px 8px 0 0; background: #fff;">
+                                    <div class="ant-modal-title" style="margin: 0; color: rgba(0, 0, 0, 0.88); font-weight: 600; font-size: 16px; line-height: 1.5;">${config.title}</div>
+                                </div>
+                                <div class="ant-modal-body" style="padding: 24px; font-size: 14px; line-height: 1.5714285714285714; word-wrap: break-word;">${config.content}</div>
+                                <div class="ant-modal-footer" style="padding: 16px 24px; text-align: right; background: 0 0; border-top: 1px solid #f0f0f0; border-radius: 0 0 8px 8px;">
+                                    <button class="ant-btn ant-btn-default" style="position: relative; display: inline-flex; align-items: center; font-weight: 400; white-space: nowrap; text-align: center; background-image: none; border: 1px solid transparent; cursor: pointer; transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1); user-select: none; touch-action: manipulation; line-height: 1.5714285714285714; height: 32px; padding: 4px 15px; font-size: 14px; border-radius: 6px; color: rgba(0, 0, 0, 0.88); border-color: #d9d9d9; background: #fff; margin-right: 8px;" id="cancelBtn">
+                                        <span>${config.cancelText}</span>
+                                    </button>
+                                    <button class="ant-btn ant-btn-primary" style="position: relative; display: inline-flex; align-items: center; font-weight: 400; white-space: nowrap; text-align: center; background-image: none; border: 1px solid transparent; cursor: pointer; transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1); user-select: none; touch-action: manipulation; line-height: 1.5714285714285714; height: 32px; padding: 4px 15px; font-size: 14px; border-radius: 6px; color: #fff; border-color: #1677ff; background: #1677ff; box-shadow: 0 2px 0 rgba(5, 145, 255, 0.1);" id="okBtn">
+                                        <span>${config.okText}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            $('body').append(modalHtml);
+            
+            // Event handlers
+            $('#okBtn').on('click', function() {
+                config.onOk();
+                $('.ant-modal-mask').remove();
+            });
+            
+            $('#cancelBtn').on('click', function() {
+                config.onCancel();
+                $('.ant-modal-mask').remove();
+            });
+            
+            // Close when clicking on mask
+            $('.ant-modal-mask').on('click', function(e) {
+                if (e.target === this) {
+                    config.onCancel();
+                    $(this).remove();
+                }
+            });
+        }
+
+        // ฟังก์ชันแสดง Warning Modal
+        function showWarningModal(title, content, type = 'warning') {
+            const icons = {
+                warning: { icon: '⚠', color: '#faad14' },
+                error: { icon: '❌', color: '#ff4d4f' },
+                info: { icon: 'ℹ️', color: '#1677ff' }
+            };
+            
+            const selectedIcon = icons[type] || icons.warning;
+
+            const modalHtml = `
+                <div class="ant-modal-mask" style="position: fixed; inset: 0px; z-index: 1050; background: rgba(0, 0, 0, 0.45);">
+                    <div class="ant-modal-wrap" style="position: fixed; inset: 0px; overflow: auto; outline: 0px;">
+                        <div class="ant-modal" style="width: 400px; margin: 100px auto; padding-bottom: 24px; pointer-events: auto;">
+                            <div class="ant-modal-content" style="box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05); border-radius: 8px; background: #fff;">
+                                <div class="ant-modal-header" style="padding: 16px 24px; border-bottom: 1px solid #f0f0f0; border-radius: 8px 8px 0 0; background: #fff;">
+                                    <div class="ant-modal-title" style="margin: 0; color: rgba(0, 0, 0, 0.88); font-weight: 600; font-size: 16px; line-height: 1.5; display: flex; align-items: center; gap: 8px;">
+                                        <span style="color: ${selectedIcon.color}; font-size: 18px;">${selectedIcon.icon}</span>
+                                        ${title}
+                                    </div>
+                                </div>
+                                <div class="ant-modal-body" style="padding: 24px; font-size: 14px; line-height: 1.5714285714285714; word-wrap: break-word;">${content}</div>
+                                <div class="ant-modal-footer" style="padding: 16px 24px; text-align: right; background: 0 0; border-top: 1px solid #f0f0f0; border-radius: 0 0 8px 8px;">
+                                    <button class="ant-btn ant-btn-primary" style="position: relative; display: inline-flex; align-items: center; font-weight: 400; white-space: nowrap; text-align: center; background-image: none; border: 1px solid transparent; cursor: pointer; transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1); user-select: none; touch-action: manipulation; line-height: 1.5714285714285714; height: 32px; padding: 4px 15px; font-size: 14px; border-radius: 6px; color: #fff; border-color: #1677ff; background: #1677ff; box-shadow: 0 2px 0 rgba(5, 145, 255, 0.1);" id="confirmBtn">
+                                        <span>ตกลง</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            $('body').append(modalHtml);
+            
+            $('#confirmBtn').on('click', function() {
+                $('.ant-modal-mask').remove();
+            });
+            
+            $('.ant-modal-mask').on('click', function(e) {
+                if (e.target === this) {
+                    $(this).remove();
+                }
+            });
+        }
+
+        function resetBookingForm() {
+            $('#step1').show();
+            $('#step2').hide();
+            $('#calculation-section').hide();
+            $('#qrcode').empty();
+            $('#number_of_people').val('');
+            
+            // แสดงวันที่เลือก
+            var selectedDate = $('#booking_date').val();
+            var thaiDate = moment(selectedDate).locale('th').format('LL');
+            $('#display-booking-date').text(thaiDate);
+        }
+
+        function validateStep1() {
+            let isValid = true;
+            
+            $('#step1 input[required]').each(function() {
+                if ($(this).val() === '') {
+                    isValid = false;
+                    $(this).addClass('is-invalid');
+                } else {
+                    $(this).removeClass('is-invalid');
+                }
+            });
+            
+            const peopleCount = parseInt($('#number_of_people').val());
+            if (isNaN(peopleCount) || peopleCount < 1) {
+                isValid = false;
+                $('#number_of_people').addClass('is-invalid');
+            }
+            
+            if (!isValid) {
+                showWarningModal('กรุณากรอกข้อมูลให้ครบถ้วน', 'กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้องก่อนไปขั้นตอนต่อไป', 'error');
+            }
+            
+            return isValid;
+        }
+
+        function calculatePrice() {
+            let people = parseInt($(this).val());
+            
+            if (isNaN(people) || people < 1) {
+                $('#calculation-section').hide();
+                return;
+            }
+
+            // คำนวณราคา
+            bookingData.total = people * 150;
+            bookingData.deposit = Math.ceil(bookingData.total * 0.3);
+            bookingData.remain = bookingData.total - bookingData.deposit;
+
+            // แสดงการคำนวณ
+            $('#total-amount-preview').html(`${bookingData.total.toLocaleString()} บาท`);
+            $('#deposit-amount-preview').html(`${bookingData.deposit.toLocaleString()} บาท`);
+            $('#remain-amount-preview').html(`${bookingData.remain.toLocaleString()} บาท`);
+            $('#calculation-section').show();
+        }
+
+        function generateQRCode() {
+            const promptpayId = "0651078576";
+            
+            // แสดงการคำนวณในขั้นตอนที่ 2
+            $('#total-amount-display').html(`${bookingData.total.toLocaleString()} บาท`);
+            $('#deposit-amount-display').html(`${bookingData.deposit.toLocaleString()} บาท`);
+            $('#remain-amount-display').html(`${bookingData.remain.toLocaleString()} บาท`);
+            
+            // ตั้งค่า hidden inputs
+            $('#total_amount').val(bookingData.total);
+            $('#deposit_amount').val(bookingData.deposit);
+
+            // สร้าง QR Code
+            $('#qrcode').empty();
+            
+            if (typeof PromptPayQR !== 'undefined') {
+                let qrData = PromptPayQR.generate({
+                    mobileNumber: promptpayId,
+                    amount: bookingData.deposit
+                });
+                new QRCode(document.getElementById("qrcode"), {
+                    text: qrData,
+                    width: 180,
+                    height: 180
+                });
+            } else {
+                // fallback
+                let depositFixed = bookingData.deposit.toFixed(1);
+                let qrImg = $('<img>').attr('src',
+                    `https://promptpay.io/${promptpayId}/${depositFixed}.png`).css({
+                    width: 180,
+                    height: 180
+                });
+                $('#qrcode').append(qrImg);
+            }
+        }
+    });
+</script>
+    
 </body>
 </html>
