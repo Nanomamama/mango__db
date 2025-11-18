@@ -608,14 +608,6 @@ $remain_total = $row['remain_total'] ?? 0;
                             <p class="mb-0 mt-2 text-white-20">Manage Mango Orchard and Ordering System</p>
                         </div>
                         <div class="d-flex align-items-center gap-3 mt-2 mt-md-0">
-                            <div class="position-relative">
-                                <button class="btn btn-light rounded-circle p-2 shadow-sm position-relative" style="width:44px; height:44px;">
-                                    <i class="bi bi-bell fs-5"></i>
-                                    <span class="notification-badge position-absolute top-0 end-0 translate-middle badge rounded-pill bg-danger" style="font-size:0.75rem; min-width:20px; height:20px; display:flex; align-items:center; justify-content:center;">
-                                        3
-                                    </span>
-                                </button>
-                            </div>
                             <div class="admin-profile">
                                 <img src="https://ui-avatars.com/api/?name=<?= urlencode($admin_name) ?>&background=random&color=fff" alt="Admin">
                                 <span><?= htmlspecialchars($admin_name) ?></span>

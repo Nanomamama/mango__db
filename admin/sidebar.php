@@ -38,64 +38,6 @@
             padding: 32px 0 16px 0;
         }
 
-        .sidebar-logo {
-            font-size: 1.8rem;
-            font-weight: bold;
-            letter-spacing: 1px;
-            color: var(--sidebar-text);
-            text-align: center;
-            margin-bottom: 32px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 0 24px;
-        }
-
-        .logo-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 15px;
-            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
-            position: relative;
-            z-index: 1;
-        }
-
-        .logo-icon i {
-            font-size: 2.2rem;
-            color: white;
-        }
-
-        .logo-icon::after {
-            content: "";
-            position: absolute;
-            top: -5px;
-            left: -5px;
-            right: -5px;
-            bottom: -5px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border-radius: 50%;
-            z-index: -1;
-            filter: blur(10px);
-            opacity: 0.5;
-        }
-
-        .logo-text {
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            font-size: 1.7rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            margin-bottom: 5px;
-        }
-
         .logo-subtitle {
             font-size: 0.85rem;
             font-weight: 300;
@@ -228,13 +170,11 @@
 
 <body>
     <div class="modern-sidebar">
-        <div class="sidebar-logo">
-            <div class="logo-icon">
-                <i class='bx bxs-leaf'></i>
-            </div>
-            <div class="logo-text">Mango Admin</div>
+        <div class="logo-img mb-5 text-center">
+            <a href="./index.php">
+                <img src="../user/image/logo-3.png" alt="Logo" style="width: 170px; display: block; margin: 0 auto 10px auto;">
+            </a>
         </div>
-
         <nav class="nav flex-column">
             <a href="./index.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'index.php') echo ' active'; ?>">
                 <i class='bx bxs-dashboard'></i> Dashboard
@@ -273,10 +213,6 @@
                 <i class='bx bx-log-out-circle'></i> ออกจากระบบ
             </a>
         </nav>
-
-        <div class="sidebar-footer">
-            &copy; <?= date('Y') ?> สวนลุงเผือก
-        </div>
     </div>
 
 
