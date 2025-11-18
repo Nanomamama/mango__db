@@ -378,10 +378,38 @@ if (!$booking) { die("ไม่พบข้อมูลการจอง"); }
                     <button class="ant-btn ant-btn-primary" id="downloadImgBtn">
                         <i class="fas fa-download me-2"></i>ดาวน์โหลดเป็นรูปภาพ
                     </button>
+                    <?php if (!empty($booking['slip'])): ?>
+                    <a class="ant-btn ant-btn-default" href="<?= 'Paymentslip-Gardenreservation/' . rawurlencode($booking['slip']) ?>" target="_blank" style="margin-left:8px;">
+                        <i class="fas fa-file-image me-2"></i>ดูสลิปที่อัปโหลด
+                    </a>
+                    <?php else: ?>
+                    <button class="ant-btn ant-btn-default" id="showUploadFormBtn" style="margin-left:8px;">
+                        <i class="fas fa-upload me-2"></i>แจ้งสลิปการชำระ
+                    </button>
+                    <?php endif; ?>
                     <button class="ant-btn ant-btn-default" onclick="window.location.href='index.php'">
                         <i class="fas fa-arrow-left me-2"></i>กลับสู่หน้าหลัก
                     </button>
                 </div>
+            </div>
+
+            <!-- ฟอร์มอัปโหลดสลิป (แสดงเมื่อยังไม่มีสลิป หรือผู้ใช้ต้องการอัปโหลดใหม่) -->
+            <div id="uploadSlipSection" class="ant-card-body" style="max-width:700px;margin:18px auto; display: none;">
+                <div class="ant-alert ant-alert-info">
+                    <div class="ant-alert-message">อัปโหลดสลิปการชำระเงิน</div>
+                    <div class="ant-alert-description">กรุณาอัปโหลดสลิปการชำระเงินเพื่อยืนยันการจองของคุณ เจ้าหน้าที่จะตรวจสอบและอนุมัติ</div>
+                </div>
+                <form method="POST" action="upload_slip_handler.php" enctype="multipart/form-data">
+                    <input type="hidden" name="booking_id" value="<?= htmlspecialchars($booking['id']) ?>">
+                    <div class="mb-3">
+                        <label class="form-label">ไฟล์สลิป (jpg, png, pdf)</label>
+                        <input type="file" class="form-control" name="slip" accept="image/*,application/pdf" required>
+                    </div>
+                    <div class="d-flex">
+                        <button type="submit" class="ant-btn ant-btn-primary">อัปโหลดและแจ้งสลิป</button>
+                        <button type="button" id="cancelUploadBtn" class="ant-btn ant-btn-default" style="margin-left:8px;">ยกเลิก</button>
+                    </div>
+                </form>
             </div>
             
             <div class="text-center mt-3" style="color: var(--ant-text-color); font-size: 14px;">
@@ -401,6 +429,23 @@ if (!$booking) { die("ไม่พบข้อมูลการจอง"); }
                 link.click();
             });
         });
+
+        // แสดงฟอร์มอัปโหลดสลิปเมื่อกดปุ่ม
+        const showUploadBtn = document.getElementById('showUploadFormBtn');
+        if (showUploadBtn) {
+            showUploadBtn.addEventListener('click', function() {
+                document.getElementById('uploadSlipSection').style.display = 'block';
+                showUploadBtn.style.display = 'none';
+                window.scrollTo({ top: document.getElementById('uploadSlipSection').offsetTop - 20, behavior: 'smooth' });
+            });
+        }
+        const cancelUploadBtn = document.getElementById('cancelUploadBtn');
+        if (cancelUploadBtn) {
+            cancelUploadBtn.addEventListener('click', function() {
+                document.getElementById('uploadSlipSection').style.display = 'none';
+                if (showUploadBtn) showUploadBtn.style.display = 'inline-block';
+            });
+        }
     </script>
 </body>
 </html>

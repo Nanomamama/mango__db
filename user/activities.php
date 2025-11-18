@@ -428,7 +428,7 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 6, true);
                         </button>
                         <?php if (!$loggedIn): ?>
                             <a href="member_login.php" class="btn btn-outline-light">
-                                <!-- <i class="bi bi-box-arrow-in-right me-2"></i>เข้าสู่ระบบ -->
+                                <i class="bi bi-box-arrow-in-right me-2"></i>เข้าสู่ระบบ
                             </a>
                         <?php else: ?>
                             <div class="text-white">
@@ -442,6 +442,32 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 6, true);
     </div>
     
     <div class="container py-4">
+        <?php
+        if (isset($_GET['error'])) {
+            $err = $_GET['error'];
+            $msg = '';
+            switch ($err) {
+                case 'invalid_doc_type':
+                    $msg = 'ไฟล์แนบต้องเป็นไฟล์ PDF เท่านั้น';
+                    break;
+                case 'doc_too_large':
+                    $msg = 'ไฟล์แนบมีขนาดเกิน 5MB กรุณาเลือกไฟล์ที่มีขนาดเล็กกว่า 5MB';
+                    break;
+                case 'doc_move_failed':
+                    $msg = 'เกิดข้อผิดพลาดขณะบันทึกไฟล์ กรุณาลองอีกครั้ง'; 
+                    break;
+                case 'invalid_slip_type':
+                    $msg = 'ไฟล์สลิปต้องเป็นรูปภาพ (JPG/PNG) หรือ PDF เท่านั้น';
+                    break;
+                case 'slip_too_large':
+                    $msg = 'สลิปมีขนาดเกิน 5MB กรุณาเลือกไฟล์ที่มีขนาดเล็กกว่า 5MB';
+                    break;
+                default:
+                    $msg = 'เกิดข้อผิดพลาดในการอัพโหลดไฟล์ กรุณาลองอีกครั้ง';
+            }
+            echo '<div class="alert alert-danger">' . htmlspecialchars($msg) . '</div>';
+        }
+        ?>
         <div class="row">
             <!-- คอลัมน์ซ้ายสำหรับปฏิทิน -->
             <div class="col-lg-8 mb-4">
@@ -683,7 +709,7 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 6, true);
                                     </div>
                                     
                                     <div class="col-md-12 mb-3">
-                                        <label class="form-label">แนบเอกสารเพิ่มเติม (ถ้ามี)</label>
+                                        <label class="form-label">แนบเอกสารเพิ่มเติม (ถ้ามี) ต้องเป็นไฟล์ PDF เท่านั้น</label>
                                         <input type="file" class="form-control" name="document">
                                         <div class="form-text">เช่น เอกสารการขอเข้าศึกษาดูงานจากสถาบันการศึกษา</div>
                                     </div>
@@ -774,9 +800,7 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 6, true);
             </div>
         </div>
     </div>
-    
     <?php include 'footer.php'; ?>
-    
 <script>
     $(document).ready(function() {
         // ตัวแปร global
@@ -897,16 +921,30 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 6, true);
 
         function initializeSuccessModal() {
             <?php if (isset($_GET['success'])): ?>
-            document.addEventListener('DOMContentLoaded', function() {
-                var modal = new bootstrap.Modal(document.getElementById('successModal'));
-                modal.show();
-                
-                document.getElementById('successModalOkBtn').addEventListener('click', function() {
+            (function() {
+                var modalEl = document.getElementById('successModal');
+                if (modalEl) {
+                    // เก็บ id ก่อนจะลบ query string
                     const urlParams = new URLSearchParams(window.location.search);
-                    const id = urlParams.get('id');
-                    window.location.href = id ? 'receipt.php?id=' + id : 'receipt.php';
-                });
-            });
+                    const bookingId = urlParams.get('id');
+
+                    var modal = new bootstrap.Modal(modalEl);
+                    modal.show();
+
+                    var okBtn = document.getElementById('successModalOkBtn');
+                    if (okBtn) {
+                        okBtn.addEventListener('click', function() {
+                            window.location.href = bookingId ? 'receipt.php?id=' + bookingId : 'receipt.php';
+                        });
+                    }
+
+                    // ลบ query string เพื่อไม่ให้ modal โผล่อีกเมื่อ refresh
+                    if (window.history && history.replaceState) {
+                        const newUrl = window.location.pathname;
+                        history.replaceState(null, '', newUrl);
+                    }
+                }
+            })();
             <?php endif; ?>
         }
 
@@ -1145,6 +1183,5 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 6, true);
         }
     });
 </script>
-    
 </body>
 </html>

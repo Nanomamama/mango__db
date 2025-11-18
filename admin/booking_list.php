@@ -880,14 +880,14 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                 { key: 'phone', label: 'เบอร์โทร' },
                 { key: 'approved_by', label: 'อนุมัติโดย' },
                 { key: 'approved_at_formatted', label: 'อนุมัติเมื่อ' },
-                { key: 'doc', label: 'เอกสาร', format: v => v ? `<a href="../uploads/${v}" target="_blank">ดูไฟล์</a>` : '-' },
+                { key: 'doc', label: 'เอกสาร', format: v => v ? `<a href="../user/Doc/${v}" target="_blank">ดูไฟล์</a>` : '-' },
                 { 
                     key: 'slip', 
                     label: 'สลิป', 
                     format: v => v 
-                        ? `<img src="../uploads/${v}" alt="slip" class="slip-img"
+                        ? `<img src="../user/Paymentslip-Gardenreservation/${v}" alt="slip" class="slip-img"
                             style="max-width:180px;max-height:180px;cursor:pointer;border-radius:8px;box-shadow:0 2px 8px #0002;"
-                            onclick="showSlipModal('../uploads/${v}')">` 
+                            onclick="showSlipModal('../user/Paymentslip-Gardenreservation/${v}')">` 
                         : '-' 
                 },
             ];
