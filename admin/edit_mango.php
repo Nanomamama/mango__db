@@ -2,11 +2,11 @@
 require_once 'auth.php';
 ?>
 <?php
-// เชื่อมต่อฐานข้อมูล
-$conn = new mysqli("localhost", "root", "", "db_mango");
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+// ใช้การเชื่อมต่อฐานข้อมูลร่วมจากไฟล์ `db.php`
+require_once 'db.php';
+
+// `db.php` จะตั้งตัวแปร `$conn` และจัดการ charset/การตรวจสอบการเชื่อมต่อไว้แล้ว
+
 
 // รับ id จาก URL
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -54,13 +54,13 @@ if (!$mango) {
         <!-- กรอบที่ใช้ Grid -->
         <div class="row g-4">
 
-            <!-- ชื่อสายพันธุ์และชื่อวิทยาศาสตร์ -->
+            <!-- ชื่อสายพันธุ์และชื่อภาษาอังกฤษ -->
             <div class="col-md-6">
                 <label class="form-label">ชื่อสายพันธุ์</label>
                 <input type="text" name="mango_name" class="form-control" value="<?= $mango['mango_name'] ?>" required>
             </div>
             <div class="col-md-6">
-                <label class="form-label">ชื่อวิทยาศาสตร์</label>
+                <label class="form-label">ชื่อภาษาอังกฤษ</label>
                 <input type="text" name="scientific_name" class="form-control" value="<?= $mango['scientific_name'] ?>">
             </div>
 

@@ -394,7 +394,7 @@ if (!$result) {
                 $img_file = isset($row['fruit_image']) ? basename($row['fruit_image']) : null;
                 $fruit_image = $img_file ? "../admin/uploads/{$img_file}" : null;
                 $name = isset($row['mango_name']) ? $row['mango_name'] : "ไม่ทราบชื่อ";
-                $scientificName = isset($row['scientific_name']) ? $row['scientific_name'] : "ไม่ทราบชื่อวิทยาศาสตร์";
+                $scientificName = isset($row['scientific_name']) ? $row['scientific_name'] : "ไม่ทราบชื่อภาษาอังกฤษ";
                 $mango_category = isset($row['mango_category']) ? $row['mango_category'] : "ไม่ทราบประเภท";
                 
                 // กำหนดคลาสสำหรับแบดจ์ตามประเภท

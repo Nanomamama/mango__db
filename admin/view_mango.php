@@ -316,7 +316,7 @@ $processing = array_filter(array_map('trim', explode(',', $mango['processing_met
                     </h3>
                     
                     <div class="info-item">
-                        <div class="info-label">ชื่อวิทยาศาสตร์</div>
+                        <div class="info-label">ชื่อภาษาอังกฤษ</div>
                         <div class="info-value"><?= htmlspecialchars($mango['scientific_name']) ?></div>
                     </div>
                     
