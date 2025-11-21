@@ -379,7 +379,7 @@ if (!$booking) { die("ไม่พบข้อมูลการจอง"); }
                         <i class="fas fa-download me-2"></i>ดาวน์โหลดเป็นรูปภาพ
                     </button>
                     <?php if (!empty($booking['slip'])): ?>
-                    <a class="ant-btn ant-btn-default" href="<?= 'Paymentslip-Gardenreservation/' . rawurlencode($booking['slip']) ?>" target="_blank" style="margin-left:8px;">
+                    <a class="ant-btn ant-btn-default" href="<?= 'download.php?type=slip&file=' . rawurlencode($booking['slip']) ?>" target="_blank" style="margin-left:8px;">
                         <i class="fas fa-file-image me-2"></i>ดูสลิปที่อัปโหลด
                     </a>
                     <?php else: ?>

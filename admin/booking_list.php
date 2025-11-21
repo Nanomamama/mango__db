@@ -2,12 +2,25 @@
 require_once 'auth.php';
 require_once 'db.php';
 
+// CSRF token
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrf_token = $_SESSION['csrf_token'];
+
 // ดึงชื่อ admin จาก session
 $admin_name = $_SESSION['admin_name'] ?? '';
 $admin_email = $_SESSION['admin_email'] ?? '';
 
 // --- ส่วนอัปเดตสถานะและลบการจอง (AJAX) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // ตรวจสอบ CSRF token
+    $postedToken = $_POST['csrf_token'] ?? '';
+    if (!hash_equals($_SESSION['csrf_token'] ?? '', $postedToken)) {
+        echo json_encode(['success' => false, 'error' => 'invalid_csrf']);
+        exit;
+    }
+
     if (isset($_POST['action'], $_POST['id'])) {
         $id = (int)$_POST['id'];
         if ($_POST['action'] === 'change_status' && isset($_POST['status'])) {
@@ -854,6 +867,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+    const CSRF_TOKEN = '<?= $csrf_token ?>';
     document.querySelectorAll('.view-booking-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const bookingData = this.getAttribute('data-booking');
@@ -880,14 +894,14 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                 { key: 'phone', label: 'เบอร์โทร' },
                 { key: 'approved_by', label: 'อนุมัติโดย' },
                 { key: 'approved_at_formatted', label: 'อนุมัติเมื่อ' },
-                { key: 'doc', label: 'เอกสาร', format: v => v ? `<a href="../user/Doc/${v}" target="_blank">ดูไฟล์</a>` : '-' },
+                { key: 'doc', label: 'เอกสาร', format: v => v ? `<a href="../user/download.php?type=doc&file=${encodeURIComponent(v)}" target="_blank">ดูไฟล์</a>` : '-' },
                 { 
                     key: 'slip', 
                     label: 'สลิป', 
                     format: v => v 
-                        ? `<img src="../user/Paymentslip-Gardenreservation/${v}" alt="slip" class="slip-img"
+                        ? `<img src="../user/download.php?type=slip&file=${encodeURIComponent(v)}" alt="slip" class="slip-img"
                             style="max-width:180px;max-height:180px;cursor:pointer;border-radius:8px;box-shadow:0 2px 8px #0002;"
-                            onclick="showSlipModal('../user/Paymentslip-Gardenreservation/${v}')">` 
+                            onclick="showSlipModal('../user/download.php?type=slip&file=${encodeURIComponent(v)}')">` 
                         : '-' 
                 },
             ];
@@ -936,7 +950,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: 'action=change_status&id=' + encodeURIComponent(id) + '&status=' + encodeURIComponent(newStatus)
+                    body: 'action=change_status&id=' + encodeURIComponent(id) + '&status=' + encodeURIComponent(newStatus) + '&csrf_token=' + encodeURIComponent(CSRF_TOKEN)
                 })
                 .then(res => res.json())
                 .then(data => {
@@ -957,7 +971,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: 'action=delete&id=' + encodeURIComponent(id)
+                    body: 'action=delete&id=' + encodeURIComponent(id) + '&csrf_token=' + encodeURIComponent(CSRF_TOKEN)
                 })
                 .then(res => res.json())
                 .then(data => {

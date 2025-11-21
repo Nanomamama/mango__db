@@ -2,22 +2,36 @@
 require_once 'auth.php';
 require_once 'db.php';
 
+// CSRF token generation
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrf_token = $_SESSION['csrf_token'];
+
 // ดึงชื่อ admin จาก session
 $admin_name = $_SESSION['admin_name'] ?? '';
 $admin_email = $_SESSION['admin_email'] ?? '';
 
-// อัพเดตสถานะหรือการลบผู้ใช้
-if (isset($_GET['action'], $_GET['id'])) {
-    $id = (int) $_GET['id'];
-    if ($_GET['action'] === 'disable') {
+// อัพเดตสถานะหรือการลบผู้ใช้ (รับเฉพาะ POST และตรวจ CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'])) {
+    // ตรวจ CSRF
+    $postedToken = $_POST['csrf_token'] ?? '';
+    if (!hash_equals($_SESSION['csrf_token'] ?? '', $postedToken)) {
+        http_response_code(403);
+        echo 'Invalid CSRF token';
+        exit;
+    }
+
+    $id = (int) $_POST['id'];
+    if ($_POST['action'] === 'disable') {
         $stmt = $conn->prepare("UPDATE members SET status=0 WHERE id=?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
-    } elseif ($_GET['action'] === 'enable') {
+    } elseif ($_POST['action'] === 'enable') {
         $stmt = $conn->prepare("UPDATE members SET status=1 WHERE id=?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
-    } elseif ($_GET['action'] === 'delete') {
+    } elseif ($_POST['action'] === 'delete') {
         $stmt = $conn->prepare("DELETE FROM members WHERE id=?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
@@ -498,20 +512,35 @@ while ($row = $result->fetch_assoc()) {
                                 data-user='<?= htmlspecialchars(json_encode($user), ENT_QUOTES, 'UTF-8') ?>'>
                                 <i class="bi bi-info-circle"></i> ดูข้อมูล
                             </button>
-                            
+
                             <?php if (isset($user['status']) && $user['status']): ?>
-                                <a href="?action=disable&id=<?= $user['id'] ?>" class="btn action-btn btn-disable">
-                                    <i class="bi bi-person-dash"></i> ปิดใช้งาน
-                                </a>
+                                <form method="post" action="admin_users.php" style="display:inline-block;">
+                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                                    <input type="hidden" name="id" value="<?= $user['id'] ?>">
+                                    <input type="hidden" name="action" value="disable">
+                                    <button type="submit" class="btn action-btn btn-disable">
+                                        <i class="bi bi-person-dash"></i> ปิดใช้งาน
+                                    </button>
+                                </form>
                             <?php else: ?>
-                                <a href="?action=enable&id=<?= $user['id'] ?>" class="btn action-btn btn-enable">
-                                    <i class="bi bi-person-check"></i> เปิดใช้งาน
-                                </a>
+                                <form method="post" action="admin_users.php" style="display:inline-block;">
+                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                                    <input type="hidden" name="id" value="<?= $user['id'] ?>">
+                                    <input type="hidden" name="action" value="enable">
+                                    <button type="submit" class="btn action-btn btn-enable">
+                                        <i class="bi bi-person-check"></i> เปิดใช้งาน
+                                    </button>
+                                </form>
                             <?php endif; ?>
-                            
-                            <a href="?action=delete&id=<?= $user['id'] ?>" class="btn action-btn btn-delete" onclick="return confirm('ยืนยันการลบผู้ใช้นี้?')">
-                                <i class="bi bi-trash"></i> ลบ
-                            </a>
+
+                            <form method="post" action="admin_users.php" style="display:inline-block;" onsubmit="return confirm('ยืนยันการลบผู้ใช้นี้?')">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                                <input type="hidden" name="id" value="<?= $user['id'] ?>">
+                                <input type="hidden" name="action" value="delete">
+                                <button type="submit" class="btn action-btn btn-delete">
+                                    <i class="bi bi-trash"></i> ลบ
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>

@@ -1,8 +1,17 @@
-<!-- คำสั่ง SQL สำหรับการลบข้อมูล -->
 <?php
-require 'db.php'; // เชื่อมต่อฐานข้อมูล
+// คำสั่ง SQL สำหรับการลบข้อมูล (ต้องเป็น admin และมี CSRF token)
+require_once 'auth.php';
+require_once 'db.php'; // เชื่อมต่อฐานข้อมูล
 
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['delete_id'])) {
+    // ตรวจสอบ CSRF
+    $postedToken = $_POST['csrf_token'] ?? '';
+    if (!hash_equals($_SESSION['csrf_token'] ?? '', $postedToken)) {
+        http_response_code(403);
+        echo 'Invalid CSRF token';
+        exit;
+    }
+
     $id = intval($_POST['delete_id']);
 
     // ลบข้อมูล
