@@ -25,11 +25,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = (int)$_POST['id'];
         if ($_POST['action'] === 'change_status' && isset($_POST['status'])) {
             $status = $_POST['status'];
-            $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW() WHERE id=?");
-            $stmt->bind_param("ssi", $status, $admin_name, $id);
-            $stmt->execute();
-            echo json_encode(['success' => true]);
-            exit;
+            $reason = trim($_POST['reason'] ?? '');
+
+            // If rejecting, ensure the DB has a column to store the reason. Try to add it if missing.
+            if ($status === 'ถูกปฏิเสธ') {
+                $colCheck = $conn->query("SHOW COLUMNS FROM bookings LIKE 'rejection_reason'");
+                if ($colCheck && $colCheck->num_rows === 0) {
+                    // best-effort: add column, ignore errors
+                    @$conn->query("ALTER TABLE bookings ADD COLUMN rejection_reason TEXT NULL AFTER approved_at");
+                }
+                $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW(), rejection_reason=? WHERE id=?");
+                $stmt->bind_param("sssi", $status, $admin_name, $reason, $id);
+                $stmt->execute();
+                echo json_encode(['success' => true]);
+                exit;
+            } else {
+                // approving or other status: clear any previous rejection reason
+                // try to update and set rejection_reason = NULL if the column exists
+                $colCheck = $conn->query("SHOW COLUMNS FROM bookings LIKE 'rejection_reason'");
+                if ($colCheck && $colCheck->num_rows > 0) {
+                    $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW(), rejection_reason=NULL WHERE id=?");
+                    $stmt->bind_param("ssi", $status, $admin_name, $id);
+                } else {
+                    $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW() WHERE id=?");
+                    $stmt->bind_param("ssi", $status, $admin_name, $id);
+                }
+                $stmt->execute();
+                echo json_encode(['success' => true]);
+                exit;
+            }
         }
         if ($_POST['action'] === 'delete') {
             $stmt = $conn->prepare("DELETE FROM bookings WHERE id=?");
@@ -655,7 +679,6 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                                                 <i class="bi bi-x-circle"></i> ปฏิเสธ
                                             </button>
                                         <?php endif; ?>
-
                                         <button class="btn action-btn btn-delete" onclick="deleteBooking(<?= $booking['id'] ?>)">
                                             <i class="bi bi-trash"></i> ลบ
                                         </button>
@@ -818,6 +841,10 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                                             <i class="bi bi-info-circle"></i> รายละเอียด
                                         </button>
 
+                                        <button class="btn action-btn btn-approve" onclick="changeStatus(<?= $booking['id'] ?>, 'อนุมัติแล้ว')">
+                                            <i class="bi bi-check-circle"></i> เปลี่ยนเป็นอนุมัติ
+                                        </button>
+
                                         <button class="btn action-btn btn-delete" onclick="deleteBooking(<?= $booking['id'] ?>)">
                                             <i class="bi bi-trash"></i> ลบ
                                         </button>
@@ -860,6 +887,69 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                 <div class="modal-body text-center p-0">
                     <img id="slipModalImg" src="" alt="slip" 
                         style="max-width:100%;max-height:80vh;border-radius:12px;box-shadow:0 4px 24px #0006;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rejection Reason Modal -->
+    <div class="modal fade" id="rejectionModal" tabindex="-1" aria-labelledby="rejectionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rejectionModalLabel">ระบุเหตุผลการปฏิเสธ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label for="rejectionReason" class="form-label">เหตุผล (แนะนำ: ข้อมูลไม่ครบถ้วน, ชำระเงินไม่ถูกต้อง)</label>
+                        <textarea id="rejectionReason" class="form-control" rows="4" placeholder="ระบุเหตุผลการปฏิเสธ (optional)"></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted">หากไม่ระบุ เจ้าหน้าที่จะส่งสถานะปฏิเสธโดยไม่ระบุเหตุผล</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" id="rejectionConfirmBtn" class="btn btn-danger">ยืนยันปฏิเสธ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Approval Confirm Modal -->
+    <div class="modal fade" id="approvalModal" tabindex="-1" aria-labelledby="approvalModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="approvalModalLabel">ยืนยันการอนุมัติ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>คุณต้องการอนุมัติการจองนี้ใช่หรือไม่? การอนุมัติจะบันทึกผู้อนุมัติและเวลาปัจจุบัน</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" id="approvalConfirmBtn" class="btn btn-primary">ยืนยันอนุมัติ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">ยืนยันการลบการจอง</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>คุณแน่ใจหรือไม่ว่าต้องการลบการจองนี้? การลบจะไม่สามารถกู้คืนได้</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" id="deleteConfirmBtn" class="btn btn-danger">ยืนยันลบ</button>
                 </div>
             </div>
         </div>
@@ -942,15 +1032,21 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
             });
         });
 
-        // ฟังก์ชันเปลี่ยนสถานะ (อนุมัติ/ปฏิเสธ)
-        function changeStatus(id, newStatus) {
-            if (!confirm('คุณต้องการเปลี่ยนสถานะเป็น "' + newStatus + '" ใช่หรือไม่?')) return;
+        // ฟังก์ชันส่งคำขอเปลี่ยนสถานะ (รวม CSRF)
+        function sendChangeStatus(id, newStatus, reason) {
+            const params = new URLSearchParams();
+            params.append('action', 'change_status');
+            params.append('id', id);
+            params.append('status', newStatus);
+            params.append('csrf_token', CSRF_TOKEN);
+            if (reason) params.append('reason', reason);
+
             fetch('booking_list.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: 'action=change_status&id=' + encodeURIComponent(id) + '&status=' + encodeURIComponent(newStatus) + '&csrf_token=' + encodeURIComponent(CSRF_TOKEN)
+                    body: params.toString()
                 })
                 .then(res => res.json())
                 .then(data => {
@@ -960,29 +1056,113 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                     } else {
                         alert('เกิดข้อผิดพลาด');
                     }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
                 });
         }
 
-        // ฟังก์ชันลบการจอง
-        function deleteBooking(id) {
-            if (!confirm('คุณต้องการลบการจองนี้ใช่หรือไม่?')) return;
-            fetch('booking_list.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: 'action=delete&id=' + encodeURIComponent(id) + '&csrf_token=' + encodeURIComponent(CSRF_TOKEN)
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('ลบการจองเรียบร้อยแล้ว');
-                        location.reload();
-                    } else {
-                        alert('เกิดข้อผิดพลาด');
-                    }
-                });
-        }
+        // ฟังก์ชันเปลี่ยนสถานะ (อนุมัติ/ปฏิเสธ) — จะเปิด modal เมื่อปฏิเสธ
+        (function(){
+            let pendingChange = null;
+            const rejectionModalEl = document.getElementById('rejectionModal');
+            const rejectionModal = new bootstrap.Modal(rejectionModalEl);
+            const reasonInput = document.getElementById('rejectionReason');
+            const confirmBtn = document.getElementById('rejectionConfirmBtn');
+
+            // Confirm button handler for rejection modal
+            confirmBtn.addEventListener('click', function(){
+                if (!pendingChange) return;
+                const reason = reasonInput.value.trim();
+                // close modal then send
+                rejectionModal.hide();
+                sendChangeStatus(pendingChange.id, pendingChange.status, reason);
+                pendingChange = null;
+                reasonInput.value = '';
+            });
+
+            // Approval modal elements
+            const approvalModalEl = document.getElementById('approvalModal');
+            const approvalModal = new bootstrap.Modal(approvalModalEl);
+            const approvalConfirmBtn = document.getElementById('approvalConfirmBtn');
+
+            // Confirm button handler for approval modal
+            approvalConfirmBtn.addEventListener('click', function(){
+                if (!pendingChange) return;
+                // close modal then send (no reason)
+                approvalModal.hide();
+                sendChangeStatus(pendingChange.id, pendingChange.status, '');
+                pendingChange = null;
+            });
+
+            // Expose changeStatus to global scope
+            // Use modals for both approve and reject flows
+            window.changeStatus = function(id, newStatus) {
+                // queue the change and open the appropriate modal
+                pendingChange = { id: id, status: newStatus };
+                if (newStatus === 'ถูกปฏิเสธ') {
+                    reasonInput.value = '';
+                    rejectionModal.show();
+                    return;
+                }
+                if (newStatus === 'อนุมัติแล้ว') {
+                    approvalModal.show();
+                    return;
+                }
+
+                // fallback: send immediately
+                sendChangeStatus(id, newStatus, '');
+            };
+        })();
+
+        // ฟังก์ชันลบการจอง (ใช้ modal ยืนยัน)
+        (function(){
+            let pendingDeleteId = null;
+            const deleteModalEl = document.getElementById('deleteModal');
+            const deleteModal = new bootstrap.Modal(deleteModalEl);
+            const deleteConfirmBtn = document.getElementById('deleteConfirmBtn');
+
+            // เปิด modal เพื่อลบ
+            window.deleteBooking = function(id) {
+                pendingDeleteId = id;
+                deleteModal.show();
+            };
+
+            // เมื่อกดยืนยันใน modal ให้ส่งคำขอไปยังเซิร์ฟเวอร์
+            deleteConfirmBtn.addEventListener('click', function(){
+                if (!pendingDeleteId) return;
+                const params = new URLSearchParams();
+                params.append('action', 'delete');
+                params.append('id', pendingDeleteId);
+                params.append('csrf_token', CSRF_TOKEN);
+
+                // ปิด modal แล้วส่งคำขอ
+                deleteModal.hide();
+
+                fetch('booking_list.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: params.toString()
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('ลบการจองเรียบร้อยแล้ว');
+                            location.reload();
+                        } else {
+                            alert('เกิดข้อผิดพลาด');
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+                    })
+                    .finally(() => { pendingDeleteId = null; });
+            });
+        })();
 
         function showSlipModal(imageUrl) {
             const slipModal = new bootstrap.Modal(document.getElementById('slipModal'));

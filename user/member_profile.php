@@ -1,46 +1,73 @@
 <?php
-session_start();
-require_once '../admin/db.php';
+    session_start();
+    require_once '../admin/db.php';
 
-// ตรวจสอบการเข้าสู่ระบบ
-if (!isset($_SESSION['member_id'])) {
-    header("Location: member_login.php");
-    exit;
-}
-
-// ดึงข้อมูลสมาชิก
-$member_id = $_SESSION['member_id'];
-$stmt = $conn->prepare("SELECT fullname, address, province_id, district_id, subdistrict_id, zipcode, phone, email, created_at FROM members WHERE id = ?");
-$stmt->bind_param("i", $member_id);
-$stmt->execute();
-$stmt->bind_result($fullname, $address, $province_id, $district_id, $subdistrict_id, $zipcode, $phone, $email, $created_at);
-$stmt->fetch();
-$stmt->close();
-
-// ดึงชื่อจังหวัด/อำเภอ/ตำบล
-function getNameById($file, $id) {
-    $data = json_decode(file_get_contents($file), true);
-    foreach ($data as $item) {
-        if ($item['id'] == $id) return $item['name_th'];
+    // ตรวจสอบการเข้าสู่ระบบ
+    if (!isset($_SESSION['member_id'])) {
+        header("Location: member_login.php");
+        exit;
     }
-    return '';
-}
-$province_name = getNameById('../data/api_province.json', $province_id);
-$district_name = getNameById('../data/thai_amphures.json', $district_id);
-$subdistrict_name = getNameById('../data/thai_tambons.json', $subdistrict_id);
 
-// แปลงวันที่สมัคร
-function thaiDate($datetime) {
-    $months = [
-        "", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-        "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
-    ];
-    $ts = strtotime($datetime);
-    $d = date("j", $ts);
-    $m = $months[(int)date("n", $ts)];
-    $y = date("Y", $ts) + 543;
-    return "$d $m $y";
-}
+    // ดึงข้อมูลสมาชิก
+    $member_id = $_SESSION['member_id'];
+    $stmt = $conn->prepare("SELECT fullname, address, province_id, district_id, subdistrict_id, zipcode, phone, email, created_at FROM members WHERE id = ?");
+    $stmt->bind_param("i", $member_id);
+    $stmt->execute();
+    $stmt->bind_result($fullname, $address, $province_id, $district_id, $subdistrict_id, $zipcode, $phone, $email, $created_at);
+    $stmt->fetch();
+    $stmt->close();
+
+    // ดึงชื่อจังหวัด/อำเภอ/ตำบล
+    function getNameById($file, $id) {
+        $data = json_decode(file_get_contents($file), true);
+        foreach ($data as $item) {
+            if ($item['id'] == $id) return $item['name_th'];
+        }
+        return '';
+    }
+    $province_name = getNameById('../data/api_province.json', $province_id);
+    $district_name = getNameById('../data/thai_amphures.json', $district_id);
+    $subdistrict_name = getNameById('../data/thai_tambons.json', $subdistrict_id);
+
+    // แปลงวันที่สมัคร
+    function thaiDate($datetime) {
+        $months = [
+            "", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+            "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+        ];
+        $ts = strtotime($datetime);
+        $d = date("j", $ts);
+        $m = $months[(int)date("n", $ts)];
+        $y = date("Y", $ts) + 543;
+        return "$d $m $y";
+    }
+
+    // ฟอร์แมตรายการจอง (วันที่ + เวลา)
+    function formatBookingDate($date, $time) {
+        $months = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+            "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        $ts = strtotime($date);
+        $d = date("j", $ts);
+        $m = $months[(int)date("n", $ts)];
+        $y = date("Y", $ts) + 543;
+        $t = '';
+        if (!empty($time)) {
+            $t = ' เวลา ' . htmlspecialchars($time) . ' น.';
+        }
+        return "$d $m $y" . $t;
+    }
+
+    // ดึงรายการการจองล่าสุด 5 รายการ (สถานะ: อนุมัติแล้ว, รออนุมัติ, ถูกปฏิเสธ)
+    $recent_bookings = [];
+    $stmt2 = $conn->prepare("SELECT id, date, time, name, status FROM bookings WHERE member_id = ? AND status IN ('อนุมัติแล้ว','รออนุมัติ','ถูกปฏิเสธ') ORDER BY date DESC, id DESC LIMIT 5");
+    $stmt2->bind_param("i", $member_id);
+    if ($stmt2->execute()) {
+        $res2 = $stmt2->get_result();
+        while ($row = $res2->fetch_assoc()) {
+            $recent_bookings[] = $row;
+        }
+    }
+    $stmt2->close();
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -931,9 +958,9 @@ function thaiDate($datetime) {
                                         <div class="action-icon"><i class='bx bx-history'></i></div>
                                         <div class="action-title">ประวัติการจอง</div>
                                         <div class="action-description">ดูการจองทั้งหมด</div>
-                                        <a href="booking_history.php" class="ant-btn ant-btn-default" style="margin-top: 16px;">
+                                        <button id="viewBookingHistoryBtn" class="ant-btn ant-btn-default" style="margin-top: 16px;" type="button">
                                             <i class='bx bx-show'></i> ดูประวัติ
-                                        </a>
+                                        </button>
                                     </div>
                                 </div>
                                 <div class="ant-col ant-col-8">
@@ -941,9 +968,9 @@ function thaiDate($datetime) {
                                         <div class="action-icon"><i class='bx bx-check-circle'></i></div>
                                         <div class="action-title">สถานะการจอง</div>
                                         <div class="action-description">ตรวจสอบการอนุมัติ</div>
-                                        <a href="booking_status.php" class="ant-btn ant-btn-default" style="margin-top: 16px;">
+                                        <button id="checkBookingBtn" class="ant-btn ant-btn-default" style="margin-top: 16px;" type="button">
                                             <i class='bx bx-search-alt'></i> ตรวจสอบ
-                                        </a>
+                                        </button>
                                     </div>
                                 </div>
                                 <div class="ant-col ant-col-8">
@@ -960,63 +987,86 @@ function thaiDate($datetime) {
                         </div>
                     </div>
                     
-                    <!-- Recent Activities -->
+                        <!-- Recent Activities -->
                     <div class="ant-card" style="margin-top: 24px;">
                         <div class="ant-card-head">
                             <i class='bx bx-trending-up card-header-icon'></i>
                             <span>กิจกรรมล่าสุด</span>
                         </div>
                         <div class="ant-card-body">
-                            <div class="ant-list">
-                                <div class="ant-list-item">
-                                    <div class="ant-list-item-meta">
-                                        <div class="ant-list-item-meta-avatar">
-                                            <i class='bx bx-calendar list-item-icon'></i>
-                                        </div>
-                                        <div class="ant-list-item-meta-content">
-                                            <div class="ant-list-item-meta-title">จองเข้าชมสวน</div>
-                                            <div class="ant-list-item-meta-description">วันที่ 15 มกราคม 2567 เวลา 10:00 น.</div>
-                                        </div>
+                                    <div class="ant-list">
+                                        <?php if (!empty($recent_bookings)): ?>
+                                            <?php foreach ($recent_bookings as $rb): ?>
+                                                <div class="ant-list-item">
+                                                    <div class="ant-list-item-meta">
+                                                        <div class="ant-list-item-meta-avatar">
+                                                            <i class='bx bx-calendar list-item-icon'></i>
+                                                        </div>
+                                                        <div class="ant-list-item-meta-content">
+                                                            <div class="ant-list-item-meta-title"><?= htmlspecialchars($rb['name']) ?></div>
+                                                            <div class="ant-list-item-meta-description"><?= htmlspecialchars(formatBookingDate($rb['date'], $rb['time'])) ?></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="ant-list-item-action">
+                                                        <?php
+                                                            $s = trim($rb['status'] ?? '');
+                                                            if ($s === 'อนุมัติแล้ว') {
+                                                                echo '<span class="ant-tag ant-tag-green">อนุมัติแล้ว</span>';
+                                                            } elseif ($s === 'ถูกปฏิเสธ') {
+                                                                echo '<span class="ant-tag" style="background:#fff2f0;border-color:#ffd8d8;color:#e74a3b;">ถูกปฏิเสธ</span>';
+                                                            } else {
+                                                                echo '<span class="ant-tag">รออนุมัติ</span>';
+                                                            }
+                                                        ?>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <div class="text-center text-muted">ไม่มีการจองที่ได้รับการอนุมัติ</div>
+                                        <?php endif; ?>
                                     </div>
-                                    <div class="ant-list-item-action">
-                                        <span class="ant-tag ant-tag-green">อนุมัติแล้ว</span>
-                                    </div>
-                                </div>
-                                <div class="ant-list-item">
-                                    <div class="ant-list-item-meta">
-                                        <div class="ant-list-item-meta-avatar">
-                                            <i class='bx bx-package list-item-icon'></i>
+                        </div>
+                    </div>
+
+                            <!-- Booking Status Modal -->
+                            <div class="modal fade" id="bookingStatusModal" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">สถานะการจองของฉัน</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
-                                        <div class="ant-list-item-meta-content">
-                                            <div class="ant-list-item-meta-title">สั่งซื้อสินค้า</div>
-                                            <div class="ant-list-item-meta-description">มะม่วงน้ำดอกไม้ 5 กิโลกรัม</div>
+                                        <div class="modal-body">
+                                            <div id="bookingTimelineContainer">
+                                                <p class="text-muted">กำลังโหลดข้อมูล...</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="ant-list-item-action">
-                                        <span class="ant-tag">กำลังจัดส่ง</span>
-                                    </div>
-                                </div>
-                                <div class="ant-list-item">
-                                    <div class="ant-list-item-meta">
-                                        <div class="ant-list-item-meta-avatar">
-                                            <i class='bx bx-star list-item-icon'></i>
+                                        <div class="modal-footer">
+                                            <button type="button" class="ant-btn ant-btn-default" data-bs-dismiss="modal">ปิด</button>
                                         </div>
-                                        <div class="ant-list-item-meta-content">
-                                            <div class="ant-list-item-meta-title">ให้คะแนนการเข้าชม</div>
-                                            <div class="ant-list-item-meta-description">การเข้าชมวันที่ 10 มกราคม 2567</div>
-                                        </div>
-                                    </div>
-                                    <div class="ant-list-item-action">
-                                        <i class='bx bxs-star' style="color: #ffc107;"></i>
-                                        <i class='bx bxs-star' style="color: #ffc107;"></i>
-                                        <i class='bx bxs-star' style="color: #ffc107;"></i>
-                                        <i class='bx bxs-star' style="color: #ffc107;"></i>
-                                        <i class='bx bxs-star' style="color: #ffc107;"></i>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
+
+                            <!-- Booking History Modal -->
+                            <div class="modal fade" id="bookingHistoryModal" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">ประวัติการจองของฉัน</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div id="bookingHistoryContainer">
+                                                <p class="text-muted">กำลังโหลดประวัติ...</p>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="ant-btn ant-btn-default" data-bs-dismiss="modal">ปิด</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                 </div>
             </div>
             
@@ -1051,6 +1101,216 @@ function thaiDate($datetime) {
                 }, index * 100);
             });
         });
+    </script>
+    <script>
+        (function(){
+            const btn = document.getElementById('checkBookingBtn');
+            if (!btn) return;
+            const modalEl = document.getElementById('bookingStatusModal');
+            let modalObj = null;
+            btn.addEventListener('click', function(){
+                // show bootstrap modal
+                if (!modalObj) modalObj = new bootstrap.Modal(modalEl);
+                // fetch bookings
+                fetch('api_member_bookings.php')
+                    .then(res => {
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        return res.json();
+                    })
+                    .then(json => {
+                        const list = json.data || [];
+                        // only show the latest booking
+                        if (!list || list.length === 0) {
+                            const container = document.getElementById('bookingTimelineContainer');
+                            container.innerHTML = '<div class="text-muted">ยังไม่มีการจองล่าสุด</div>';
+                        } else {
+                            renderTimeline([ list[0] ]);
+                        }
+                        modalObj.show();
+                    })
+                    .catch(err => {
+                        const container = document.getElementById('bookingTimelineContainer');
+                        container.innerHTML = '<div class="text-danger">ไม่สามารถโหลดข้อมูลได้</div>';
+                        modalObj.show();
+                        console.error(err);
+                    });
+            });
+
+            // Booking history modal: show full list
+            const historyBtn = document.getElementById('viewBookingHistoryBtn');
+            const historyModalEl = document.getElementById('bookingHistoryModal');
+            let historyModalObj = null;
+            if (historyBtn) {
+                historyBtn.addEventListener('click', function(){
+                    if (!historyModalObj) historyModalObj = new bootstrap.Modal(historyModalEl);
+                    const container = document.getElementById('bookingHistoryContainer');
+                    container.innerHTML = '<p class="text-muted">กำลังโหลดประวัติ...</p>';
+                    fetch('api_member_bookings.php')
+                        .then(res => {
+                            if (!res.ok) throw new Error('HTTP ' + res.status);
+                            return res.json();
+                        })
+                        .then(json => {
+                                    const list = (json.data || []).filter(b => {
+                                        const s = (b.status || '').trim();
+                                        return s === 'อนุมัติแล้ว' || s === 'ถูกปฏิเสธ';
+                                    });
+                                    renderHistory(list);
+                                    historyModalObj.show();
+                                })
+                        .catch(err => {
+                            container.innerHTML = '<div class="text-danger">ไม่สามารถโหลดข้อมูลได้</div>';
+                            historyModalObj.show();
+                            console.error(err);
+                        });
+                });
+            }
+
+            function formatThaiDateTime(datetimeStr) {
+                if (!datetimeStr) return '';
+                const d = new Date(datetimeStr);
+                if (isNaN(d)) return datetimeStr;
+                const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+                const day = d.getDate();
+                const month = months[d.getMonth()];
+                const year = d.getFullYear() + 543;
+                const hh = String(d.getHours()).padStart(2,'0');
+                const mm = String(d.getMinutes()).padStart(2,'0');
+                return `${day} ${month} ${year} เวลา ${hh}:${mm} น.`;
+            }
+
+            function renderTimeline(items) {
+                const container = document.getElementById('bookingTimelineContainer');
+                if (!container) return;
+                if (!items || items.length === 0) {
+                    container.innerHTML = '<div class="text-muted">ไม่มีการจอง</div>';
+                    return;
+                }
+                // Only the latest booking (first item) is used
+                const b = items[0];
+
+                // determine step index: 0=submitted,1=in progress,2=completed
+                let step = 0;
+                if (b.status === 'รออนุมัติ') step = 1; // in progress
+                else if (b.status === 'อนุมัติแล้ว') step = 2; // completed
+                else if (b.status === 'ถูกปฏิเสธ') step = 1; // treat as in progress but show rejection
+
+                let html = '';
+
+                // Booking header
+                html += `<div style="margin-bottom:12px;padding:8px;border-radius:8px;background:#fff;">`;
+                html += `<div style="font-weight:700; font-size:1.05rem;">${escapeHtml(b.name)}</div>`;
+                html += `<div class="text-muted">วันที่ ${escapeHtml(b.date)} ${b.time ? 'เวลา ' + escapeHtml(b.time) + ' น.' : ''}</div>`;
+                html += `</div>`;
+
+                // 3-step horizontal timeline
+                html += `<div style="display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:12px;border-radius:8px;border:1px solid #eee;background:#fafafa;">`;
+                const steps = [ 'ยื่นคำขอ', 'กำลังดำเนินการ', 'จองสำเร็จ' ];
+                steps.forEach((label, idx) => {
+                    const active = idx <= step;
+                    const isCurrent = idx === step;
+                    const bg = isCurrent ? '#1677ff' : (active ? '#f0f7ff' : '#fff');
+                    const color = isCurrent ? '#fff' : (active ? '#0b6ed1' : '#777');
+                    html += `<div style="flex:1;text-align:center;">`;
+                    html += `<div style="margin:0 auto;width:44px;height:44px;border-radius:22px;background:${bg};color:${color};display:flex;align-items:center;justify-content:center;font-weight:700;">${idx+1}</div>`;
+                    html += `<div style="margin-top:8px;color:${isCurrent ? '#111' : '#666'};font-weight:${isCurrent?600:500};">${label}</div>`;
+                    html += `</div>`;
+                    if (idx < steps.length - 1) {
+                        html += `<div style="width:24px;flex:0 0 24px;display:flex;align-items:center;justify-content:center;"><div style="height:4px;width:100%;background:${idx < step ? '#1677ff' : '#e9ecef'};border-radius:2px;"></div></div>`;
+                    }
+                });
+                html += `</div>`;
+
+                // show rejection reason if rejected
+                if (b.status === 'ถูกปฏิเสธ') {
+                    html += `<div style="margin-top:12px;padding:10px;border-radius:8px;background:#fff2f0;border:1px solid #ffd8d8;color:#bf2e2e;">`; 
+                    html += `<strong>ปฏิเสธการจอง</strong>`;
+                    if (b.rejection_reason) html += `<div style="margin-top:6px;">สาเหตุ: ${escapeHtml(b.rejection_reason)}</div>`;
+                    html += `</div>`;
+                }
+
+                // payment summary
+                try {
+                    const total = b.total_amount != null ? Number(b.total_amount) : null;
+                    const deposit = b.paid_amount != null ? Number(b.paid_amount) : (b.deposit_amount != null ? Number(b.deposit_amount) : null);
+                    const remain = b.remain_amount != null ? Number(b.remain_amount) : (total != null && deposit != null ? total - deposit : null);
+                    if (total != null) {
+                        html += '<div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;">';
+                        html += `<div style="padding:8px;border-radius:8px;background:#fff;border:1px solid #eee;">ยอดรวม: <strong>${Number(total).toLocaleString()} บาท</strong></div>`;
+                        if (deposit != null) html += `<div style="padding:8px;border-radius:8px;background:#f6ffed;border:1px solid #d9f7be;color:#237804;">จ่ายแล้ว: <strong>${Number(deposit).toLocaleString()} บาท</strong></div>`;
+                        if (remain != null) html += `<div style="padding:8px;border-radius:8px;background:#fff7e6;border:1px solid #ffe7ba;color:#b35a00;">คงเหลือ: <strong>${Number(remain).toLocaleString()} บาท</strong></div>`;
+                        html += '</div>';
+                    }
+                } catch (e) { console.error(e); }
+
+                // slip link
+                if (b.slip) {
+                    html += `<div style="margin-top:12px;"><a class="ant-btn ant-btn-default" href="download.php?type=slip&file=${encodeURIComponent(b.slip)}" target="_blank">ดูสลิปการชำระ</a></div>`;
+                }
+
+                container.innerHTML = html;
+            }
+
+            function renderHistory(items) {
+                const container = document.getElementById('bookingHistoryContainer');
+                if (!container) return;
+                if (!items || items.length === 0) {
+                    container.innerHTML = '<div class="text-muted">ยังไม่มีประวัติการจอง</div>';
+                    return;
+                }
+
+                let html = '<div class="list-group">';
+                items.forEach(b => {
+                    html += '<div class="list-group-item" style="border-radius:8px;margin-bottom:8px;">';
+                    html += `<div style="display:flex;justify-content:space-between;align-items:center;">`;
+                    html += `<div style="font-weight:600;">${escapeHtml(b.name)}</div>`;
+                    let statusTag = '';
+                    if (b.status === 'อนุมัติแล้ว') statusTag = '<span class="ant-tag ant-tag-green">อนุมัติแล้ว</span>';
+                    else if (b.status === 'ถูกปฏิเสธ') statusTag = '<span class="ant-tag" style="background:#fff2f0;border-color:#ffd8d8;color:#e74a3b;">ถูกปฏิเสธ</span>';
+                    else statusTag = '<span class="ant-tag">รออนุมัติ</span>';
+                    html += `<div>${statusTag}</div>`;
+                    html += `</div>`;
+                    html += `<div class="text-muted" style="margin-top:6px;">วันที่ ${escapeHtml(b.date)} ${b.time ? 'เวลา ' + escapeHtml(b.time) + ' น.' : ''}</div>`;
+                    // payment summary for history item
+                    try {
+                        const total = b.total_amount != null ? Number(b.total_amount) : null;
+                        const paid = b.paid_amount != null ? Number(b.paid_amount) : (b.deposit_amount != null ? Number(b.deposit_amount) : null);
+                        const remain = b.remain_amount != null ? Number(b.remain_amount) : (total != null && paid != null ? total - paid : null);
+                        if (total != null) {
+                            html += '<div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;">';
+                            html += `<div style="padding:8px;border-radius:8px;background:#fff;border:1px solid #eee;">ยอดรวม: <strong>${Number(total).toLocaleString()} บาท</strong></div>`;
+                            if (paid != null) html += `<div style="padding:8px;border-radius:8px;background:#f6ffed;border:1px solid #d9f7be;color:#237804;">จ่ายแล้ว: <strong>${Number(paid).toLocaleString()} บาท</strong></div>`;
+                            if (remain != null) html += `<div style="padding:8px;border-radius:8px;background:#fff7e6;border:1px solid #ffe7ba;color:#b35a00;">คงเหลือ: <strong>${Number(remain).toLocaleString()} บาท</strong></div>`;
+                            html += '</div>';
+                        }
+                    } catch (e) {
+                        console.error(e);
+                    }
+                    if (b.status === 'อนุมัติแล้ว') {
+                        if (b.approved_at_display) html += `<div class="text-muted">อนุมัติเมื่อ ${escapeHtml(b.approved_at_display)}</div>`;
+                        else if (b.approved_at) html += `<div class="text-muted">อนุมัติเมื่อ ${formatThaiDateTime(b.approved_at)}</div>`;
+                        if (b.approved_by) html += `<div class="text-muted">อนุมัติโดย: ${escapeHtml(b.approved_by)}</div>`;
+                    } else if (b.status === 'ถูกปฏิเสธ') {
+                        if (b.rejection_reason) html += `<div class="text-danger">สาเหตุ: ${escapeHtml(b.rejection_reason)}</div>`;
+                        else html += `<div class="text-muted">สาเหตุ: ไม่ระบุ</div>`;
+                    }
+                    // show slip link if available
+                    if (b.slip) {
+                        html += `<div style="margin-top:8px;"><a class="ant-btn ant-btn-default" href="download.php?type=slip&file=${encodeURIComponent(b.slip)}" target="_blank">ดูสลิปการชำระ</a></div>`;
+                    }
+                    html += '</div>';
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            }
+
+            function escapeHtml(s) {
+                if (!s) return '';
+                return String(s).replace(/[&<>"'`]/g, function(ch) {
+                    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;",'`':'&#96;'}[ch];
+                });
+            }
+        })();
     </script>
 </body>
 </html>
