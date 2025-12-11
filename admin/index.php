@@ -14,10 +14,19 @@ $sql = "SELECT DATE(created_at) as day, SUM(total_price) as total
             FROM orders 
             WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
             GROUP BY day ORDER BY day";
-$result = $conn->query($sql);
-while ($row = $result->fetch_assoc()) {
-    $labels_day[] = $row['day'];
-    $sales_day[] = (float)$row['total'];
+try {
+    $result = $conn->query($sql);
+} catch (mysqli_sql_exception $e) {
+    error_log('admin/index.php: DB exception (sales_day): ' . $e->getMessage());
+    $result = false;
+}
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $labels_day[] = $row['day'];
+        $sales_day[] = (float)$row['total'];
+    }
+} else {
+    error_log('admin/index.php: DB error (sales_day): ' . $conn->error);
 }
 
 // รายสัปดาห์ 8 สัปดาห์ล่าสุด
@@ -27,10 +36,19 @@ $sql = "SELECT YEARWEEK(created_at, 1) as week, SUM(total_price) as total
             FROM orders 
             WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 WEEK)
             GROUP BY week ORDER BY week";
-$result = $conn->query($sql);
-while ($row = $result->fetch_assoc()) {
-    $labels_week[] = $row['week'];
-    $sales_week[] = (float)$row['total'];
+try {
+    $result = $conn->query($sql);
+} catch (mysqli_sql_exception $e) {
+    error_log('admin/index.php: DB exception (sales_week): ' . $e->getMessage());
+    $result = false;
+}
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $labels_week[] = $row['week'];
+        $sales_week[] = (float)$row['total'];
+    }
+} else {
+    error_log('admin/index.php: DB error (sales_week): ' . $conn->error);
 }
 
 // รายเดือน 12 เดือนล่าสุด
@@ -40,10 +58,19 @@ $sql = "SELECT DATE_FORMAT(created_at, '%Y-%m') as month, SUM(total_price) as to
             FROM orders 
             WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
             GROUP BY month ORDER BY month";
-$result = $conn->query($sql);
-while ($row = $result->fetch_assoc()) {
-    $labels_month[] = $row['month'];
-    $sales_month[] = (float)$row['total'];
+try {
+    $result = $conn->query($sql);
+} catch (mysqli_sql_exception $e) {
+    error_log('admin/index.php: DB exception (sales_month): ' . $e->getMessage());
+    $result = false;
+}
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $labels_month[] = $row['month'];
+        $sales_month[] = (float)$row['total'];
+    }
+} else {
+    error_log('admin/index.php: DB error (sales_month): ' . $conn->error);
 }
 
 // รายปี 5 ปีล่าสุด
@@ -53,10 +80,19 @@ $sql = "SELECT YEAR(created_at) as year, SUM(total_price) as total
             FROM orders 
             WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 4 YEAR)
             GROUP BY year ORDER BY year";
-$result = $conn->query($sql);
-while ($row = $result->fetch_assoc()) {
-    $labels_year[] = $row['year'];
-    $sales_year[] = (float)$row['total'];
+try {
+    $result = $conn->query($sql);
+} catch (mysqli_sql_exception $e) {
+    error_log('admin/index.php: DB exception (sales_year): ' . $e->getMessage());
+    $result = false;
+}
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $labels_year[] = $row['year'];
+        $sales_year[] = (float)$row['total'];
+    }
+} else {
+    error_log('admin/index.php: DB error (sales_year): ' . $conn->error);
 }
 
 // ดึงจำนวนการจองเข้าชมสวน รายเดือน 12 เดือนล่าสุด
@@ -66,26 +102,56 @@ $sql = "SELECT DATE_FORMAT(date, '%Y-%m') as month, COUNT(*) as total
             FROM bookings 
             WHERE date >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
             GROUP BY month ORDER BY month";
-$result = $conn->query($sql);
-while ($row = $result->fetch_assoc()) {
-    $labels_booking_month[] = $row['month'];
-    $booking_month[] = (int)$row['total'];
+try {
+    $result = $conn->query($sql);
+} catch (mysqli_sql_exception $e) {
+    error_log('admin/index.php: DB exception (booking_month): ' . $e->getMessage());
+    $result = false;
+}
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $labels_booking_month[] = $row['month'];
+        $booking_month[] = (int)$row['total'];
+    }
+} else {
+    error_log('admin/index.php: DB error (booking_month): ' . $conn->error);
 }
 
 // นับจำนวนสายพันธุ์มะม่วงที่ไม่ซ้ำกัน
 $sql = "SELECT COUNT(DISTINCT mango_name) AS variety_count FROM mango_varieties";
-$result = $conn->query($sql);
-$row = $result->fetch_assoc();
-$variety_count = $row['variety_count'];
+try {
+    $result = $conn->query($sql);
+} catch (mysqli_sql_exception $e) {
+    error_log('admin/index.php: DB exception (variety_count): ' . $e->getMessage());
+    $result = false;
+}
+if ($result) {
+    $row = $result->fetch_assoc();
+    $variety_count = $row['variety_count'];
+} else {
+    error_log('admin/index.php: DB error (variety_count): ' . $conn->error);
+    $variety_count = 0;
+}
 
 // ดึงยอดมัดจำรวมและยอดคงเหลือรวมจาก bookings เฉพาะที่อนุมัติแล้ว
 $sql = "SELECT SUM(deposit_amount) AS deposit_total, SUM(remain_amount) AS remain_total 
         FROM bookings 
         WHERE status = 'อนุมัติแล้ว'";
-$result = $conn->query($sql);
-$row = $result->fetch_assoc();
-$deposit_total = $row['deposit_total'] ?? 0;
-$remain_total = $row['remain_total'] ?? 0;
+try {
+    $result = $conn->query($sql);
+} catch (mysqli_sql_exception $e) {
+    error_log('admin/index.php: DB exception (deposit/remain totals): ' . $e->getMessage());
+    $result = false;
+}
+if ($result) {
+    $row = $result->fetch_assoc();
+    $deposit_total = $row['deposit_total'] ?? 0;
+    $remain_total = $row['remain_total'] ?? 0;
+} else {
+    error_log('admin/index.php: DB error (deposit/remain totals): ' . $conn->error);
+    $deposit_total = 0;
+    $remain_total = 0;
+}
 ?>
 
 <!DOCTYPE html>
@@ -703,7 +769,7 @@ $remain_total = $row['remain_total'] ?? 0;
 
                         <!-- ยอดคงเหลือรวม -->
                         <div class="data-card remain-card">
-                            <div class="deposit-title">ยอดคงเหลือรวม</div>
+                            <div class="deposit-title">ยอดค้างชำระรวม</div>
                             <div class="remain-value"><?= number_format($remain_total, 2) ?> บาท</div>
                             <div class="data-card-extra">
                             </div>

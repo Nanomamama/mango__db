@@ -194,7 +194,7 @@
             <li class="nav-item"><a class="nav-link" href="../user/products.php">สินค้าผลิตภัณฑ์</a></li>
             <li class="nav-item"><a class="nav-link" href="../user/course.php">หลักสูตรการเรียนรู้</a></li>
             <li class="nav-item"><a class="nav-link" href="../user/activities.php">จองวันเข้าดูงาน</a></li>
-            <li class="nav-item"><a class="nav-link" href="#">ติดต่อเรา</a></li>
+            <!-- <li class="nav-item"><a class="nav-link" href="#">ติดต่อเรา</a></li> -->
 
             <?php if (!isset($_SESSION['member_id'])): ?>
               <li class="nav-item mt-3 mt-xl-0">
