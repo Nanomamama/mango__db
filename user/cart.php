@@ -1,3 +1,28 @@
+
+<?php
+session_start();
+require_once '../admin/db.php';
+
+$isLogin = isset($_SESSION['member_id']);
+$user = null;
+
+if ($isLogin) {
+    $member_id = $_SESSION['member_id'];
+
+    $stmt = $conn->prepare("
+        SELECT fullname, email, phone, address 
+        FROM members 
+        WHERE id = ?
+    ");
+    $stmt->bind_param("i", $member_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $user = $result->fetch_assoc();
+    $stmt->close();
+}
+?>
+
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -22,7 +47,7 @@
     <br>
     <br>
     <br>
-    <h1 class="text-center">รถเข็น</h1>
+    <h1 class="text-center">ตระกร้า</h1>
     <div id="cart-container" class="row g-4 mt-4">
         <!-- การ์ดสินค้าจะถูกเพิ่มที่นี่ -->
     </div>
@@ -31,13 +56,32 @@
 
         <a href="products.php" class="btn btn-warning">เลือกสินค้า</a>
         <button class="btn btn-danger" onclick="resetCart()">ลบ</button>
-        <button id="checkout-btn" class="btn btn-primary" onclick="window.location.href='checkout.php'" disabled>ชำระเงิน</button>
+        <button id="checkout-btn" class="btn btn-primary">ชำระเงิน</button>
     </div>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+
+    const isLogin = <?= $isLogin ? 'true' : 'false' ?>;
+
+    //ฟังชันค์การเข้าสู่ระบบก่อนชำระเงิน
+    $("#checkout-btn").click(function () {
+    if (!isLogin) {
+        Swal.fire({
+            icon: "warning",
+            title: "กรุณาเข้าสู่ระบบ",
+            text: "ต้องเข้าสู่ระบบก่อนทำการสั่งซื้อ",
+            confirmButtonText: "ไปหน้าเข้าสู่ระบบ"
+        }).then(() => {
+            window.location.href = "member_login.php";
+        });
+    } else {
+        window.location.href = "checkout.php";
+    }
+});
+
     // โหลดสินค้าจาก Local Storage
     function loadCart() {
         let cart = JSON.parse(localStorage.getItem("cart")) || [];
