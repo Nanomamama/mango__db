@@ -25,15 +25,17 @@ if (!isset($_SESSION['csrf_token'])) {
             font-family: 'Prompt', sans-serif;
             background-color: #f8f9fa;
         }
+
         .form-label {
             font-weight: 500;
         }
+
         .container {
             max-width: 800px;
             background-color: #fff;
             padding: 2rem;
             border-radius: 1rem;
-            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
         }
     </style>
 </head>
@@ -41,7 +43,7 @@ if (!isset($_SESSION['csrf_token'])) {
 <body>
 
     <div class="container mt-5">
-        <h2 class="mb-4">➕ เพิ่มสินค้าผลิตภัณฐ์แปรรูป</h2>
+        <h2 class="mb-4">➕ เพิ่มสินค้าผลิตภัณฑ์</h2>
 
         <form action="save_product.php" method="POST" enctype="multipart/form-data">
             <!-- เพิ่ม CSRF Token -->
@@ -51,7 +53,7 @@ if (!isset($_SESSION['csrf_token'])) {
                 <!-- ซ้าย -->
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label class="form-label">ชื่อสินค้าผลิตภัณฐ์</label>
+                        <label class="form-label">ชื่อสินค้าผลิตภัณฑ์</label>
                         <input type="text" class="form-control" name="product_name" placeholder="เช่น กล้วยอบเนย" required>
                     </div>
 
@@ -62,13 +64,21 @@ if (!isset($_SESSION['csrf_token'])) {
 
                     <div class="mb-3">
                         <label class="form-label">รูปสินค้า</label>
-                        <input type="file" class="form-control" name="product_images[]" id="product_images" accept="image/*" multiple required>
+                        <input type="file" class="form-control" name="product_image" accept="image/*" required>
                         <div id="image_preview" class="mt-3 d-flex flex-wrap"></div>
                     </div>
                 </div>
 
                 <!-- ขวา -->
                 <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">น้ำหนักสินค้า (กิโลกรัม)</label>
+                        <input type="number" step="0.01" class="form-control"
+                            name="product_weight"
+                            placeholder="เช่น 0.50"
+                            required>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label">ราคา (บาท)</label>
                         <input type="number" class="form-control" name="product_price" placeholder="กรอกราคา เช่น 59" min="1" required>
@@ -79,8 +89,19 @@ if (!isset($_SESSION['csrf_token'])) {
                         <label class="form-label">จำนวนสินค้าคงเหลือ</label>
                         <input type="number" class="form-control" name="product_stock" placeholder="กรอกจำนวน เช่น 100" min="0" required>
                     </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">แจ้งเตือนเมื่อสต๊อกต่ำกว่า</label>
+                        <input type="number" class="form-control"
+                            name="product_min_stock"
+                            placeholder="เช่น 10"
+                            min="0"
+                            required>
+                    </div>
+
                 </div>
             </div>
+
 
             <div class="d-flex justify-content-between mt-4">
                 <a href="manage_product.php" class="btn btn-secondary">🔙 กลับ</a>
@@ -96,15 +117,16 @@ if (!isset($_SESSION['csrf_token'])) {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <?php if (isset($_SESSION['success'])): ?>
-    <script>
-        Swal.fire({
-            icon: 'success',
-            title: '<?= $_SESSION['success'] ?>',
-            showConfirmButton: false,
-            timer: 2000
-        });
-    </script>
-    <?php unset($_SESSION['success']); endif; ?>
+        <script>
+            Swal.fire({
+                icon: 'success',
+                title: '<?= $_SESSION['success'] ?>',
+                showConfirmButton: false,
+                timer: 2000
+            });
+        </script>
+    <?php unset($_SESSION['success']);
+    endif; ?>
 
     <script>
         document.getElementById('product_images').addEventListener('change', function(event) {

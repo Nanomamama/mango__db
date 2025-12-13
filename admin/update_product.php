@@ -1,43 +1,64 @@
 <?php
-require_once 'db.php'; // เชื่อมต่อฐานข้อมูล
+require_once 'db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id = intval($_POST['product_id']);
-    $name = htmlspecialchars($_POST['product_name']);
-    $description = htmlspecialchars($_POST['product_description']);
-    $price = floatval($_POST['product_price']);
-    $stock = intval($_POST['product_stock']);
 
-    // จัดการอัปโหลดรูปภาพใหม่ (ถ้ามี)
-    $uploaded_images = [];
-    if (!empty($_FILES['product_images']['name'][0])) {
-        foreach ($_FILES['product_images']['tmp_name'] as $key => $tmp_name) {
-            $file_name = basename($_FILES['product_images']['name'][$key]);
-            $target_path = "productsimage/" . $file_name;
+    $product_id  = (int) $_POST['product_id'];
+    $name        = trim($_POST['product_name']);
+    $description = trim($_POST['product_description']);
+    $price       = (float) $_POST['product_price'];
+    $stock       = (int) $_POST['product_stock'];
 
-            if (move_uploaded_file($tmp_name, $target_path)) {
-                $uploaded_images[] = $file_name;
-            }
+    /* -----------------------------
+       จัดการอัปโหลดรูป (รูปเดียว)
+    ----------------------------- */
+    $newImageName = null;
+
+    if (!empty($_FILES['product_image']['name'])) {
+
+        $uploadDir = "../uploads/products/";
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        $ext = pathinfo($_FILES['product_image']['name'], PATHINFO_EXTENSION);
+        $newImageName = time() . "_" . uniqid() . "." . $ext;
+        $targetPath = $uploadDir . $newImageName;
+
+        move_uploaded_file($_FILES['product_image']['tmp_name'], $targetPath);
+
+        /* ลบรูปเก่า */
+        $old = $conn->prepare("SELECT image FROM products WHERE product_id = ?");
+        $old->bind_param("i", $product_id);
+        $old->execute();
+        $oldImg = $old->get_result()->fetch_assoc()['image'];
+
+        if ($oldImg && file_exists($uploadDir . $oldImg)) {
+            unlink($uploadDir . $oldImg);
         }
     }
 
-    // อัปเดตข้อมูลในฐานข้อมูล
-    $images_json = !empty($uploaded_images) ? json_encode($uploaded_images) : null;
-
-    if ($images_json) {
-        $query = "UPDATE products SET name = ?, description = ?, price = ?, stock = ?, images = ? WHERE id = ?";
-        $stmt = $conn->prepare($query);
-        $stmt->bind_param("ssdisi", $name, $description, $price, $stock, $images_json, $id);
+    /* -----------------------------
+       UPDATE ข้อมูล
+    ----------------------------- */
+    if ($newImageName) {
+        $sql = "UPDATE products 
+                SET product_name=?, description=?, price=?, stock=?, image=?
+                WHERE product_id=?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ssdisi", $name, $description, $price, $stock, $newImageName, $product_id);
     } else {
-        $query = "UPDATE products SET name = ?, description = ?, price = ?, stock = ? WHERE id = ?";
-        $stmt = $conn->prepare($query);
-        $stmt->bind_param("ssdii", $name, $description, $price, $stock, $id);
+        $sql = "UPDATE products 
+                SET product_name=?, description=?, price=?, stock=?
+                WHERE product_id=?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ssdii", $name, $description, $price, $stock, $product_id);
     }
 
     if ($stmt->execute()) {
         header("Location: manage_product.php?success=แก้ไขสินค้าสำเร็จ");
     } else {
-        header("Location: manage_product.php?error=เกิดข้อผิดพลาดในการแก้ไขสินค้า");
+        header("Location: manage_product.php?error=เกิดข้อผิดพลาด");
     }
 
     $stmt->close();

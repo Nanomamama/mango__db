@@ -2,81 +2,162 @@
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 header('Content-Type: application/json');
+
+session_start();
 require_once '../admin/db.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $customer_name = $_POST['customer_name'];
-    $customer_phone = $_POST['customer_phone'];
-    $address_number = $_POST['address_number'];
-    $province_id = intval($_POST['province_id']);
-    $district_id = intval($_POST['district_id']);
-    $subdistrict_id = intval($_POST['subdistrict_id']);
-    $postal_code = $_POST['postal_code'];
-    $payment_method = $_POST['payment_method'];
-    $cart = json_decode($_POST['cart'], true);
+/* ---------- เช็ค method ---------- */
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(['success' => false, 'message' => 'Invalid request']);
+    exit;
+}
 
-    $slip_data = null;
-    if (($payment_method === 'bank' || $payment_method === 'promptpay') && isset($_FILES['payment_slip']) && $_FILES['payment_slip']['error'] === UPLOAD_ERR_OK) {
-        $slip_data = base64_encode(file_get_contents($_FILES['payment_slip']['tmp_name']));
+/* ---------- เช็ค login ---------- */
+if (!isset($_SESSION['member_id'])) {
+    echo json_encode(['success' => false, 'message' => 'กรุณาเข้าสู่ระบบ']);
+    exit;
+}
+
+$member_id = $_SESSION['member_id'];
+
+/* ---------- รับค่าจากฟอร์ม ---------- */
+$customer_name   = trim($_POST['customer_name']);
+$customer_phone  = trim($_POST['customer_phone']);
+$address_number  = trim($_POST['address_number']);
+$province_id     = (int) $_POST['province_id'];
+$district_id     = (int) $_POST['district_id'];
+$subdistrict_id  = (int) $_POST['subdistrict_id'];
+$postal_code     = trim($_POST['postal_code']);
+$payment_method  = $_POST['payment_method'];
+
+/* ---------- cart (JSON) ---------- */
+$cartData = json_decode($_POST['cart'], true);
+
+if (!$cartData || empty($cartData['items'])) {
+    echo json_encode(['success' => false, 'message' => 'ไม่พบข้อมูลสินค้า']);
+    exit;
+}
+
+$items = $cartData['items'];
+$total_weight  = (float) $cartData['total_weight'];
+$shipping_cost = (float) $cartData['shipping_cost'];
+$total_price   = (float) $cartData['total_price'];
+
+/* ---------- อัปโหลดสลิป ---------- */
+$slip_path = null;
+
+if (
+    ($payment_method === 'bank' || $payment_method === 'promptpay') &&
+    isset($_FILES['payment_slip']) &&
+    $_FILES['payment_slip']['error'] === UPLOAD_ERR_OK
+) {
+    $ext = pathinfo($_FILES['payment_slip']['name'], PATHINFO_EXTENSION);
+    $slip_name = time() . "_" . uniqid() . "." . $ext;
+    $upload_dir = "../uploads/slips/";
+
+    if (!is_dir($upload_dir)) {
+        mkdir($upload_dir, 0777, true);
     }
 
-    $total_price = 0;
-    foreach ($cart as $item) {
-        $total_price += $item['price'] * $item['quantity'];
-    }
-
-    $query = "INSERT INTO orders (
-        customer_name, customer_phone, address_number,
-        province_id, district_id, subdistrict_id,
-        postal_code, payment_method, total_price, slip_path, status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())";
-
-    $stmt = $conn->prepare($query);
-    if (!$stmt) {
-        echo json_encode(['success' => false, 'message' => 'เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล', 'error' => $conn->error]);
-        exit;
-    }
-    $stmt->bind_param(
-        "ssssiiisds",
-        $customer_name,         // s
-        $customer_phone,        // s
-        $address_number,        // s
-        $province_id,           // i
-        $district_id,           // i
-        $subdistrict_id,        // i
-        $postal_code,           // s
-        $payment_method,        // s
-        $total_price,           // d
-        $slip_data              // s
+    move_uploaded_file(
+        $_FILES['payment_slip']['tmp_name'],
+        $upload_dir . $slip_name
     );
-    if (!$stmt->execute()) {
-        echo json_encode(['success' => false, 'message' => 'ไม่สามารถบันทึกคำสั่งซื้อได้', 'error' => $stmt->error]);
-        exit;
-    }
+
+    $slip_path = "uploads/slips/" . $slip_name;
+}
+
+/* ---------- เริ่ม Transaction ---------- */
+$conn->begin_transaction();
+
+try {
+
+    /* ---------- บันทึก orders ---------- */
+    $sql = "INSERT INTO orders (
+        member_id, customer_name, customer_phone, address_number,
+        province_id, district_id, subdistrict_id, postal_code,
+        payment_method, total_price, shipping_cost, total_weight,
+        slip_path, status, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())";
+
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param(
+        "isssiiissddds",
+        $member_id,
+        $customer_name,
+        $customer_phone,
+        $address_number,
+        $province_id,
+        $district_id,
+        $subdistrict_id,
+        $postal_code,
+        $payment_method,
+        $total_price,
+        $shipping_cost,
+        $total_weight,
+        $slip_path
+    );
+    $stmt->execute();
 
     $order_id = $stmt->insert_id;
+    $stmt->close();
 
-    // บันทึกรายการสินค้าใน order_items
-    foreach ($cart as $item) {
-        $product_id = $item['id'];
-        $quantity = $item['quantity'];
-        $price = $item['price'];
+    /* ---------- บันทึก order_items + ตัด stock ---------- */
+    foreach ($items as $item) {
 
-        $query = "INSERT INTO order_items (order_id, product_id, quantity, price, created_at) VALUES (?, ?, ?, ?, NOW())";
-        $stmt2 = $conn->prepare($query);
-        if ($stmt2) {
-            $stmt2->bind_param("iiid", $order_id, $product_id, $quantity, $price);
-            $stmt2->execute();
+        $product_id = (int) $item['id'];
+        $quantity   = (int) $item['quantity'];
+        $price      = (float) $item['price'];
+        $weight     = (float) ($item['weight'] ?? 0);
+
+        // order_items
+        $stmtItem = $conn->prepare("
+            INSERT INTO order_items
+            (order_id, product_id, quantity, price, weight, created_at)
+            VALUES (?, ?, ?, ?, ?, NOW())
+        ");
+        $stmtItem->bind_param(
+            "iiidd",
+            $order_id,
+            $product_id,
+            $quantity,
+            $price,
+            $weight
+        );
+        $stmtItem->execute();
+        $stmtItem->close();
+
+        // ตัด stock
+        $stmtStock = $conn->prepare("
+            UPDATE products
+            SET stock = stock - ?
+            WHERE id = ? AND stock >= ?
+        ");
+        $stmtStock->bind_param("iii", $quantity, $product_id, $quantity);
+        $stmtStock->execute();
+
+        if ($stmtStock->affected_rows === 0) {
+            throw new Exception("สินค้า ID {$product_id} สต๊อกไม่เพียงพอ");
         }
 
-        // ลดสต๊อกสินค้า
-        $updateStock = $conn->prepare("UPDATE products SET stock = stock - ? WHERE id = ?");
-        if ($updateStock) {
-            $updateStock->bind_param("ii", $quantity, $product_id);
-            $updateStock->execute();
-        }
+        $stmtStock->close();
     }
 
-    echo json_encode(['success' => true, 'message' => 'การสั่งซื้อสำเร็จ', 'order_id' => $order_id]);
-    exit;
+    /* ---------- Commit ---------- */
+    $conn->commit();
+
+    echo json_encode([
+        'success'  => true,
+        'message'  => 'สั่งซื้อสำเร็จ',
+        'order_id' => $order_id
+    ]);
+
+} catch (Exception $e) {
+
+    $conn->rollback();
+
+    echo json_encode([
+        'success' => false,
+        'message' => $e->getMessage()
+    ]);
 }

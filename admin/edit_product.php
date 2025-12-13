@@ -4,14 +4,14 @@ require_once 'db.php'; // เชื่อมต่อฐานข้อมูล
 
 if (isset($_GET['id'])) {
     $id = intval($_GET['id']); // รับค่า id จาก URL และแปลงเป็นตัวเลข
-    $query = "SELECT * FROM products WHERE id = ?";
+    $query = "SELECT * FROM products WHERE product_id = ?";
     $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $result = $stmt->get_result();
 
     if ($result->num_rows === 1) {
-        $product = $result->fetch_assoc(); // ดึงข้อมูลสินค้า
+        $products = $result->fetch_assoc(); // ดึงข้อมูลสินค้า
     } else {
         echo "ไม่พบสินค้าที่ต้องการแก้ไข";
         exit;
@@ -34,52 +34,58 @@ if (isset($_GET['id'])) {
 </head>
 
 <body>
-<div class="container mt-5">
-    <h2 class="mb-4">แก้ไขสินค้า</h2>
+    <div class="container mt-5">
+        <h2 class="mb-4">แก้ไขสินค้า</h2>
 
-    <form action="update_product.php" method="POST" enctype="multipart/form-data">
-        <!-- ส่ง ID สินค้าไปด้วย -->
-        <input type="hidden" name="product_id" value="<?= $product['id'] ?>">
+        <form action="update_product.php" method="POST" enctype="multipart/form-data">
+            <!-- ส่ง ID สินค้าไปด้วย -->
+            <input type="hidden" name="product_id" value="<?= $products['product_id'] ?>">
 
-        <div class="mb-3">
-            <label class="form-label">ชื่อสินค้า</label>
-            <input type="text" class="form-control" name="product_name" value="<?= htmlspecialchars($product['name']) ?>" required>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">รายละเอียดสินค้า</label>
-            <textarea class="form-control" name="product_description" rows="3" required><?= htmlspecialchars($product['description']) ?></textarea>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">ราคา (บาท)</label>
-            <input type="number" class="form-control" name="product_price" value="<?= htmlspecialchars($product['price']) ?>" min="1" required>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">จำนวนสินค้าคงเหลือ</label>
-            <input type="number" class="form-control" name="product_stock" value="<?= htmlspecialchars($product['stock']) ?>" min="0" required>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">รูปสินค้า (อัปโหลดใหม่หากต้องการเปลี่ยน)</label>
-            <input type="file" class="form-control" name="product_images[]" accept="image/*" multiple>
-            <small>รูปภาพปัจจุบัน:</small>
-            <div>
-                <?php
-                $images = json_decode($product['images'], true);
-                foreach ($images as $image) {
-                    echo "<img src='productsimage/" . htmlspecialchars($image) . "' width='100' class='me-2'>";
-                }
-                ?>
+            <div class="mb-3">
+                <label class="form-label">ชื่อสินค้า</label>
+                <input type="text" class="form-control" name="product_name" value="<?= htmlspecialchars($products['product_name']) ?>" required>
             </div>
-        </div>
 
-        <button type="submit" class="btn btn-success">💾 บันทึกการเปลี่ยนแปลง</button>
-        <a href="manage_product.php" class="btn btn-secondary">🔙 ย้อนกลับ</a>
-    </form>
-</div>
+            <div class="mb-3">
+                <label class="form-label">รายละเอียดสินค้า</label>
+                <textarea class="form-control" name="product_description" rows="3" required><?= htmlspecialchars($products['description']) ?></textarea>
+            </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+            <div class="mb-3">
+                <label class="form-label">ราคา (บาท)</label>
+                <input type="number" class="form-control" name="product_price" value="<?= htmlspecialchars($products['price']) ?>" min="1" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">จำนวนสินค้าคงเหลือ</label>
+                <input type="number" class="form-control" name="product_stock" value="<?= htmlspecialchars($products['stock']) ?>" min="0" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">รูปสินค้า (อัปโหลดใหม่หากต้องการเปลี่ยน)</label>
+                <input type="file" class="form-control" name="product_images[]" accept="image/*" multiple>
+
+                <div>
+                    <?php if (!empty($products['image'])): ?>
+                        <div class="mt-2">
+                            <small>รูปปัจจุบัน:</small><br>
+                            <img src="uploads/products/<?= htmlspecialchars($products['image']) ?>"
+                                width="250" alt="รูปสินค้า"
+                                class="border rounded">
+                        </div>
+                    <?php else: ?>
+                        <p class="text-muted">ไม่มีรูปสินค้า</p>
+                    <?php endif; ?>
+
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-success">💾 บันทึกการเปลี่ยนแปลง</button>
+            <a href="manage_product.php" class="btn btn-secondary">🔙 ย้อนกลับ</a>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
