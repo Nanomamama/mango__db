@@ -21,7 +21,7 @@ if (!$booking_id) {
 
 // ตรวจสอบว่าผู้ใช้มีสิทธิ์อัปโหลดสลิปสำหรับการจองนี้
 $member_id = $_SESSION['member_id'];
-$check_stmt = $conn->prepare("SELECT id FROM bookings WHERE id = ? AND member_id = ?");
+$check_stmt = $conn->prepare("SELECT bookings_id FROM bookings WHERE bookings_id = ? AND member_id = ?");
 $check_stmt->bind_param('ii', $booking_id, $member_id);
 $check_stmt->execute();
 $check_result = $check_stmt->get_result();
@@ -90,7 +90,7 @@ if (!move_uploaded_file($tmp, $targetPath)) {
 }
 
 // อัปเดตฐานข้อมูล
-$stmt = $conn->prepare("UPDATE bookings SET slip = ?, status = 'รออนุมัติ' WHERE id = ?");
+$stmt = $conn->prepare("UPDATE bookings SET slip = ?, status = 'รออนุมัติ' WHERE bookings_id = ?");
 if (!$stmt) {
     // ลบไฟล์ที่อัปโหลดถ้าอัปเดตฐานข้อมูลล้มเหลว
     @unlink($targetPath);

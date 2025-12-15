@@ -28,13 +28,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $reason = trim($_POST['reason'] ?? '');
 
             // If rejecting, ensure the DB has a column to store the reason. Try to add it if missing.
-            if ($status === 'ถูกปฏิเสธ') {
+                if ($status === 'ถูกปฏิเสธ') {
                 $colCheck = $conn->query("SHOW COLUMNS FROM bookings LIKE 'rejection_reason'");
                 if ($colCheck && $colCheck->num_rows === 0) {
                     // best-effort: add column, ignore errors
                     @$conn->query("ALTER TABLE bookings ADD COLUMN rejection_reason TEXT NULL AFTER approved_at");
                 }
-                $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW(), rejection_reason=? WHERE id=?");
+                $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW(), rejection_reason=? WHERE bookings_id=?");
                 $stmt->bind_param("sssi", $status, $admin_name, $reason, $id);
                 $stmt->execute();
                 echo json_encode(['success' => true]);
@@ -44,10 +44,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // try to update and set rejection_reason = NULL if the column exists
                 $colCheck = $conn->query("SHOW COLUMNS FROM bookings LIKE 'rejection_reason'");
                 if ($colCheck && $colCheck->num_rows > 0) {
-                    $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW(), rejection_reason=NULL WHERE id=?");
+                    $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW(), rejection_reason=NULL WHERE bookings_id=?");
                     $stmt->bind_param("ssi", $status, $admin_name, $id);
                 } else {
-                    $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW() WHERE id=?");
+                    $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW() WHERE bookings_id=?");
                     $stmt->bind_param("ssi", $status, $admin_name, $id);
                 }
                 $stmt->execute();
@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         if ($_POST['action'] === 'delete') {
-            $stmt = $conn->prepare("DELETE FROM bookings WHERE id=?");
+            $stmt = $conn->prepare("DELETE FROM bookings WHERE bookings_id=?");
             $stmt->bind_param("i", $id);
             $stmt->execute();
             echo json_encode(['success' => true]);
@@ -600,7 +600,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                                 <div class="booking-card-header">
                                     <div>
                                         <h5 class="mb-0"><?= htmlspecialchars($booking['name']) ?></h5>
-                                        <small>ID: <?= $booking['id'] ?></small>
+                                        <small>ID: <?= $booking['bookings_id'] ?></small>
                                     </div>
                                     <span class="status-badge status-<?= str_replace('แล้ว', '', strtolower($booking['status'])) ?>">
                                         <?= $booking['status'] ?>
@@ -664,14 +664,14 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                                         </button>
 
                                         <?php if ($booking['status'] === 'รออนุมัติ'): ?>
-                                            <button class="btn action-btn btn-approve" onclick="changeStatus(<?= $booking['id'] ?>, 'อนุมัติแล้ว')">
+                                            <button class="btn action-btn btn-approve" onclick="changeStatus(<?= $booking['bookings_id'] ?>, 'อนุมัติแล้ว')">
                                                 <i class="bi bi-check-circle"></i> อนุมัติ
                                             </button>
-                                            <button class="btn action-btn btn-reject" onclick="changeStatus(<?= $booking['id'] ?>, 'ถูกปฏิเสธ')">
+                                            <button class="btn action-btn btn-reject" onclick="changeStatus(<?= $booking['bookings_id'] ?>, 'ถูกปฏิเสธ')">
                                                 <i class="bi bi-x-circle"></i> ปฏิเสธ
                                             </button>
                                         <?php endif; ?>
-                                        <button class="btn action-btn btn-delete" onclick="deleteBooking(<?= $booking['id'] ?>)">
+                                        <button class="btn action-btn btn-delete" onclick="deleteBooking(<?= $booking['bookings_id'] ?>)">
                                             <i class="bi bi-trash"></i> ลบ
                                         </button>
                                     </div>
@@ -691,7 +691,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                                 <div class="booking-card-header">
                                     <div>
                                         <h5 class="mb-0"><?= htmlspecialchars($booking['name']) ?></h5>
-                                        <small>ID: <?= $booking['id'] ?></small>
+                                        <small>ID: <?= $booking['bookings_id'] ?></small>
                                     </div>
                                     <span class="status-badge status-pending">รออนุมัติ</span>
                                 </div>
@@ -728,14 +728,14 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                                             <i class="bi bi-info-circle"></i> รายละเอียด
                                         </button>
 
-                                        <button class="btn action-btn btn-approve" onclick="changeStatus(<?= $booking['id'] ?>, 'อนุมัติแล้ว')">
+                                        <button class="btn action-btn btn-approve" onclick="changeStatus(<?= $booking['bookings_id'] ?>, 'อนุมัติแล้ว')">
                                             <i class="bi bi-check-circle"></i> อนุมัติ
                                         </button>
-                                        <button class="btn action-btn btn-reject" onclick="changeStatus(<?= $booking['id'] ?>, 'ถูกปฏิเสธ')">
+                                        <button class="btn action-btn btn-reject" onclick="changeStatus(<?= $booking['bookings_id'] ?>, 'ถูกปฏิเสธ')">
                                             <i class="bi bi-x-circle"></i> ปฏิเสธ
                                         </button>
 
-                                        <button class="btn action-btn btn-delete" onclick="deleteBooking(<?= $booking['id'] ?>)">
+                                        <button class="btn action-btn btn-delete" onclick="deleteBooking(<?= $booking['bookings_id'] ?>)">
                                             <i class="bi bi-trash"></i> ลบ
                                         </button>
                                     </div>
@@ -755,7 +755,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                                 <div class="booking-card-header">
                                     <div>
                                         <h5 class="mb-0"><?= htmlspecialchars($booking['name']) ?></h5>
-                                        <small>ID: <?= $booking['id'] ?></small>
+                                        <small>ID: <?= $booking['bookings_id'] ?></small>
                                     </div>
                                     <span class="status-badge status-approved">อนุมัติแล้ว</span>
                                 </div>
@@ -784,7 +784,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                                             <i class="bi bi-info-circle"></i> รายละเอียด
                                         </button>
 
-                                        <button class="btn action-btn btn-delete" onclick="deleteBooking(<?= $booking['id'] ?>)">
+                                        <button class="btn action-btn btn-delete" onclick="deleteBooking(<?= $booking['bookings_id'] ?>)">
                                             <i class="bi bi-trash"></i> ลบ
                                         </button>
                                     </div>
@@ -804,7 +804,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                                 <div class="booking-card-header">
                                     <div>
                                         <h5 class="mb-0"><?= htmlspecialchars($booking['name']) ?></h5>
-                                        <small>ID: <?= $booking['id'] ?></small>
+                                        <small>ID: <?= $booking['bookings_id'] ?></small>
                                     </div>
                                     <span class="status-badge status-rejected">ถูกปฏิเสธ</span>
                                 </div>
@@ -833,11 +833,11 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                                             <i class="bi bi-info-circle"></i> รายละเอียด
                                         </button>
 
-                                        <button class="btn action-btn btn-approve" onclick="changeStatus(<?= $booking['id'] ?>, 'อนุมัติแล้ว')">
+                                        <button class="btn action-btn btn-approve" onclick="changeStatus(<?= $booking['bookings_id'] ?>, 'อนุมัติแล้ว')">
                                             <i class="bi bi-check-circle"></i> เปลี่ยนเป็นอนุมัติ
                                         </button>
 
-                                        <button class="btn action-btn btn-delete" onclick="deleteBooking(<?= $booking['id'] ?>)">
+                                        <button class="btn action-btn btn-delete" onclick="deleteBooking(<?= $booking['bookings_id'] ?>)">
                                             <i class="bi bi-trash"></i> ลบ
                                         </button>
                                     </div>

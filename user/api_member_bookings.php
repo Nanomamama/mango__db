@@ -11,9 +11,7 @@ if (!isset($_SESSION['member_id'])) {
 
 $member_id = (int)$_SESSION['member_id'];
 
-// ดึง booking ของสมาชิก (ล่าสุด 10 รายการ)
-// Select all columns so we can include optional fields like rejection_reason or approved_by if present
-$stmt = $conn->prepare("SELECT * FROM bookings WHERE member_id = ? ORDER BY date DESC, id DESC LIMIT 20");
+$stmt = $conn->prepare("SELECT * FROM bookings WHERE member_id = ? ORDER BY date DESC, bookings_id DESC LIMIT 20");
 $stmt->bind_param("i", $member_id);
 if (!$stmt->execute()) {
     http_response_code(500);
@@ -47,7 +45,7 @@ while ($r = $res->fetch_assoc()) {
     $created_at = $r['created_at'] ?? null;
 
     $rows[] = [
-        'id' => (int)$r['id'],
+        'bookings_id' => (int)$r['bookings_id'],
         'date' => $r['date'],
         'time' => $r['time'],
         'name' => $r['name'],
