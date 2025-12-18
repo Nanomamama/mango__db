@@ -10,7 +10,7 @@ if (isset($_SESSION['member_id']) && !empty($_SESSION['member_id'])) {
     $loggedIn = true;
     // ดึงชื่อและเบอร์โทรสมาชิก
     $member_id = $_SESSION['member_id'];
-    $stmt = $conn->prepare("SELECT fullname, phone FROM members WHERE id = ?");
+    $stmt = $conn->prepare("SELECT fullname, phone FROM members WHERE member_id = ?");
     $stmt->bind_param("i", $member_id);
     $stmt->execute();
     $stmt->bind_result($memberName, $memberPhone);

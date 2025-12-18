@@ -20,8 +20,7 @@ if ($password !== $confirm_password) {
     exit;
 }
 
-// ตรวจสอบอีเมล์ซ้ำ
-$stmt = $conn->prepare("SELECT id FROM members WHERE email = ?");
+$stmt = $conn->prepare("SELECT member_id FROM members WHERE email = ?");
 $stmt->bind_param("s", $email);
 $stmt->execute();
 $stmt->store_result();
