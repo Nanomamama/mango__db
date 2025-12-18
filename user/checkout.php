@@ -13,7 +13,7 @@ $member_id = $_SESSION['member_id'];
 $stmt = $conn->prepare("
     SELECT fullname, email, phone, address 
     FROM members 
-    WHERE id = ?
+    WHERE member_id = ?
 ");
 $stmt->bind_param("i", $member_id);
 $stmt->execute();
@@ -114,16 +114,7 @@ $stmt->close();
                         </div>
                     </div>
 
-                    <div class="mb-3" id="bank-selection" style="display: none;">
-                        <label for="bank-name" class="form-label">เลือกธนาคาร</label>
-                        <select class="form-control" id="bank-name" name="bank_name">
-                            <option value="">-- กรุณาเลือกธนาคาร --</option>
-                            <option value="kbank">ธนาคารกสิกรไทย</option>
-                            <option value="scb">ธนาคารไทยพาณิชย์</option>
-                            <option value="bbl">ธนาคารกรุงเทพ</option>
-                            <option value="ktb">ธนาคารกรุงไทย</option>
-                        </select>
-                    </div>
+                
                     <!-- เพิ่มโค้ด QR Payment -->
                     <div id="qr-payment" class="text-center mt-4" style="display: none;">
                         <h5>สแกนเพื่อชำระเงิน (PromptPay)</h5>
@@ -160,6 +151,12 @@ $stmt->close();
 
 function loadCartSummary() {
     let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+    if (cart.length === 0) {
+        $("#cart-summary").html("<p class='text-danger'>ไม่มีสินค้าในตะกร้า</p>");
+        return;
+    }
+
     let total = 0;
     let totalWeight = 0;
 
@@ -181,10 +178,6 @@ function loadCartSummary() {
     summaryHtml += `
         <hr>
         <div class="d-flex justify-content-between">
-            <span>น้ำหนักรวม</span>
-            <span>${totalWeight.toFixed(2)} kg</span>
-        </div>
-        <div class="d-flex justify-content-between">
             <span>ค่าจัดส่ง</span>
             <span>฿${shipping.toFixed(2)}</span>
         </div>
@@ -195,7 +188,7 @@ function loadCartSummary() {
 
     $("#cart-summary").html(summaryHtml);
 
-    // ส่งค่าไป backend
+    // ส่งข้อมูลให้ backend
     $("#cart-data").val(JSON.stringify({
         items: cart,
         total_weight: totalWeight,
@@ -264,8 +257,9 @@ function loadCartSummary() {
             });
         }
 
-        $(document).ready
-      function loadCartSummary() {
+        $(document).ready(function() {
+    loadCartSummary();
+});
     let cart = JSON.parse(localStorage.getItem("cart")) || [];
     let total = 0;
     let totalWeight = 0;
@@ -277,10 +271,11 @@ function loadCartSummary() {
         totalWeight += (item.weight || 0) * item.quantity;
 
         // ✅ ส่งเฉพาะข้อมูลที่ backend ต้องใช้
-        itemsForBackend.push({
-            id: item.id,
-            quantity: item.quantity
-        });
+        items.push({
+    product_id: i.product_id,
+    quantity: i.quantity
+});
+
     });
 
     const shipping = calculateShipping(totalWeight);
@@ -317,7 +312,7 @@ function loadCartSummary() {
         shipping_cost: shipping,
         total_price: grandTotal
     }));
-}
+
 
 
 $("#checkout-form").submit(function(e){

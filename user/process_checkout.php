@@ -24,6 +24,9 @@ $address        = trim($_POST['address_number'] ?? '');
 $payment_method = $_POST['payment_method'] ?? '';
 
 $cartData = json_decode($_POST['cart'] ?? '', true);
+if ($customer_name === '' || $customer_phone === '' || $address === '') {
+    throw new Exception("กรุณากรอกข้อมูลจัดส่งให้ครบ");
+}
 
 if (!$cartData || empty($cartData['items'])) {
     echo json_encode(['success'=>false,'message'=>'ตะกร้าว่าง']);
@@ -36,17 +39,22 @@ try {
     $total_price = 0;
     $total_weight = 0;
 
-    foreach ($cartData['items'] as $item) {
-        $product_id = (int)$item['id'];
-        $qty = (int)$item['quantity'];
+foreach ($cartData['items'] as $item) {
+    if (!isset($item['product_id'], $item['quantity'])) {
+        throw new Exception("ข้อมูลสินค้าไม่ถูกต้อง");
+    }
 
-        $stmt = $conn->prepare("
-            SELECT price, weight, stock
-            FROM products
-            WHERE id = ?
-            FOR UPDATE
-        ");
-        $stmt->bind_param("i", $product_id);
+    $product_id = (int)$item['product_id'];
+    $qty = (int)$item['quantity'];
+
+    $stmt = $conn->prepare("
+        SELECT price, weight, stock
+        FROM products
+        WHERE product_id = ?
+        FOR UPDATE
+    ");
+    $stmt->bind_param("i", $product_id);
+
         $stmt->execute();
         $p = $stmt->get_result()->fetch_assoc();
         $stmt->close();
@@ -59,11 +67,12 @@ try {
         $total_weight += $p['weight'] * $qty;
     }
 
-    $shipping_cost = $cartData['shipping_cost'];
+   $shipping_cost = (float)($cartData['shipping_cost'] ?? 0);
+
 
     $stmt = $conn->prepare("
         INSERT INTO orders
-        (member_id, customer_name, customer_phone, address_number,
+        (member_id, fullname, phone, address,
          total_price, shipping_cost, total_weight, payment_method, status, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
     ");
@@ -83,13 +92,16 @@ try {
     $stmt->close();
 
     foreach ($cartData['items'] as $item) {
-        $pid = $item['id'];
+        $pid = $item['product_id'];
         $qty = $item['quantity'];
 
-        $conn->query("
-            INSERT INTO order_items (order_id, product_id, quantity)
-            VALUES ($order_id, $pid, $qty)
-        ");
+       $stmt = $conn->prepare("
+    INSERT INTO order_items (order_id, product_id, quantity)
+    VALUES (?, ?, ?)
+");
+$stmt->bind_param("iii", $order_id, $pid, $qty);
+$stmt->execute();
+$stmt->close();
 
         $conn->query("
             UPDATE products SET stock = stock - $qty

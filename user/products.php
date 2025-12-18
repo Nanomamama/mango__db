@@ -135,7 +135,7 @@ $("#searchInput").on("keyup", function(){
 // เพิ่มลงตะกร้า
 $(".add-to-cart").click(function(){
     let product = {
-        id: $(this).data("id"),
+        product_id: $(this).data("id"), // ✅ สำคัญมาก
         name: $(this).data("name"),
         price: $(this).data("price"),
         image: $(this).data("image"),
@@ -144,25 +144,28 @@ $(".add-to-cart").click(function(){
     };
 
     let cart = JSON.parse(localStorage.getItem("cart")) || [];
-    let found = cart.find(i => i.id === product.id);
 
-    if(found){
-        if(found.quantity < product.stock){
+    let found = cart.find(i => i.product_id === product.product_id);
+
+    if (found) {
+        if (found.quantity < product.stock) {
             found.quantity++;
         }
-    }else{
+    } else {
         cart.push(product);
     }
 
     localStorage.setItem("cart", JSON.stringify(cart));
 
     Swal.fire({
-        icon:"success",
-        title:"เพิ่มสินค้าแล้ว",
-        timer:1200,
-        showConfirmButton:false
+        icon: "success",
+        title: "เพิ่มสินค้าแล้ว",
+        timer: 1200,
+        showConfirmButton: false
     });
 });
+localStorage.removeItem("cart");
+
 </script>
 
 </body>
