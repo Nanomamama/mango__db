@@ -13,7 +13,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     // ตรวจสอบสถานะผู้ใช้ด้วย: ดึงฟิลด์ `status` มาด้วย
-    $stmt = $conn->prepare("SELECT id, fullname, password, status FROM members WHERE email = ?");
+    $stmt = $conn->prepare("SELECT member_id, fullname, password, status FROM members WHERE email = ?");
     $stmt->bind_param("s", $email);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -27,7 +27,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         if (password_verify($password, $row['password'])) {
             // ตั้งค่า session
-            $_SESSION['member_id'] = $row['id'];
+            $_SESSION['member_id'] = $row['member_id'];
             $_SESSION['fullname'] = $row['fullname'];
             $_SESSION['email'] = $email;
 
