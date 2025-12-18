@@ -18,7 +18,7 @@ if (!isset($bookings_show)) $bookings_show = [];
     </thead>
     <tbody>
         <?php $i=1; foreach($bookings_show as $booking): ?>
-        <tr id="row-<?php echo $booking['id']; ?>">
+        <tr id="row-<?php echo $booking['bookings_id']; ?>">
             <td><?php echo $i++; ?></td>
             <td><?php echo htmlspecialchars($booking['name']); ?></td>
             <td><?php echo htmlspecialchars($booking['date']); ?></td>
@@ -50,9 +50,9 @@ if (!isset($bookings_show)) $bookings_show = [];
                 </span>
             </td>
             <td>
-                <button class="btn btn-success btn-sm me-1" onclick="changeStatus(<?php echo $booking['id']; ?>, 'อนุมัติแล้ว')">อนุมัติ</button>
-                <button class="btn btn-danger btn-sm me-1" onclick="changeStatus(<?php echo $booking['id']; ?>, 'ถูกปฏิเสธ')">ปฏิเสธ</button>
-                <button class="btn btn-secondary btn-sm me-1" onclick="deleteBooking(<?php echo $booking['id']; ?>)">ลบ</button>
+                <button class="btn btn-success btn-sm me-1" onclick="changeStatus(<?php echo $booking['bookings_id']; ?>, 'อนุมัติแล้ว')">อนุมัติ</button>
+                <button class="btn btn-danger btn-sm me-1" onclick="changeStatus(<?php echo $booking['bookings_id']; ?>, 'ถูกปฏิเสธ')">ปฏิเสธ</button>
+                <button class="btn btn-secondary btn-sm me-1" onclick="deleteBooking(<?php echo $booking['bookings_id']; ?>)">ลบ</button>
                 <button 
                     class="btn btn-dark btn-sm" 
                     data-bs-toggle="modal" 

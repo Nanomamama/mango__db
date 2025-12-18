@@ -7,7 +7,7 @@ if (!$booking_id) {
     die("ไม่พบข้อมูลการจอง");
 }
 
-$sql = "SELECT * FROM bookings WHERE id = ?";
+$sql = "SELECT * FROM bookings WHERE bookings_id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $booking_id);
 $stmt->execute();
@@ -275,7 +275,7 @@ if (!$booking) { die("ไม่พบข้อมูลการจอง"); }
                         <i class="fas fa-file-invoice me-2"></i>ใบเสร็จการจองเข้าชมสวนลุงเผือก
                     </h2>
                     <div class="mt-2" style="color: rgba(255,255,255,0.85);">
-                        <i class="fas fa-hashtag me-1"></i>รหัสการจอง: <?= htmlspecialchars($booking['id']) ?>
+                        <i class="fas fa-hashtag me-1"></i>รหัสการจอง: <?= htmlspecialchars($booking['bookings_id']) ?>
                     </div>
                 </div>
                 <div class="ant-tag ant-tag-success" style="font-size: 14px; padding: 4px 12px;">
@@ -400,7 +400,7 @@ if (!$booking) { die("ไม่พบข้อมูลการจอง"); }
                     <div class="ant-alert-description">กรุณาอัปโหลดสลิปการชำระเงินเพื่อยืนยันการจองของคุณ เจ้าหน้าที่จะตรวจสอบและอนุมัติ</div>
                 </div>
                 <form method="POST" action="upload_slip_handler.php" enctype="multipart/form-data">
-                    <input type="hidden" name="booking_id" value="<?= htmlspecialchars($booking['id']) ?>">
+                    <input type="hidden" name="booking_id" value="<?= htmlspecialchars($booking['bookings_id']) ?>">
                     <div class="mb-3">
                         <label class="form-label">ไฟล์สลิป (jpg, png, pdf)</label>
                         <input type="file" class="form-control" name="slip" accept="image/*,application/pdf" required>
@@ -424,7 +424,7 @@ if (!$booking) { die("ไม่พบข้อมูลการจอง"); }
         document.getElementById('downloadImgBtn').addEventListener('click', function() {
             html2canvas(document.querySelector('.ant-card')).then(function(canvas) {
                 var link = document.createElement('a');
-                link.download = 'receipt-<?= htmlspecialchars($booking['id']) ?>.png';
+                link.download = 'receipt-<?= htmlspecialchars($booking['bookings_id']) ?>.png';
                 link.href = canvas.toDataURL();
                 link.click();
             });

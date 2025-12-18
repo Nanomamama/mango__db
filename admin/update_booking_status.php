@@ -8,7 +8,7 @@ $id = $data['id'];
 $status = $data['status'];
 
 // อัปเดตสถานะ
-$stmt = $conn->prepare("UPDATE bookings SET status=? WHERE id=?");
+$stmt = $conn->prepare("UPDATE bookings SET status=? WHERE bookings_id=?");
 $stmt->bind_param("si", $status, $id);
 $success = $stmt->execute();
 

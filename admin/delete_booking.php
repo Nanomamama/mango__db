@@ -6,7 +6,7 @@ header('Content-Type: application/json');
 $data = json_decode(file_get_contents("php://input"), true);
 
 if (isset($data['id'])) {
-    $stmt = $conn->prepare("DELETE FROM bookings WHERE id=?");
+    $stmt = $conn->prepare("DELETE FROM bookings WHERE bookings_id=?");
     $stmt->bind_param("i", $data['id']);
     $success = $stmt->execute();
     $stmt->close();

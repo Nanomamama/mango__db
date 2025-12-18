@@ -17,6 +17,18 @@ $stmt->bind_result($fullname, $address, $province_id, $district_id, $subdistrict
 $stmt->fetch();
 $stmt->close();
 
+// Initialize variables to prevent null errors
+$fullname = $fullname ?? '';
+$address = $address ?? '';
+$province_id = $province_id ?? 0;
+$district_id = $district_id ?? 0;
+$subdistrict_id = $subdistrict_id ?? 0;
+$zipcode = $zipcode ?? '';
+$phone = $phone ?? '';
+$email = $email ?? '';
+$created_at = $created_at ?? date('Y-m-d H:i:s');
+$member_status = $member_status ?? 0;
+
 // ถ้าผู้ใช้ถูกปิดการใช้งาน ให้ยกเลิก session และเปลี่ยนเส้นทางกลับหน้า login ทันที
 if (isset($member_status) && (int)$member_status === 0) {
     // ทำลาย session และ redirect ไปหน้า login พร้อมพารามิเตอร์แจ้งเตือน
@@ -119,7 +131,7 @@ function formatBookingDate($date, $time)
 
 // ดึงรายการการจองล่าสุด 5 รายการ (สถานะ: อนุมัติแล้ว, รออนุมัติ, ถูกปฏิเสธ)
 $recent_bookings = [];
-$stmt2 = $conn->prepare("SELECT id, date, time, name, status FROM bookings WHERE member_id = ? AND status IN ('อนุมัติแล้ว','รออนุมัติ','ถูกปฏิเสธ') ORDER BY date DESC, id DESC LIMIT 5");
+$stmt2 = $conn->prepare("SELECT bookings_id, date, time, name, status FROM bookings WHERE member_id = ? AND status IN ('อนุมัติแล้ว','รออนุมัติ','ถูกปฏิเสธ') ORDER BY date DESC, bookings_id DESC LIMIT 5");
 $stmt2->bind_param("i", $member_id);
 if ($stmt2->execute()) {
     $res2 = $stmt2->get_result();
@@ -892,11 +904,11 @@ $stmt2->close();
                                         </div>
                                         <div class="ant-col ant-col-12">
                                             <label class="ant-descriptions-item-label">เบอร์โทรศัพท์</label>
-                                            <input type="text" name="phone" id="phone" class="ant-input" style="width:100%;padding:8px;margin-top:6px;" value="<?php echo htmlspecialchars($phone, ENT_QUOTES); ?>">
+                                            <input type="text" name="phone" id="phone" class="ant-input" style="width:100%;padding:8px;margin-top:6px;" value="<?php echo htmlspecialchars($phone ?? '', ENT_QUOTES); ?>">
                                         </div>
                                         <div class="ant-col ant-col-12" style="margin-top:12px;">
                                             <label class="ant-descriptions-item-label">อีเมล</label>
-                                            <input type="email" name="email" id="email" class="ant-input" style="width:100%;padding:8px;margin-top:6px;" value="<?php echo htmlspecialchars($email, ENT_QUOTES); ?>">
+                                            <input type="email" name="email" id="email" class="ant-input" style="width:100%;padding:8px;margin-top:6px;" value="<?php echo htmlspecialchars($email ?? '', ENT_QUOTES); ?>">
                                         </div>
 
                                         <div class="ant-col ant-col-24" style="margin-top:12px;">
