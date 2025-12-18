@@ -101,12 +101,6 @@ $stmt->close();
                     <h4>วิธีชำระเงิน</h4>
                     <div class="mb-3">
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="payment_method" id="payment-bank" value="bank" required>
-                            <label class="form-check-label" for="payment-bank">
-                                โอนเงินผ่านธนาคาร
-                            </label>
-                        </div>
-                        <div class="form-check">
                             <input class="form-check-input" type="radio" name="payment_method" id="payment-cod" value="cod">
                             <label class="form-check-label" for="payment-cod">
                                 เก็บเงินปลายทาง
@@ -270,56 +264,93 @@ function loadCartSummary() {
             });
         }
 
-        $(document).ready(function() {
-            loadCartSummary();
+        $(document).ready
+      function loadCartSummary() {
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+    let total = 0;
+    let totalWeight = 0;
 
-            document.querySelectorAll('input[name="payment_method"]').forEach(input => {
-                input.addEventListener('change', function() {
-                    const bankSelection = document.getElementById('bank-selection');
-                    const qrPayment = document.getElementById('qr-payment');
-                    const promptpayQR = document.getElementById('promptpay-qr');
-                    const slipUpload = document.getElementById('slip-upload');
+    let itemsForBackend = [];
 
-                    if (this.value === 'bank') {
-                        bankSelection.style.display = 'block'; // แสดงฟิลด์เลือกธนาคาร
-                        qrPayment.style.display = 'none'; // ซ่อน QR Payment
-                        slipUpload.style.display = 'block'; // แสดงฟิลด์แนบสลิป
-                    } else if (this.value === 'promptpay') {
-                        bankSelection.style.display = 'none'; // ซ่อนฟิลด์เลือกธนาคาร
-                        qrPayment.style.display = 'block'; // แสดง QR Payment
-                        slipUpload.style.display = 'block'; // แสดงฟิลด์แนบสลิป
+    cart.forEach(item => {
+        total += item.price * item.quantity;
+        totalWeight += (item.weight || 0) * item.quantity;
 
-                        // เพิ่มโค้ดนี้สำหรับสร้าง QR Code
-                        if (localStorage.getItem("cart")) {
-                            const cart = JSON.parse(localStorage.getItem("cart"));
-                            const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2);
-
-                            if (promptpayNumber && totalAmount > 0) {
-                                const qrUrl = `https://promptpay.io/${promptpayNumber}/${totalAmount}.png`;
-                                $("#promptpay-qr").attr("src", qrUrl);
-                            } else {
-                                console.error("PromptPay Number หรือยอดเงินไม่ถูกต้อง");
-                            }
-                        } else {
-                            console.error("ไม่มีข้อมูลในตะกร้าสินค้า");
-                        }
-                    } else {
-                        bankSelection.style.display = 'none'; // ซ่อนฟิลด์เลือกธนาคาร
-                        qrPayment.style.display = 'none'; // ซ่อน QR Payment
-                        slipUpload.style.display = 'none'; // ซ่อนฟิลด์แนบสลิป
-                    }
-                });
-            });
+        // ✅ ส่งเฉพาะข้อมูลที่ backend ต้องใช้
+        itemsForBackend.push({
+            id: item.id,
+            quantity: item.quantity
         });
+    });
 
-        // แก้ไข event submit ไม่ต้องเช็ค slipVerified อีกต่อไป
-      document.getElementById("checkout-form").addEventListener("submit", function (e) {
+    const shipping = calculateShipping(totalWeight);
+    const grandTotal = total + shipping;
+
+    let summaryHtml = cart.map(item => `
+        <div class="d-flex justify-content-between mb-2">
+            <span>${item.name} x ${item.quantity}</span>
+            <span>฿${(item.price * item.quantity).toFixed(2)}</span>
+        </div>
+    `).join("");
+
+    summaryHtml += `
+        <hr>
+        <div class="d-flex justify-content-between">
+            <span>น้ำหนักรวม</span>
+            <span>${totalWeight.toFixed(2)} kg</span>
+        </div>
+        <div class="d-flex justify-content-between">
+            <span>ค่าจัดส่ง</span>
+            <span>฿${shipping.toFixed(2)}</span>
+        </div>
+        <div class="text-end mt-2 text-danger">
+            <strong>ยอดสุทธิ: ฿${grandTotal.toFixed(2)}</strong>
+        </div>
+    `;
+
+    $("#cart-summary").html(summaryHtml);
+
+    // ✅ ส่งให้ backend
+    $("#cart-data").val(JSON.stringify({
+        items: itemsForBackend,
+        total_weight: totalWeight,
+        shipping_cost: shipping,
+        total_price: grandTotal
+    }));
+}
+
+
+$("#checkout-form").submit(function(e){
     e.preventDefault();
 
-    let cartData = JSON.parse($("#cart-data").val());
-    let formData = new FormData(this);
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-    formData.set("cart", JSON.stringify(cartData));
+    if (cart.length === 0) {
+        Swal.fire("ผิดพลาด", "ตะกร้าว่าง", "error");
+        return;
+    }
+
+    let items = [];
+    let totalWeight = 0;
+    let shipping = 0;
+
+    cart.forEach(i => {
+        items.push({
+            id: i.id,
+            quantity: i.quantity
+        });
+        totalWeight += (i.weight || 0) * i.quantity;
+    });
+
+    shipping = calculateShipping(totalWeight);
+
+    $("#cart-data").val(JSON.stringify({
+        items: items,
+        total_weight: totalWeight,
+        shipping_cost: shipping
+    }));
+
+    let formData = new FormData(this);
 
     fetch("process_checkout.php", {
         method: "POST",
@@ -328,11 +359,9 @@ function loadCartSummary() {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            Swal.fire("สำเร็จ", "บันทึกคำสั่งซื้อแล้ว", "success");
+            Swal.fire("สำเร็จ", "สั่งซื้อเรียบร้อย", "success");
             localStorage.removeItem("cart");
-            setTimeout(() => {
-                location.href = "order_summary.php?order_id=" + data.order_id;
-            }, 1500);
+            location.href = "order_summary.php?order_id=" + data.order_id;
         } else {
             Swal.fire("ผิดพลาด", data.message, "error");
         }
