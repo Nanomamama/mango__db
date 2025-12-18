@@ -10,7 +10,7 @@ if (!isset($_SESSION['member_id'])) {
 
 // ดึงข้อมูลสมาชิก
 $member_id = $_SESSION['member_id'];
-$stmt = $conn->prepare("SELECT fullname, address, province_id, district_id, subdistrict_id, zipcode, phone, email, created_at, status FROM members WHERE id = ?");
+$stmt = $conn->prepare("SELECT fullname, address, province_id, district_id, subdistrict_id, zipcode, phone, email, created_at, status FROM members WHERE member_id = ?");
 $stmt->bind_param("i", $member_id);
 $stmt->execute();
 $stmt->bind_result($fullname, $address, $province_id, $district_id, $subdistrict_id, $zipcode, $phone, $email, $created_at, $member_status);

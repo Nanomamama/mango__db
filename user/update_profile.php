@@ -26,7 +26,7 @@ if ($fullname === '') {
 }
 
 // update statement
-$query = "UPDATE members SET fullname = ?, phone = ?, email = ?, address = ?, province_id = ?, district_id = ?, subdistrict_id = ?, zipcode = ? WHERE id = ?";
+$query = "UPDATE members SET fullname = ?, phone = ?, email = ?, address = ?, province_id = ?, district_id = ?, subdistrict_id = ?, zipcode = ? WHERE member_id = ?";
 $stmt = $conn->prepare($query);
 if (!$stmt) {
     echo json_encode(['success' => false, 'error' => 'Prepare failed: ' . $conn->error]);

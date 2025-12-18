@@ -13,7 +13,7 @@ $member_id = $_SESSION['member_id'];
 $stmt = $conn->prepare("
     SELECT fullname, email, phone, address 
     FROM members 
-    WHERE id = ?
+    WHERE member_id = ?
 ");
 $stmt->bind_param("i", $member_id);
 $stmt->execute();

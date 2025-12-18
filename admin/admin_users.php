@@ -24,15 +24,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 
     $id = (int) $_POST['id'];
     if ($_POST['action'] === 'disable') {
-        $stmt = $conn->prepare("UPDATE members SET status=0 WHERE id=?");
+        $stmt = $conn->prepare("UPDATE members SET status=0 WHERE member_id=?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
     } elseif ($_POST['action'] === 'enable') {
-        $stmt = $conn->prepare("UPDATE members SET status=1 WHERE id=?");
+        $stmt = $conn->prepare("UPDATE members SET status=1 WHERE member_id=?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
     } elseif ($_POST['action'] === 'delete') {
-        $stmt = $conn->prepare("DELETE FROM members WHERE id=?");
+        $stmt = $conn->prepare("DELETE FROM members WHERE member_id=?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
     }
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 }
 
 // ดึงข้อมูลผู้ใช้ทั้งหมด
-$result = $conn->query("SELECT * FROM members ORDER BY id DESC");
+$result = $conn->query("SELECT * FROM members ORDER BY member_id DESC");
 $users = [];
 while ($row = $result->fetch_assoc()) {
     $users[] = $row;
@@ -474,7 +474,7 @@ while ($row = $result->fetch_assoc()) {
                     <div class="user-card-header">
                         <div>
                             <h5 class="mb-0"><?= htmlspecialchars($user['fullname']) ?></h5>
-                            <small>ID: <?= $user['id'] ?></small>
+                            <small>ID: <?= $user['member_id'] ?></small>
                         </div>
                         <span class="status-badge <?= isset($user['status']) && $user['status'] ? 'status-active' : 'status-inactive' ?>">
                             <?= isset($user['status']) && $user['status'] ? 'เปิดใช้งาน' : 'ปิดใช้งาน' ?>
@@ -516,7 +516,7 @@ while ($row = $result->fetch_assoc()) {
                             <?php if (isset($user['status']) && $user['status']): ?>
                                 <form method="post" action="admin_users.php" style="display:inline-block;">
                                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
-                                    <input type="hidden" name="id" value="<?= $user['id'] ?>">
+                                    <input type="hidden" name="id" value="<?= $user['member_id'] ?>">
                                     <input type="hidden" name="action" value="disable">
                                     <button type="submit" class="btn action-btn btn-disable">
                                         <i class="bi bi-person-dash"></i> ปิดใช้งาน
@@ -525,7 +525,7 @@ while ($row = $result->fetch_assoc()) {
                             <?php else: ?>
                                 <form method="post" action="admin_users.php" style="display:inline-block;">
                                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
-                                    <input type="hidden" name="id" value="<?= $user['id'] ?>">
+                                    <input type="hidden" name="id" value="<?= $user['member_id'] ?>">
                                     <input type="hidden" name="action" value="enable">
                                     <button type="submit" class="btn action-btn btn-enable">
                                         <i class="bi bi-person-check"></i> เปิดใช้งาน
@@ -535,7 +535,7 @@ while ($row = $result->fetch_assoc()) {
 
                             <form method="post" action="admin_users.php" style="display:inline-block;" onsubmit="return confirm('ยืนยันการลบผู้ใช้นี้?')">
                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
-                                <input type="hidden" name="id" value="<?= $user['id'] ?>">
+                                <input type="hidden" name="id" value="<?= $user['member_id'] ?>">
                                 <input type="hidden" name="action" value="delete">
                                 <button type="submit" class="btn action-btn btn-delete">
                                     <i class="bi bi-trash"></i> ลบ
@@ -582,8 +582,8 @@ while ($row = $result->fetch_assoc()) {
                 let label = key;
                 
                 // แปลงชื่อฟิลด์เป็นภาษาไทย
-                switch(key) {
-                    case 'id': label = 'รหัสผู้ใช้'; break;
+                    switch(key) {
+                    case 'member_id': label = 'รหัสผู้ใช้'; break;
                     case 'fullname': label = 'ชื่อ-นามสกุล'; break;
                     case 'email': label = 'อีเมล'; break;
                     case 'phone': label = 'เบอร์โทรศัพท์'; break;
