@@ -1,58 +1,25 @@
 <?php
 session_start();
 require_once '../admin/db.php'; // ไฟล์การเชื่อมต่อฐานข้อมูล
-// require_once 'mail_config.php'; // ไฟล์การตั้งค่าอีเมล
+require_once __DIR__ . '/send_sms_helper.php';
 
-// ฟังก์ชันส่งอีเมลจริง
-function sendVerificationCode($email, $code, $name) {
-    global $mail;
-    
+// แสดงข้อผิดพลาดทั้งหมด (สำหรับการพัฒนาเท่านั้น)
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Create a PDO instance so existing code using $pdo works.
+if (!isset($pdo)) {
     try {
-        $mail->addAddress($email, $name);
-        $mail->Subject = 'รหัสยืนยันสำหรับกู้คืนรหัสผ่าน';
-        
-        $message = "
-        <html>
-        <head>
-            <title>รหัสยืนยันสำหรับกู้คืนรหัสผ่าน</title>
-            <style>
-                body { font-family: 'Kanit', sans-serif; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background: linear-gradient(to right, #143a2c, #0dc984); padding: 20px; color: white; text-align: center; }
-                .content { padding: 30px; background-color: #f9f9f9; }
-                .code { font-size: 32px; font-weight: bold; text-align: center; letter-spacing: 5px; color: #0dc984; margin: 20px 0; }
-                .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
-            </style>
-        </head>
-        <body>
-            <div class='container'>
-                <div class='header'>
-                    <h2>กู้คืนรหัสผ่าน</h2>
-                </div>
-                <div class='content'>
-                    <p>สวัสดี <strong>$name</strong>,</p>
-                    <p>คุณได้ขอทำการกู้คืนรหัสผ่าน บัญชีผู้ใช้ของคุณ</p>
-                    <p>กรุณาใช้รหัสยืนยันด้านล่างเพื่อดำเนินการตั้งรหัสผ่านใหม่:</p>
-                    <div class='code'>$code</div>
-                    <p>รหัสยืนยันนี้จะมีอายุการใช้งาน 5 นาที</p>
-                    <p>หากคุณไม่ได้ทำการร้องขอนี้ กรุณาเพิกเฉยต่ออีเมลนี้</p>
-                </div>
-                <div class='footer'>
-                    <p>© 2023 บริการของเรา. สงวนลิขสิทธิ์</p>
-                </div>
-            </div>
-        </body>
-        </html>
-        ";
-        
-        $mail->Body = $message;
-        $mail->send();
-        return true;
+        $pdo = new PDO("mysql:host={$servername};dbname={$dbname};charset=utf8mb4", $username, $password);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     } catch (Exception $e) {
-        error_log("อีเมลไม่สามารถส่งได้: {$mail->ErrorInfo}");
-        return false;
+        error_log('Failed to create PDO: ' . $e->getMessage());
+        // If PDO can't be created, keep using mysqli $conn (if needed) or fail gracefully
     }
 }
+
+// ฟังก์ชันส่งรหัส OTP ทาง SMS อยู่ใน user/send_sms_helper.php
 
 // ฟังก์ชันสร้างรหัส 6 หลัก
 function generateVerificationCode() {
@@ -61,34 +28,60 @@ function generateVerificationCode() {
 
 // ตรวจสอบฟอร์มที่ส่งมา
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['email'])) {
-        // ขั้นตอนที่ 1: กรอกอีเมล
-        $email = trim($_POST['email']);
+    if (isset($_POST['phone'])) {
+        // ขั้นตอนที่ 1: กรอกเบอร์โทร
+        $phone = trim($_POST['phone']);
         
-        // ตรวจสอบอีเมลในฐานข้อมูล
-        $stmt = $pdo->prepare("SELECT id, fullname, email FROM users WHERE email = ?");
-        $stmt->execute([$email]);
-        $user = $stmt->fetch();
+        // ตรวจสอบเบอร์โทรในฐานข้อมูล
+        try {
+            $stmt = $pdo->prepare("SELECT member_id AS id, fullname, phone FROM members WHERE phone = ?");
+            $stmt->execute([$phone]);
+            $user = $stmt->fetch();
+        } catch (PDOException $e) {
+            // If table not found or other DB error, list available tables (debug)
+            error_log('PDO error: ' . $e->getMessage());
+            $tablesList = [];
+            if (isset($conn) && $conn instanceof mysqli) {
+                $res = $conn->query('SHOW TABLES');
+                if ($res) {
+                    while ($row = $res->fetch_row()) {
+                        $tablesList[] = $row[0];
+                    }
+                }
+            }
+            $error = "Database error: " . htmlspecialchars($e->getMessage());
+            if (!empty($tablesList)) {
+                $error .= " - Available tables: " . implode(', ', $tablesList);
+            } else {
+                $error .= " - (Could not fetch table list via mysqli)";
+            }
+            $user = false;
+        }
         
         if ($user) {
             $verification_code = generateVerificationCode();
             
             // บันทึกรหัสยืนยันในฐานข้อมูล
-            $stmt = $pdo->prepare("UPDATE users SET verification_code = ?, code_expire = DATE_ADD(NOW(), INTERVAL 5 MINUTE) WHERE id = ?");
-            $stmt->execute([$verification_code, $user['id']]);
+                try {
+                $stmt = $pdo->prepare("UPDATE members SET verification_code = ?, code_expire = DATE_ADD(NOW(), INTERVAL 5 MINUTE) WHERE member_id = ?");
+                $stmt->execute([$verification_code, $user['id']]);
+            } catch (PDOException $e) {
+                error_log('PDO error: ' . $e->getMessage());
+                $error = 'Database error while saving OTP: ' . htmlspecialchars($e->getMessage());
+            }
             
-            // ส่งอีเมลยืนยัน
-            if (sendVerificationCode($user['email'], $verification_code, $user['fullname'])) {
+            // ส่งรหัสผ่านทาง SMS (ใช้ helper)
+            if (sendSmsOtp($user['phone'], $verification_code, $user['fullname'])) {
                 $_SESSION['reset_user_id'] = $user['id'];
                 $_SESSION['current_step'] = 'verify_code';
-                $_SESSION['success'] = "เราได้ส่งรหัสยืนยัน 6 หลักไปยังอีเมลของคุณแล้ว";
+                $_SESSION['success'] = "เราได้ส่งรหัสยืนยัน 6 หลักไปยังเบอร์โทรของคุณแล้ว";
                 header("Location: " . $_SERVER['PHP_SELF']);
                 exit();
             } else {
-                $error = "เกิดข้อผิดพลาดในการส่งอีเมล กรุณาลองอีกครั้งในภายหลัง";
+                $error = "เกิดข้อผิดพลาดในการส่งรหัสผ่านทาง SMS กรุณาลองอีกครั้งในภายหลัง";
             }
         } else {
-            $error = "ไม่พบบัญชีผู้ใช้ที่เกี่ยวข้องกับอีเมลนี้";
+            $error = "ไม่พบบัญชีผู้ใช้ที่เกี่ยวข้องกับเบอร์โทรนี้";
         }
     } elseif (isset($_POST['verification_code'])) {
         // ขั้นตอนที่ 2: ยืนยันรหัส
@@ -96,14 +89,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user_id = $_SESSION['reset_user_id'];
         
         // ตรวจสอบรหัสยืนยันในฐานข้อมูล
-        $stmt = $pdo->prepare("SELECT id, verification_code, code_expire FROM users WHERE id = ? AND verification_code IS NOT NULL");
-        $stmt->execute([$user_id]);
-        $user = $stmt->fetch();
+            try {
+            $stmt = $pdo->prepare("SELECT member_id AS id, verification_code, code_expire FROM members WHERE member_id = ? AND verification_code IS NOT NULL");
+            $stmt->execute([$user_id]);
+            $user = $stmt->fetch();
+        } catch (PDOException $e) {
+            error_log('PDO error: ' . $e->getMessage());
+            $error = 'Database error while checking OTP: ' . htmlspecialchars($e->getMessage());
+            $user = false;
+        }
         
-        if ($user) {
+            if ($user) {
             if (strtotime($user['code_expire']) < time()) {
                 $error = "รหัสยืนยันหมดอายุแล้ว กรุณาขอรหัสใหม่";
-                $_SESSION['current_step'] = 'enter_email';
+                $_SESSION['current_step'] = 'enter_phone';
             } elseif ($entered_code == $user['verification_code']) {
                 $_SESSION['verified'] = true;
                 $_SESSION['current_step'] = 'new_password';
@@ -114,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else {
             $error = "ไม่พบรหัสยืนยันที่ถูกต้อง กรุณาขอรหัสใหม่";
-            $_SESSION['current_step'] = 'enter_email';
+            $_SESSION['current_step'] = 'enter_phone';
         }
     } elseif (isset($_POST['new_password']) && isset($_POST['confirm_password'])) {
         // ขั้นตอนที่ 3: ตั้งรหัสผ่านใหม่
@@ -127,9 +126,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "รหัสผ่านไม่ตรงกัน";
             } else {
                 // อัปเดตรหัสผ่านในฐานข้อมูล
-                $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-                $stmt = $pdo->prepare("UPDATE users SET password = ?, verification_code = NULL, code_expire = NULL WHERE id = ?");
-                $stmt->execute([$hashed_password, $user_id]);
+                try {
+                    $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
+                    $stmt = $pdo->prepare("UPDATE members SET password = ?, verification_code = NULL, code_expire = NULL WHERE member_id = ?");
+                    $stmt->execute([$hashed_password, $user_id]);
+                } catch (PDOException $e) {
+                    error_log('PDO error: ' . $e->getMessage());
+                    $error = 'Database error while updating password: ' . htmlspecialchars($e->getMessage());
+                }
                 
                 // ล้าง session
                 unset($_SESSION['reset_user_id']);
@@ -146,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // กำหนดขั้นตอนเริ่มต้น
 if (!isset($_SESSION['current_step'])) {
-    $_SESSION['current_step'] = 'enter_email';
+    $_SESSION['current_step'] = 'enter_phone';
 }
 ?>
 <!DOCTYPE html>
@@ -431,10 +435,10 @@ if (!isset($_SESSION['current_step'])) {
         
         <div class="recovery-body">
             <!-- แสดงขั้นตอน -->
-            <div class="steps">
-                <div class="step <?php echo ($_SESSION['current_step'] == 'enter_email') ? 'active' : 'completed'; ?>">
+                <div class="steps">
+                <div class="step <?php echo ($_SESSION['current_step'] == 'enter_phone') ? 'active' : 'completed'; ?>">
                     1
-                    <span class="step-label">กรอกอีเมล</span>
+                    <span class="step-label">กรอกเบอร์โทร</span>
                 </div>
                 <div class="step <?php echo ($_SESSION['current_step'] == 'verify_code') ? 'active' : (($_SESSION['current_step'] == 'new_password') ? 'completed' : ''); ?>">
                     2
@@ -460,12 +464,12 @@ if (!isset($_SESSION['current_step'])) {
                 </div>
             <?php endif; ?>
             
-            <!-- ขั้นตอนที่ 1: กรอกอีเมล -->
-            <?php if ($_SESSION['current_step'] == 'enter_email'): ?>
+            <!-- ขั้นตอนที่ 1: กรอกเบอร์โทร -->
+            <?php if ($_SESSION['current_step'] == 'enter_phone'): ?>
                 <form method="POST" action="">
                     <div class="form-group">
-                        <label class="form-label"><i class="fas fa-envelope"></i> อีเมลที่สมัครสมาชิก</label>
-                        <input type="email" class="form-control" name="email" required placeholder="example@domain.com">
+                        <label class="form-label"><i class="fas fa-phone"></i> เบอร์โทรศัพท์ที่ลงทะเบียน</label>
+                        <input type="tel" class="form-control" name="phone" required placeholder="+66xxxxxxxx" pattern="^\+?[0-9]{7,15}$">
                     </div>
                     
                     <button type="submit" class="btn-submit">
@@ -474,12 +478,12 @@ if (!isset($_SESSION['current_step'])) {
                 </form>
                 
                 <div class="login-link">
-                    <a href="login.php"><i class="fas fa-arrow-left me-1"></i> กลับไปหน้าเข้าสู่ระบบ</a>
+                    <a href="member_login.php"><i class="fas fa-arrow-left me-1"></i> กลับไปหน้าเข้าสู่ระบบ</a>
                 </div>
             
             <!-- ขั้นตอนที่ 2: ยืนยันรหัส -->
             <?php elseif ($_SESSION['current_step'] == 'verify_code'): ?>
-                <p class="text-center">เราได้ส่งรหัสยืนยัน 6 หลักไปยังอีเมลของคุณแล้ว กรุณากรอกรหัสที่ได้รับ</p>
+                <p class="text-center">เราได้ส่งรหัสยืนยัน 6 หลักไปยังเบอร์โทรของคุณแล้ว กรุณากรอกรหัสที่ได้รับ</p>
                 
                 <form method="POST" action="">
                     <div class="verification-inputs">
@@ -533,7 +537,7 @@ if (!isset($_SESSION['current_step'])) {
                     
                     // ฟังก์ชันส่งรหัสใหม่
                     function resendCode() {
-                        if (confirm("ต้องการส่งรหัสยืนยันใหม่ไปยังอีเมลนี้ใช่หรือไม่?")) {
+                        if (confirm("ต้องการส่งรหัสยืนยันใหม่ไปยังเบอร์โทรนี้ใช่หรือไม่?")) {
                             window.location.href = "resend_code.php";
                         }
                     }
@@ -579,6 +583,22 @@ if (!isset($_SESSION['current_step'])) {
                     newPassword.addEventListener('input', validatePassword);
                     confirmPassword.addEventListener('input', validatePassword);
                 </script>
+            <?php else: ?>
+                <?php $_SESSION['current_step'] = 'enter_phone'; ?>
+                <form method="POST" action="">
+                    <div class="form-group">
+                        <label class="form-label"><i class="fas fa-phone"></i> เบอร์โทรศัพท์ที่ลงทะเบียน</label>
+                        <input type="tel" class="form-control" name="phone" required placeholder="+66xxxxxxxx" pattern="^\+?[0-9]{7,15}$">
+                    </div>
+                    
+                    <button type="submit" class="btn-submit">
+                        <i class="fas fa-paper-plane me-2"></i> ส่งรหัสยืนยัน
+                    </button>
+                </form>
+                
+                <div class="login-link">
+                    <a href="member_login.php"><i class="fas fa-arrow-left me-1"></i> กลับไปหน้าเข้าสู่ระบบ</a>
+                </div>
             <?php endif; ?>
         </div>
     </div>
