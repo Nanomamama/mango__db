@@ -23,15 +23,19 @@ $customer_phone = trim($_POST['customer_phone'] ?? '');
 $address        = trim($_POST['address_number'] ?? '');
 $payment_method = $_POST['payment_method'] ?? '';
 
-$cartData = json_decode($_POST['cart'] ?? '', true);
 if ($customer_name === '' || $customer_phone === '' || $address === '') {
-    throw new Exception("กรุณากรอกข้อมูลจัดส่งให้ครบ");
+    echo json_encode(['success'=>false,'message'=>'กรุณากรอกข้อมูลจัดส่งให้ครบ']);
+    exit;
 }
 
+$cartData = json_decode($_POST['cart'] ?? '', true);
 if (!$cartData || empty($cartData['items'])) {
     echo json_encode(['success'=>false,'message'=>'ตะกร้าว่าง']);
     exit;
 }
+
+$payment_slip = null;
+$reject_reason = null;
 
 $conn->begin_transaction();
 
@@ -39,22 +43,17 @@ try {
     $total_price = 0;
     $total_weight = 0;
 
-foreach ($cartData['items'] as $item) {
-    if (!isset($item['product_id'], $item['quantity'])) {
-        throw new Exception("ข้อมูลสินค้าไม่ถูกต้อง");
-    }
+    foreach ($cartData['items'] as $item) {
+        $product_id = (int)$item['product_id'];
+        $qty = (int)$item['quantity'];
 
-    $product_id = (int)$item['product_id'];
-    $qty = (int)$item['quantity'];
-
-    $stmt = $conn->prepare("
-        SELECT price, weight, stock
-        FROM products
-        WHERE product_id = ?
-        FOR UPDATE
-    ");
-    $stmt->bind_param("i", $product_id);
-
+        $stmt = $conn->prepare("
+            SELECT price, weight, stock
+            FROM products
+            WHERE product_id = ?
+            FOR UPDATE
+        ");
+        $stmt->bind_param("i", $product_id);
         $stmt->execute();
         $p = $stmt->get_result()->fetch_assoc();
         $stmt->close();
@@ -67,45 +66,47 @@ foreach ($cartData['items'] as $item) {
         $total_weight += $p['weight'] * $qty;
     }
 
-   $shipping_cost = (float)($cartData['shipping_cost'] ?? 0);
-
+    $shipping_cost = (float)($cartData['shipping_cost'] ?? 0);
 
     $stmt = $conn->prepare("
         INSERT INTO orders
-        (member_id, fullname, phone, address,
-         total_price, shipping_cost, total_weight, payment_method, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
+        (member_id, total_price, shipping_cost, total_weight,
+         payment_method, payment_slip, reject_reason,
+         status, created_at, tracking_number, shipping_provider, shipped_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NULL, NULL, NULL)
     ");
+
     $stmt->bind_param(
-        "isssddds",
+        "idddsss",
         $member_id,
-        $customer_name,
-        $customer_phone,
-        $address,
         $total_price,
         $shipping_cost,
         $total_weight,
-        $payment_method
+        $payment_method,
+        $payment_slip,
+        $reject_reason
     );
+
     $stmt->execute();
     $order_id = $stmt->insert_id;
     $stmt->close();
 
     foreach ($cartData['items'] as $item) {
-        $pid = $item['product_id'];
-        $qty = $item['quantity'];
+        $pid = (int)$item['product_id'];
+        $qty = (int)$item['quantity'];
 
-       $stmt = $conn->prepare("
-    INSERT INTO order_items (order_id, product_id, quantity)
-    VALUES (?, ?, ?)
-");
-$stmt->bind_param("iii", $order_id, $pid, $qty);
-$stmt->execute();
-$stmt->close();
+        $stmt = $conn->prepare("
+            INSERT INTO order_items (order_id, product_id, quantity)
+            VALUES (?, ?, ?)
+        ");
+        $stmt->bind_param("iii", $order_id, $pid, $qty);
+        $stmt->execute();
+        $stmt->close();
 
         $conn->query("
-            UPDATE products SET stock = stock - $qty
-            WHERE id = $pid
+            UPDATE products
+            SET stock = stock - $qty
+            WHERE product_id = $pid
         ");
     }
 

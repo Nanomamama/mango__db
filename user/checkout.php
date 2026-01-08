@@ -11,7 +11,7 @@ if (!isset($_SESSION['member_id'])) {
 /* ---------- ดึงข้อมูลผู้ใช้ ---------- */
 $member_id = $_SESSION['member_id'];
 $stmt = $conn->prepare("
-    SELECT fullname, email, phone, address 
+    SELECT fullname, phone, address 
     FROM members 
     WHERE member_id = ?
 ");
@@ -20,135 +20,83 @@ $stmt->execute();
 $user = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 ?>
-
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✅ ดำเนินการสั่งซื้อ</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-    <!-- ลบ tesseract.js ออก -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>  สำหรับ ocr อ่านสลิป -->
-    <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
-    <!-- เพิ่ม html5-qrcode -->
-    <script src="https://unpkg.com/html5-qrcode"></script>
+<meta charset="UTF-8">
+<title>ดำเนินการสั่งซื้อ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
-    <?php include 'navbar.php'; ?>
-    <br>
-    <br>
-    <br>
-    <div class="container mt-4">
+<?php include 'navbar.php'; ?>
 
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <form id="checkout-form" method="POST" action="process_checkout.php" enctype="multipart/form-data">
-                    <h2 class="text-center">ดำเนินการสั่งซื้อ</h2>
-                    <h4>ข้อมูลลูกค้า</h4>
-                    <div class="mb-3">
-                        <input type="text" class="form-control" id="customer-name"
-                            name="customer_name"
-                            value="<?= htmlspecialchars($user['fullname'] ?? '') ?>"
-                            required>
+<div class="container mt-5">
+<div class="row justify-content-center">
+<div class="col-md-6">
 
-                    </div>
-                    <div class="mb-3">
-                        <input type="text" class="form-control" id="customer-phone"
-                            name="customer_phone"
-                            value="<?= htmlspecialchars($user['phone'] ?? '') ?>"
-                            required>
+<form id="checkout-form" enctype="multipart/form-data">
+<h3 class="text-center mb-4">ดำเนินการสั่งซื้อ</h3>
 
-                    </div>
+<h5>ข้อมูลลูกค้า</h5>
+<div class="mb-3">
+<input type="text" class="form-control" name="customer_name"
+value="<?= htmlspecialchars($user['fullname'] ?? '') ?>" required>
+</div>
 
-                    <h4>ที่อยู่จัดส่ง</h4>
-                    <div class="mb-3">
-                        <input type="text" class="form-control" id="address-number"
-                            name="address_number"
-                            value="<?= htmlspecialchars($user['address'] ?? '') ?>"
-                            required>
+<div class="mb-3">
+<input type="text" class="form-control" name="customer_phone"
+value="<?= htmlspecialchars($user['phone'] ?? '') ?>" required>
+</div>
 
-                    </div>
-                    <div class="mb-3">
-                        <label for="province" class="form-label">จังหวัด</label>
-                        <select class="form-control" id="province" name="province_id" required>
-                            <option value="">-- เลือกจังหวัด --</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="district" class="form-label">อำเภอ</label>
-                        <select class="form-control" id="district" name="district_id" required>
-                            <option value="">-- เลือกอำเภอ --</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="subdistrict" class="form-label">ตำบล</label>
-                        <select class="form-control" id="subdistrict" name="subdistrict_id" required>
-                            <option value="">-- เลือกตำบล --</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="postal-code" class="form-label">รหัสไปรษณีย์</label>
-                        <input type="text" class="form-control" id="postal-code" name="postal_code" required>
-                    </div>
+<h5>ที่อยู่จัดส่ง</h5>
+<div class="mb-3">
+<input type="text" class="form-control" name="address_number"
+value="<?= htmlspecialchars($user['address'] ?? '') ?>" required>
+</div>
 
-                    <h4>วิธีชำระเงิน</h4>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="payment_method" id="payment-cod" value="cod">
-                            <label class="form-check-label" for="payment-cod">
-                                เก็บเงินปลายทาง
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="payment_method" id="payment-promptpay" value="promptpay">
-                            <label class="form-check-label" for="payment-promptpay">
-                                ชำระเงินผ่าน PromptPay
-                            </label>
-                        </div>
-                    </div>
+<h5>วิธีชำระเงิน</h5>
+<div class="form-check">
+<input class="form-check-input" type="radio" name="payment_method" value="cod" required>
+<label class="form-check-label">เก็บเงินปลายทาง</label>
+</div>
 
-                
-                    <!-- เพิ่มโค้ด QR Payment -->
-                    <div id="qr-payment" class="text-center mt-4" style="display: none;">
-                        <h5>สแกนเพื่อชำระเงิน (PromptPay)</h5>
-                        <img id="promptpay-qr" alt="PromptPay QR Code" style="width: 250px; height: 250px;">
-                        <p class="mt-2" style="color: green;">โปรดชำระเงินให้ตรงยอด และแนบสลิปในขั้นตอนถัดไป</p>
-                    </div>
-                    <div class="mb-3" id="slip-upload" style="display: none;">
-                        <label for="payment-slip" class="form-label">แนบสลิปโอนเงิน</label>
-                        <input type="file" class="form-control" id="payment-slip" name="payment_slip" accept="image/*">
-                        <button type="button" id="show-ocr-btn" class="btn btn-info mt-2" style="display:none;">ดูข้อมูล OCR</button>
-                    </div>
+<div class="form-check mb-3">
+<input class="form-check-input" type="radio" name="payment_method" value="promptpay">
+<label class="form-check-label">PromptPay</label>
+</div>
 
-                    <h4>รายการสินค้า</h4>
-                    <div id="cart-summary"></div>
-                    <div class="d-flex justify-content-between mt-4">
-                        <a href="cart.php" class="btn btn-warning">🔙 กลับ</a>
-                        <button type="submit" class="btn btn-primary">ยืนยันการสั่งซื้อ</button>
-                    </div>
-                    <input type="hidden" name="cart" id="cart-data">
-                </form>
-            </div>
-        </div>
-    </div>
-    <?php include 'footer.php'; ?>
-    <script>
-        const promptpayNumber = "1429500011543"; // หมายเลข PromptPay ของคุณ
+<h5>รายการสินค้า</h5>
+<div id="cart-summary" class="mb-3"></div>
 
-        // โหลดข้อมูลจากตะกร้า
-    function calculateShipping(weight) {
+<div class="d-flex justify-content-between">
+<a href="cart.php" class="btn btn-warning">ย้อนกลับ</a>
+<button type="submit" class="btn btn-primary">ยืนยันสั่งซื้อ</button>
+</div>
+
+<input type="hidden" name="cart" id="cart-data">
+</form>
+
+</div>
+</div>
+</div>
+
+<?php include 'footer.php'; ?>
+
+<script>
+/* ---------- ค่าจัดส่ง ---------- */
+function calculateShipping(weight) {
     if (weight <= 1) return 40;
     if (weight <= 3) return 60;
     return 80;
 }
 
+/* ---------- โหลดตะกร้า ---------- */
 function loadCartSummary() {
     let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
@@ -160,190 +108,57 @@ function loadCartSummary() {
     let total = 0;
     let totalWeight = 0;
 
-    cart.forEach(item => {
-        total += item.price * item.quantity;
-        totalWeight += (item.weight || 0) * item.quantity;
+    cart.forEach(i => {
+        total += i.price * i.quantity;
+        totalWeight += (i.weight || 0) * i.quantity;
     });
 
     const shipping = calculateShipping(totalWeight);
     const grandTotal = total + shipping;
 
-    let summaryHtml = cart.map(item => `
-        <div class="d-flex justify-content-between mb-2">
-            <span>${item.name} x ${item.quantity}</span>
-            <span>฿${(item.price * item.quantity).toFixed(2)}</span>
+    let html = cart.map(i => `
+        <div class="d-flex justify-content-between">
+            <span>${i.name} x ${i.quantity}</span>
+            <span>฿${(i.price * i.quantity).toFixed(2)}</span>
         </div>
     `).join("");
 
-    summaryHtml += `
+    html += `
         <hr>
         <div class="d-flex justify-content-between">
             <span>ค่าจัดส่ง</span>
             <span>฿${shipping.toFixed(2)}</span>
         </div>
-        <div class="text-end mt-2 text-danger">
+        <div class="text-end text-danger mt-2">
             <strong>ยอดสุทธิ: ฿${grandTotal.toFixed(2)}</strong>
         </div>
     `;
 
-    $("#cart-summary").html(summaryHtml);
+    $("#cart-summary").html(html);
 
-    // ส่งข้อมูลให้ backend
+    // ส่งให้ backend
     $("#cart-data").val(JSON.stringify({
-        items: cart,
-        total_weight: totalWeight,
-        shipping_cost: shipping,
-        total_price: grandTotal
+        items: cart.map(i => ({
+            product_id: i.product_id,
+            quantity: i.quantity
+        })),
+        shipping_cost: shipping
     }));
 }
 
-
-        let provinces = [];
-        let districts = [];
-        let subdistricts = [];
-
-        // ดึงข้อมูลจาก API
-        Promise.all([
-            fetch('../data/api_province.json').then(res => res.json()),
-            fetch('../data/thai_amphures.json').then(res => res.json()),
-            fetch('../data/thai_tambons.json').then(res => res.json())
-        ]).then(([provData, distData, subDistData]) => {
-            provinces = provData;
-            districts = distData;
-            subdistricts = subDistData;
-            loadProvinces(); // เริ่มต้นด้วยการโหลดจังหวัด
-        }).catch(error => {
-            console.error("Error loading data:", error);
-            Swal.fire("เกิดข้อผิดพลาด", "ไม่สามารถโหลดข้อมูลที่อยู่ได้", "error");
-        });
-
-        // โหลดข้อมูลจังหวัด
-        function loadProvinces() {
-            const provSelect = document.getElementById("province");
-            provSelect.innerHTML = '<option value="">-- เลือกจังหวัด --</option>';
-            provinces.forEach(prov => {
-                provSelect.innerHTML += `<option value="${prov.id}">${prov.name_th}</option>`;
-            });
-
-            provSelect.onchange = function() {
-                const provId = this.value;
-                loadDistricts(provId); // โหลดอำเภอเมื่อเลือกจังหวัด
-                document.getElementById("subdistrict").innerHTML = '<option value="">-- เลือกตำบล --</option>'; // รีเซ็ตตำบล
-            };
-        }
-
-        // โหลดข้อมูลอำเภอ
-        function loadDistricts(provinceId) {
-            const distSelect = document.getElementById("district");
-            distSelect.innerHTML = '<option value="">-- เลือกอำเภอ --</option>';
-            const filteredDistricts = districts.filter(dist => dist.province_id == provinceId); // กรองอำเภอตาม province_id
-            filteredDistricts.forEach(dist => {
-                distSelect.innerHTML += `<option value="${dist.id}">${dist.name_th}</option>`;
-            });
-
-            distSelect.onchange = function() {
-                const distId = this.value;
-                loadSubdistricts(distId); // โหลดตำบลเมื่อเลือกอำเภอ
-            };
-        }
-
-        // โหลดข้อมูลตำบล
-        function loadSubdistricts(districtId) {
-            const subDistSelect = document.getElementById("subdistrict");
-            subDistSelect.innerHTML = '<option value="">-- เลือกตำบล --</option>';
-            const filteredSubdistricts = subdistricts.filter(sub => sub.amphure_id == districtId); // กรองตำบลตาม amphure_id
-            filteredSubdistricts.forEach(sub => {
-                subDistSelect.innerHTML += `<option value="${sub.id}">${sub.name_th}</option>`;
-            });
-        }
-
-        $(document).ready(function() {
+$(document).ready(function () {
     loadCartSummary();
 });
-    let cart = JSON.parse(localStorage.getItem("cart")) || [];
-    let total = 0;
-    let totalWeight = 0;
 
-    let itemsForBackend = [];
-
-    cart.forEach(item => {
-        total += item.price * item.quantity;
-        totalWeight += (item.weight || 0) * item.quantity;
-
-        // ✅ ส่งเฉพาะข้อมูลที่ backend ต้องใช้
-        items.push({
-    product_id: i.product_id,
-    quantity: i.quantity
-});
-
-    });
-
-    const shipping = calculateShipping(totalWeight);
-    const grandTotal = total + shipping;
-
-    let summaryHtml = cart.map(item => `
-        <div class="d-flex justify-content-between mb-2">
-            <span>${item.name} x ${item.quantity}</span>
-            <span>฿${(item.price * item.quantity).toFixed(2)}</span>
-        </div>
-    `).join("");
-
-    summaryHtml += `
-        <hr>
-        <div class="d-flex justify-content-between">
-            <span>น้ำหนักรวม</span>
-            <span>${totalWeight.toFixed(2)} kg</span>
-        </div>
-        <div class="d-flex justify-content-between">
-            <span>ค่าจัดส่ง</span>
-            <span>฿${shipping.toFixed(2)}</span>
-        </div>
-        <div class="text-end mt-2 text-danger">
-            <strong>ยอดสุทธิ: ฿${grandTotal.toFixed(2)}</strong>
-        </div>
-    `;
-
-    $("#cart-summary").html(summaryHtml);
-
-    // ✅ ส่งให้ backend
-    $("#cart-data").val(JSON.stringify({
-        items: itemsForBackend,
-        total_weight: totalWeight,
-        shipping_cost: shipping,
-        total_price: grandTotal
-    }));
-
-
-
-$("#checkout-form").submit(function(e){
+/* ---------- Submit ---------- */
+$("#checkout-form").on("submit", function(e) {
     e.preventDefault();
 
     let cart = JSON.parse(localStorage.getItem("cart")) || [];
-
     if (cart.length === 0) {
         Swal.fire("ผิดพลาด", "ตะกร้าว่าง", "error");
         return;
     }
-
-    let items = [];
-    let totalWeight = 0;
-    let shipping = 0;
-
-    cart.forEach(i => {
-        items.push({
-            id: i.id,
-            quantity: i.quantity
-        });
-        totalWeight += (i.weight || 0) * i.quantity;
-    });
-
-    shipping = calculateShipping(totalWeight);
-
-    $("#cart-data").val(JSON.stringify({
-        items: items,
-        total_weight: totalWeight,
-        shipping_cost: shipping
-    }));
 
     let formData = new FormData(this);
 
@@ -354,17 +169,23 @@ $("#checkout-form").submit(function(e){
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            Swal.fire("สำเร็จ", "สั่งซื้อเรียบร้อย", "success");
             localStorage.removeItem("cart");
-            location.href = "order_summary.php?order_id=" + data.order_id;
+
+            
+            location.href = "order_success.php?order_id=" + data.order_id;
         } else {
             Swal.fire("ผิดพลาด", data.message, "error");
         }
     });
 });
 
-    </script>
+
+
+
+const btn = $(this).find("button[type=submit]");
+    btn.prop("disabled", true).text("กำลังดำเนินการ...");
+
+</script>
 
 </body>
-
 </html>

@@ -19,29 +19,30 @@ require_once '../admin/db.php';
     object-fit:cover;
     border-radius:5px;
 }
-.cart-button{
-    position:fixed;
-    bottom:10px;
-    left:50%;
-    transform:translateX(-50%);
-    z-index:1050;
-    border-radius:50px;
+.cart-button {
+    position: fixed;        /* ทำให้ลอย */
+    bottom: 20px;           /* ห่างจากล่าง */
+    right: 20px;            /* ห่างจากขวา */
+    z-index: 999;           /* อยู่บนสุด */
+    display: none;          /* ซ่อนไว้ก่อน */
 }
+
 </style>
 </head>
 
 <body>
 <?php include 'navbar.php'; ?>
-
+<br>
+<br>
 <div class="container mt-5">
-    <h1 class="text-center mb-3">🛍 สินค้าผลิตภัณฑ์</h1>
+    <h1 class="text-center mb-3">สินค้าผลิตภัณฑ์</h1>
 
     <div class="text-center mb-3">
         <a href="order_status.php" class="btn btn-info">ติดตามสินค้า</a>
         <a href="cart.php" class="btn btn-primary">ไปที่ตะกร้า</a>
     </div>
 
-    <input type="text" id="searchInput" class="form-control mb-4" placeholder="🔍 ค้นหาสินค้า...">
+    <input type="text" id="searchInput" class="form-control mb-4" placeholder="ค้นหาสินค้า...">
 
     <div class="row" id="product-list">
 
@@ -124,6 +125,23 @@ while ($p = $result->fetch_assoc()):
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+
+//ปุ่มไปที่ตระกร้า
+const cartButton = document.querySelector('.cart-button');
+
+// เมื่อมีการ scroll หน้าจอ
+    window.addEventListener("scroll", function () {
+
+        // เช็คว่าเลื่อนลงมากกว่า 200px หรือยัง
+        if (window.scrollY > 100) {
+            cartButton.style.display = "block"; // แสดงปุ่ม
+        } else {
+            cartButton.style.display = "none";  // ซ่อนปุ่ม
+        }
+
+    });
+
+
 // ค้นหา
 $("#searchInput").on("keyup", function(){
     let v = $(this).val().toLowerCase();
