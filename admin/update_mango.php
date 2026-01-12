@@ -3,11 +3,8 @@
 <?php
 session_start();
 
-// เชื่อมต่อฐานข้อมูล
-$conn = new mysqli("localhost", "root", "", "db_mango");
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+// เชื่อมต่อฐานข้อมูล โดยใช้การตั้งค่าจากไฟล์กลาง admin/db.php
+require_once __DIR__ . '/db.php';
 
 // ฟังก์ชันสำหรับอัปโหลดไฟล์
 function uploadFile($fileInputName, $currentFilePath) {
