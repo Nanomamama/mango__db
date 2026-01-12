@@ -129,6 +129,11 @@
             display: inline-block;
         }
 
+        .notification-bell.flash {
+            box-shadow: 0 0 12px 4px rgba(255,71,87,0.28);
+            transform: scale(1.03);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
         @keyframes bellShake {
             0% {
                 transform: rotate(0deg);
@@ -217,37 +222,71 @@
 
 
     <script>
-        // ตรวจสอบการจองใหม่
+        // ตรวจสอบการจองใหม่ (cache-busted) และแจ้งเตือนเมื่อมีรายการใหม่
+        // เริ่มต้นจากค่าที่ server-rendered เพื่อลดการแจ้งเตือนเมื่อโหลดหน้า
+        let previousCount = <?= isset($newBookings) ? (int)$newBookings : 0 ?>;
+
+        function playBeep() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const o = ctx.createOscillator();
+                const g = ctx.createGain();
+                o.type = 'sine';
+                o.frequency.value = 880;
+                g.gain.value = 0.05;
+                o.connect(g);
+                g.connect(ctx.destination);
+                o.start();
+                setTimeout(() => {
+                    o.stop();
+                    ctx.close();
+                }, 180);
+            } catch (e) {
+                // ignore audio errors (some browsers block autoplay)
+            }
+        }
+
         function checkNotifications() {
-            fetch('get_new_bookings.php')
+            const url = new URL('get_new_bookings.php', window.location.href);
+            url.searchParams.set('_', Date.now());
+            fetch(url.toString(), { cache: 'no-store' })
                 .then(response => response.json())
                 .then(data => {
                     const bell = document.querySelector('.notification-bell');
-                    const bellIcon = bell.querySelector('.bell-icon');
+                    if (!bell) return;
                     let badge = bell.querySelector('.notification-badge');
-                    if (data.count > 0) {
+                    const count = parseInt(data.count) || 0;
+
+                    if (count > 0) {
                         if (!badge) {
                             badge = document.createElement('span');
                             badge.className = 'notification-badge';
-                            badge.textContent = data.count;
                             bell.appendChild(badge);
-                        } else {
-                            badge.textContent = data.count;
                         }
+                        badge.textContent = count;
                         bell.classList.add('has-notification');
+
+                        // ถ้าเพิ่มขึ้นจากเดิม ให้เล่นเสียงและกระพริบ
+                        if (count > previousCount) {
+                            playBeep();
+                            bell.classList.add('flash');
+                            setTimeout(() => bell.classList.remove('flash'), 2500);
+                        }
                     } else {
                         if (badge) badge.remove();
                         bell.classList.remove('has-notification');
                     }
+
+                    previousCount = count;
                 })
                 .catch(error => console.error('Fetch error:', error));
         }
 
-        // เรียกครั้งแรกเมื่อโหลดหน้า
-        document.addEventListener('DOMContentLoaded', checkNotifications);
-
-        // ตั้งเวลาเรียกทุก 30 วินาที
-        const notificationInterval = setInterval(checkNotifications, 30000);
+        // เรียกครั้งแรกเมื่อโหลดหน้า และตั้งเวลาเรียกทุก 3 วินาที
+        document.addEventListener('DOMContentLoaded', function() {
+            checkNotifications();
+            setInterval(checkNotifications, 3000);
+        });
 
         // อัปเดตเมื่อคลิกเมนู
         const bookingLink = document.querySelector('a[href="./booking_list.php"]');

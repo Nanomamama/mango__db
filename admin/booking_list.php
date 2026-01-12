@@ -1206,6 +1206,57 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
             });
             cards.forEach(card => row.appendChild(card));
         });
+
+        // --- Auto-refresh when new bookings arrive ---
+        (function(){
+            let bookingPrevCount = 0;
+
+            function playBeepLocal() {
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const o = ctx.createOscillator();
+                    const g = ctx.createGain();
+                    o.type = 'sine';
+                    o.frequency.value = 880;
+                    g.gain.value = 0.05;
+                    o.connect(g);
+                    g.connect(ctx.destination);
+                    o.start();
+                    setTimeout(() => {
+                        o.stop();
+                        ctx.close();
+                    }, 180);
+                } catch (e) {
+                    // ignore audio errors
+                }
+            }
+
+            function checkNewBookingsAndReload() {
+                fetch('get_new_bookings.php?_=' + Date.now(), { cache: 'no-store' })
+                    .then(r => r.json())
+                    .then(data => {
+                        const count = parseInt(data.count) || 0;
+                        if (bookingPrevCount === 0) {
+                            // initialize with current count to avoid immediate reload on page open
+                            bookingPrevCount = count;
+                            return;
+                        }
+                        if (count > bookingPrevCount) {
+                            // new bookings arrived — notify and reload to show them
+                            playBeepLocal();
+                            setTimeout(() => location.reload(), 700);
+                        }
+                        bookingPrevCount = count;
+                    })
+                    .catch(err => console.error('checkNewBookings error', err));
+            }
+
+            // start polling every 5 seconds
+            document.addEventListener('DOMContentLoaded', () => {
+                checkNewBookingsAndReload();
+                setInterval(checkNewBookingsAndReload, 5000);
+            });
+        })();
     </script>
 </body>
 </html>
