@@ -12,7 +12,7 @@ if (!$login || !$password) {
 }
 
 // ค้นหาจาก username หรือ email
-$stmt = $conn->prepare("SELECT * FROM admin_users WHERE username = ? OR email = ? LIMIT 1");
+$stmt = $conn->prepare("SELECT * FROM system_administrator WHERE username = ? OR email = ? LIMIT 1");
 $stmt->bind_param("ss", $login, $login);
 $stmt->execute();
 $result = $stmt->get_result();

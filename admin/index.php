@@ -134,7 +134,7 @@ if ($result) {
 }
 
 // ดึงยอดมัดจำรวมและยอดคงเหลือรวมจาก bookings เฉพาะที่อนุมัติแล้ว
-$sql = "SELECT SUM(deposit_amount) AS deposit_total, SUM(remain_amount) AS remain_total 
+$sql = "SELECT SUM(deposit_amount) AS deposit_total, SUM(remain_amount) AS remain_total, SUM(total_amount) AS total_amount 
         FROM bookings 
         WHERE status = 'อนุมัติแล้ว'";
 try {
@@ -147,10 +147,12 @@ if ($result) {
     $row = $result->fetch_assoc();
     $deposit_total = $row['deposit_total'] ?? 0;
     $remain_total = $row['remain_total'] ?? 0;
+    $total_amount = $row['total_amount'] ?? 0;
 } else {
     error_log('admin/index.php: DB error (deposit/remain totals): ' . $conn->error);
     $deposit_total = 0;
     $remain_total = 0;
+    $total_amount = 0;
 }
 ?>
 
@@ -759,7 +761,18 @@ if ($result) {
                             </div>
                         </div>
 
-                        <!-- ยอดมัดจำรวม -->
+                        <!-- จำนวนสายพันธุ์มะม่วง -->
+                        <div class="data-card">
+                            <div class="data-card-title">สายพันธุ์มะม่วงในระบบ</div>
+                            <div class="mt-3" style="height: 100px; width: 100px; position: relative;">
+                                <canvas id="mangoVarietyCountChart"></canvas>
+                                <div class="center-variety-count"><?= $variety_count ?></div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="all-charts-container">
+                      <!-- ยอดมัดจำรวม -->
                         <div class="data-card deposit-card">
                             <div class="deposit-title">ยอดมัดจำรวม</div>
                             <div class="deposit-value"><?= number_format($deposit_total, 2) ?> บาท</div>
@@ -774,16 +787,15 @@ if ($result) {
                             <div class="data-card-extra">
                             </div>
                         </div>
-
-                        <!-- จำนวนสายพันธุ์มะม่วง -->
-                        <div class="data-card">
-                            <div class="data-card-title">สายพันธุ์มะม่วงในระบบ</div>
-                            <div class="mt-3" style="height: 100px; width: 100px; position: relative;">
-                                <canvas id="mangoVarietyCountChart"></canvas>
-                                <div class="center-variety-count"><?= $variety_count ?></div>
+                        <!-- ยอดรวมทั้งหมด -->
+                        <div class="data-card deposit-card" style="background: linear-gradient(135deg, var(--success), var(--teal));">
+                            <div class="deposit-title">ยอดรวมทั้งหมด</div>
+                            <div class="remain-value"><?= number_format($total_amount, 2) ?> บาท</div>
+                            <div class="data-card-extra">
                             </div>
                         </div>
                     </div>
+
                 </div>
 
                 <!-- Compare Chart View -->
@@ -844,51 +856,51 @@ if ($result) {
                 const bookingMonthData = <?= json_encode($booking_month) ?>;
 
                 // กราฟยอดขายรายวัน
-new Chart(document.getElementById('salesDayChart'), {
-    type: 'bar',
-    data: {
-        labels: salesDayLabels,
-        datasets: [{
-            label: 'ยอดขาย (บาท)',
-            data: salesDayData,
-            backgroundColor: '#4e73df',
-            borderRadius: 5,
-            borderWidth: 0
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        return 'ยอดขาย: ฿' + context.parsed.y.toLocaleString();
+                new Chart(document.getElementById('salesDayChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: salesDayLabels,
+                        datasets: [{
+                            label: 'ยอดขาย (บาท)',
+                            data: salesDayData,
+                            backgroundColor: '#4e73df',
+                            borderRadius: 5,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'ยอดขาย: ฿' + context.parsed.y.toLocaleString();
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    callback: value => '฿' + value.toLocaleString()
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
                     }
-                }
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                grid: {
-                    display: false
-                },
-                ticks: {
-                    callback: value => '฿' + value.toLocaleString()
-                }
-            },
-            x: {
-                grid: {
-                    display: false
-                }
-            }
-        }
-    }
-});
+                });
 
                 // กราฟยอดขายรายสัปดาห์
                 new Chart(document.getElementById('salesWeekChart'), {
@@ -1006,54 +1018,54 @@ new Chart(document.getElementById('salesDayChart'), {
                         }
                     }
                 });
-                
-// กราฟการจองเข้าชมสวน - แสดงทั้งหมดทุกเดือน
-const totalAllMonths = bookingMonthData.reduce((sum, count) => sum + count, 0);
-const latestMonthLabel = bookingMonthLabels.length > 0 ? bookingMonthLabels[bookingMonthLabels.length - 1] : 'เดือนปัจจุบัน';
 
-// อัพเดทตัวเลขกลางและ label
-document.getElementById('centerBookingCount').textContent = totalAllMonths.toLocaleString() + ' คณะ';
-document.getElementById('monthLabel').textContent = 'ทั้งหมด ' + bookingMonthData.length + ' เดือน';
+                // กราฟการจองเข้าชมสวน - แสดงทั้งหมดทุกเดือน
+                const totalAllMonths = bookingMonthData.reduce((sum, count) => sum + count, 0);
+                const latestMonthLabel = bookingMonthLabels.length > 0 ? bookingMonthLabels[bookingMonthLabels.length - 1] : 'เดือนปัจจุบัน';
 
-// กราฟแบบแสดงทุกเดือน (แต่ละเดือนเป็นส่วนในวง)
-new Chart(document.getElementById('bookingMonthChart'), {
-    type: 'doughnut',
-    data: {
-        labels: bookingMonthLabels,
-        datasets: [{
-            label: 'จำนวนการจอง',
-            data: bookingMonthData,
-            backgroundColor: [
-                '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
-                '#5a5c69', '#858796', '#b7b9cc', '#dfe0eb', '#f8f9fc',
-                '#2e59d9', '#17a673'
-            ]
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom',
-                display: false // ซ่อน legend เพราะมีหลายเดือน
-            },
-            tooltip: {
-                enabled: true,
-                callbacks: {
-                    label: function(context) {
-                        return context.label + ': ' + context.raw.toLocaleString() + ' คณะ';
+                // อัพเดทตัวเลขกลางและ label
+                document.getElementById('centerBookingCount').textContent = totalAllMonths.toLocaleString() + ' คณะ';
+                document.getElementById('monthLabel').textContent = 'ทั้งหมด ' + bookingMonthData.length + ' เดือน';
+
+                // กราฟแบบแสดงทุกเดือน (แต่ละเดือนเป็นส่วนในวง)
+                new Chart(document.getElementById('bookingMonthChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: bookingMonthLabels,
+                        datasets: [{
+                            label: 'จำนวนการจอง',
+                            data: bookingMonthData,
+                            backgroundColor: [
+                                '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+                                '#5a5c69', '#858796', '#b7b9cc', '#dfe0eb', '#f8f9fc',
+                                '#2e59d9', '#17a673'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                display: false // ซ่อน legend เพราะมีหลายเดือน
+                            },
+                            tooltip: {
+                                enabled: true,
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.label + ': ' + context.raw.toLocaleString() + ' คณะ';
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '70%'
                     }
-                }
-            }
-        },
-        cutout: '70%'
-    }
-});
+                });
 
-// ตัวเลขกลางยังแสดงผลรวมทั้งหมด
-document.getElementById('centerBookingCount').textContent = totalAllMonths.toLocaleString() + ' คณะ';
-document.getElementById('monthLabel').textContent = 'ทั้งหมด ' + bookingMonthData.length + ' เดือน';
+                // ตัวเลขกลางยังแสดงผลรวมทั้งหมด
+                document.getElementById('centerBookingCount').textContent = totalAllMonths.toLocaleString() + ' คณะ';
+                document.getElementById('monthLabel').textContent = 'ทั้งหมด ' + bookingMonthData.length + ' เดือน';
 
                 // กราฟจำนวนสายพันธุ์มะม่วง
                 new Chart(document.getElementById('mangoVarietyCountChart'), {

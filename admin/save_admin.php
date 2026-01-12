@@ -28,7 +28,7 @@ if ($password !== $confirm_password) {
 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
 // ตรวจสอบว่ามีผู้ใช้ที่มีชื่อผู้ใช้นี้อยู่แล้วหรือไม่
-$stmt = $conn->prepare("SELECT id FROM admin_users WHERE username = ? OR email = ?");
+$stmt = $conn->prepare("SELECT id FROM system_administrator WHERE username = ? OR email = ?");
 $stmt->bind_param("ss", $username, $email);
 $stmt->execute();
 $stmt->store_result();
@@ -39,7 +39,7 @@ if ($stmt->num_rows > 0) {
 $stmt->close();
 
 // บันทึกข้อมูลลงในฐานข้อมูล
-$stmt = $conn->prepare("INSERT INTO admin_users (username, email, password) VALUES (?, ?, ?)");
+$stmt = $conn->prepare("INSERT INTO system_administrator (username, email, password) VALUES (?, ?, ?)");
 $stmt->bind_param("sss", $username, $email, $hashed_password);
 
 if ($stmt->execute()) {
