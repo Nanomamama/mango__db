@@ -316,6 +316,18 @@ if (!$booking) { die("ไม่พบข้อมูลการจอง"); }
                         <div class="ant-descriptions-item-content"><?= htmlspecialchars($booking['people']) ?> คน</div>
                     </div>
                 </div>
+                <div class="ant-row">
+                    <div class="ant-col" style="flex: 0 0 50%;">
+                        <div class="ant-descriptions-item-label">อาหารกลางวัน</div>
+                        <div class="ant-descriptions-item-content"><?php
+                            if (!isset($booking['lunch']) || $booking['lunch'] === null || $booking['lunch'] === '') {
+                                echo '-';
+                            } else {
+                                echo ($booking['lunch'] == 1) ? 'ต้องการ' : 'ไม่ต้องการ';
+                            }
+                        ?></div>
+                    </div>
+                </div>
                 <?php if (!empty($booking['phone'])): ?>
                 <div class="ant-row">
                     <div class="ant-col" style="flex: 0 0 50%;">

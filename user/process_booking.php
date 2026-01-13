@@ -122,11 +122,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $deposit_amount = round($total_amount * 0.3, 2);
     $remain_amount = $total_amount - $deposit_amount;
 
+    // อ่านค่าว่าผู้ใช้ต้องการอาหารกลางวันหรือไม่ (checkbox จะส่งค่า '1' เมื่อถูกติ๊ก)
+    $lunch = (isset($_POST['lunch']) && ($_POST['lunch'] == '1' || $_POST['lunch'] === 'on')) ? 1 : 0;
+
     // เพิ่มข้อมูลลงฐานข้อมูล (เพิ่ม member_id)
     $member_id = $_SESSION['member_id'];
     $stmt = $conn->prepare("INSERT INTO bookings 
-        (name, date, time, people, phone, doc, slip, status, total_amount, deposit_amount, remain_amount, member_id) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'รออนุมัติ', ?, ?, ?, ?)");
+        (name, date, time, people, phone, doc, slip, lunch, status, total_amount, deposit_amount, remain_amount, member_id) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'รออนุมัติ', ?, ?, ?, ?)");
     
     if (!$stmt) {
         error_log("Prepare failed: " . $conn->error);
@@ -134,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $stmt->bind_param("sssisssdddi", $name, $date, $time, $people, $phone, $doc, $slip, $total_amount, $deposit_amount, $remain_amount, $member_id);
+    $stmt->bind_param("sssisssidddi", $name, $date, $time, $people, $phone, $doc, $slip, $lunch, $total_amount, $deposit_amount, $remain_amount, $member_id);
 
     if ($stmt->execute()) {
         $booking_id = $stmt->insert_id;

@@ -11,7 +11,7 @@ if (!isset($_SESSION['member_id'])) {
 
 $member_id = (int)$_SESSION['member_id'];
 
-$stmt = $conn->prepare("SELECT * FROM bookings WHERE member_id = ? ORDER BY date DESC, bookings_id DESC LIMIT 20");
+$stmt = $conn->prepare("SELECT * FROM bookings WHERE member_id = ? ORDER BY bookings_id DESC LIMIT 20");
 $stmt->bind_param("i", $member_id);
 if (!$stmt->execute()) {
     http_response_code(500);

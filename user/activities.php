@@ -596,6 +596,14 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 6, true);
                                         <label class="form-label">เวลาเข้าชม</label>
                                         <input type="text" class="form-control" id="visit_time" name="visit_time" required placeholder="เลือกเวลา">
                                     </div>
+                                    <div class="col-md-6 mb-3" id="lunch-section" style="display:none;">
+                                        <label class="form-label">อาหารกลางวัน</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" value="1" id="lunch_checkbox" name="lunch">
+                                            <label class="form-check-label" for="lunch_checkbox">ต้องการอาหารกลางวัน</label>
+                                        </div>
+                                        <div class="form-text">หากเลือกเวลาไม่เกินเที่ยง จะสามารถเลือกอาหารกลางวันได้</div>
+                                    </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">จำนวนผู้เข้าชม</label>
                                         <input type="number" class="form-control" id="number_of_people" name="number_of_people" required min="1" placeholder="เช่น 30">
@@ -890,7 +898,13 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 6, true);
                 time_24hr: true,
                 minTime: "08:00",
                 maxTime: "17:30",
-                minuteIncrement: 30
+                minuteIncrement: 30,
+                onChange: function(selectedDates, dateStr) {
+                    checkLunchVisibility(dateStr);
+                },
+                onReady: function(selectedDates, dateStr) {
+                    checkLunchVisibility(dateStr || document.getElementById('visit_time').value);
+                }
             });
         }
 
@@ -1098,6 +1112,8 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 6, true);
             var selectedDate = $('#booking_date').val();
             var thaiDate = moment(selectedDate).locale('th').format('LL');
             $('#display-booking-date').text(thaiDate);
+            // ปรับการแสดงช่องเลือกอาหารกลางวันตามค่าเวลา
+            checkLunchVisibility($('#visit_time').val() || '');
         }
 
         function validateStep1() {
@@ -1179,6 +1195,28 @@ $approved_bookings_display = array_slice($approved_bookings, 0, 6, true);
                     height: 180
                 });
                 $('#qrcode').append(qrImg);
+            }
+        }
+
+        // แสดง/ซ่อนช่องเลือกอาหารกลางวัน ตามเวลาที่ผู้ใช้เลือก
+        function checkLunchVisibility(timeStr) {
+            if (!timeStr) {
+                $('#lunch-section').hide();
+                $('#lunch_checkbox').prop('checked', false);
+                return;
+            }
+
+            // timeStr expected format: H:i (24hr)
+            var parts = timeStr.split(':');
+            var hour = parseInt(parts[0], 10);
+            var minute = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+
+            // ถ้าเวลา น้อยกว่า 12 หรือตรงเวลา 12:00 ให้แสดง checkbox (ไม่เกินเที่ยง)
+            if (hour < 12 || (hour === 12 && minute === 0)) {
+                $('#lunch-section').show();
+            } else {
+                $('#lunch-section').hide();
+                $('#lunch_checkbox').prop('checked', false);
             }
         }
     });

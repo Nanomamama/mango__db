@@ -969,6 +969,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                 { key: 'date', label: 'วันที่จอง' },
                 { key: 'time', label: 'เวลา' },
                 { key: 'people', label: 'จำนวนผู้เข้าชม' },
+                { key: 'lunch', label: 'อาหารกลางวัน', format: v => (v === null || v === '' ? '-' : (v == 1 || v === '1' ? 'ต้องการ' : 'ไม่ต้องการ')) },
                 { key: 'status', label: 'สถานะ' },
                 { key: 'total_amount', label: 'ยอดรวม', format: v => Number(v).toLocaleString() + ' บาท' },
                 { key: 'deposit_amount', label: 'ยอดมัดจำ', format: v => Number(v).toLocaleString() + ' บาท' },
