@@ -14,6 +14,7 @@ require_once $db_path;
 
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -48,31 +49,31 @@ require_once $db_path;
     }
 
     .page-header {
-            background: var(--primary-gradient);
-            color: white;
-            padding: 2rem 0;
-            margin-bottom: 2rem;
-            border-radius: 0 0 20px 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
+      background: var(--primary-gradient);
+      color: white;
+      padding: 2rem 0;
+      margin-bottom: 2rem;
+      border-radius: 0 0 20px 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
 
-        .page-header h2 {
-            font-weight: 700;
-            margin: 0;
-            position: relative;
-            padding-bottom: 15px;
-        }
+    .page-header h2 {
+      font-weight: 700;
+      margin: 0;
+      position: relative;
+      padding-bottom: 15px;
+    }
 
-        .page-header h2:after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 70px;
-            height: 4px;
-            background: rgba(255,255,255,0.7);
-            border-radius: 10px;
-        }
+    .page-header h2:after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 70px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 10px;
+    }
 
     body {
       background-color: #f5f7fb;
@@ -461,25 +462,25 @@ require_once $db_path;
         flex-direction: column;
         gap: 1rem;
       }
-      
+
       .course-image {
         width: 100%;
         height: 200px;
       }
-      
+
       .courses-grid {
         grid-template-columns: 1fr;
       }
-      
+
       .course-header {
         flex-direction: column;
         gap: 1rem;
       }
-      
+
       .course-actions {
         flex-direction: column;
       }
-      
+
       .section-title {
         font-size: 1.75rem;
       }
@@ -491,13 +492,16 @@ require_once $db_path;
         opacity: 0;
         transform: translateY(20px);
       }
+
       to {
         opacity: 1;
         transform: translateY(0);
       }
     }
 
-    .course-item, .grid-item, .minimal-item {
+    .course-item,
+    .grid-item,
+    .minimal-item {
       animation: fadeInUp 0.5s ease forwards;
     }
   </style>
@@ -508,15 +512,15 @@ require_once $db_path;
   <?php include 'navbar.php'; ?>
 
   <div class="page-header mt-5">
-        <div class="container">
-            <div class="row align-items-center mt-5">
-                <div class="col-md-8">
-                    <h2>หลักสูตรทั้งหมด</h2>
-                    <p class="mb-0 mt-2">หลักสูตรการอบรมแบบมีฐานการเรียนรู้</p>
-                </div>
-            </div>
+    <div class="container">
+      <div class="row align-items-center mt-5">
+        <div class="col-md-8">
+          <h2>กิจกรรมอบรมทั้งหมด</h2>
+          <p class="mb-0 mt-2">หลักสูตรการอบรมแบบมีฐานการเรียนรู้</p>
         </div>
+      </div>
     </div>
+  </div>
 
   <!-- Course Section -->
   <section class="py-5">
@@ -590,7 +594,7 @@ require_once $db_path;
       ?>
 
       <?php if ($result->num_rows > 0): ?>
-        
+
         <!-- List Layout -->
         <div class="layout-container active" id="list-layout">
           <div class="courses-container">
@@ -620,18 +624,28 @@ require_once $db_path;
               }
 
               // ดึงคะแนนเฉลี่ย
-              $ratingStmt = $conn->prepare("SELECT AVG(rating) AS avg_rating, COUNT(*) AS cnt FROM course_ratings WHERE course_id = ?");
+              $ratingStmt = $conn->prepare("
+                SELECT 
+                  ROUND(AVG(rating),1) AS avg_rating,
+                  COUNT(*) AS cnt
+                FROM course_rating
+                WHERE courses_id = ?
+              ");
+
               if ($ratingStmt) {
                 $ratingStmt->bind_param('i', $courseId);
                 $ratingStmt->execute();
                 $ratingRes = $ratingStmt->get_result()->fetch_assoc();
-                $avg_rating = $ratingRes['avg_rating'] ? round((float)$ratingRes['avg_rating'], 1) : 0;
-                $rating_count = (int)$ratingRes['cnt'];
+
+                $avg_rating   = $ratingRes['avg_rating'] ?? 0;
+                $rating_count = $ratingRes['cnt'] ?? 0;
+
                 $ratingStmt->close();
               } else {
                 $avg_rating = 0;
                 $rating_count = 0;
               }
+
               ?>
 
               <div class="course-item">
@@ -691,10 +705,10 @@ require_once $db_path;
         <!-- Grid Layout -->
         <div class="layout-container" id="grid-layout">
           <div class="courses-grid">
-            <?php 
+            <?php
             // Reset result pointer
             $result->data_seek(0);
-            while ($row = $result->fetch_assoc()): 
+            while ($row = $result->fetch_assoc()):
             ?>
               <?php
               $courseId = (int)($row['courses_id'] ?? 0);
@@ -702,7 +716,7 @@ require_once $db_path;
               $courseDesc = htmlspecialchars($row['course_description'] ?? 'ไม่มีรายละเอียด', ENT_QUOTES, 'UTF-8');
 
               // ดึงคะแนนเฉลี่ย
-              $ratingStmt = $conn->prepare("SELECT AVG(rating) AS avg_rating, COUNT(*) AS cnt FROM course_ratings WHERE course_id = ?");
+              $ratingStmt = $conn->prepare("SELECT AVG(rating) AS avg_rating, COUNT(*) AS cnt FROM course_ratings WHERE courses_id = ?");
               if ($ratingStmt) {
                 $ratingStmt->bind_param('i', $courseId);
                 $ratingStmt->execute();
@@ -721,9 +735,9 @@ require_once $db_path;
                   <h3 class="grid-title"><?php echo $courseName; ?></h3>
                   <span class="course-badge">หลักสูตรใหม่</span>
                 </div>
-                
+
                 <p class="grid-description"><?php echo $courseDesc; ?></p>
-                
+
                 <div class="course-meta">
                   <div class="meta-item">
                     <i class="far fa-clock"></i>
@@ -762,10 +776,10 @@ require_once $db_path;
         <!-- Minimal Layout -->
         <div class="layout-container" id="minimal-layout">
           <div class="courses-container">
-            <?php 
+            <?php
             // Reset result pointer
             $result->data_seek(0);
-            while ($row = $result->fetch_assoc()): 
+            while ($row = $result->fetch_assoc()):
             ?>
               <?php
               $courseId = (int)($row['courses_id'] ?? 0);
@@ -792,9 +806,9 @@ require_once $db_path;
                   <h3 class="minimal-title"><?php echo $courseName; ?></h3>
                   <span class="course-badge">หลักสูตรใหม่</span>
                 </div>
-                
+
                 <p class="course-description"><?php echo $courseDesc; ?></p>
-                
+
                 <div class="minimal-meta">
                   <div class="meta-item">
                     <i class="far fa-clock"></i>
@@ -880,7 +894,7 @@ require_once $db_path;
       <?php $stmt->close(); ?>
     </div>
   </section>
-
+  
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     // Layout Tabs Functionality
@@ -890,27 +904,27 @@ require_once $db_path;
         document.querySelectorAll('.layout-tab').forEach(t => {
           t.classList.remove('active');
         });
-        
+
         // Add active class to clicked tab
         this.classList.add('active');
-        
+
         // Hide all layout containers
         document.querySelectorAll('.layout-container').forEach(container => {
           container.classList.remove('active');
         });
-        
+
         // Show selected layout
         const layout = this.getAttribute('data-layout');
         document.getElementById(`${layout}-layout`).classList.add('active');
       });
     });
-    
+
     // Animation on scroll
     const observerOptions = {
       threshold: 0.1,
       rootMargin: '0px 0px -50px 0px'
     };
-    
+
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -919,7 +933,7 @@ require_once $db_path;
         }
       });
     }, observerOptions);
-    
+
     // Observe all course items for animation
     document.querySelectorAll('.course-item, .grid-item, .minimal-item').forEach(item => {
       item.style.opacity = '0';
@@ -928,5 +942,7 @@ require_once $db_path;
       observer.observe(item);
     });
   </script>
+  
 </body>
+
 </html>
