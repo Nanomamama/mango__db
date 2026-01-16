@@ -8,7 +8,7 @@ $admin_name = $_SESSION['admin_name'] ?? '';
 $admin_email = $_SESSION['admin_email'] ?? '';
 
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-$sql = "SELECT * FROM mango_varieties WHERE mango_name LIKE ?";
+$sql = "SELECT *, mango_id AS id FROM mango_varieties WHERE mango_name LIKE ?";
 $stmt = $conn->prepare($sql);
 $like = "%$search%";
 $stmt->bind_param("s", $like);

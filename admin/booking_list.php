@@ -595,7 +595,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
             <div class="tab-pane fade show active" id="all" role="tabpanel">
                 <div class="row">
                     <?php foreach ($bookings as $booking): ?>
-                        <div class="col-lg-6 col-xl-4">
+                        <div class="col-lg-6 col-xl-4" data-booking-id="<?= $booking['bookings_id'] ?>">
                             <div class="booking-card <?= str_replace('แล้ว', '', strtolower($booking['status'])) ?>">
                                 <div class="booking-card-header">
                                     <div>
@@ -686,7 +686,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
             <div class="tab-pane fade" id="pending" role="tabpanel">
                 <div class="row">
                     <?php foreach ($pending as $booking): ?>
-                        <div class="col-lg-6 col-xl-4">
+                        <div class="col-lg-6 col-xl-4" data-booking-id="<?= $booking['bookings_id'] ?>">
                             <div class="booking-card pending">
                                 <div class="booking-card-header">
                                     <div>
@@ -750,7 +750,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
             <div class="tab-pane fade" id="approved" role="tabpanel">
                 <div class="row">
                     <?php foreach ($approved as $booking): ?>
-                        <div class="col-lg-6 col-xl-4">
+                        <div class="col-lg-6 col-xl-4" data-booking-id="<?= $booking['bookings_id'] ?>">
                             <div class="booking-card approved">
                                 <div class="booking-card-header">
                                     <div>
@@ -799,7 +799,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
             <div class="tab-pane fade" id="rejected" role="tabpanel">
                 <div class="row">
                     <?php foreach ($rejected as $booking): ?>
-                        <div class="col-lg-6 col-xl-4">
+                        <div class="col-lg-6 col-xl-4" data-booking-id="<?= $booking['bookings_id'] ?>">
                             <div class="booking-card rejected">
                                 <div class="booking-card-header">
                                     <div>
@@ -1027,6 +1027,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
 
         // ฟังก์ชันส่งคำขอเปลี่ยนสถานะ (รวม CSRF)
         function sendChangeStatus(id, newStatus, reason) {
+            console.log('sendChangeStatus called', {id, newStatus, reason});
             const params = new URLSearchParams();
             params.append('action', 'change_status');
             params.append('id', id);
@@ -1043,15 +1044,84 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                 })
                 .then(res => res.json())
                 .then(data => {
+                    console.log('change_status response', data);
                     if (data.success) {
+                        // Update UI in-place without reloading
+                        try {
+                            const col = document.querySelector(`[data-booking-id="${id}"]`);
+                            if (!col) console.warn('No DOM element found for booking id', id);
+                            if (col) {
+                                // find status badge inside
+                                const badge = col.querySelector('.status-badge');
+                                const prevStatus = badge ? badge.textContent.trim() : '';
+
+                                // update badge text and classes
+                                if (badge) {
+                                    badge.textContent = newStatus;
+                                    badge.classList.remove('status-pending','status-approved','status-rejected');
+                                    if (newStatus === 'รออนุมัติ') badge.classList.add('status-pending');
+                                    else if (newStatus === 'อนุมัติแล้ว') badge.classList.add('status-approved');
+                                    else if (newStatus === 'ถูกปฏิเสธ') badge.classList.add('status-rejected');
+                                }
+
+                                // move the column to the appropriate tab row
+                                let targetRow = null;
+                                if (newStatus === 'รออนุมัติ') targetRow = document.querySelector('#pending .row');
+                                else if (newStatus === 'อนุมัติแล้ว') targetRow = document.querySelector('#approved .row');
+                                else if (newStatus === 'ถูกปฏิเสธ') targetRow = document.querySelector('#rejected .row');
+                                else targetRow = document.querySelector('#all .row');
+
+                                if (targetRow && col.parentElement !== targetRow) {
+                                    // append the column to target
+                                    targetRow.appendChild(col);
+                                }
+
+                                // update counts in nav badges and stats
+                                const allBadge = document.querySelector('#all-tab .badge');
+                                const pendingBadge = document.querySelector('#pending-tab .badge');
+                                const approvedBadge = document.querySelector('#approved-tab .badge');
+                                const rejectedBadge = document.querySelector('#rejected-tab .badge');
+                                const stats = document.querySelectorAll('.stats-card .stats-value');
+
+                                function toInt(el){ return el ? parseInt(el.textContent)||0 : 0; }
+                                function setInt(el, v){ if(el) el.textContent = v; }
+
+                                const prev = prevStatus;
+                                if (prev === 'รออนุมัติ') setInt(pendingBadge, Math.max(0, toInt(pendingBadge)-1));
+                                if (prev === 'อนุมัติแล้ว') setInt(approvedBadge, Math.max(0, toInt(approvedBadge)-1));
+                                if (prev === 'ถูกปฏิเสธ') setInt(rejectedBadge, Math.max(0, toInt(rejectedBadge)-1));
+
+                                if (newStatus === 'รออนุมัติ') setInt(pendingBadge, toInt(pendingBadge)+1);
+                                if (newStatus === 'อนุมัติแล้ว') setInt(approvedBadge, toInt(approvedBadge)+1);
+                                if (newStatus === 'ถูกปฏิเสธ') setInt(rejectedBadge, toInt(rejectedBadge)+1);
+
+                                // update stats values (order: total, pending, approved, rejected)
+                                if (stats && stats.length >= 4) {
+                                    // total remains same for status change
+                                    const pendingIdx = 1, approvedIdx = 2, rejectedIdx = 3;
+                                    if (prev === 'รออนุมัติ') setInt(stats[pendingIdx], Math.max(0, toInt(stats[pendingIdx])-1));
+                                    if (prev === 'อนุมัติแล้ว') setInt(stats[approvedIdx], Math.max(0, toInt(stats[approvedIdx])-1));
+                                    if (prev === 'ถูกปฏิเสธ') setInt(stats[rejectedIdx], Math.max(0, toInt(stats[rejectedIdx])-1));
+
+                                    if (newStatus === 'รออนุมัติ') setInt(stats[pendingIdx], toInt(stats[pendingIdx])+1);
+                                    if (newStatus === 'อนุมัติแล้ว') setInt(stats[approvedIdx], toInt(stats[approvedIdx])+1);
+                                    if (newStatus === 'ถูกปฏิเสธ') setInt(stats[rejectedIdx], toInt(stats[rejectedIdx])+1);
+                                }
+                            }
+                        } catch (e) {
+                            console.error('DOM update after status change failed', e);
+                            // fallback to reload so UI stays in sync
+                            location.reload();
+                            return;
+                        }
+
                         alert('เปลี่ยนสถานะเรียบร้อยแล้ว');
-                        location.reload();
                     } else {
                         alert('เกิดข้อผิดพลาด');
                     }
                 })
                 .catch(err => {
-                    console.error(err);
+                    console.error('change_status fetch error', err);
                     alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
                 });
         }
@@ -1066,6 +1136,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
 
             // Confirm button handler for rejection modal
             confirmBtn.addEventListener('click', function(){
+                console.log('rejectionConfirm clicked', pendingChange);
                 if (!pendingChange) return;
                 const reason = reasonInput.value.trim();
                 // close modal then send
@@ -1082,6 +1153,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
 
             // Confirm button handler for approval modal
             approvalConfirmBtn.addEventListener('click', function(){
+                console.log('approvalConfirm clicked', pendingChange);
                 if (!pendingChange) return;
                 // close modal then send (no reason)
                 approvalModal.hide();
@@ -1092,6 +1164,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
             // Expose changeStatus to global scope
             // Use modals for both approve and reject flows
             window.changeStatus = function(id, newStatus) {
+                console.log('changeStatus called', {id, newStatus});
                 // queue the change and open the appropriate modal
                 pendingChange = { id: id, status: newStatus };
                 if (newStatus === 'ถูกปฏิเสธ') {
@@ -1142,15 +1215,55 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                     })
                     .then(res => res.json())
                     .then(data => {
+                        console.log('delete response', data);
                         if (data.success) {
+                            try {
+                                const col = document.querySelector(`[data-booking-id="${pendingDeleteId}"]`);
+                                if (!col) console.warn('No DOM element found for deleted booking id', pendingDeleteId);
+                                if (col) {
+                                    // update counts
+                                    const allBadge = document.querySelector('#all-tab .badge');
+                                    const pendingBadge = document.querySelector('#pending-tab .badge');
+                                    const approvedBadge = document.querySelector('#approved-tab .badge');
+                                    const rejectedBadge = document.querySelector('#rejected-tab .badge');
+                                    const stats = document.querySelectorAll('.stats-card .stats-value');
+
+                                    const badgeEl = col.querySelector('.status-badge');
+                                    const prevStatus = badgeEl ? badgeEl.textContent.trim() : '';
+
+                                    function toInt(el){ return el ? parseInt(el.textContent)||0 : 0; }
+                                    function setInt(el, v){ if(el) el.textContent = v; }
+
+                                    // decrement appropriate counters
+                                    if (prevStatus === 'รออนุมัติ') setInt(pendingBadge, Math.max(0, toInt(pendingBadge)-1));
+                                    if (prevStatus === 'อนุมัติแล้ว') setInt(approvedBadge, Math.max(0, toInt(approvedBadge)-1));
+                                    if (prevStatus === 'ถูกปฏิเสธ') setInt(rejectedBadge, Math.max(0, toInt(rejectedBadge)-1));
+
+                                    // total and stats
+                                    if (allBadge) setInt(allBadge, Math.max(0, toInt(allBadge)-1));
+                                    if (stats && stats.length >= 4) {
+                                        setInt(stats[0], Math.max(0, toInt(stats[0])-1));
+                                        if (prevStatus === 'รออนุมัติ') setInt(stats[1], Math.max(0, toInt(stats[1])-1));
+                                        if (prevStatus === 'อนุมัติแล้ว') setInt(stats[2], Math.max(0, toInt(stats[2])-1));
+                                        if (prevStatus === 'ถูกปฏิเสธ') setInt(stats[3], Math.max(0, toInt(stats[3])-1));
+                                    }
+
+                                    // remove the column from DOM
+                                    col.remove();
+                                }
+                            } catch (e) {
+                                console.error('DOM update after delete failed', e);
+                                // fallback to reload
+                                location.reload();
+                                return;
+                            }
                             alert('ลบการจองเรียบร้อยแล้ว');
-                            location.reload();
                         } else {
                             alert('เกิดข้อผิดพลาด');
                         }
                     })
                     .catch(err => {
-                        console.error(err);
+                        console.error('delete fetch error', err);
                         alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
                     })
                     .finally(() => { pendingDeleteId = null; });
