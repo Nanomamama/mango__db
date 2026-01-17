@@ -53,7 +53,7 @@ $mango_category       = isset($_POST['mango_category']) ? $_POST['mango_category
 $processing_methods   = isset($_POST['processing_methods']) ? implode(',', $_POST['processing_methods']) : ''; // แปลงเป็น string
 
 // ดึงข้อมูลเดิมของสายพันธุ์มะม่วง เพื่อเก็บค่าเดิมของรูปภาพ ถ้ายังไม่มีการอัปโหลดใหม่
-$sqlSelect = "SELECT fruit_image, tree_image, leaf_image, flower_image, branch_image FROM mango_varieties WHERE id = $id";
+$sqlSelect = "SELECT fruit_image, tree_image, leaf_image, flower_image, branch_image FROM mango_varieties WHERE mango_id = $id";
 $result = $conn->query($sqlSelect);
 if ($result->num_rows > 0) {
     $row = $result->fetch_assoc();
@@ -93,7 +93,7 @@ $sqlUpdate = "UPDATE mango_varieties SET
     leaf_image = ?, 
     flower_image = ?, 
     branch_image = ? 
-    WHERE id = ?";
+    WHERE mango_id = ?";
 
 $stmt = $conn->prepare($sqlUpdate);
 if(!$stmt){

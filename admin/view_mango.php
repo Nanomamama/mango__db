@@ -8,7 +8,7 @@ if ($id <= 0) { die("ไม่พบข้อมูล"); }
 
 // ดึงข้อมูลตามโครงสร้างฟิลด์ใหม่
 $stmt = $conn->prepare("SELECT 
-    id,
+    mango_id AS id,
     mango_name,
     scientific_name,
     local_name,
@@ -27,7 +27,7 @@ $stmt = $conn->prepare("SELECT
     processing_methods,
     mango_category,
     created_at
-FROM mango_varieties WHERE id = ?");
+FROM mango_varieties WHERE mango_id = ?");
 $stmt->bind_param("i", $id);
 $stmt->execute();
 $result = $stmt->get_result();

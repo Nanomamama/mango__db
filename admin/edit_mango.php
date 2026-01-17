@@ -6,7 +6,7 @@ require_once 'db.php';
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 // ดึงข้อมูลจากฐานข้อมูล
-$sql = "SELECT * FROM mango_varieties WHERE id = $id";
+$sql = "SELECT *, mango_id AS id FROM mango_varieties WHERE mango_id = $id";
 $result = $conn->query($sql);
 $mango = $result->fetch_assoc();
 
