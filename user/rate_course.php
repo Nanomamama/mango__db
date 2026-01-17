@@ -11,12 +11,18 @@ if (!isset($data['courses_id'], $data['rating']) || !is_numeric($data['rating'])
     exit;
 }
 
-$course_id = (int)$data['courses_id'];
+$courses_id = (int)$data['courses_id'];
 $rating = (int)$data['rating'];
+
+// ตรวจสอบว่า rating อยู่ในช่วง 1-5
+if ($rating < 1 || $rating > 5) {
+    echo json_encode(['success' => false, 'error' => 'คะแนนต้องอยู่ระหว่าง 1-5']);
+    exit;
+}
 
 // ตรวจสอบว่าคอร์สมีอยู่จริง
 $checkCourse = $conn->prepare("SELECT courses_id FROM courses WHERE courses_id = ?");
-$checkCourse->bind_param('i', $course_id);
+$checkCourse->bind_param('i', $courses_id);
 $checkCourse->execute();
 if (!$checkCourse->get_result()->num_rows) {
     echo json_encode(['success' => false, 'error' => 'ไม่พบหลักสูตร']);
@@ -24,18 +30,38 @@ if (!$checkCourse->get_result()->num_rows) {
 }
 $checkCourse->close();
 
-// บันทึก rating
-$stmt = $conn->prepare("INSERT INTO course_rating (courses_id, rating, user_id) VALUES (?, ?, ?)");
-// ถ้าไม่มี user_id ให้ใช้ 0 หรือ session
-$user_id = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
-$stmt->bind_param('iii', $course_id, $rating, $user_id);
+// กำหนด member_id
+$member_id = $_SESSION['member_id'] ?? null;
+
+// แยก query ตามประเภทผู้ใช้
+if ($member_id) {
+    // ===== กรณี: User ที่ login =====
+    $stmt = $conn->prepare("
+        INSERT INTO course_rating
+        (courses_id, member_id, guest_identifier, rating)
+        VALUES (?, ?, '', ?)
+        ON DUPLICATE KEY UPDATE rating = ?
+    ");
+    $stmt->bind_param('iiii', $courses_id, $member_id, $rating, $rating);
+} else {
+    // ===== กรณี: Guest (ไม่ได้ login) =====
+    $guest_id = session_id();
+    $stmt = $conn->prepare("
+        INSERT INTO course_rating
+        (courses_id, member_id, guest_identifier, rating)
+        VALUES (?, NULL, ?, ?)
+        ON DUPLICATE KEY UPDATE rating = ?
+    ");
+    $stmt->bind_param('isii', $courses_id, $guest_id, $rating, $rating);
+}
 
 if ($stmt->execute()) {
     // ดึงค่าเฉลี่ยใหม่
     $avgStmt = $conn->prepare("SELECT AVG(rating) AS avg_rating, COUNT(*) AS cnt FROM course_rating WHERE courses_id = ?");
-    $avgStmt->bind_param('i', $course_id);
+    $avgStmt->bind_param('i', $courses_id);
     $avgStmt->execute();
     $result = $avgStmt->get_result()->fetch_assoc();
+    $avgStmt->close();
     
     echo json_encode([
         'success' => true,
@@ -47,4 +73,5 @@ if ($stmt->execute()) {
 }
 
 $stmt->close();
+$conn->close();
 ?>

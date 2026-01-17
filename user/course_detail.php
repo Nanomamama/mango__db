@@ -1,16 +1,38 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+
 }
+
 // กำหนดค่าเริ่มต้นของชื่อผู้ใช้
 $loggedInUserName = '';
 
 // ตรวจสอบว่ามีข้อมูลผู้ใช้ใน Session หรือไม่
-// **สมมติว่า** เมื่อผู้ใช้ Login สำเร็จ คุณจะเก็บชื่อผู้ใช้ไว้ใน $_SESSION['username']
-if (isset($_SESSION['username']) && !empty($_SESSION['username'])) {
+if (isset($_SESSION['member_id']) && !empty($_SESSION['member_id'])) {
+    require_once '../admin/db.php';
+    
+    // ดึงชื่อจากฐานข้อมูล
+    $memberId = (int)$_SESSION['member_id'];
+    $userStmt = $conn->prepare("SELECT fullname FROM members WHERE member_id = ?");
+    
+    if ($userStmt) {
+        $userStmt->bind_param('i', $memberId);
+        $userStmt->execute();
+        $userResult = $userStmt->get_result();
+        
+        if ($userRow = $userResult->fetch_assoc()) {
+            // รวมชื่อ-นามสกุล
+            $loggedInUserName = $userRow['fullname'];
+        }
+        $userStmt->close();
+    }
+}
+
+// ถ้ายังไม่มีชื่อ ลอง fallback จาก session username
+if (empty($loggedInUserName) && isset($_SESSION['username'])) {
     $loggedInUserName = htmlspecialchars($_SESSION['username']);
 }
-// หากใช้ $_SESSION['user_name'] หรือ $_SESSION['user_display_name'] ให้ปรับตามระบบของคุณ
+
 // หากใช้ $_SESSION['user_id'] คุณอาจต้องทำการ Query เพื่อดึงชื่อผู้ใช้จากฐานข้อมูลอีกครั้ง
 require_once '../admin/db.php';
 
@@ -77,7 +99,7 @@ $images = array_filter([
 
 
 // ===== Access Code Config =====
-define('COURSE_ACCESS_CODE', '1234'); // ← เปลี่ยนรหัสตรงนี้ (แนะนำ 4 ตัว)
+
 
 if (!isset($_SESSION['course_access'])) {
     $_SESSION['course_access'] = [];
@@ -253,7 +275,7 @@ $hasAccess = in_array($course['courses_id'], $_SESSION['course_access']);
                 <div class="course-card p-4 h-100 d-flex flex-column justify-content-between">
                     <div>
                         <h1 class="course-title mb-2"><?php echo htmlspecialchars($course['course_name']); ?></h1>
-                        <p class="meta mb-2">รหัสหลักสูตร: <strong><?php echo (int)$course['courses_id']; ?></strong></p>
+                      
                         <hr>
                         <h5 class="mt-3">รายละเอียด</h5>
                         <p><?php echo nl2br(htmlspecialchars($course['course_description'] ?? 'ไม่มีรายละเอียดเพิ่มเติม')); ?></p>
@@ -281,8 +303,7 @@ $hasAccess = in_array($course['courses_id'], $_SESSION['course_access']);
                             </div>
                         </div>
 
-                        <div class="rate-feedback" id="rateFeedback">ขอบคุณสำหรับการให้คะแนน</div>
-                        <div class="rate-error" id="rateError"></div>
+                      
                     </div>
                 </div>
             </div>
@@ -317,6 +338,14 @@ $hasAccess = in_array($course['courses_id'], $_SESSION['course_access']);
                             <h6 class="mb-3">เพิ่มความคิดเห็นของคุณ</h6>
                             <form id="commentForm">
                                 <input type="hidden" name="course_id" value="<?php echo (int)$course['courses_id']; ?>">
+                                <div class="mb-3">
+                                    <label for="userName" class="form-label">ชื่อผู้แสดงความคิดเห็น</label>
+                                    <input type="text"
+                                        class="form-control"
+                                        id="userName"
+                                        placeholder="กรุณากรอกชื่อ"
+                                        required>
+                                </div>
 
                                 <div class="mb-3">
                                     <label for="commentText" class="form-label">ความคิดเห็น</label>
@@ -345,34 +374,69 @@ $hasAccess = in_array($course['courses_id'], $_SESSION['course_access']);
                         </div>
                     </div>
                     <!-- Comments List -->
-                    <div id="commentsList">
-                        <div id="noComments" class="alert alert-info">ยังไม่มีความคิดเห็น</div>
-                        <?php
-                        // ดึงความคิดเห็นจากฐานข้อมูล
-                        $commentsStmt = $conn->prepare("SELECT  comment_text, created_at FROM course_comments WHERE courses_id = ? ORDER BY created_at DESC LIMIT 50");
-                        if ($commentsStmt) {
-                            $commentsStmt->bind_param('i', $id);
-                            $commentsStmt->execute();
-                            $commentsResult = $commentsStmt->get_result();
+                 <div id="commentsList">
+    <div id="noComments" class="alert alert-info">ยังไม่มีความคิดเห็น</div>
+    <?php
+    // JOIN course_comments กับ course_rating เพื่อดึงคะแนนมาด้วย
+    // ใช้ CASE WHEN เพื่อ match ทั้ง member และ guest
+   $commentsStmt = $conn->prepare("
+    SELECT 
+        cc.name,
+        cc.comment_text,
+        cc.created_at,
+        COALESCE(cr.rating, 0) AS rating
+    FROM course_comments cc
+    LEFT JOIN course_rating cr 
+        ON cc.courses_id = cr.courses_id
+        AND cc.guest_identifier = cr.guest_identifier
+    WHERE cc.courses_id = ?
+    ORDER BY cc.created_at DESC
+    LIMIT 50
+");
 
-                            if ($commentsResult->num_rows > 0) {
-                                echo '<script>document.getElementById("noComments").style.display = "none";</script>';
+    
+    if ($commentsStmt) {
+        $commentsStmt->bind_param('i', $id);
+        $commentsStmt->execute();
+        $commentsResult = $commentsStmt->get_result();
 
-                                while ($comment = $commentsResult->fetch_assoc()) {
-                                    $date = date('j M Y H:i', strtotime($comment['created_at']));
-                                    echo '<div class="card mb-3 p-3">';
-                                    echo '<div class="d-flex justify-content-between align-items-center">';
-                                    echo '<h6 class="mb-0 text-primary">' . htmlspecialchars($comment['user_name']) . '</h6>';
-                                    echo '<small class="text-muted">' . $date . '</small>';
-                                    echo '</div>';
-                                    echo '<p class="card-text mt-2">' . nl2br(htmlspecialchars($comment['comment_text'])) . '</p>';
-                                    echo '</div>';
-                                }
-                            }
-                            $commentsStmt->close();
+        if ($commentsResult->num_rows > 0) {
+            echo '<script>document.getElementById("noComments").style.display = "none";</script>';
+
+            while ($comment = $commentsResult->fetch_assoc()) {
+                $date = date('j M Y H:i', strtotime($comment['created_at']));
+                $userName = htmlspecialchars($comment['name'] ?? 'ผู้เข้าร่วมกิจกรรมอบรม');
+                $commentText = nl2br(htmlspecialchars($comment['comment_text']));
+                $rating = (int)($comment['rating'] ?? 0);
+                
+                echo '<div class="card mb-3 p-3">';
+                echo '<div class="d-flex justify-content-between align-items-center">';
+                echo '<h6 class="mb-0 text-primary">' . $userName . '</h6>';
+                echo '<small class="text-muted">' . $date . '</small>';
+                echo '</div>';
+                
+                // แสดงดาว (ถ้ามีการให้คะแนน)
+                if ($rating > 0) {
+                    echo '<div class="mt-2">';
+                    for ($i = 1; $i <= 5; $i++) {
+                        if ($i <= $rating) {
+                            echo '<span style="color: #ffc107; font-size: 18px;">★</span>';
+                        } else {
+                            echo '<span style="color: #ddd; font-size: 18px;">★</span>';
                         }
-                        ?>
-                    </div>
+                    }
+                    echo ' <small class="text-muted">(' . $rating . '/5)</small>';
+                    echo '</div>';
+                }
+                
+                echo '<p class="card-text mt-2">' . $commentText . '</p>';
+                echo '</div>';
+            }
+        }
+        $commentsStmt->close();
+    }
+    ?>
+</div>
                 </div>
             </div>
         </div>
@@ -400,56 +464,15 @@ $hasAccess = in_array($course['courses_id'], $_SESSION['course_access']);
             }
 
             stars.forEach(s => {
-                s.addEventListener('mouseenter', () => setVisual(parseInt(s.dataset.value, 10)));
-                s.addEventListener('mouseleave', () => {
-                    // restore to current average rounded
-                    const current = Math.round(parseFloat(avgEl.textContent) || 0);
-                    setVisual(current);
-                });
-                s.addEventListener('click', () => {
-                    const value = parseInt(s.dataset.value, 10);
-                    submitRating(value);
-                });
+
+                // restore to current average rounded
+                const current = Math.round(parseFloat(avgEl.textContent) || 0);
+                setVisual(current);
             });
 
-            function submitRating(value) {
-                feedback.style.display = 'none';
-                errorEl.style.display = 'none';
+        });
 
-                fetch('rate_course.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            courses_id: parseInt(courseId, 10),
-                            rating: value
-                        })
-                    })
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.success) {
-                            // update UI: average and count
-                            if (typeof data.avg !== 'undefined') {
-                                avgEl.textContent = parseFloat(data.avg).toFixed(2);
-                            }
-                            if (typeof data.count !== 'undefined') {
-                                countEl.textContent = data.count;
-                            }
-                            setVisual(Math.round(parseFloat(avgEl.textContent)));
-                            feedback.style.display = 'block';
-                        } else {
-                            errorEl.textContent = data.error || 'เกิดข้อผิดพลาด';
-                            errorEl.style.display = 'block';
-                        }
-                    })
-                    .catch(err => {
-                        errorEl.textContent = err.message || 'ไม่สามารถบันทึกคะแนนได้';
-                        errorEl.style.display = 'block';
-                        console.error(err);
-                    });
-            }
-        })();
+
 
         // commentStars behavior
         (function() {
@@ -532,7 +555,7 @@ $hasAccess = in_array($course['courses_id'], $_SESSION['course_access']);
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            course_id: parseInt(courseId, 10),
+                            courses_id: parseInt(courseId, 10),
                             rating: rating
                         })
                     }).then(async res => {
@@ -640,28 +663,68 @@ $hasAccess = in_array($course['courses_id'], $_SESSION['course_access']);
             modal.show();
         }
 
-        document.getElementById('submitAccessCode').addEventListener('click', async () => {
-            const code = document.getElementById('accessCodeInput').value.trim();
-            const err = document.getElementById('accessCodeError');
+     // วางโค้ดนี้แทนส่วน submitAccessCode เดิม (ประมาณบรรทัด 475)
 
-            const res = await fetch('verify_access_code.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    courses_id: <?= (int)$course['courses_id'] ?>,
-                    code: code
-                })
-            }).then(r => r.json());
+document.getElementById('submitAccessCode').addEventListener('click', async () => {
+    const codeInput = document.getElementById('accessCodeInput');
+    const code = codeInput.value.trim();
+    const errorEl = document.getElementById('accessCodeError');
+    const submitBtn = document.getElementById('submitAccessCode');
 
-            if (res.success) {
-                location.reload();
-            } else {
-                err.classList.remove('d-none');
-            }
-        });
+    // ตรวจสอบว่ากรอกรหัสหรือยัง
+    if (!code) {
+        errorEl.textContent = 'กรุณากรอกรหัส';
+        errorEl.classList.remove('d-none');
+        return;
+    }
 
+    // ซ่อน error และ disable ปุ่มชั่วคราว
+    errorEl.classList.add('d-none');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'กำลังตรวจสอบ...';
+
+    try {
+        const res = await fetch('verify_access_code.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                courses_id: <?= (int)$course['courses_id'] ?>,
+                code: code
+            })
+        }).then(r => r.json());
+
+        if (res.success) {
+            // ตรวจสอบรหัสสำเร็จ - reload หน้าเพื่อ unlock ส่วนคอมเมนต์
+            location.reload();
+        } else {
+            // รหัสไม่ถูกต้อง
+            errorEl.textContent = res.error || 'รหัสไม่ถูกต้อง';
+            errorEl.classList.remove('d-none');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'ยืนยัน';
+            
+            // เคลียร์ input และ focus กลับ
+            codeInput.value = '';
+            codeInput.focus();
+        }
+    } catch (err) {
+        console.error('Access code error:', err);
+        errorEl.textContent = 'เกิดข้อผิดพลาดในการตรวจสอบรหัส';
+        errorEl.classList.remove('d-none');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'ยืนยัน';
+    }
+});
+
+// เพิ่ม: กด Enter ในช่องรหัสก็ส่งได้เลย
+document.getElementById('accessCodeInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('submitAccessCode').click();
+    }
+});
     </script>
 </body>
 
