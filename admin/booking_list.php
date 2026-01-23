@@ -28,33 +28,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $reason = trim($_POST['reason'] ?? '');
 
             // If rejecting, ensure the DB has a column to store the reason. Try to add it if missing.
-                if ($status === 'ถูกปฏิเสธ') {
+            if ($status === 'ถูกปฏิเสธ') {
                 $colCheck = $conn->query("SHOW COLUMNS FROM bookings LIKE 'rejection_reason'");
                 if ($colCheck && $colCheck->num_rows === 0) {
                     // best-effort: add column, ignore errors
                     @$conn->query("ALTER TABLE bookings ADD COLUMN rejection_reason TEXT NULL AFTER approved_at");
                 }
-                $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW(), rejection_reason=? WHERE bookings_id=?");
-                $stmt->bind_param("sssi", $status, $admin_name, $reason, $id);
-                $stmt->execute();
-                echo json_encode(['success' => true]);
-                exit;
-            } else {
-                // approving or other status: clear any previous rejection reason
-                // try to update and set rejection_reason = NULL if the column exists
-                $colCheck = $conn->query("SHOW COLUMNS FROM bookings LIKE 'rejection_reason'");
-                if ($colCheck && $colCheck->num_rows > 0) {
-                    $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW(), rejection_reason=NULL WHERE bookings_id=?");
-                    $stmt->bind_param("ssi", $status, $admin_name, $id);
+
+                // If comment_code exists, clear it when rejecting
+                $colCheckCode = $conn->query("SHOW COLUMNS FROM bookings LIKE 'comment_code'");
+                if ($colCheckCode && $colCheckCode->num_rows > 0) {
+                    $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW(), rejection_reason=?, comment_code=NULL WHERE bookings_id=?");
+                    $stmt->bind_param("sssi", $status, $admin_name, $reason, $id);
                 } else {
-                    $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW() WHERE bookings_id=?");
-                    $stmt->bind_param("ssi", $status, $admin_name, $id);
+                    $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW(), rejection_reason=? WHERE bookings_id=?");
+                    $stmt->bind_param("sssi", $status, $admin_name, $reason, $id);
                 }
                 $stmt->execute();
                 echo json_encode(['success' => true]);
                 exit;
             }
+
+            // Approve: generate 4-digit comment code and store it
+            if ($status === 'อนุมัติแล้ว') {
+                // ensure comment_code column exists
+                $colCheckCode = $conn->query("SHOW COLUMNS FROM bookings LIKE 'comment_code'");
+                if ($colCheckCode && $colCheckCode->num_rows === 0) {
+                    // add column to store 4-digit code
+                    @$conn->query("ALTER TABLE bookings ADD COLUMN comment_code VARCHAR(10) NULL AFTER approved_at");
+                }
+
+                // generate secure random 4-digit code (zero-padded)
+                try {
+                    $num = random_int(0, 9999);
+                    $code = str_pad((string)$num, 4, '0', STR_PAD_LEFT);
+                } catch (Exception $e) {
+                    // fallback
+                    $code = str_pad((string)mt_rand(0, 9999), 4, '0', STR_PAD_LEFT);
+                }
+
+                // clear any previous rejection_reason if present
+                $colCheckRej = $conn->query("SHOW COLUMNS FROM bookings LIKE 'rejection_reason'");
+                if ($colCheckRej && $colCheckRej->num_rows > 0) {
+                    $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW(), rejection_reason=NULL, comment_code=? WHERE bookings_id=?");
+                    $stmt->bind_param("sssi", $status, $admin_name, $code, $id);
+                } else {
+                    $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW(), comment_code=? WHERE bookings_id=?");
+                    $stmt->bind_param("sssi", $status, $admin_name, $code, $id);
+                }
+                $stmt->execute();
+                echo json_encode(['success' => true, 'comment_code' => $code]);
+                exit;
+            }
+
+            // Other statuses: update normally and clear comment_code if the column exists
+            $colCheckCode2 = $conn->query("SHOW COLUMNS FROM bookings LIKE 'comment_code'");
+            if ($colCheckCode2 && $colCheckCode2->num_rows > 0) {
+                $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW(), comment_code=NULL WHERE bookings_id=?");
+                $stmt->bind_param("ssi", $status, $admin_name, $id);
+            } else {
+                $stmt = $conn->prepare("UPDATE bookings SET status=?, approved_by=?, approved_at=NOW() WHERE bookings_id=?");
+                $stmt->bind_param("ssi", $status, $admin_name, $id);
+            }
+            $stmt->execute();
+            echo json_encode(['success' => true]);
+            exit;
         }
+
         if ($_POST['action'] === 'delete') {
             $stmt = $conn->prepare("DELETE FROM bookings WHERE bookings_id=?");
             $stmt->bind_param("i", $id);
@@ -643,13 +683,19 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                                     <?php if ($booking['status'] !== 'รออนุมัติ' && !empty($booking['approved_by'])): ?>
                                     <div class="approval-info">
                                         <div class="approval-info-item">
-                                            <span class="approval-info-label">อนุมัติโดย:</span>
-                                            <span class="approval-info-value"><?= htmlspecialchars($booking['approved_by']) ?></span>
-                                        </div>
+                                                <span class="approval-info-label"><?php echo ($booking['status'] === 'ถูกปฏิเสธ') ? 'ปฏิเสธโดย:' : 'อนุมัติโดย:'; ?></span>
+                                                <span class="approval-info-value"><?= htmlspecialchars($booking['approved_by']) ?></span>
+                                            </div>
                                         <?php if (!empty($booking['approved_at_formatted'])): ?>
                                         <div class="approval-info-item">
                                             <span class="approval-info-label">เมื่อ:</span>
                                             <span class="approval-info-value"><?= $booking['approved_at_formatted'] ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                        <?php if (!empty($booking['comment_code'])): ?>
+                                        <div class="approval-info-item">
+                                            <span class="approval-info-label">รหัสแสดงความคิดเห็น:</span>
+                                            <span class="approval-info-value"><?= htmlspecialchars($booking['comment_code']) ?></span>
                                         </div>
                                         <?php endif; ?>
                                     </div>
@@ -773,6 +819,12 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                                             <span class="approval-info-value"><?= $booking['approved_at_formatted'] ?></span>
                                         </div>
                                         <?php endif; ?>
+                                        <?php if (!empty($booking['comment_code'])): ?>
+                                        <div class="approval-info-item">
+                                            <span class="approval-info-label">รหัสแสดงความคิดเห็น:</span>
+                                            <span class="approval-info-value"><?= htmlspecialchars($booking['comment_code']) ?></span>
+                                        </div>
+                                        <?php endif; ?>
                                     </div>
                                     <?php endif; ?>
 
@@ -820,6 +872,12 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                                         <div class="approval-info-item">
                                             <span class="approval-info-label">เมื่อ:</span>
                                             <span class="approval-info-value"><?= $booking['approved_at_formatted'] ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                        <?php if (!empty($booking['comment_code'])): ?>
+                                        <div class="approval-info-item">
+                                            <span class="approval-info-label">รหัสแสดงความคิดเห็น:</span>
+                                            <span class="approval-info-value"><?= htmlspecialchars($booking['comment_code']) ?></span>
                                         </div>
                                         <?php endif; ?>
                                     </div>
@@ -977,6 +1035,7 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                 { key: 'phone', label: 'เบอร์โทร' },
                 { key: 'approved_by', label: 'อนุมัติโดย' },
                 { key: 'approved_at_formatted', label: 'อนุมัติเมื่อ' },
+                { key: 'comment_code', label: 'รหัสสำหรับแสดงความคิดเห็น' },
                 { key: 'doc', label: 'เอกสาร', format: v => v ? `<a href="../user/download.php?type=doc&file=${encodeURIComponent(v)}" target="_blank">ดูไฟล์</a>` : '-' },
                 { 
                     key: 'slip', 
@@ -1046,76 +1105,13 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                 .then(data => {
                     console.log('change_status response', data);
                     if (data.success) {
-                        // Update UI in-place without reloading
-                        try {
-                            const col = document.querySelector(`[data-booking-id="${id}"]`);
-                            if (!col) console.warn('No DOM element found for booking id', id);
-                            if (col) {
-                                // find status badge inside
-                                const badge = col.querySelector('.status-badge');
-                                const prevStatus = badge ? badge.textContent.trim() : '';
-
-                                // update badge text and classes
-                                if (badge) {
-                                    badge.textContent = newStatus;
-                                    badge.classList.remove('status-pending','status-approved','status-rejected');
-                                    if (newStatus === 'รออนุมัติ') badge.classList.add('status-pending');
-                                    else if (newStatus === 'อนุมัติแล้ว') badge.classList.add('status-approved');
-                                    else if (newStatus === 'ถูกปฏิเสธ') badge.classList.add('status-rejected');
-                                }
-
-                                // move the column to the appropriate tab row
-                                let targetRow = null;
-                                if (newStatus === 'รออนุมัติ') targetRow = document.querySelector('#pending .row');
-                                else if (newStatus === 'อนุมัติแล้ว') targetRow = document.querySelector('#approved .row');
-                                else if (newStatus === 'ถูกปฏิเสธ') targetRow = document.querySelector('#rejected .row');
-                                else targetRow = document.querySelector('#all .row');
-
-                                if (targetRow && col.parentElement !== targetRow) {
-                                    // append the column to target
-                                    targetRow.appendChild(col);
-                                }
-
-                                // update counts in nav badges and stats
-                                const allBadge = document.querySelector('#all-tab .badge');
-                                const pendingBadge = document.querySelector('#pending-tab .badge');
-                                const approvedBadge = document.querySelector('#approved-tab .badge');
-                                const rejectedBadge = document.querySelector('#rejected-tab .badge');
-                                const stats = document.querySelectorAll('.stats-card .stats-value');
-
-                                function toInt(el){ return el ? parseInt(el.textContent)||0 : 0; }
-                                function setInt(el, v){ if(el) el.textContent = v; }
-
-                                const prev = prevStatus;
-                                if (prev === 'รออนุมัติ') setInt(pendingBadge, Math.max(0, toInt(pendingBadge)-1));
-                                if (prev === 'อนุมัติแล้ว') setInt(approvedBadge, Math.max(0, toInt(approvedBadge)-1));
-                                if (prev === 'ถูกปฏิเสธ') setInt(rejectedBadge, Math.max(0, toInt(rejectedBadge)-1));
-
-                                if (newStatus === 'รออนุมัติ') setInt(pendingBadge, toInt(pendingBadge)+1);
-                                if (newStatus === 'อนุมัติแล้ว') setInt(approvedBadge, toInt(approvedBadge)+1);
-                                if (newStatus === 'ถูกปฏิเสธ') setInt(rejectedBadge, toInt(rejectedBadge)+1);
-
-                                // update stats values (order: total, pending, approved, rejected)
-                                if (stats && stats.length >= 4) {
-                                    // total remains same for status change
-                                    const pendingIdx = 1, approvedIdx = 2, rejectedIdx = 3;
-                                    if (prev === 'รออนุมัติ') setInt(stats[pendingIdx], Math.max(0, toInt(stats[pendingIdx])-1));
-                                    if (prev === 'อนุมัติแล้ว') setInt(stats[approvedIdx], Math.max(0, toInt(stats[approvedIdx])-1));
-                                    if (prev === 'ถูกปฏิเสธ') setInt(stats[rejectedIdx], Math.max(0, toInt(stats[rejectedIdx])-1));
-
-                                    if (newStatus === 'รออนุมัติ') setInt(stats[pendingIdx], toInt(stats[pendingIdx])+1);
-                                    if (newStatus === 'อนุมัติแล้ว') setInt(stats[approvedIdx], toInt(stats[approvedIdx])+1);
-                                    if (newStatus === 'ถูกปฏิเสธ') setInt(stats[rejectedIdx], toInt(stats[rejectedIdx])+1);
-                                }
-                            }
-                        } catch (e) {
-                            console.error('DOM update after status change failed', e);
-                            // fallback to reload so UI stays in sync
-                            location.reload();
-                            return;
+                        if (data.comment_code) {
+                            alert('อนุมัติเรียบร้อย\nรหัสแสดงความคิดเห็น: ' + data.comment_code);
+                        } else {
+                            alert('เปลี่ยนสถานะเรียบร้อยแล้ว');
                         }
-
-                        alert('เปลี่ยนสถานะเรียบร้อยแล้ว');
+                        // reload to reflect server state
+                        location.reload();
                     } else {
                         alert('เกิดข้อผิดพลาด');
                     }
@@ -1217,47 +1213,8 @@ $pending = array_filter($bookings, fn($b) => $b['status'] === 'รออนุ�
                     .then(data => {
                         console.log('delete response', data);
                         if (data.success) {
-                            try {
-                                const col = document.querySelector(`[data-booking-id="${pendingDeleteId}"]`);
-                                if (!col) console.warn('No DOM element found for deleted booking id', pendingDeleteId);
-                                if (col) {
-                                    // update counts
-                                    const allBadge = document.querySelector('#all-tab .badge');
-                                    const pendingBadge = document.querySelector('#pending-tab .badge');
-                                    const approvedBadge = document.querySelector('#approved-tab .badge');
-                                    const rejectedBadge = document.querySelector('#rejected-tab .badge');
-                                    const stats = document.querySelectorAll('.stats-card .stats-value');
-
-                                    const badgeEl = col.querySelector('.status-badge');
-                                    const prevStatus = badgeEl ? badgeEl.textContent.trim() : '';
-
-                                    function toInt(el){ return el ? parseInt(el.textContent)||0 : 0; }
-                                    function setInt(el, v){ if(el) el.textContent = v; }
-
-                                    // decrement appropriate counters
-                                    if (prevStatus === 'รออนุมัติ') setInt(pendingBadge, Math.max(0, toInt(pendingBadge)-1));
-                                    if (prevStatus === 'อนุมัติแล้ว') setInt(approvedBadge, Math.max(0, toInt(approvedBadge)-1));
-                                    if (prevStatus === 'ถูกปฏิเสธ') setInt(rejectedBadge, Math.max(0, toInt(rejectedBadge)-1));
-
-                                    // total and stats
-                                    if (allBadge) setInt(allBadge, Math.max(0, toInt(allBadge)-1));
-                                    if (stats && stats.length >= 4) {
-                                        setInt(stats[0], Math.max(0, toInt(stats[0])-1));
-                                        if (prevStatus === 'รออนุมัติ') setInt(stats[1], Math.max(0, toInt(stats[1])-1));
-                                        if (prevStatus === 'อนุมัติแล้ว') setInt(stats[2], Math.max(0, toInt(stats[2])-1));
-                                        if (prevStatus === 'ถูกปฏิเสธ') setInt(stats[3], Math.max(0, toInt(stats[3])-1));
-                                    }
-
-                                    // remove the column from DOM
-                                    col.remove();
-                                }
-                            } catch (e) {
-                                console.error('DOM update after delete failed', e);
-                                // fallback to reload
-                                location.reload();
-                                return;
-                            }
                             alert('ลบการจองเรียบร้อยแล้ว');
+                            location.reload();
                         } else {
                             alert('เกิดข้อผิดพลาด');
                         }
