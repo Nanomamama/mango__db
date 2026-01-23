@@ -337,7 +337,7 @@ $hasAccess = in_array($course['courses_id'], $_SESSION['course_access']);
                         <div class="card p-4 mb-4">
                             <h6 class="mb-3">เพิ่มความคิดเห็นของคุณ</h6>
                             <form id="commentForm">
-                                <input type="hidden" name="course_id" value="<?php echo (int)$course['courses_id']; ?>">
+                                <input type="hidden" name="courses_id" value="<?php echo (int)$course['courses_id']; ?>">
                                 <div class="mb-3">
                                     <label for="userName" class="form-label">ชื่อผู้แสดงความคิดเห็น</label>
                                     <input type="text"
@@ -529,7 +529,7 @@ $hasAccess = in_array($course['courses_id'], $_SESSION['course_access']);
         // Submit comment (async: send rating first if provided, then save comment)
         document.getElementById('commentForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const courseId = this.querySelector('input[name="course_id"]').value;
+            const courseId = this.querySelector('input[name="courses_id"]').value;
             const userName = document.getElementById('userName').value.trim();
             const commentText = document.getElementById('commentText').value.trim();
             const rating = parseInt(document.getElementById('commentRating').value || 0, 10);
