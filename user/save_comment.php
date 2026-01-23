@@ -4,7 +4,28 @@ header('Content-Type: application/json');
 
 require_once '../admin/db.php';
 
-$data = json_decode(file_get_contents('php://input'), true);
+// Robust error handling: convert warnings/notices to exceptions and ensure JSON error responses
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/save_comment_errors.log');
+
+set_error_handler(function($severity, $message, $file, $line) {
+    throw new ErrorException($message, 0, $severity, $file, $line);
+});
+
+register_shutdown_function(function() {
+    $err = error_get_last();
+    if ($err) {
+        file_put_contents(__DIR__ . '/save_comment_errors.log', date('c') . " SHUTDOWN " . json_encode($err) . PHP_EOL, FILE_APPEND);
+        if (!headers_sent()) header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'error' => 'Internal server error']);
+    }
+});
+
+try {
+
+    $data = json_decode(file_get_contents('php://input'), true);
 
 if (!isset($data['course_id'], $data['user_name'], $data['comment_text'])) {
     echo json_encode(['success' => false, 'error' => 'ข้อมูลไม่ครบถ้วน']);
@@ -36,18 +57,24 @@ if (!$checkCourse->get_result()->num_rows) {
 }
 $checkCourse->close();
 
-// กำหนด member_id และ guest_identifier
-$member_id = $_SESSION['member_id'] ?? null;
-$guest_id = $member_id ? null : session_id();
+// ตรวจสอบสิทธิ์เข้าถึงคอมเมนต์ (ต้องยืนยันรหัสก่อน)
+if (!isset($_SESSION['course_access']) || !in_array($course_id, $_SESSION['course_access'])) {
+    echo json_encode(['success' => false, 'error' => 'คุณยังไม่ได้ยืนยันการเข้าร่วมกิจกรรม']);
+    exit;
+}
 
-// บันทึกคอมเมนต์พร้อม member_id/guest_identifier
+// กำหนด identifier สำหรับเก็บในคอลัมน์ guest_identifier
+$member_id = $_SESSION['member_id'] ?? null;
+$identifier = $member_id ? 'member:' . $member_id : session_id();
+
+// บันทึกคอมเมนต์: ตารางมีคอลัมน์ guest_identifier (varchar), ไม่มี member_id
 $stmt = $conn->prepare("
     INSERT INTO course_comments 
-    (courses_id, name, comment_text, member_id, guest_identifier, created_at) 
-    VALUES (?, ?, ?, ?, ?, NOW())
+    (courses_id, name, comment_text, guest_identifier, created_at) 
+    VALUES (?, ?, ?, ?, NOW())
 ");
 
-$stmt->bind_param('issis', $course_id, $user_name, $comment_text, $member_id, $guest_id);
+$stmt->bind_param('isss', $course_id, $user_name, $comment_text, $identifier);
 
 if ($stmt->execute()) {
     echo json_encode([
@@ -58,6 +85,14 @@ if ($stmt->execute()) {
     echo json_encode(['success' => false, 'error' => 'เกิดข้อผิดพลาด: ' . $conn->error]);
 }
 
-$stmt->close();
-$conn->close();
+    $stmt->close();
+    $conn->close();
+} catch (Throwable $e) {
+    // Log and return JSON error
+    $msg = '[' . date('c') . '] ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL;
+    file_put_contents(__DIR__ . '/save_comment_errors.log', $msg, FILE_APPEND);
+    if (!headers_sent()) header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'error' => 'Internal server error']);
+    exit;
+}
 ?>

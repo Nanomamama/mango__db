@@ -6,72 +6,37 @@ require_once '../admin/db.php';
 
 $data = json_decode(file_get_contents('php://input'), true);
 
-if (!isset($data['courses_id'], $data['rating']) || !is_numeric($data['rating'])) {
+if (!isset($data['courses_id'], $data['code'])) {
     echo json_encode(['success' => false, 'error' => 'ข้อมูลไม่ครบถ้วน']);
     exit;
 }
 
 $courses_id = (int)$data['courses_id'];
-$rating = (int)$data['rating'];
+$code = trim($data['code']);
 
-// ตรวจสอบว่า rating อยู่ในช่วง 1-5
-if ($rating < 1 || $rating > 5) {
-    echo json_encode(['success' => false, 'error' => 'คะแนนต้องอยู่ระหว่าง 1-5']);
+if ($code === '') {
+    echo json_encode(['success' => false, 'error' => 'กรุณากรอกรหัส']);
     exit;
 }
 
-// ตรวจสอบว่าคอร์สมีอยู่จริง
-$checkCourse = $conn->prepare("SELECT courses_id FROM courses WHERE courses_id = ?");
-$checkCourse->bind_param('i', $courses_id);
-$checkCourse->execute();
-if (!$checkCourse->get_result()->num_rows) {
-    echo json_encode(['success' => false, 'error' => 'ไม่พบหลักสูตร']);
-    exit;
-}
-$checkCourse->close();
 
-// กำหนด member_id และ guest_identifier
-$member_id = $_SESSION['member_id'] ?? null;
+// Check bookings table for matching comment_code with approved status (guests allowed)
+$stmt = $conn->prepare("SELECT bookings_id FROM bookings WHERE comment_code = ? AND status = 'อนุมัติแล้ว' LIMIT 1");
+$stmt->bind_param('s', $code);
 
-// ถ้า login แล้ว ใช้ member_id, ถ้าไม่ ใช้ session_id
-if ($member_id) {
-    // User ที่ login - ใช้ member_id
-    $stmt = $conn->prepare("
-        INSERT INTO course_rating
-        (courses_id, member_id, rating)
-        VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE rating = ?
-    ");
-    $stmt->bind_param('iiii', $courses_id, $member_id, $rating, $rating);
+$stmt->execute();
+$res = $stmt->get_result();
+if ($res && $res->num_rows > 0) {
+    // mark access for this course in session
+    if (!isset($_SESSION['course_access']) || !is_array($_SESSION['course_access'])) $_SESSION['course_access'] = [];
+    if (!in_array($courses_id, $_SESSION['course_access'])) $_SESSION['course_access'][] = $courses_id;
+
+    echo json_encode(['success' => true]);
 } else {
-    // Guest - ใช้ guest_identifier
-    $guest_id = session_id();
-    $stmt = $conn->prepare("
-        INSERT INTO course_rating
-        (courses_id, guest_identifier, rating)
-        VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE rating = ?
-    ");
-    $stmt->bind_param('isii', $courses_id, $guest_id, $rating, $rating);
-}
-
-if ($stmt->execute()) {
-    // ดึงค่าเฉลี่ยใหม่
-    $avgStmt = $conn->prepare("SELECT AVG(rating) AS avg_rating, COUNT(*) AS cnt FROM course_rating WHERE courses_id = ?");
-    $avgStmt->bind_param('i', $courses_id);
-    $avgStmt->execute();
-    $result = $avgStmt->get_result()->fetch_assoc();
-    $avgStmt->close();
-    
-    echo json_encode([
-        'success' => true,
-        'avg' => round($result['avg_rating'], 2),
-        'count' => $result['cnt']
-    ]);
-} else {
-    echo json_encode(['success' => false, 'error' => $conn->error]);
+    echo json_encode(['success' => false, 'error' => 'รหัสไม่ถูกต้องหรือยังไม่ได้รับการอนุมัติ']);
 }
 
 $stmt->close();
 $conn->close();
+
 ?>

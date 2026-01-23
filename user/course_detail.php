@@ -591,7 +591,7 @@ $hasAccess = in_array($course['courses_id'], $_SESSION['course_access']);
                 }
 
                 // then save comment
-                const res = await fetch('save_comment.php', {
+                const fetchResp = await fetch('save_comment.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -601,9 +601,21 @@ $hasAccess = in_array($course['courses_id'], $_SESSION['course_access']);
                         user_name: userName,
                         comment_text: commentText
                     })
-                }).then(r => r.json());
+                });
 
-                if (res.success) {
+                // Read response as text first to handle empty or non-JSON responses
+                const respText = await fetchResp.text();
+                let res;
+                try {
+                    res = respText ? JSON.parse(respText) : null;
+                } catch (e) {
+                    console.error('Invalid JSON response from save_comment.php:', respText);
+                    errorEl.textContent = 'Server error: ' + (respText || 'Empty response');
+                    errorEl.style.display = 'block';
+                    return;
+                }
+
+                if (res && res.success) {
                     // Save user name to localStorage เฉพาะ guest (ไม่มี session login)
                     const loggedInName = '<?php echo $loggedInUserName; ?>';
                     if (!loggedInName) {
@@ -647,7 +659,8 @@ $hasAccess = in_array($course['courses_id'], $_SESSION['course_access']);
                         feedback.style.display = 'none';
                     }, 3000);
                 } else {
-                    errorEl.textContent = res.error || 'เกิดข้อผิดพลาด';
+                    const msg = (res && res.error) ? res.error : (respText || 'เกิดข้อผิดพลาด');
+                    errorEl.textContent = msg;
                     errorEl.style.display = 'block';
                 }
             } catch (err) {

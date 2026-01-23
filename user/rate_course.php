@@ -30,6 +30,12 @@ if (!$checkCourse->get_result()->num_rows) {
 }
 $checkCourse->close();
 
+// ตรวจสอบสิทธิ์เข้าถึงการให้คะแนน (ต้องยืนยันรหัสก่อน)
+if (!isset($_SESSION['course_access']) || !in_array($courses_id, $_SESSION['course_access'])) {
+    echo json_encode(['success' => false, 'error' => 'คุณยังไม่ได้ยืนยันการเข้าร่วมกิจกรรม']);
+    exit;
+}
+
 // กำหนด member_id
 $member_id = $_SESSION['member_id'] ?? null;
 
