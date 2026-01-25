@@ -516,7 +516,7 @@ require_once $db_path;
       <div class="row align-items-center mt-5">
         <div class="col-md-8">
           <h2>กิจกรรมอบรมทั้งหมด</h2>
-          <p class="mb-0 mt-2">หลักสูตรการอบรมแบบมีฐานการเรียนรู้</p>
+          <p class="mb-0 mt-2">การเรียนรู้เศรษฐกิจพอเพียง</p>
         </div>
       </div>
     </div>
@@ -529,12 +529,6 @@ require_once $db_path;
       <div class="layout-tabs">
         <button class="layout-tab active" data-layout="list">
           <i class="fas fa-list"></i>รายการ
-        </button>
-        <button class="layout-tab" data-layout="grid">
-          <i class="fas fa-th-large"></i>กริด
-        </button>
-        <button class="layout-tab" data-layout="minimal">
-          <i class="fas fa-bars"></i>แบบย่อ
         </button>
       </div>
 
@@ -656,18 +650,10 @@ require_once $db_path;
                       <h3 class="course-title"><?php echo $courseName; ?></h3>
                       <p class="course-description"><?php echo $courseDesc; ?></p>
                     </div>
-                    <span class="course-badge">หลักสูตรใหม่</span>
                   </div>
 
                   <div class="course-meta">
-                    <div class="meta-item">
-                      <i class="far fa-clock"></i>
-                      <span>12 ชั่วโมง</span>
-                    </div>
-                    <div class="meta-item">
-                      <i class="fas fa-signal"></i>
-                      <span>ระดับกลาง</span>
-                    </div>
+
                     <div class="meta-item">
                       <i class="fas fa-users"></i>
                       <span>125 ผู้เรียน</span>
@@ -692,9 +678,10 @@ require_once $db_path;
                     <a href="course_detail.php?id=<?php echo $courseId; ?>" class="btn-detail">
                       ดูรายละเอียด <i class="fas fa-arrow-right ms-1"></i>
                     </a>
-                    <button class="btn-outline">
-                      <i class="far fa-bookmark"></i> บันทึก
+                    <button class="btn-outline" onclick="location.href='  course_detail.php?id=<?php echo $courseId; ?>#comments'">
+                      <i class="far fa-bookmark"></i> แสดงความคิดเห็น
                     </button>
+
                   </div>
                 </div>
               </div>
@@ -894,7 +881,7 @@ require_once $db_path;
       <?php $stmt->close(); ?>
     </div>
   </section>
-  
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     // Layout Tabs Functionality
@@ -942,7 +929,7 @@ require_once $db_path;
       observer.observe(item);
     });
   </script>
-  
+
 </body>
 
 </html>

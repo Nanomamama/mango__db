@@ -9,7 +9,7 @@ if ($conn->connect_error) {
 }
 
 $id = $_GET['id'];
-$sql = "DELETE FROM courses WHERE id = $id";
+$sql = "DELETE FROM courses WHERE courses_id = $id";
 
 if ($conn->query($sql) === TRUE) {
     echo "ลบข้อมูลสำเร็จ!";

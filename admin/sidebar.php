@@ -184,14 +184,14 @@
             <a href="./index.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'index.php') echo ' active'; ?>">
                 <i class='bx bxs-dashboard'></i> Dashboard
             </a>
-            <a href="./manage_mango.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'manage_mango.php') echo ' active'; ?>">
+            <!-- <a href="./manage_mango.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'manage_mango.php') echo ' active'; ?>">
                 <i class='bx bxs-tree'></i> สายพันธุ์มะม่วง
-            </a>
+            </a> -->
             <a href="./manage_product.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'manage_product.php') echo ' active'; ?>">
-                <i class='bx bxs-package'></i> สินค้าผลิตภัณฑ์
+                <i class='bx bxs-package'></i> สินค้า
             </a>
             <a href="./edit_courses.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'edit_courses.php') echo ' active'; ?>">
-                <i class='bx bxs-graduation'></i> หลักสูตร
+                <i class='bx bxs-graduation'></i> กิจกรรมอบรม
             </a>
 
             <a href="./booking_list.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'booking_list.php') echo ' active'; ?>">

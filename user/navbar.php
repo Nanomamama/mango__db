@@ -190,12 +190,11 @@
         <div class="offcanvas-body">
           <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
             <li class="nav-item"><a class="nav-link" href="../user/index.php">หน้าแรก</a></li>
-            <li class="nav-item"><a class="nav-link" href="../user/mango_varieties.php">สายพันธุ์ทั้งหมด</a></li>
-            <li class="nav-item"><a class="nav-link" href="../user/products.php">สินค้าผลิตภัณฑ์</a></li>
-            <li class="nav-item"><a class="nav-link" href="../user/course.php">หลักสูตรการเรียนรู้</a></li>
-            <li class="nav-item"><a class="nav-link" href="../user/activities.php">จองวันเข้าดูงาน</a></li>
+              <li class="nav-item"><a class="nav-link" href="../user/activities.php">จองวันเข้าดูงาน</a></li>
+            <!-- <li class="nav-item"><a class="nav-link" href="../user/mango_varieties.php">สายพันธุ์ทั้งหมด</a></li> -->
+            <li class="nav-item"><a class="nav-link" href="../user/course.php">กิจกรรมอบรม</a></li>
             <!-- <li class="nav-item"><a class="nav-link" href="#">ติดต่อเรา</a></li> -->
-
+            <li class="nav-item"><a class="nav-link" href="../user/products.php">สั่งสินค้าล่วงหน้า</a></li>
             <?php if (!isset($_SESSION['member_id'])): ?>
               <li class="nav-item mt-3 mt-xl-0">
                 <a href="../user/member_login.php" class="cta-btns">เข้าสู่ระบบ</a>
