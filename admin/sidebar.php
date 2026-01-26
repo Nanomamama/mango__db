@@ -206,10 +206,6 @@
                     <?php endif; ?>
                 </div>
             </a>
-
-            <a href="./update_calendar_view.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'update_calendar_view.php') echo ' active'; ?>">
-                <i class='bx bxs-calendar-edit'></i> อัพเดทปฏิทิน
-            </a>
             <a href="./admin_users.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'admin_users.php') echo ' active'; ?>">
                 <i class='bx bxs-user-account'></i> จัดการข้อมูลผู้ใช้
             </a>

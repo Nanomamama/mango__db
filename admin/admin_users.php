@@ -399,7 +399,7 @@ while ($row = $result->fetch_assoc()) {
                         </div>
                     </div>
                 </div>
-            </header>
+        </header>
 
         <!-- Stats Overview -->
         <div class="row mb-4">
