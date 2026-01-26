@@ -323,7 +323,7 @@ $hasAccess = in_array($course['courses_id'], $_SESSION['course_access']);
                         </div>
                         <div class="modal-body">
                             <p class="text-muted">กรุณาใส่รหัสที่ได้รับในวันอบรม</p>
-                            <input type="password" id="accessCodeInput" class="form-control text-center fs-4" maxlength="6" placeholder="รหัสเข้าร่วมกิจกรรม" aria-label="รหัสเข้าร่วมกิจกรรม" <?php if ($hasAccess): echo 'disabled value="****"';
+                            <input type="password" id="accessCodeInput" class="form-control text-center fs-4" maxlength="6" placeholder="กรอกรหัสเข้าร่วมกิจกรรม" aria-label="กรอกรหัสเข้าร่วมกิจกรรม" <?php if ($hasAccess): echo 'disabled value="****"';
                                                                                                                                                                                                 endif; ?>>
                             <div class="text-danger mt-2 d-none" id="accessCodeError">รหัสไม่ถูกต้อง</div>
                         </div>
@@ -525,149 +525,168 @@ $hasAccess = in_array($course['courses_id'], $_SESSION['course_access']);
             }
         })();
 
-        // Submit comment (async: send rating first if provided, then save comment)
-        document.getElementById('commentForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const courseId = this.querySelector('input[name="courses_id"]').value;
-            const userName = document.getElementById('userName').value.trim();
-            const commentText = document.getElementById('commentText').value.trim();
-            const rating = parseInt(document.getElementById('commentRating').value || 0, 10);
-            const feedback = document.getElementById('commentFeedback');
-            const errorEl = document.getElementById('commentError');
+       // Submit comment (async: send rating first if provided, then save comment)
+document.getElementById('commentForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const courseId = this.querySelector('input[name="courses_id"]').value;
+    const userName = document.getElementById('userName').value.trim();
+    const commentText = document.getElementById('commentText').value.trim();
+    const rating = parseInt(document.getElementById('commentRating').value || 0, 10);
+    const feedback = document.getElementById('commentFeedback');
+    const errorEl = document.getElementById('commentError');
 
-            if (!userName || !commentText) {
-                errorEl.textContent = 'กรุณากรอกข้อมูลให้ครบถ้วน';
-                errorEl.style.display = 'block';
-                feedback.style.display = 'none';
-                return;
-            }
+    if (!userName || !commentText) {
+        errorEl.textContent = 'กรุณากรอกข้อมูลให้ครบถ้วน';
+        errorEl.style.display = 'block';
+        feedback.style.display = 'none';
+        return;
+    }
 
-            feedback.style.display = 'none';
-            errorEl.style.display = 'none';
+    feedback.style.display = 'none';
+    errorEl.style.display = 'none';
 
-            try {
-                // If user provided a rating with the comment, submit it first
-                if (rating > 0) {
-                    const r = await fetch('rate_course.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            courses_id: parseInt(courseId, 10),
-                            rating: rating
-                        })
-                    }).then(async res => {
-                        const ct = res.headers.get('content-type') || '';
-                        const text = await res.text();
-                        if (ct.indexOf('application/json') === -1) {
-                            console.error('Non-JSON response from server:', text);
-                            throw new Error('Server returned non-JSON response');
-                        }
-                        try {
-                            return JSON.parse(text);
-                        } catch (e) {
-                            console.error('Invalid JSON:', text);
-                            throw new Error('Invalid JSON from server');
-                        }
-                    });
+    let guestIdentifier = null; // เก็บ identifier จากการให้คะแนน
 
-                    if (r && r.success) {
-                        // update top aggregate UI
-                        const avgEl = document.getElementById('avgRating');
-                        const countEl = document.getElementById('ratingCount');
-                        if (typeof r.avg !== 'undefined') avgEl.textContent = parseFloat(r.avg).toFixed(2);
-                        if (typeof r.count !== 'undefined') countEl.textContent = r.count;
-                        // update top stars visual
-                        const topStars = document.querySelectorAll('#stars .star');
-                        const rounded = Math.round(parseFloat(document.getElementById('avgRating').textContent) || 0);
-                        topStars.forEach(s => {
-                            const v = parseInt(s.dataset.value, 10);
-                            if (v <= rounded) s.classList.add('filled');
-                            else s.classList.remove('filled');
-                        });
-                    }
+    try {
+        // If user provided a rating with the comment, submit it first
+        if (rating > 0) {
+            const r = await fetch('rate_course.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    courses_id: parseInt(courseId, 10),
+                    rating: rating
+                })
+            }).then(async res => {
+                const ct = res.headers.get('content-type') || '';
+                const text = await res.text();
+                if (ct.indexOf('application/json') === -1) {
+                    console.error('Non-JSON response from server:', text);
+                    throw new Error('Server returned non-JSON response');
                 }
-
-                // then save comment
-                const fetchResp = await fetch('save_comment.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        course_id: parseInt(courseId),
-                        user_name: userName,
-                        comment_text: commentText
-                    })
-                });
-
-                // Read response as text first to handle empty or non-JSON responses
-                const respText = await fetchResp.text();
-                let res;
                 try {
-                    res = respText ? JSON.parse(respText) : null;
+                    return JSON.parse(text);
                 } catch (e) {
-                    console.error('Invalid JSON response from save_comment.php:', respText);
-                    errorEl.textContent = 'Server error: ' + (respText || 'Empty response');
-                    errorEl.style.display = 'block';
-                    return;
+                    console.error('Invalid JSON:', text);
+                    throw new Error('Invalid JSON from server');
                 }
+            });
 
-                if (res && res.success) {
-                    // Save user name to localStorage เฉพาะ guest (ไม่มี session login)
-                    const loggedInName = '<?php echo $loggedInUserName; ?>';
-                    if (!loggedInName) {
-                        localStorage.setItem('courseCommentUserName', userName);
-                    }
-
-                    const noComments = document.getElementById('noComments');
-                    if (noComments) noComments.remove();
-
-                    const now = new Date();
-                    const dateStr = now.getDate() + ' ' + ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][now.getMonth()] + ' ' +
-                        now.getFullYear() + ' ' +
-                        String(now.getHours()).padStart(2, '0') + ':' +
-                        String(now.getMinutes()).padStart(2, '0');
-
-                    const commentsList = document.getElementById('commentsList');
-                    const newComment = document.createElement('div');
-                    newComment.className = 'card mb-3 p-3';
-                    newComment.innerHTML = `
-                  <div class="d-flex justify-content-between align-items-center">
-                      <h6 class="mb-0 text-primary">${userName}</h6>
-                      <small class="text-muted">${dateStr}</small>
-                  </div>
-                  <p class="card-text mt-2">${commentText}</p>
-              `;
-                    commentsList.insertBefore(newComment, commentsList.firstChild);
-
-                    // reset form and comment stars
-                    document.getElementById('commentForm').reset();
-                    document.getElementById('charCount').textContent = '0';
-                    document.getElementById('commentRating').value = '0';
-                    // clear comment star visuals
-                    const cs = document.querySelectorAll('#commentStars .star');
-                    cs.forEach(s => s.classList.remove('filled'));
-                    document.getElementById('commentRatingText').textContent = 'ยังไม่ได้ให้คะแนน';
-                    // Restore saved name after reset
-                    document.getElementById('userName').value = userName;
-
-                    feedback.style.display = 'block';
-                    setTimeout(() => {
-                        feedback.style.display = 'none';
-                    }, 3000);
-                } else {
-                    const msg = (res && res.error) ? res.error : (respText || 'เกิดข้อผิดพลาด');
-                    errorEl.textContent = msg;
-                    errorEl.style.display = 'block';
-                }
-            } catch (err) {
-                console.error('Submit error:', err);
-                errorEl.textContent = 'เกิดข้อผิดพลาดในการส่งข้อมูล';
-                errorEl.style.display = 'block';
+            if (r && r.success) {
+                guestIdentifier = r.guest_identifier; // เก็บ identifier
+                
+                // update top aggregate UI
+                const avgEl = document.getElementById('avgRating');
+                const countEl = document.getElementById('ratingCount');
+                if (typeof r.avg !== 'undefined') avgEl.textContent = parseFloat(r.avg).toFixed(2);
+                if (typeof r.count !== 'undefined') countEl.textContent = r.count;
+                
+                // update top stars visual
+                const topStars = document.querySelectorAll('#stars .star');
+                const rounded = Math.round(parseFloat(document.getElementById('avgRating').textContent) || 0);
+                topStars.forEach(s => {
+                    const v = parseInt(s.dataset.value, 10);
+                    if (v <= rounded) s.classList.add('filled');
+                    else s.classList.remove('filled');
+                });
             }
+        }
+
+        // then save comment (ส่ง guest_identifier ไปด้วยถ้ามี)
+        const commentData = {
+            course_id: parseInt(courseId),
+            user_name: userName,
+            comment_text: commentText
+        };
+        
+        if (guestIdentifier) {
+            commentData.guest_identifier = guestIdentifier;
+        }
+
+        const fetchResp = await fetch('save_comment.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(commentData)
         });
+
+        const respText = await fetchResp.text();
+        let res;
+        try {
+            res = respText ? JSON.parse(respText) : null;
+        } catch (e) {
+            console.error('Invalid JSON response from save_comment.php:', respText);
+            errorEl.textContent = 'Server error: ' + (respText || 'Empty response');
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        if (res && res.success) {
+            // Save user name to localStorage เฉพาะ guest
+            const loggedInName = '<?php echo $loggedInUserName; ?>';
+            if (!loggedInName) {
+                localStorage.setItem('courseCommentUserName', userName);
+            }
+
+            const noComments = document.getElementById('noComments');
+            if (noComments) noComments.remove();
+
+            const now = new Date();
+            const dateStr = now.getDate() + ' ' + 
+                ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][now.getMonth()] + ' ' +
+                now.getFullYear() + ' ' +
+                String(now.getHours()).padStart(2,'0') + ':' +
+                String(now.getMinutes()).padStart(2,'0');
+
+            const commentsList = document.getElementById('commentsList');
+            const newComment = document.createElement('div');
+            newComment.className = 'card mb-3 p-3';
+            
+            // แสดงดาวถ้ามีการให้คะแนน
+            let starsHtml = '';
+            if (rating > 0) {
+                starsHtml = '<div class="mt-2">';
+                for (let i = 1; i <= 5; i++) {
+                    if (i <= rating) {
+                        starsHtml += '<span style="color: #ffc107; font-size: 18px;">★</span>';
+                    } else {
+                        starsHtml += '<span style="color: #ddd; font-size: 18px;">★</span>';
+                    }
+                }
+                starsHtml += ` <small class="text-muted">(${rating}/5)</small></div>`;
+            }
+            
+            newComment.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 text-primary">คุณ${userName}</h6>
+                    <small class="text-muted">${dateStr}</small>
+                </div>
+                ${starsHtml}
+                <p class="card-text mt-2">${commentText.replace(/\n/g, '<br>')}</p>
+            `;
+            commentsList.insertBefore(newComment, commentsList.firstChild);
+
+            // reset form
+            document.getElementById('commentForm').reset();
+            document.getElementById('charCount').textContent = '0';
+            document.getElementById('commentRating').value = '0';
+            const cs = document.querySelectorAll('#commentStars .star');
+            cs.forEach(s => s.classList.remove('filled'));
+            document.getElementById('commentRatingText').textContent = 'ยังไม่ได้ให้คะแนน';
+            document.getElementById('userName').value = userName;
+
+            feedback.style.display = 'block';
+            setTimeout(() => { feedback.style.display = 'none'; }, 3000);
+        } else {
+            const msg = (res && res.error) ? res.error : (respText || 'เกิดข้อผิดพลาด');
+            errorEl.textContent = msg;
+            errorEl.style.display = 'block';
+        }
+    } catch (err) {
+        console.error('Submit error:', err);
+        errorEl.textContent = 'เกิดข้อผิดพลาดในการส่งข้อมูล';
+        errorEl.style.display = 'block';
+    }
+});
 
 
         function openAccessModal() {

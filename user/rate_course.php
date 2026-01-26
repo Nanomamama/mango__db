@@ -4,7 +4,6 @@ header('Content-Type: application/json');
 
 require_once '../admin/db.php';
 
-// ตรวจสอบ connection
 if (!$conn) {
     echo json_encode(['success' => false, 'error' => 'เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล']);
     exit;
@@ -40,7 +39,7 @@ if (!$checkCourse->get_result()->num_rows) {
 }
 $checkCourse->close();
 
-// ตรวจสอบสิทธิ์เข้าถึง
+// ตรวจสอบสิทธิ์เข้าถึง (ต้องยืนยันรหัสก่อน)
 if (!isset($_SESSION['course_access'])) {
     $_SESSION['course_access'] = [];
 }
@@ -50,41 +49,43 @@ if (!in_array($courses_id, $_SESSION['course_access'])) {
     exit;
 }
 
-// กำหนด identifier
+// สร้าง unique identifier สำหรับการให้คะแนนแต่ละครั้ง
+// Format: session_id + timestamp เพื่อให้แต่ละครั้งที่เข้ารหัสใหม่จะได้ identifier ใหม่
 $member_id = $_SESSION['member_id'] ?? null;
+$guest_identifier = session_id() . '_' . time();
 
-// เตรียม query ตามประเภทผู้ใช้
+// บันทึกคะแนน (INSERT ใหม่ทุกครั้ง - ไม่ UPDATE)
 if ($member_id) {
-    // ===== User ที่ login =====
+    // User ที่ login - เก็บทั้ง member_id และ guest_identifier
     $stmt = $conn->prepare("
-        INSERT INTO course_rating (courses_id, member_id, guest_identifier, rating)
-        VALUES (?, ?, '', ?)
-        ON DUPLICATE KEY UPDATE rating = ?
+        INSERT INTO course_rating (courses_id, member_id, guest_identifier, rating, created_at)
+        VALUES (?, ?, ?, ?, NOW())
     ");
     if (!$stmt) {
         echo json_encode(['success' => false, 'error' => 'Prepare error: ' . $conn->error]);
         exit;
     }
-    $stmt->bind_param('iiii', $courses_id, $member_id, $rating, $rating);
+    $stmt->bind_param('iisi', $courses_id, $member_id, $guest_identifier, $rating);
 } else {
-    // ===== Guest =====
-    $guest_identifier = session_id();
-    
+    // Guest - เก็บเฉพาะ guest_identifier
     $stmt = $conn->prepare("
-        INSERT INTO course_rating (courses_id, guest_identifier, rating)
-        VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE rating = ?
+        INSERT INTO course_rating (courses_id, guest_identifier, rating, created_at)
+        VALUES (?, ?, ?, NOW())
     ");
     if (!$stmt) {
         echo json_encode(['success' => false, 'error' => 'Prepare error: ' . $conn->error]);
         exit;
     }
-    $stmt->bind_param("isii", $courses_id, $guest_identifier, $rating, $rating);
+    $stmt->bind_param("isi", $courses_id, $guest_identifier, $rating);
 }
 
 if ($stmt->execute()) {
-    // ดึงค่าเฉลี่ยใหม่
-    $avgStmt = $conn->prepare("SELECT AVG(rating) AS avg_rating, COUNT(*) AS cnt FROM course_rating WHERE courses_id = ?");
+    // ดึงค่าเฉลี่ยและจำนวนคะแนนทั้งหมด
+    $avgStmt = $conn->prepare("
+        SELECT AVG(rating) AS avg_rating, COUNT(*) AS cnt 
+        FROM course_rating 
+        WHERE courses_id = ?
+    ");
     if (!$avgStmt) {
         echo json_encode(['success' => false, 'error' => 'Database error']);
         exit;
@@ -97,7 +98,8 @@ if ($stmt->execute()) {
     echo json_encode([
         'success' => true,
         'avg' => round($result['avg_rating'], 2),
-        'count' => $result['cnt']
+        'count' => $result['cnt'],
+        'guest_identifier' => $guest_identifier // ส่งกลับเพื่อใช้กับคอมเมนต์
     ]);
 } else {
     echo json_encode(['success' => false, 'error' => 'Execute error: ' . $stmt->error]);

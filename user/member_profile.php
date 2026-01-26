@@ -133,15 +133,15 @@ function formatBookingDate($date, $time)
 $recent_bookings = [];
 // Order by submission (bookings_id) so the most recently created booking appears first,
 // independent of the booked date.
-$stmt2 = $conn->prepare("SELECT bookings_id, date, time, name, status FROM bookings WHERE member_id = ? AND status IN ('อนุมัติแล้ว','รออนุมัติ','ถูกปฏิเสธ') ORDER BY bookings_id DESC LIMIT 5");
-$stmt2->bind_param("i", $member_id);
-if ($stmt2->execute()) {
-    $res2 = $stmt2->get_result();
-    while ($row = $res2->fetch_assoc()) {
-        $recent_bookings[] = $row;
-    }
-}
-$stmt2->close();
+// $stmt2 = $conn->prepare("SELECT bookings_id, date, time, name, status FROM bookings WHERE member_id = ? AND status IN ('อนุมัติแล้ว','รออนุมัติ','ถูกปฏิเสธ') ORDER BY bookings_id DESC LIMIT 5");
+// $stmt2->bind_param("i", $member_id);
+// if ($stmt2->execute()) {
+//     $res2 = $stmt2->get_result();
+//     while ($row = $res2->fetch_assoc()) {
+//         $recent_bookings[] = $row;
+//     }
+// }
+// $stmt2->close();
 ?>
 <!DOCTYPE html>
 <html lang="th">
