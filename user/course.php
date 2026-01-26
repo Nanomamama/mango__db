@@ -678,9 +678,11 @@ require_once $db_path;
                     <a href="course_detail.php?id=<?php echo $courseId; ?>" class="btn-detail">
                       ดูรายละเอียด <i class="fas fa-arrow-right ms-1"></i>
                     </a>
-                    <button class="btn-outline" onclick="location.href='  course_detail.php?id=<?php echo $courseId; ?>#comments'">
+                    <button class="btn-outline"
+                      onclick="window.location.href='course_detail.php?id=<?= $courseId ?>#comments'">
                       <i class="far fa-bookmark"></i> แสดงความคิดเห็น
                     </button>
+
 
                   </div>
                 </div>

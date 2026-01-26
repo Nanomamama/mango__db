@@ -63,18 +63,26 @@ if (!isset($_SESSION['course_access']) || !in_array($course_id, $_SESSION['cours
     exit;
 }
 
+
 // กำหนด identifier สำหรับเก็บในคอลัมน์ guest_identifier
 $member_id = $_SESSION['member_id'] ?? null;
 $identifier = $member_id ? 'member:' . $member_id : session_id();
 
 // บันทึกคอมเมนต์: ตารางมีคอลัมน์ guest_identifier (varchar), ไม่มี member_id
 $stmt = $conn->prepare("
-    INSERT INTO course_comments 
-    (courses_id, name, comment_text, guest_identifier, created_at) 
-    VALUES (?, ?, ?, ?, NOW())
+    INSERT INTO course_comments
+    (courses_id, guest_identifier, name, comment_text)
+    VALUES (?, ?, ?, ?)
 ");
 
-$stmt->bind_param('isss', $course_id, $user_name, $comment_text, $identifier);
+$stmt->bind_param(
+    "isss",
+    $course_id,
+    $identifier,
+    $user_name,
+    $comment_text
+);
+
 
 if ($stmt->execute()) {
     echo json_encode([

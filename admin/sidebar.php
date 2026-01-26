@@ -200,7 +200,7 @@
                     <i class='bx bxs-bell bell-icon'></i>
                     <?php
                     require_once 'db.php';
-                    $newBookings = $conn->query("SELECT COUNT(*) FROM bookings WHERE viewed = 0")->fetch_row()[0];
+                    // $newBookings = $conn->query("SELECT COUNT(*) FROM bookings WHERE viewed = 0")->fetch_row()[0];
                     if ($newBookings > 0): ?>
                         <span class="notification-badge"><?= $newBookings ?></span>
                     <?php endif; ?>

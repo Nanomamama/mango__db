@@ -4,6 +4,12 @@ header('Content-Type: application/json');
 
 require_once '../admin/db.php';
 
+// ตรวจสอบ connection
+if (!$conn) {
+    echo json_encode(['success' => false, 'error' => 'เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล']);
+    exit;
+}
+
 $data = json_decode(file_get_contents('php://input'), true);
 
 if (!isset($data['courses_id'], $data['rating']) || !is_numeric($data['rating'])) {
@@ -22,6 +28,10 @@ if ($rating < 1 || $rating > 5) {
 
 // ตรวจสอบว่าคอร์สมีอยู่จริง
 $checkCourse = $conn->prepare("SELECT courses_id FROM courses WHERE courses_id = ?");
+if (!$checkCourse) {
+    echo json_encode(['success' => false, 'error' => 'Database error']);
+    exit;
+}
 $checkCourse->bind_param('i', $courses_id);
 $checkCourse->execute();
 if (!$checkCourse->get_result()->num_rows) {
@@ -30,54 +40,68 @@ if (!$checkCourse->get_result()->num_rows) {
 }
 $checkCourse->close();
 
-// ตรวจสอบสิทธิ์เข้าถึงการให้คะแนน (ต้องยืนยันรหัสก่อน)
-if (!isset($_SESSION['course_access']) || !in_array($courses_id, $_SESSION['course_access'])) {
+// ตรวจสอบสิทธิ์เข้าถึง
+if (!isset($_SESSION['course_access'])) {
+    $_SESSION['course_access'] = [];
+}
+
+if (!in_array($courses_id, $_SESSION['course_access'])) {
     echo json_encode(['success' => false, 'error' => 'คุณยังไม่ได้ยืนยันการเข้าร่วมกิจกรรม']);
     exit;
 }
 
-// กำหนด member_id
+// กำหนด identifier
 $member_id = $_SESSION['member_id'] ?? null;
 
-// แยก query ตามประเภทผู้ใช้
+// เตรียม query ตามประเภทผู้ใช้
 if ($member_id) {
-    // ===== กรณี: User ที่ login =====
+    // ===== User ที่ login =====
     $stmt = $conn->prepare("
-        INSERT INTO course_rating
-        (courses_id, member_id, guest_identifier, rating)
+        INSERT INTO course_rating (courses_id, member_id, guest_identifier, rating)
         VALUES (?, ?, '', ?)
         ON DUPLICATE KEY UPDATE rating = ?
     ");
+    if (!$stmt) {
+        echo json_encode(['success' => false, 'error' => 'Prepare error: ' . $conn->error]);
+        exit;
+    }
     $stmt->bind_param('iiii', $courses_id, $member_id, $rating, $rating);
 } else {
-    // ===== กรณี: Guest (ไม่ได้ login) =====
-    $guest_id = session_id();
+    // ===== Guest =====
+    $guest_identifier = session_id();
+    
     $stmt = $conn->prepare("
-        INSERT INTO course_rating
-        (courses_id, member_id, guest_identifier, rating)
-        VALUES (?, NULL, ?, ?)
+        INSERT INTO course_rating (courses_id, guest_identifier, rating)
+        VALUES (?, ?, ?)
         ON DUPLICATE KEY UPDATE rating = ?
     ");
-    $stmt->bind_param('isii', $courses_id, $guest_id, $rating, $rating);
+    if (!$stmt) {
+        echo json_encode(['success' => false, 'error' => 'Prepare error: ' . $conn->error]);
+        exit;
+    }
+    $stmt->bind_param("isii", $courses_id, $guest_identifier, $rating, $rating);
 }
 
 if ($stmt->execute()) {
     // ดึงค่าเฉลี่ยใหม่
     $avgStmt = $conn->prepare("SELECT AVG(rating) AS avg_rating, COUNT(*) AS cnt FROM course_rating WHERE courses_id = ?");
+    if (!$avgStmt) {
+        echo json_encode(['success' => false, 'error' => 'Database error']);
+        exit;
+    }
     $avgStmt->bind_param('i', $courses_id);
     $avgStmt->execute();
     $result = $avgStmt->get_result()->fetch_assoc();
     $avgStmt->close();
-    
+
     echo json_encode([
         'success' => true,
         'avg' => round($result['avg_rating'], 2),
         'count' => $result['cnt']
     ]);
 } else {
-    echo json_encode(['success' => false, 'error' => $conn->error]);
+    echo json_encode(['success' => false, 'error' => 'Execute error: ' . $stmt->error]);
 }
 
 $stmt->close();
 $conn->close();
-?>
