@@ -195,7 +195,7 @@
             <li class="nav-item"><a class="nav-link" href="../user/course.php">หลักสูตรการเรียนรู้</a></li>
             <li class="nav-item"><a class="nav-link" href="../user/bookings.php">จองวันเข้าดูงาน</a></li>
             <!-- <li class="nav-item"><a class="nav-link" href="#">ติดต่อเรา</a></li> -->
-
+            <li class="nav-item"><a class="nav-link" href="../user/products.php">สั่งสินค้าล่วงหน้า</a></li>
             <?php if (!isset($_SESSION['member_id'])): ?>
               <li class="nav-item mt-3 mt-xl-0">
                 <a href="../user/member_login.php" class="cta-btns">เข้าสู่ระบบ</a>

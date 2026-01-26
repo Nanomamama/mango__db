@@ -293,7 +293,8 @@ while ($row = $result->fetch_assoc()) {
 
         .modal-image {
             width: 100%;
-            max-height: 250px; /* ปรับขนาดความสูงให้เหมาะสมขึ้น */
+            max-height: 250px;
+            /* ปรับขนาดความสูงให้เหมาะสมขึ้น */
             object-fit: cover;
             border-radius: 8px;
             margin-bottom: 1rem;
@@ -367,9 +368,10 @@ while ($row = $result->fetch_assoc()) {
             .dashboard-title {
                 font-size: 1.5rem;
             }
-            
+
             .p-4 {
-                margin-left: 0 !important; /* ยกเลิก margin-left สำหรับ Mobile */
+                margin-left: 0 !important;
+                /* ยกเลิก margin-left สำหรับ Mobile */
             }
         }
     </style>
@@ -383,7 +385,7 @@ while ($row = $result->fetch_assoc()) {
             <div class="container">
                 <div class="d-flex justify-content-between align-items-center flex-wrap">
                     <div>
-                        <h2 class="dashboard-title mb-0">จัดการหลักสูตร</h2>
+                        <h2 class="dashboard-title mb-0">จัดการกิจกรรมอบรม</h2>
                     </div>
                     <div class="d-flex align-items-center gap-3 mt-2 mt-md-0">
                         <div class="position-relative">
@@ -404,65 +406,71 @@ while ($row = $result->fetch_assoc()) {
         </header>
 
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-            <div class="search-box flex-grow-1">
-                <input type="text" class="form-control" placeholder="ค้นหาชื่อหลักสูตร...">
-                <i class="bi bi-search"></i>
-            </div>
-            <button type="button" class="btn btn-add-course" data-bs-toggle="modal" data-bs-target="#addCourseModal">
-                <i class="bi bi-plus-circle"></i> เพิ่มหลักสูตรใหม่
-            </button>
+
+            <div class="d-flex gap-2">
+    <button type="button" class="btn btn-add-course" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+        <i class="bi bi-plus-circle"></i> เพิ่มหลักสูตรใหม่
+    </button>
+
+    <!-- ปุ่มไปหน้าจัดการความคิดเห็น (สไตล์เดียวกัน) -->
+    <a href="manage_comments.php" class="btn btn-add-course">
+        <i class="bi bi-chat-left-dots"></i> จัดการความคิดเห็น
+    </a>
+</div>
+
+
         </div>
 
 
         <div class="row">
             <?php foreach ($courses as $course): ?>
-            <div class="col-lg-4 col-md-6 course-col">
-                <div class="course-card">
-                    <div class="course-card-header">
-                        <h5 class="mb-0"><?= htmlspecialchars($course['course_name']) ?></h5>
-                    </div>
-                    <div class="course-card-body">
-                        <img src="<?= $course['image1'] ? '../uploads/' . $course['image1'] : 'https://via.placeholder.com/400x200?text=No+Image' ?>"
-                             class="course-image" alt="<?= htmlspecialchars($course['course_name']) ?>">
-                        <p class="course-description"><?= htmlspecialchars($course['course_description']) ?></p>
-                        <div class="d-flex flex-wrap gap-2">
-                            <button class="btn action-btn btn-view view-course-btn"
-                                data-bs-toggle="modal"
-                                data-bs-target="#courseModal"
-                                data-course='<?= htmlspecialchars(json_encode([
-                                    'id' => $course['id'],
-                                    'name' => $course['course_name'],
-                                    'description' => $course['course_description'],
-                                    'image1' => $course['image1'],
-                                    'image2' => $course['image2'],
-                                    'image3' => $course['image3']
-                                ]), ENT_QUOTES, 'UTF-8') ?>'>
-                                <i class="bi bi-info-circle"></i> ดูข้อมูล
-                            </button>
-                            <button class="btn action-btn btn-edit edit-course-btn"
-                                data-bs-toggle="modal"
-                                data-bs-target="#editCourseModal"
-                                data-course='<?= htmlspecialchars(json_encode([
-                                    'id' => $course['id'],
-                                    'name' => $course['course_name'],
-                                    'description' => $course['course_description'],
-                                    'image1' => $course['image1'],
-                                    'image2' => $course['image2'],
-                                    'image3' => $course['image3']
-                                ]), ENT_QUOTES, 'UTF-8') ?>'>
-                                <i class="bi bi-pencil"></i> แก้ไข
-                            </button>
-                            <button class="btn action-btn btn-delete" onclick="confirmDelete(<?= $course['id'] ?>)">
-                                <i class="bi bi-trash"></i> ลบ
-                            </button>
+                <div class="col-lg-4 col-md-6 course-col">
+                    <div class="course-card">
+                        <div class="course-card-header">
+                            <h5 class="mb-0"><?= htmlspecialchars($course['course_name']) ?></h5>
+                        </div>
+                        <div class="course-card-body">
+                            <img src="<?= $course['image1'] ? '../uploads/' . $course['image1'] : 'https://via.placeholder.com/400x200?text=No+Image' ?>"
+                                class="course-image" alt="<?= htmlspecialchars($course['course_name']) ?>">
+                            <p class="course-description"><?= htmlspecialchars($course['course_description']) ?></p>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button class="btn action-btn btn-view view-course-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#courseModal"
+                                    data-course='<?= htmlspecialchars(json_encode([
+                                                        'id' => $course['id'],
+                                                        'name' => $course['course_name'],
+                                                        'description' => $course['course_description'],
+                                                        'image1' => $course['image1'],
+                                                        'image2' => $course['image2'],
+                                                        'image3' => $course['image3']
+                                                    ]), ENT_QUOTES, 'UTF-8') ?>'>
+                                    <i class="bi bi-info-circle"></i> ดูข้อมูล
+                                </button>
+                                <button class="btn action-btn btn-edit edit-course-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editCourseModal"
+                                    data-course='<?= htmlspecialchars(json_encode([
+                                                        'id' => $course['id'],
+                                                        'name' => $course['course_name'],
+                                                        'description' => $course['course_description'],
+                                                        'image1' => $course['image1'],
+                                                        'image2' => $course['image2'],
+                                                        'image3' => $course['image3']
+                                                    ]), ENT_QUOTES, 'UTF-8') ?>'>
+                                    <i class="bi bi-pencil"></i> แก้ไข
+                                </button>
+                                <button class="btn action-btn btn-delete" onclick="confirmDelete(<?= $course['id'] ?>)">
+                                    <i class="bi bi-trash"></i> ลบ
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
             <?php endforeach; ?>
         </div>
 
-        </div>
+    </div>
     <div class="modal fade course-modal" id="courseModal" tabindex="-1" aria-labelledby="courseModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -473,7 +481,7 @@ while ($row = $result->fetch_assoc()) {
                 <div class="modal-body">
                     <div class="table-responsive">
                         <table class="table table-bordered" id="courseDetailTable">
-                            </table>
+                        </table>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -679,7 +687,7 @@ while ($row = $result->fetch_assoc()) {
                     if (card) {
                         const nameElement = card.querySelector('h5');
                         const name = nameElement ? nameElement.textContent.toLowerCase() : '';
-                        
+
                         if (name.includes(searchText)) {
                             col.style.display = 'block';
                         } else {
@@ -689,7 +697,7 @@ while ($row = $result->fetch_assoc()) {
                 });
             });
         }
-        
+
         function previewImage(event, previewId) {
             const input = event.target;
             const preview = document.getElementById(previewId);

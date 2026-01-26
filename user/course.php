@@ -22,6 +22,8 @@ require_once $db_path;
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
   <style>
     :root {
       --primary-color: #4361ee;
@@ -504,6 +506,59 @@ require_once $db_path;
     .minimal-item {
       animation: fadeInUp 0.5s ease forwards;
     }
+
+   .course-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+/* ปุ่มดูรายละเอียด */
+.btn-detail {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #0d6efd, #3b82f6);
+  color: #fff;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-detail:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(13,110,253,0.4);
+  background: linear-gradient(135deg, #3b82f6, #0d6efd);
+}
+
+/* ปุ่มคอมเมนต์ */
+.comment-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 30px;
+  border: 2px solid #0d6efd;
+  background: transparent;
+  color: #0d6efd;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.comment-btn:hover {
+  background: #0d6efd;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(13,110,253,0.4);
+}
+
+.comment-btn:active {
+  transform: scale(0.95);
+}
+
   </style>
 </head>
 
@@ -516,7 +571,7 @@ require_once $db_path;
       <div class="row align-items-center mt-5">
         <div class="col-md-8">
           <h2>กิจกรรมอบรมทั้งหมด</h2>
-          <p class="mb-0 mt-2">หลักสูตรการอบรมแบบมีฐานการเรียนรู้</p>
+          <p class="mb-0 mt-2">การเรียนรู้เศรษฐกิจพอเพียง</p>
         </div>
       </div>
     </div>
@@ -529,12 +584,6 @@ require_once $db_path;
       <div class="layout-tabs">
         <button class="layout-tab active" data-layout="list">
           <i class="fas fa-list"></i>รายการ
-        </button>
-        <button class="layout-tab" data-layout="grid">
-          <i class="fas fa-th-large"></i>กริด
-        </button>
-        <button class="layout-tab" data-layout="minimal">
-          <i class="fas fa-bars"></i>แบบย่อ
         </button>
       </div>
 
@@ -656,21 +705,13 @@ require_once $db_path;
                       <h3 class="course-title"><?php echo $courseName; ?></h3>
                       <p class="course-description"><?php echo $courseDesc; ?></p>
                     </div>
-                    <span class="course-badge">หลักสูตรใหม่</span>
                   </div>
 
                   <div class="course-meta">
-                    <div class="meta-item">
-                      <i class="far fa-clock"></i>
-                      <span>12 ชั่วโมง</span>
-                    </div>
-                    <div class="meta-item">
-                      <i class="fas fa-signal"></i>
-                      <span>ระดับกลาง</span>
-                    </div>
+
                     <div class="meta-item">
                       <i class="fas fa-users"></i>
-                      <span>125 ผู้เรียน</span>
+                      <span> <?php echo $rating_count; ?> ผู้เรียน</span>
                     </div>
                   </div>
 
@@ -692,10 +733,15 @@ require_once $db_path;
                     <a href="course_detail.php?id=<?php echo $courseId; ?>" class="btn-detail">
                       ดูรายละเอียด <i class="fas fa-arrow-right ms-1"></i>
                     </a>
-                    <button class="btn-outline">
-                      <i class="far fa-bookmark"></i> บันทึก
+
+                    <button class="comment-btn"
+                      onclick="window.location.href='course_detail.php?id=<?= $courseId ?>#comments'">
+                      <i class="fas fa-comment-dots"></i>
+                      แสดงความคิดเห็น
                     </button>
                   </div>
+
+
                 </div>
               </div>
             <?php endwhile; ?>
@@ -894,7 +940,7 @@ require_once $db_path;
       <?php $stmt->close(); ?>
     </div>
   </section>
-  
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     // Layout Tabs Functionality
@@ -942,7 +988,7 @@ require_once $db_path;
       observer.observe(item);
     });
   </script>
-  
+
 </body>
 
 </html>
