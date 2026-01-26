@@ -1,57 +1,73 @@
 <?php
-session_start();
-header('Content-Type: application/json');
+ob_start();
+error_reporting(0);
+header('Content-Type: application/json; charset=utf-8');
 
+if (session_status() === PHP_SESSION_NONE) session_start();
 require_once '../admin/db.php';
+
+function json_exit($arr) {
+    ob_clean();
+    echo json_encode($arr, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    json_exit(['success' => false, 'error' => 'Invalid method']);
+}
 
 $data = json_decode(file_get_contents('php://input'), true);
 
-if (!isset($data['course_id'], $data['user_name'], $data['comment_text'])) {
-    echo json_encode(['success' => false, 'error' => 'ข้อมูลไม่ครบถ้วน']);
-    exit;
+$courseId   = (int)($data['courses_id'] ?? 0);
+$userName   = trim($data['user_name'] ?? '');
+$commentText= trim($data['comment_text'] ?? '');
+$guestId    = trim($data['guest_identifier'] ?? '');
+$token      = trim($data['access_token'] ?? '');
+
+if ($courseId <= 0 || $userName === '' || $commentText === '') {
+    json_exit(['success' => false, 'error' => 'กรุณากรอกข้อมูลให้ครบถ้วน']);
 }
 
-$course_id = (int)$data['course_id'];
-$user_name = trim($data['user_name']);
-$comment_text = trim($data['comment_text']);
-
-// รับ guest_identifier จาก request (ถ้ามี) หรือสร้างใหม่
-$guest_identifier = $data['guest_identifier'] ?? (session_id() . '_' . time());
-
-if (empty($user_name) || empty($comment_text)) {
-    echo json_encode(['success' => false, 'error' => 'กรุณากรอกข้อมูลให้ครบถ้วน']);
-    exit;
+// ✅ ตรวจสอบ token
+if (!isset($_SESSION['temp_access_token']) || $_SESSION['temp_access_token'] !== $token) {
+    json_exit(['success' => false, 'error' => 'กรุณายืนยันรหัสใหม่อีกครั้ง']);
 }
 
-// ตรวจสอบสิทธิ์เข้าถึง
-if (!isset($_SESSION['course_access']) || !in_array($course_id, $_SESSION['course_access'])) {
-    echo json_encode(['success' => false, 'error' => 'คุณยังไม่ได้ยืนยันการเข้าร่วมกิจกรรม']);
-    exit;
+// ตรวจสอบว่า token หมดอายุหรือยัง (5 นาที)
+if (!isset($_SESSION['temp_access_time']) || (time() - $_SESSION['temp_access_time']) > 300) {
+    unset($_SESSION['temp_access_token']);
+    json_exit(['success' => false, 'error' => 'รหัสหมดอายุ กรุณายืนยันใหม่']);
 }
 
-$member_id = $_SESSION['member_id'] ?? null;
+$userName = mb_substr($userName, 0, 100);
+$commentText = mb_substr($commentText, 0, 1000);
 
 $stmt = $conn->prepare("
-    INSERT INTO course_comments (courses_id, member_id, guest_identifier, name, comment_text, created_at)
-    VALUES (?, ?, ?, ?, ?, NOW())
+    INSERT INTO course_comments (courses_id, name, comment_text, guest_identifier, created_at)
+    VALUES (?, ?, ?, ?, NOW())
 ");
 
 if (!$stmt) {
-    echo json_encode(['success' => false, 'error' => 'Database error: ' . $conn->error]);
-    exit;
+    json_exit(['success' => false, 'error' => 'Prepare error: ' . $conn->error]);
 }
 
-$member_id_val = $member_id ? $member_id : null;
-$stmt->bind_param('iisss', $course_id, $member_id_val, $guest_identifier, $user_name, $comment_text);
+$stmt->bind_param('isss', $courseId, $userName, $commentText, $guestId);
 
-if ($stmt->execute()) {
-    echo json_encode([
-        'success' => true,
-        'guest_identifier' => $guest_identifier
-    ]);
-} else {
-    echo json_encode(['success' => false, 'error' => 'Execute error: ' . $stmt->error]);
+if (!$stmt->execute()) {
+    json_exit(['success' => false, 'error' => 'Execute error: ' . $stmt->error]);
 }
 
 $stmt->close();
-$conn->close();
+
+// ✅ ลบ token หลังใช้งาน (ใช้ได้แค่ครั้งเดียว)
+unset($_SESSION['temp_access_token']);
+unset($_SESSION['temp_access_time']);
+
+json_exit([
+    'success' => true,
+    'comment' => [
+        'user_name' => htmlspecialchars($userName, ENT_QUOTES, 'UTF-8'),
+        'comment_text' => nl2br(htmlspecialchars($commentText, ENT_QUOTES, 'UTF-8')),
+        'created_at' => date('Y-m-d H:i:s')
+    ]
+]);
