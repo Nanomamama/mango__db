@@ -726,7 +726,7 @@ require_once $db_path;
                       ?>
                     </div>
                     <span class="rating-value"><?php echo number_format($avg_rating, 1, '.', ''); ?></span>
-                    <span class="rating-count">(<?php echo $rating_count; ?> คะแนน)</span>
+                    <span class="rating-count"> คะแนน</span>
                   </div>
 
                   <div class="course-actions">

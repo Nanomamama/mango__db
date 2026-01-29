@@ -198,12 +198,7 @@
                 <i class='bx bxs-calendar-check'></i> รายการจอง
                 <div class="notification-bell ms-auto">
                     <i class='bx bxs-bell bell-icon'></i>
-                    <?php
-                    require_once 'db.php';
-                    // $newBookings = $conn->query("SELECT COUNT(*) FROM bookings WHERE viewed = 0")->fetch_row()[0];
-                    if ($newBookings > 0): ?>
-                        <span class="notification-badge"><?= $newBookings ?></span>
-                    <?php endif; ?>
+                   
                 </div>
             </a>
             <a href="./admin_users.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'admin_users.php') echo ' active'; ?>">
