@@ -1,4 +1,10 @@
 <?php
+// 🔧 บังคับให้ session cookie ทำงาน
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_secure', 0); // เปลี่ยนเป็น 1 ถ้าใช้ HTTPS
+ini_set('session.cookie_samesite', 'Lax');
+ini_set('session.use_strict_mode', 1);
+
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 error_reporting(0);
@@ -65,6 +71,9 @@ if ($res && $res->num_rows > 0) {
     $_SESSION['temp_access_token'] = $token;
     $_SESSION['temp_access_time'] = time();
     $_SESSION['temp_booking_id'] = $booking['bookings_id'];
+    
+    // 🔥 บังคับบันทึก session ทันที
+    session_write_close();
     
     json_exit([
         'success' => true, 

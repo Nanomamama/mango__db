@@ -105,14 +105,32 @@ if (!isset($_SESSION['course_access'])) {
 }
 
 // เช็คว่าคอร์สนี้ผ่านรหัสหรือยัง
-$hasAccess = (
-    isset($_SESSION['course_access']) &&
-    (
-        $_SESSION['course_access'] === 'ALL' ||
-        in_array($course['courses_id'], (array)$_SESSION['course_access'])
-    )
-);
+// ===== Access Code Config =====
 
+// เช็คว่ามี token ที่ valid หรือไม่
+$hasAccess = false;
+
+if (isset($_SESSION['temp_access_token']) && 
+    isset($_SESSION['temp_access_time']) && 
+    isset($_SESSION['temp_booking_id'])) {
+    
+    // Token หมดอายุภายใน 24 ชั่วโมง
+    $tokenAge = time() - $_SESSION['temp_access_time'];
+    if ($tokenAge < 86400) { // 86400 = 24 hours
+        $hasAccess = true;
+    } else {
+        // Token หมดอายุแล้ว - เคลียร์ session
+        unset($_SESSION['temp_access_token']);
+        unset($_SESSION['temp_access_time']);
+        unset($_SESSION['temp_booking_id']);
+    }
+}
+// 🔍 Debug session (ลบออกหลังแก้เสร็จ)
+// echo '<pre style="background:#000;color:#0f0;padding:10px;position:fixed;top:0;right:0;z-index:9999;font-size:12px;">';
+// echo "Session Data:\n";
+// print_r($_SESSION);
+// echo "\n\$hasAccess = " . ($hasAccess ? 'TRUE' : 'FALSE');
+// echo '</pre>';
 
 ?>
 <!DOCTYPE html>
@@ -715,66 +733,78 @@ $hasAccess = (
 
         // วางโค้ดนี้แทนส่วน submitAccessCode เดิม (ประมาณบรรทัด 475)
 
-        document.getElementById('submitAccessCode').addEventListener('click', async () => {
-            const codeInput = document.getElementById('accessCodeInput');
-            const code = codeInput.value.trim();
-            const errorEl = document.getElementById('accessCodeError');
-            const submitBtn = document.getElementById('submitAccessCode');
+document.getElementById('submitAccessCode').addEventListener('click', async () => {
+    const codeInput = document.getElementById('accessCodeInput');
+    const code = codeInput.value.trim();
+    const errorEl = document.getElementById('accessCodeError');
+    const submitBtn = document.getElementById('submitAccessCode');
 
-            // ตรวจสอบว่ากรอกรหัสหรือยัง
-            if (!code) {
-                errorEl.textContent = 'กรุณากรอกรหัส';
-                errorEl.classList.remove('d-none');
-                return;
-            }
+    // ตรวจสอบว่ากรอกรหัสหรือยัง
+    if (!code) {
+        errorEl.textContent = 'กรุณากรอกรหัส 4 หลัก';
+        errorEl.classList.remove('d-none');
+        return;
+    }
 
-            // ซ่อน error และ disable ปุ่มชั่วคราว
-            errorEl.classList.add('d-none');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'กำลังตรวจสอบ...';
+    // ตรวจสอบรูปแบบ (ต้องเป็นตัวเลข 4 หลัก)
+    if (!/^\d{4}$/.test(code)) {
+        errorEl.textContent = 'กรุณากรอกเลข 4 หลักเท่านั้น';
+        errorEl.classList.remove('d-none');
+        return;
+    }
 
-            try {
-                const res = await fetch('verify_access_code.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        courses_id: <?= (int)$course['courses_id'] ?>,
-                        code: code
-                    })
-                }).then(r => r.json());
+    // ซ่อน error และ disable ปุ่มชั่วคราว
+    errorEl.classList.add('d-none');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'กำลังตรวจสอบ...';
 
-                if (res.success) {
-                    // ตรวจสอบรหัสสำเร็จ - reload หน้าเพื่อ unlock ส่วนคอมเมนต์
-                    location.reload();
-                } else {
-                    // รหัสไม่ถูกต้อง
-                    errorEl.textContent = res.error || 'รหัสไม่ถูกต้อง';
-                    errorEl.classList.remove('d-none');
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'ยืนยัน';
+    try {
+        const res = await fetch('verify_access_code.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                code: code
+            })
+        }).then(r => r.json());
 
-                    // เคลียร์ input และ focus กลับ
-                    codeInput.value = '';
-                    codeInput.focus();
-                }
-            } catch (err) {
-                console.error('Access code error:', err);
-                errorEl.textContent = 'เกิดข้อผิดพลาดในการตรวจสอบรหัส';
-                errorEl.classList.remove('d-none');
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'ยืนยัน';
-            }
-        });
+        if (res.success) {
+            // ✅ ตรวจสอบรหัสสำเร็จ
+            submitBtn.textContent = '✓ ยืนยันสำเร็จ!';
+            submitBtn.classList.replace('btn-primary', 'btn-success');
+            
+            // แสดงข้อความสั้นๆ แล้ว reload
+            setTimeout(() => {
+                location.reload();
+            }, 800);
+        } else {
+            // ❌ รหัสไม่ถูกต้อง
+            errorEl.textContent = res.error || 'รหัสไม่ถูกต้อง';
+            errorEl.classList.remove('d-none');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'ยืนยัน';
 
-        // เพิ่ม: กด Enter ในช่องรหัสก็ส่งได้เลย
-        document.getElementById('accessCodeInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                document.getElementById('submitAccessCode').click();
-            }
-        });
+            // เคลียร์ input และ focus กลับ
+            codeInput.value = '';
+            codeInput.focus();
+        }
+    } catch (err) {
+        console.error('Access code error:', err);
+        errorEl.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
+        errorEl.classList.remove('d-none');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'ยืนยัน';
+    }
+});
+
+// เพิ่ม: กด Enter ในช่องรหัสก็ส่งได้เลย
+document.getElementById('accessCodeInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('submitAccessCode').click();
+    }
+});
     </script>
 </body>
 

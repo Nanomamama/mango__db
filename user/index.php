@@ -256,55 +256,8 @@ session_start();
             </div>
         </div>
     </div>
-    <div class="container mt-5">
-        <br>
-        <h2 class="text-center mb-4">สายพันธุ์มะม่วงที่น่าสนใจ</h2>
-        <br>
-        <div class="row">
-            <div class="text-start mb-2">
-                <a class="btn btn-dack fs-5 link-underline-hover" href="../user/mango_varieties.php">พันธุ์มะม่วงทั้งหมด</a>
-            </div>
-        </div>
-        <div class="row row-cols-2 row-cols-lg-4 g-4" id="mangoList">
-            <?php
-            require_once '../admin/db.php';
-
-            $query = "SELECT * FROM mango_varieties WHERE mango_category = 'เชิงอนุรักษ์' LIMIT 4";
-            $result = $conn->query($query);
-
-            if ($result && $result->num_rows > 0) {
-                while ($row = $result->fetch_assoc()) {
-                    // ดึงชื่อไฟล์รูปผลมะม่วง
-                    $img_file = isset($row['fruit_image']) ? basename($row['fruit_image']) : null;
-                    // Path สำหรับแสดงผล (ปรับ path ให้ตรงกับที่เก็บไฟล์จริง)
-                    $fruit_image = $img_file ? "../admin/uploads/{$img_file}" : null;
-                    // Absolute path สำหรับตรวจสอบไฟล์
-                    $abs_path = __DIR__ . "/../admin/uploads/" . $img_file;
-
-                    $name = isset($row['mango_name']) ? $row['mango_name'] : "ไม่ทราบชื่อ";
-                    $mango_category = isset($row['mango_category']) ? $row['mango_category'] : "ไม่ทราบประเภท";
-
-                    echo "<div class='col mango-item' data-category='" . htmlspecialchars($mango_category, ENT_QUOTES) . "'>
-                            <a href='mango_detail.php?name=" . urlencode($name) . "' class='text-decoration-none text-dark'>
-                                <div class='card mango-card'>";
-                    if ($img_file && file_exists($abs_path)) {
-                        echo "<img src='{$fruit_image}' class='card-img-top' alt='{$name}'>";
-                    } else {
-                        echo "<div class='text-center py-5'>ไม่มีรูปภาพ</div>";
-                    }
-                    echo "      <div class='card-body'>
-                                        <h5 class='card-title'>{$name}</h5>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>";
-                }
-            } else {
-                echo "<div class='col'><p>ไม่พบข้อมูลสายพันธุ์มะม่วง</p></div>";
-            }
-            ?>
-        </div>
-    </div>
+    
+    <?php include 'location.php'; ?>
     <br>
     <br>
     <?php include 'footer.php'; ?>
