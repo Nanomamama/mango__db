@@ -1,29 +1,29 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-require_once '../admin/db.php'; // ตรวจสอบให้แน่ใจว่ามีการเชื่อมต่อฐานข้อมูล
-
-$member_id_session = $_SESSION['member_id'] ?? null;
-
-$is_member = isset($_SESSION['member_id']);
-$member_data = [
-    'fullname' => '',
-    'email' => '',
-    'phone' => ''
-];
-
-if ($is_member) {
-    $member_id = $_SESSION['member_id'];
-    $stmt = $conn->prepare("SELECT fullname, email, phone FROM members WHERE member_id = ?");
-    if ($stmt) {
-        $stmt->bind_param("i", $member_id);
-        $stmt->execute();
-        $result = $stmt->get_result()->fetch_assoc();
-        if ($result) $member_data = $result; // กำหนดค่าเมื่อพบข้อมูลเท่านั้น
-        $stmt->close();
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
     }
-}
+    require_once '../admin/db.php'; // ตรวจสอบให้แน่ใจว่ามีการเชื่อมต่อฐานข้อมูล
+
+    $member_id_session = $_SESSION['member_id'] ?? null;
+
+    $is_member = isset($_SESSION['member_id']);
+    $member_data = [
+        'fullname' => '',
+        'email' => '',
+        'phone' => ''
+    ];
+
+    if ($is_member) {
+        $member_id = $_SESSION['member_id'];
+        $stmt = $conn->prepare("SELECT fullname, email, phone FROM members WHERE member_id = ?");
+        if ($stmt) {
+            $stmt->bind_param("i", $member_id);
+            $stmt->execute();
+            $result = $stmt->get_result()->fetch_assoc();
+            if ($result) $member_data = $result; // กำหนดค่าเมื่อพบข้อมูลเท่านั้น
+            $stmt->close();
+        }
+    }
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -644,6 +644,37 @@ if ($is_member) {
                 padding: 2rem 0;
             }
         }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1060; /* Higher than modal z-index */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .loading-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .spinner-border-lg {
+            width: 4rem;
+            height: 4rem;
+            border-width: .35em;
+            color: var(--primary-color);
+        }
+
     </style>
 </head>
 
@@ -748,6 +779,13 @@ if ($is_member) {
                             </div>
                         </div>
 
+                                                <!-- ปุ่มดำเนินการต่อ -->
+                        <div class="text-center mt-4">
+                            <button type="button" id="continueBtn" class="btn btn-primary-modern btn-modern px-5" onclick="showFormSection()" disabled>
+                                <i class="fas fa-arrow-right me-2"></i>ดำเนินการต่อ
+                            </button>
+                        </div>
+
                         <!-- แสดงวันที่ที่เลือก -->
                         <div id="dateSelectedBox" class="card-modern mt-4 d-none">
                             <div class="card-body-modern">
@@ -766,13 +804,6 @@ if ($is_member) {
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- ปุ่มดำเนินการต่อ -->
-                        <div class="text-center mt-4">
-                            <button type="button" id="continueBtn" class="btn btn-primary-modern btn-modern px-5" onclick="showFormSection()" disabled>
-                                <i class="fas fa-arrow-right me-2"></i>ดำเนินการต่อ
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -925,6 +956,37 @@ if ($is_member) {
         </div>
     </div>
 
+        <!-- Modal สำหรับอัพโหลดหลักฐานการโอน -->
+        <div class="modal fade" id="uploadSlipModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-light">
+                        <h5 class="modal-title"><i class="fas fa-upload me-2"></i>แนบหลักฐานการโอนเงิน</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="slipForm">
+                        <div class="modal-body p-4">
+                            <input type="hidden" id="modalBookingId">
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">เลือกรูปภาพสลิป</label>
+                                <input type="file" class="form-control" id="slipFile" accept="image/*" required>
+                                <div class="form-text">รองรับไฟล์ .jpg, .png ขนาดไม่เกิน 5MB</div>
+                            </div>
+                            
+                            <div id="previewContainer" class="text-center d-none">
+                                <img id="slipPreview" src="#" alt="Preview" class="img-fluid rounded border" style="max-height: 300px;">
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                            <button type="submit" class="btn btn-primary">ยืนยันการส่งสลิป</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
     <!-- Modal สำหรับแสดงสถานะการส่ง -->
     <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -1003,6 +1065,15 @@ if ($is_member) {
         </div>
     </div>
 
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner-border spinner-border-lg" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3 mb-0 fs-5 fw-bold text-secondary">กำลังส่งข้อมูลการจอง...</p>
+        <small class="text-muted">กรุณารอสักครู่</small>
+    </div>
+
     <!-- Bootstrap 5 JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -1025,6 +1096,73 @@ if ($is_member) {
             }
             loginRequiredModalObj.show();
         }
+
+        // ฟังก์ชันเปิด Modal
+function openUploadModal(bookingId) {
+    document.getElementById('modalBookingId').value = bookingId;
+    document.getElementById('slipForm').reset();
+    document.getElementById('previewContainer').classList.add('d-none');
+    
+    const myModal = new bootstrap.Modal(document.getElementById('uploadSlipModal'));
+    myModal.show();
+}
+
+// แสดงตัวอย่างรูปเมื่อเลือกไฟล์
+document.getElementById('slipFile').onchange = evt => {
+    const [file] = document.getElementById('slipFile').files;
+    if (file) {
+        document.getElementById('slipPreview').src = URL.createObjectURL(file);
+        document.getElementById('previewContainer').classList.remove('d-none');
+    }
+}
+
+// จัดการการส่งฟอร์ม (Submit)
+document.getElementById('slipForm').onsubmit = function(e) {
+    e.preventDefault();
+    const bookingId = document.getElementById('modalBookingId').value;
+    const fileInput = document.getElementById('slipFile');    
+    if (fileInput.files.length === 0) {
+        alert('กรุณาเลือกไฟล์สลิป');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('booking_id', bookingId);
+    formData.append('slip', fileInput.files[0]);
+
+    // ส่งข้อมูลไปยัง Backend (คุณต้องสร้างไฟล์ upload_slip.php)
+    fetch('upload_slip.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json()) // แปลง response เป็น JSON
+    .then(data => { // จัดการข้อมูลที่ได้จากเซิร์ฟเวอร์
+        const uploadModal = bootstrap.Modal.getInstance(document.getElementById('uploadSlipModal'));
+        uploadModal.hide(); // ซ่อน Modal อัปโหลด
+
+        if (data.success) {
+            // แสดง Modal แจ้งเตือนสำเร็จ
+            document.getElementById('modalTitle').textContent = 'ส่งหลักฐานสำเร็จ';
+            document.getElementById('modalMessage').textContent = 'แนบสลิปเรียบร้อยแล้ว รอการตรวจสอบจากเจ้าหน้าที่';
+            const successModalEl = document.getElementById('statusModal');
+            const successModal = new bootstrap.Modal(successModalEl);
+            
+            // เมื่อ Modal ปิด ให้รีเฟรชข้อมูล
+            successModalEl.addEventListener('hidden.bs.modal', () => {
+                fetchBookings().then(() => renderCalendarTable(window.currentMonth, window.currentYear));
+            }, { once: true });
+
+            successModal.show();
+        } else {
+            // แสดง Modal แจ้งเตือนข้อผิดพลาด
+            showAlert('เกิดข้อผิดพลาด: ' + (data.message || 'ไม่สามารถอัปโหลดได้'), 'error');
+        }
+    })
+    .catch(err => {
+        console.error('Upload slip error:', err);
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    });
+};
 
         // ฟังก์ชันสำหรับนำทางไปยังหน้าเข้าสู่ระบบ
         function redirectToLogin() {
@@ -1066,6 +1204,9 @@ if ($is_member) {
                             date: b.date || b.booking_date || b.bookingDate,
                             name: b.name || b.guest_name || b.booking_code || 'ไม่ระบุ',
                             status: (b.status || '').toLowerCase() || 'pending',
+                            member_id: b.member_id, // เพิ่ม member_id
+                            payment_slip: b.payment_slip, // เพิ่มข้อมูลสลิป
+                            id: b.bookings_id, // เพิ่ม ID ของการจอง
                             time: b.time || b.booking_time || b.bookingTime || '' ,
                             visitor_count: b.visitor_count ? parseInt(b.visitor_count) : (b.visitorCount ? parseInt(b.visitorCount) : 0)
                         }));
@@ -1265,15 +1406,37 @@ if ($is_member) {
 
             pending.forEach(b => {
                 const li = document.createElement('li');
-                li.className = 'list-group-item d-flex justify-content-between align-items-center py-2';
-                li.innerHTML = `<span>${b.name}</span><span class="badge-modern bg-warning text-dark">รอ</span>`;
+                li.className = 'list-group-item d-flex justify-content-between align-items-center py-2 flex-wrap';
+                
+                let actionHtml = '<span class="badge-modern bg-warning text-dark">รอ</span>'; // ค่าเริ่มต้น
+
+                // ตรวจสอบว่าเป็นเจ้าของการจองหรือไม่
+                if (b.member_id && b.member_id === MEMBER_ID_SESSION) {
+                    // ถ้าเป็นเจ้าของ, ตรวจสอบว่าได้แนบสลิปไปแล้วหรือยัง
+                    if (b.payment_slip) {
+                        // ถ้าแนบแล้ว, แสดงสถานะ
+                        actionHtml = `<span class="badge-modern bg-info text-white"><i class="fas fa-check me-1"></i>ส่งสลิปแล้ว</span>`;
+                    } else {
+                        // ถ้ายังไม่แนบ, แสดงปุ่ม
+                        actionHtml = `<button class="btn btn-sm btn-outline-primary py-0 px-1 ms-1" onclick="openUploadModal(${b.id})" title="แนบสลิป">
+                                        <i class="fas fa-paperclip"></i> แนบสลิป
+                                      </button>`;
+                    }
+                }
+
+                li.innerHTML = `
+                    <div class="me-2">${b.name}</div>
+                    <div>${actionHtml}</div>
+                `;
+
                 pendingList.appendChild(li);
             });
             
             confirmed.forEach(b => {
                 const li = document.createElement('li');
                 li.className = 'list-group-item d-flex justify-content-between align-items-center py-2';
-                li.innerHTML = `<span>${b.name}</span><span class="badge-modern bg-success">ยืนยัน</span>`;
+                li.innerHTML = `<span>${b.name}</span>
+                                <span class="badge-modern bg-success">ยืนยัน</span>`;
                 confirmedList.appendChild(li);
             });
         }
@@ -1549,6 +1712,9 @@ if ($is_member) {
             const buttonText = document.getElementById('buttonText');
             const buttonLoading = document.getElementById('buttonLoading');
 
+            // แสดง Loading Overlay
+            document.getElementById('loadingOverlay').classList.add('active');
+
             submitButton.disabled = true;
             buttonText.classList.add('d-none');
             buttonLoading.classList.remove('d-none');
@@ -1581,29 +1747,25 @@ if ($is_member) {
             .then(json => {
                 if (json && (json.status === 'success' || json.status === 'partial')) {
                     const code = json.booking_code || json.booking_id || '';
-                    document.getElementById('modalTitle').textContent = 'ส่งคำขอจองเรียบร้อยแล้ว';
-                    
-                    let msg = `
-                        <div class="text-start">
-                            <p>ระบบได้รับข้อมูลการจองของคุณแล้ว ขณะนี้อยู่ระหว่าง <strong>รอเจ้าหน้าที่ตรวจสอบวันเวลา</strong> ที่ท่านเลือก</p>
-                            <h6 class="fw-bold mt-3">ขั้นตอนถัดไป:</h6>
-                            <ul class="ps-3">
-                                <li>รอรับอีเมลยืนยันจากเจ้าหน้าที่</li>
-                                <li>ชำระเงินผ่าน <strong>QR Code พร้อมเพย์</strong> ที่แนบไปในอีเมล</li>
-                                <li>ส่งหลักฐานการโอนเงิน (Slip) กลับมาทางอีเมล</li>
-                            </ul>
-                            <p class="mb-0 text-muted small">*เมื่อเจ้าหน้าที่ตรวจสอบยอดเงินแล้ว จะดำเนินการยืนยันการจองให้ทันทีครับ</p>
-                        </div>
-                    `;
+                    document.getElementById('modalTitle').textContent = 'จองสำเร็จ! รอการยืนยันจากเจ้าหน้าที่';
 
-                    if (code) {
-                        msg += `
-                            <div class="mt-4 p-3 bg-light rounded border text-center">
-                                <small class="text-secondary d-block">รหัสอ้างอิงการจองของคุณ</small>
-                                <span style="font-size: 1.5rem; color: #059669; font-weight: bold;">${code}</span>
+                        let msg = `
+                            <div class="text-start">
+                                <p>เราได้รับข้อมูลการจองของคุณแล้ว ขณะนี้ระบบกำลัง <strong>รอเจ้าหน้าที่ตรวจสอบคิวว่าง</strong> ในวันและเวลาที่คุณเลือก</p>
+                                
+                                <div class="alert alert-info py-2">
+                                    <h6 class="fw-bold mb-1">สิ่งที่คุณต้องทำถัดไป:</h6>
+                                    <ol class="ps-3 mb-0">
+                                        <li>รอรับ <strong>อีเมลยืนยัน</strong> พร้อมลิงก์ชำระเงินมัดจำ (แจ้งผลภายใน 24 ชม.)</li>
+                                        <li>ชำระเงินผ่าน <strong>QR Code</strong> ในอีเมล และแนบหลักฐานในระบบทันที</li>
+                                        <li>เมื่อเจ้าหน้าที่ตรวจสอบยอดเงิน ระบบจะส่งข้อความยืนยันการจองรอบสุดท้ายให้ครับ</li>
+                                    </ol>
+                                </div>
+                                
+                                <p class="mb-0 text-danger small">*โปรดชำระเงินและแนบสลิปภายใน 3 วัน มิเช่นนั้นระบบจะยกเลิกการจองโดยอัตโนมัติ</p>
                             </div>
                         `;
-                    }
+                    // if (code) { ... } // ซ่อนรหัสอ้างอิงตามคำขอ
 
                     if (json.sendEmail_dispatched !== undefined) {
                         msg += `<br><small class="text-muted d-block mt-2 text-center">สถานะการส่งเมล: ${json.sendEmail_dispatched}</small>`;
@@ -1634,6 +1796,8 @@ if ($is_member) {
                 submitButton.disabled = false;
                 buttonText.classList.remove('d-none');
                 buttonLoading.classList.add('d-none');
+                // ซ่อน Loading Overlay
+                document.getElementById('loadingOverlay').classList.remove('active');
             });
         }
 

@@ -833,7 +833,7 @@ $recent_bookings = [];
         <!-- navbar -->
         <?php include 'navbar.php'; ?>
         <!-- Content -->
-        <main class="ant-layout-content mt-5">
+        <main class="ant-layout-content">
             <!-- Profile Header -->
             <div class="profile-header">
                 <div class="profile-actions">
