@@ -1,4 +1,6 @@
 <?php
+
+
 ob_start();
 error_reporting(0);
 header('Content-Type: application/json; charset=utf-8');
@@ -16,13 +18,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_exit(['success' => false, 'error' => 'Invalid method']);
 }
 
+
 $data = json_decode(file_get_contents('php://input'), true);
 
 $courseId   = (int)($data['courses_id'] ?? 0);
 $userName   = trim($data['user_name'] ?? '');
 $commentText= trim($data['comment_text'] ?? '');
 $guestId    = trim($data['guest_identifier'] ?? '');
-$token      = trim($data['access_token'] ?? '');
+$token = $_SESSION['temp_access_token'] ?? '';
+
 
 if ($courseId <= 0 || $userName === '' || $commentText === '') {
     json_exit(['success' => false, 'error' => 'กรุณากรอกข้อมูลให้ครบถ้วน']);
@@ -33,7 +37,7 @@ if (!isset($_SESSION['temp_access_token']) || $_SESSION['temp_access_token'] !==
     json_exit(['success' => false, 'error' => 'กรุณายืนยันรหัสใหม่อีกครั้ง']);
 }
 
-// ตรวจสอบว่า token หมดอายุหรือยัง (5 นาที)
+//ตรวจสอบว่า token หมดอายุหรือยัง (5 นาที)
 if (!isset($_SESSION['temp_access_time']) || (time() - $_SESSION['temp_access_time']) > 300) {
     unset($_SESSION['temp_access_token']);
     json_exit(['success' => false, 'error' => 'รหัสหมดอายุ กรุณายืนยันใหม่']);

@@ -53,7 +53,7 @@ if (!isset($_SESSION['csrf_token'])) {
                 <!-- ซ้าย -->
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label class="form-label">ชื่อสินค้าผลิตภัณฑ์</label>
+                        <label class="form-label">ชื่อสินค้า</label>
                         <input type="text" class="form-control" name="product_name" placeholder="เช่น กล้วยอบเนย" required>
                     </div>
 

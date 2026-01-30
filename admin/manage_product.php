@@ -3,11 +3,11 @@ require_once 'auth.php';
 require_once 'db.php';
 
 /* นับออเดอร์รอยืนยัน */
-$orderCount = 0;
-$res = $conn->query("SELECT COUNT(*) cnt FROM orders WHERE status = 'รอยืนยัน'");
-if ($res) {
-    $orderCount = $res->fetch_assoc()['cnt'];
-}
+// $orderCount = 0;
+// $res = $conn->query("SELECT COUNT(*) cnt FROM orders WHERE status = 'รอยืนยัน'");
+// if ($res) {
+//     $orderCount = $res->fetch_assoc()['cnt'];
+// }
 ?>
 
 <!DOCTYPE html>
@@ -45,10 +45,10 @@ if ($res) {
 
         <a href="add_product.php" class="btn btn-primary mb-3">➕ เพิ่มสินค้า</a>
         <a href="order_product.php" class="btn btn-warning mb-3">
-            คำสั่งซื้อ
+            <!-- คำสั่งซื้อ
             <?php if ($orderCount > 0): ?>
                 <span class="badge bg-danger"><?= $orderCount ?></span>
-            <?php endif; ?>
+            <?php endif; ?> -->
         </a>
 
         <div class="row g-4">

@@ -346,13 +346,17 @@ if (isset($_SESSION['temp_access_token']) &&
                         <div class="modal-header">
                             <h5 class="modal-title">ยืนยันการเข้าร่วมกิจกรรม</h5>
                         </div>
-                        <div class="modal-body">
-                            <p class="text-muted">
-                                กรุณากรอก <strong>เลข 4 ตัว ที่ได้รับจากทางสวน</strong>
-                            </p>
+                        <div>
 
-                            <input type="password" id="accessCodeInput" class="form-control text-center fs-4" maxlength="6" placeholder="กรอกรหัสเข้าร่วมกิจกรรม" aria-label="กรอกรหัสเข้าร่วมกิจกรรม" <?php if ($hasAccess): echo 'disabled value="****"';
-                                                                                                                                                                                                        endif; ?>>
+                            <input type="password" 
+                            id="accessCodeInput" 
+                            class="form-control text-center fs-4" 
+                            autocomplete="off"
+                            maxlength="4" 
+                            placeholder="กรุณากรอกรหัส 4 ตัว ที่ได้รับจากทางสวน" 
+                            aria-label="กรอกรหัสเข้าร่วมกิจกรรม" 
+                            <?php if ($hasAccess): echo 'disabled value="****"';     endif; ?>>
+                        
                             <div class="text-danger mt-2 d-none" id="accessCodeError">รหัสไม่ถูกต้อง</div>
                         </div>
                         <div class="modal-footer">
@@ -731,7 +735,7 @@ if (isset($_SESSION['temp_access_token']) &&
             modal.show();
         }
 
-        // วางโค้ดนี้แทนส่วน submitAccessCode เดิม (ประมาณบรรทัด 475)
+        // วางโค้ดนี้แทนส่วน submitAccessCode 
 
 document.getElementById('submitAccessCode').addEventListener('click', async () => {
     const codeInput = document.getElementById('accessCodeInput');
