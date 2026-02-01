@@ -26,7 +26,7 @@
 
       body {
         font-family: "Prompt", sans-serif;
-        background-color: #f9f9f9;
+        background-color: #f8f9fc;
         min-height: 100vh;
         display: flex;
         flex-direction: column;
@@ -40,8 +40,8 @@
 
       .footer {
         text-align: center;
-        background: #fff;
-        border-top: 1px solid #eaeaea;
+        background: #f8f9fc;
+        /* border-top: 1px solid #eaeaea; */
         position: relative;
         overflow: hidden;
         padding-top: 2rem;

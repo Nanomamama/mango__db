@@ -53,10 +53,20 @@ require_once $db_path;
     .page-header {
       background: var(--primary-gradient);
       color: white;
-      padding: 2rem 0;
-      margin-bottom: 2rem;
+      padding: 2.5rem 0;
+      margin-bottom: 2.5rem;
       border-radius: 0 0 20px 20px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .page-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
     }
 
     .page-header h2 {
@@ -507,58 +517,57 @@ require_once $db_path;
       animation: fadeInUp 0.5s ease forwards;
     }
 
-   .course-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 10px;
-}
+    .course-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 10px;
+    }
 
-/* ปุ่มดูรายละเอียด */
-.btn-detail {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 18px;
-  background: linear-gradient(135deg, #0d6efd, #3b82f6);
-  color: #fff;
-  border-radius: 30px;
-  text-decoration: none;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
+    /* ปุ่มดูรายละเอียด */
+    .btn-detail {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 18px;
+      background: linear-gradient(135deg, #0d6efd, #3b82f6);
+      color: #fff;
+      border-radius: 30px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
 
-.btn-detail:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(13,110,253,0.4);
-  background: linear-gradient(135deg, #3b82f6, #0d6efd);
-}
+    .btn-detail:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
+      background: linear-gradient(135deg, #3b82f6, #0d6efd);
+    }
 
-/* ปุ่มคอมเมนต์ */
-.comment-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border-radius: 30px;
-  border: 2px solid #0d6efd;
-  background: transparent;
-  color: #0d6efd;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
+    /* ปุ่มคอมเมนต์ */
+    .comment-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 30px;
+      border: 2px solid #0d6efd;
+      background: transparent;
+      color: #0d6efd;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
 
-.comment-btn:hover {
-  background: #0d6efd;
-  color: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(13,110,253,0.4);
-}
+    .comment-btn:hover {
+      background: #0d6efd;
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
+    }
 
-.comment-btn:active {
-  transform: scale(0.95);
-}
-
+    .comment-btn:active {
+      transform: scale(0.95);
+    }
   </style>
 </head>
 
@@ -566,12 +575,14 @@ require_once $db_path;
 
   <?php include 'navbar.php'; ?>
 
-  <div class="page-header mt-5">
+  <div class="page-header">
     <div class="container">
-      <div class="row align-items-center mt-5">
-        <div class="col-md-8">
-          <h2>กิจกรรมอบรมทั้งหมด</h2>
-          <p class="mb-0 mt-2">การเรียนรู้เศรษฐกิจพอเพียง</p>
+      <div class="row align-items-center">
+        <div class="col-lg-8">
+          <div class="page-header-content">
+            <h2>กิจกรรมการอบรมแบบมีฐานการเรียนรู้</h2>
+            <p class="mb-0 mt-3">มีกิจกรรมการอบรมที่ออกแบบมาเพื่อให้ผู้เรียนได้เรียนรู้และพัฒนาทักษะในรูปแบบที่มีประสิทธิภาพ</p>
+          </div>
         </div>
       </div>
     </div>
