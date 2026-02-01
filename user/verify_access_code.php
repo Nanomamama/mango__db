@@ -36,21 +36,24 @@ if (!isset($_SESSION['access_attempts'])) {
     $_SESSION['access_last_attempt'] = time();
 }
 
-if (time() - $_SESSION['access_last_attempt'] > 300) {
+if (time() - $_SESSION['access_last_attempt'] > 10) {
     $_SESSION['access_attempts'] = 0;
 }
 
-if ($_SESSION['access_attempts'] >= 5) {
+if ($_SESSION['access_attempts'] >= 10) {
     json_exit(['success' => false, 'error' => 'คุณพยายามมากเกินไป กรุณารอ 5 นาที']);
 }
 
 $stmt = $conn->prepare("
-    SELECT bookings_id, booking_code
+    SELECT bookings_id, booking_code,
+           TIMESTAMP(booking_date, booking_time) AS booking_datetime
     FROM bookings
     WHERE booking_code LIKE CONCAT('%', ?)
       AND status = 'confirmed'
+      AND TIMESTAMP(booking_date, booking_time) >= NOW() - INTERVAL 7 DAY
     LIMIT 1
 ");
+
 
 if (!$stmt) {
     json_exit(['success' => false, 'error' => 'เกิดข้อผิดพลาดในระบบ']);

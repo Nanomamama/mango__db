@@ -56,7 +56,7 @@ if (!empty($_FILES['product_image']['name'])) {
 
 /* ---------- INSERT ลงฐานข้อมูล ---------- */
 $sql = "INSERT INTO products 
-        (product_name, description, price, weight, stock, min_stock, image, created_at)
+        (product_name, product_description, price, unit, stock_qty, productimage, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
 
 $stmt = $conn->prepare($sql);

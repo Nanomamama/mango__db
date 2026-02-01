@@ -24,7 +24,7 @@ if (!isset($data['courses_id'], $data['rating']) || !is_numeric($data['rating'])
 
 $courses_id = (int)$data['courses_id'];
 $rating = (int)$data['rating'];
-$token = trim($data['access_token'] ?? '');
+$token = $_SESSION['temp_access_token'] ?? '';
 
 if ($rating < 1 || $rating > 5) {
     json_exit(['success' => false, 'error' => 'คะแนนต้องอยู่ระหว่าง 1-5']);
