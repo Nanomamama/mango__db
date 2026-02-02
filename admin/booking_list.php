@@ -30,8 +30,62 @@
             exit;
         }
 
-        $id = (int) $_POST['id'];
         $action = $_POST['action'];
+
+        if ($action === 'send_qr') {
+            $id = (int) $_POST['id'];
+            $qr_file = $_FILES['qr_code_file'] ?? null;
+            $response = ['success' => false, 'message' => 'ข้อมูลไม่ถูกต้อง'];
+
+            if ($id > 0 && $qr_file && $qr_file['error'] === UPLOAD_ERR_OK) {
+                $stmt_details = $conn->prepare("SELECT guest_name, guest_email, booking_code, deposit_amount FROM bookings WHERE bookings_id = ? AND status = 'pending'");
+                $stmt_details->bind_param("i", $id);
+                $stmt_details->execute();
+                $booking = $stmt_details->get_result()->fetch_assoc();
+                $stmt_details->close();
+
+                if ($booking && !empty($booking['guest_email'])) {
+                    try {
+                        $mail = new PHPMailer(true);
+                        $mail->isSMTP();
+                        $mail->Host       = "smtp.gmail.com";
+                        $mail->SMTPAuth   = true;
+                        $mail->Username   = "nanoone342@gmail.com";
+                        $mail->Password   = "cmlt zqfp jveg jxoi"; // App Password
+                        $mail->Port       = 465;
+                        $mail->SMTPSecure = "ssl";
+                        $mail->CharSet    = 'UTF-8';
+
+                        $mail->setFrom('nanoone342@gmail.com', 'สวนแห่งการเรียนรู้');
+                        $mail->addAddress($booking['guest_email'], $booking['guest_name']);
+                        $mail->addAttachment($qr_file['tmp_name'], 'qrcode.jpg');
+
+                        $mail->isHTML(true);
+                        $mail->Subject = "ชำระเงินมัดจำสำหรับการจอง #" . $booking['booking_code'];
+                        $deposit_formatted = number_format($booking['deposit_amount'], 2);
+                        $mail->Body = "<div style='font-family: \"Sarabun\", \"Kanit\", sans-serif; padding: 20px; background-color: #f4f7f6;'><div style='max-width: 600px; margin: auto; background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.06);'><h2 style='color: #016A70; text-align: center;'>ชำระเงินมัดจำการจอง</h2><p>เรียน คุณ " . htmlspecialchars($booking['guest_name']) . ",</p><p>ตามที่ท่านได้ทำการจองเข้าชมสวน รหัสอ้างอิง <strong>" . htmlspecialchars($booking['booking_code']) . "</strong>, กรุณาชำระเงินมัดจำจำนวน <strong>" . $deposit_formatted . " บาท</strong> เพื่อยืนยันการจองของท่าน</p><p>ท่านสามารถสแกน QR Code ที่แนบมานี้เพื่อชำระเงิน หลังจากชำระเงินเรียบร้อยแล้ว กรุณาอัปโหลดหลักฐานการชำระเงิน (สลิป) ในหน้าตรวจสอบการจองของท่านบนเว็บไซต์ เพื่อให้เจ้าหน้าที่ดำเนินการยืนยันการจองในขั้นตอนต่อไป</p><p style='color: #c0392b;'><strong>สำคัญ:</strong> กรุณาชำระเงินภายใน 3 วัน มิฉะนั้นการจองของท่านจะถูกยกเลิกโดยอัตโนมัติ</p><hr style='border: 0; border-top: 1px solid #eee; margin: 25px 0;'><p style='text-align: center; color: #888; font-size: 12px;'>ขอขอบคุณ,<br>สวนแห่งการเรียนรู้</p></div></div>";
+
+                        if ($mail->send()) {
+                            $response = ['success' => true, 'message' => 'ส่งอีเมลพร้อม QR Code สำเร็จ'];
+                        } else {
+                            $response = ['success' => false, 'message' => 'ไม่สามารถส่งอีเมลได้: ' . $mail->ErrorInfo];
+                        }
+                    } catch (Exception $e) {
+                        $response = ['success' => false, 'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()];
+                        error_log("QR Mailer Error for booking ID {$id}: " . $e->getMessage());
+                    }
+                } else {
+                    $response = ['success' => false, 'message' => 'ไม่พบข้อมูลการจอง หรือไม่มีอีเมลลูกค้า'];
+                }
+            } else {
+                $response = ['success' => false, 'message' => 'กรุณาแนบไฟล์ QR Code'];
+            }
+            header('Content-Type: application/json');
+            echo json_encode($response);
+            exit;
+        }
+
+        $id = (int) $_POST['id'];
         $success = false;
         $rejection_reason = $_POST['reason'] ?? null;
         
@@ -378,6 +432,9 @@
         .btn-cancel { background: rgba(231, 76, 60, 0.1); color: #c0392b; }
         .btn-cancel:hover { background: #c0392b; color: white; }
 
+        .btn-info { background: rgba(54, 185, 204, 0.1); color: #36b9cc; }
+        .btn-info:hover { background: #36b9cc; color: white; }
+
         .stats-card {
             background: white;
             border-radius: 16px;
@@ -573,6 +630,59 @@
             84% { width: 55px; right: 0px; top: 35px; }
             100% { width: 47px; right: 8px; top: 38px; }
         }
+
+        .filter-btn-group .btn {
+            font-weight: 500;
+        }
+        .filter-btn-group .btn.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        /* Styles for modern file upload */
+        .file-upload-area-modern {
+            border: 2px dashed #dee2e6;
+            border-radius: 12px;
+            padding: 2.5rem;
+            text-align: center;
+            background-color: #f8fafc;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload-area-modern:hover, .file-upload-area-modern.dragover {
+            border-color: var(--primary);
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+
+        .file-upload-icon {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .qr-preview-wrapper {
+            position: relative;
+            display: inline-block;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0.5rem;
+            background-color: #f8fafc;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .qr-remove-btn {
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
@@ -627,19 +737,52 @@
         </div>
     </div>
 
+    <!-- Filter Buttons -->
+    <div class="mb-4 text-center">
+        <div class="btn-group filter-btn-group shadow-sm" role="group">
+            <button type="button" class="btn btn-light filter-btn active" data-filter="all">
+                <i class="bi bi-collection me-1"></i> ทั้งหมด
+            </button>
+            <button type="button" class="btn btn-light filter-btn" data-filter="pending">
+                <i class="bi bi-hourglass-split me-1"></i> รอยืนยัน
+            </button>
+            <button type="button" class="btn btn-light filter-btn" data-filter="รอตรวจสอบสลิป">
+                <i class="bi bi-receipt me-1"></i> รอตรวจสอบสลิป
+            </button>
+            <button type="button" class="btn btn-light filter-btn" data-filter="confirmed">
+                <i class="bi bi-check2-circle me-1"></i> ยืนยันแล้ว
+            </button>
+            <button type="button" class="btn btn-light filter-btn" data-filter="cancelled">
+                <i class="bi bi-x-circle me-1"></i> ยกเลิกแล้ว
+            </button>
+        </div>
+    </div>
+
+    <!-- Search Input -->
+    <div class="mb-4">
+        <div class="input-group">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+            <input type="text" id="searchInput" class="form-control form-control-lg border-start-0" placeholder="ค้นหาด้วยชื่อลูกค้า หรือรหัสอ้างอิง...">
+        </div>
+    </div>
+
     <!-- Booking List -->
-    <div class="row">
+    <div class="row" id="bookingList">
         <?php if (empty($bookings)): ?>
             <div class="col-12 text-center py-5">
                 <i class="bi bi-inbox fs-1 text-muted"></i>
                 <p class="mt-3 text-muted">ไม่พบข้อมูลการจอง</p>
             </div>
         <?php else: ?>
+            <div class="col-12 text-center py-5 d-none" id="noResultsMessage">
+                <i class="bi bi-search fs-1 text-muted"></i>
+                <p class="mt-3 text-muted">ไม่พบรายการที่ตรงกับการค้นหา</p>
+            </div>
             <?php foreach ($bookings as $booking): ?>
-                <div class="col-md-6 col-lg-4">
+                <div class="col-md-6 col-lg-4 booking-item-col">
                     <div class="booking-card">
                         <div class="booking-card-header">
-                            <span class="fw-bold text-primary">#<?= htmlspecialchars($booking['booking_code']) ?></span>                            
+                            <span class="fw-bold text-primary booking-code">#<?= htmlspecialchars($booking['booking_code']) ?></span>                            
                             <?php
                                 $display_status = $booking['status'];
                                 $display_status_class = $booking['status'];
@@ -661,7 +804,7 @@
                         <div class="p-4">
                             <div class="mb-2">
                                 <span class="info-label"><i class="bi bi-person me-2"></i>ลูกค้า:</span>
-                                <span class="info-value"><?= htmlspecialchars($booking['guest_name']) ?></span>
+                                <span class="info-value guest-name"><?= htmlspecialchars($booking['guest_name']) ?></span>
                             </div>
                             <div class="mb-2">
                                 <span class="info-label"><i class="bi bi-calendar-event me-2"></i>วันที่:</span>
@@ -706,11 +849,24 @@
 
                             <hr class="my-3 opacity-50">
 
-                            <div class="d-flex gap-2 justify-content-end">
-                                <?php if ($booking['status'] != 'confirmed' && $booking['status'] != 'cancelled'): ?>
+                            <div class="d-flex gap-2 justify-content-end">                                
+                                <?php
+                                    $isAwaitingSlipCheck = ($booking['status'] == 'pending' && !empty($booking['payment_slip']));
+                                ?>
+
+                                <?php if ($booking['status'] == 'pending' && !$isAwaitingSlipCheck): // Status is pending, no slip uploaded yet ?>
+                                    <button class="action-btn btn-info" onclick="showQrCodeModal(<?= $booking['bookings_id'] ?>, '<?= htmlspecialchars(json_encode($booking), ENT_QUOTES, 'UTF-8') ?>')">
+                                        <i class="bi bi-qr-code me-1"></i> ส่ง QR
+                                    </button>
+                                <?php endif; ?>
+
+                                <?php if ($isAwaitingSlipCheck): // Status is pending, slip is uploaded ?>
                                     <button class="action-btn btn-confirm" onclick="showConfirmationModal(<?= $booking['bookings_id'] ?>, 'confirm', 'ยืนยันการจองนี้ใช่หรือไม่?')">
                                         <i class="bi bi-check2-circle me-1"></i> ยืนยัน
                                     </button>
+                                <?php endif; ?>
+
+                                <?php if ($booking['status'] != 'confirmed' && $booking['status'] != 'cancelled'): // Can cancel if not confirmed or already cancelled ?>
                                     <button class="action-btn btn-cancel" onclick="showConfirmationModal(<?= $booking['bookings_id'] ?>, 'cancel', 'ต้องการยกเลิกการจองนี้ใช่หรือไม่?')">
                                         <i class="bi bi-x-lg me-1"></i> ยกเลิก
                                     </button>
@@ -780,6 +936,56 @@
     </div>
 </div>
 
+<!-- Modal for QR Code Upload -->
+<div class="modal fade" id="qrCodeModal" tabindex="-1" aria-labelledby="qrCodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 bg-primary text-white">
+                <h5 class="modal-title" id="qrCodeModalLabel"><i class="bi bi-qr-code me-2"></i>ส่ง QR Code สำหรับชำระเงิน</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-light border-primary border-2 border-start">
+                    <p class="mb-1"><strong>การจอง:</strong> <span id="qrBookingCode" class="fw-bold"></span></p>
+                    <p class="mb-0"><strong>ยอดชำระมัดจำ:</strong> <span id="qrDepositAmount" class="fw-bold text-danger"></span> บาท</p>
+                </div>
+                
+                <form id="qrCodeForm" class="mt-3">
+                    <input type="hidden" name="id" id="qrBookingId">
+                    <input type="hidden" name="action" value="send_qr">
+                    <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                    
+                    <!-- Modern File Upload Area -->
+                    <div id="qrUploadArea" class="file-upload-area-modern">
+                        <div class="file-upload-icon"><i class="bi bi-cloud-arrow-up-fill"></i></div>
+                        <div>ลากไฟล์ QR Code มาวาง หรือคลิกเพื่อเลือก</div>
+                        <div class="text-muted small">รองรับ: JPG, PNG, GIF (ไม่เกิน 2MB)</div>
+                        <input class="d-none" type="file" id="qrCodeFile" name="qr_code_file" accept="image/png, image/jpeg, image/gif" required>
+                    </div>
+
+                    <!-- Preview Container -->
+                    <div id="qrPreviewContainer" class="text-center d-none">
+                        <div class="qr-preview-wrapper">
+                            <img id="qrPreview" src="#" alt="QR Code Preview" class="img-fluid rounded" style="max-height: 250px; object-fit: contain;">
+                            <button type="button" id="removeQrBtn" class="btn btn-danger btn-sm rounded-circle qr-remove-btn" title="ลบไฟล์"><i class="bi bi-x"></i></button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" id="sendQrButton">
+                    <span class="send-qr-text"><i class="bi bi-send me-2"></i>ส่งอีเมล</span>
+                    <span class="send-qr-loading d-none">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        กำลังส่ง...
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal for Status/Error -->
 <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -809,6 +1015,8 @@
     const statusModal = new bootstrap.Modal(statusModalEl);
     const detailModalEl = document.getElementById('detailModal');
     const detailModal = new bootstrap.Modal(detailModalEl);
+    const qrCodeModalEl = document.getElementById('qrCodeModal');
+    const qrCodeModal = new bootstrap.Modal(qrCodeModalEl);
 
     // Function to handle booking actions (confirm/cancel)
     function handleBookingAction(id, action, reason = null) {
@@ -899,8 +1107,19 @@
 
         // Clear previous icon
         modalIcon.innerHTML = '';
+        // Default state for OK button
+        modalOkButton.style.display = 'block';
         
-        if (isSuccess) {
+        if (isSuccess === 'loading') {
+            modalHeader.classList.remove('bg-danger', 'text-white');
+            modalHeader.classList.add('bg-light');
+            modalIcon.innerHTML = `
+                <div class="spinner-border text-primary" role="status" style="width: 4rem; height: 4rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            `;
+            modalOkButton.style.display = 'none'; // Hide OK button while loading
+        } else if (isSuccess) {
             modalHeader.classList.remove('bg-danger', 'text-white');
             modalHeader.classList.add('bg-light');
             
@@ -931,6 +1150,125 @@
         // Show modal
         statusModal.show();
     }
+
+    // --- QR Code Modal Logic ---
+    const qrUploadArea = document.getElementById('qrUploadArea');
+    const qrFileInput = document.getElementById('qrCodeFile');
+    const qrPreviewContainer = document.getElementById('qrPreviewContainer');
+    const qrPreview = document.getElementById('qrPreview');
+    const removeQrBtn = document.getElementById('removeQrBtn');
+    const sendQrButton = document.getElementById('sendQrButton');
+
+    // Trigger file input on click
+    qrUploadArea.addEventListener('click', () => qrFileInput.click());
+
+    // Drag and drop events
+    qrUploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        qrUploadArea.classList.add('dragover');
+    });
+    qrUploadArea.addEventListener('dragleave', () => {
+        qrUploadArea.classList.remove('dragover');
+    });
+    qrUploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        qrUploadArea.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+            qrFileInput.files = e.dataTransfer.files;
+            handleQrFile(qrFileInput.files[0]);
+        }
+    });
+
+    // Handle file selection from input
+    qrFileInput.addEventListener('change', () => {
+        if (qrFileInput.files.length) {
+            handleQrFile(qrFileInput.files[0]);
+        }
+    });
+
+    // Remove image button
+    removeQrBtn.addEventListener('click', () => {
+        qrFileInput.value = ''; // Clear the file input
+        qrPreviewContainer.classList.add('d-none');
+        qrUploadArea.classList.remove('d-none');
+        qrPreview.src = '#';
+    });
+
+    function handleQrFile(file) {
+        if (file && file.type.startsWith('image/')) {
+            if (file.size > 2 * 1024 * 1024) { // 2MB limit
+                alert('ไฟล์มีขนาดใหญ่เกิน 2MB');
+                qrFileInput.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                qrPreview.src = e.target.result;
+                qrUploadArea.classList.add('d-none');
+                qrPreviewContainer.classList.remove('d-none');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            alert('กรุณาเลือกไฟล์รูปภาพเท่านั้น');
+            qrFileInput.value = '';
+        }
+    }
+
+    // Override the old showQrCodeModal function
+    function showQrCodeModal(id, bookingJson) {
+        const booking = JSON.parse(bookingJson);
+        document.getElementById('qrBookingId').value = id;
+        document.getElementById('qrBookingCode').textContent = '#' + booking.booking_code;
+        document.getElementById('qrDepositAmount').textContent = parseFloat(booking.deposit_amount).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        
+        // Reset form and preview
+        const qrForm = document.getElementById('qrCodeForm');
+        qrForm.reset();
+        removeQrBtn.click(); // Use the remove button's logic to reset UI
+
+        qrCodeModal.show();
+    }
+
+    // Update the send button logic
+    sendQrButton.addEventListener('click', function() {
+        const form = document.getElementById('qrCodeForm');
+        const fileInput = document.getElementById('qrCodeFile');
+
+        if (!fileInput.files || fileInput.files.length === 0) {
+            alert('กรุณาเลือกไฟล์ QR Code');
+            return;
+        }
+
+        const formData = new FormData(form);
+        qrCodeModal.hide();
+        
+        // Show loading state
+        const btnText = this.querySelector('.send-qr-text');
+        const btnLoading = this.querySelector('.send-qr-loading');
+        this.disabled = true;
+        btnText.classList.add('d-none');
+        btnLoading.classList.remove('d-none');
+
+        fetch('booking_list.php', { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showStatusModal('สำเร็จ', 'ส่งอีเมลพร้อม QR Code เรียบร้อยแล้ว', true, true);
+                statusModalEl.addEventListener('hidden.bs.modal', () => { location.reload(); }, { once: true });
+            } else {
+                showStatusModal('เกิดข้อผิดพลาด', data.message || 'ไม่สามารถส่งอีเมลได้', false);
+            }
+        })
+        .catch(error => {
+            showStatusModal('เกิดข้อผิดพลาด', 'การเชื่อมต่อล้มเหลว: ' + error.message, false);
+        })
+        .finally(() => {
+            // Reset button state
+            this.disabled = false;
+            btnText.classList.remove('d-none');
+            btnLoading.classList.add('d-none');
+        });
+    });
 
     // Helper function to translate booking types
     function translateBookingType(type) {
@@ -987,6 +1325,76 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Find all cancel buttons and update their onclick to use confirmation modal
         // This part is no longer needed as the HTML is directly updated.
+
+        // Real-time search and filter functionality
+        const searchInput = document.getElementById('searchInput');
+        const bookingList = document.getElementById('bookingList');
+        const bookingItems = bookingList.querySelectorAll('.booking-item-col');
+        const noResultsMessage = document.getElementById('noResultsMessage');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        let currentFilter = 'all';
+
+        function applyFilters() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            let visibleCount = 0;
+
+            bookingItems.forEach(item => {
+                // Status filter check
+                const statusBadge = item.querySelector('.status-badge');
+                let statusMatch = false;
+                if (currentFilter === 'all') {
+                    statusMatch = true;
+                } else {
+                    // The class is like 'status-pending', 'status-รอตรวจสอบสลิป'
+                    if (statusBadge.classList.contains('status-' + currentFilter)) {
+                        statusMatch = true;
+                    }
+                }
+
+                // Search term check
+                const guestName = item.querySelector('.guest-name').textContent.toLowerCase();
+                const bookingCode = item.querySelector('.booking-code').textContent.toLowerCase().replace('#', '');
+                const searchMatch = guestName.includes(searchTerm) || bookingCode.includes(searchTerm);
+
+                if (statusMatch && searchMatch) {
+                    item.classList.remove('d-none');
+                    visibleCount++;
+                } else {
+                    item.classList.add('d-none');
+                }
+            });
+            
+            if (visibleCount === 0) {
+                noResultsMessage.classList.remove('d-none');
+            } else {
+                noResultsMessage.classList.add('d-none');
+            }
+        }
+
+        searchInput.addEventListener('input', applyFilters);
+
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                currentFilter = this.dataset.filter;
+                applyFilters();
+            });
+        });
+
+        // Handle filter from URL on page load
+        const urlParams = new URLSearchParams(window.location.search);
+        const filterParam = urlParams.get('filter');
+
+        if (filterParam) {
+            const targetButton = document.querySelector(`.filter-btn[data-filter="${filterParam}"]`);
+            if (targetButton) {
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                targetButton.classList.add('active');
+                currentFilter = filterParam;
+                applyFilters();
+            }
+        }
     });
 </script>
 </body>

@@ -252,7 +252,7 @@ session_start();
                 <samp> สวนลุงเผือก บ.บุฮม อ.เชียงคาน จ.เลย</samp>
             </p>
             <div class="button-2">
-                <a href="../user/booking.php" class="btn cta-button bg-white"style="color:rgb(20, 58, 44);">จองคิวออนไลน์</a>
+                <a href="../user/bookings.php" class="btn cta-button bg-white"style="color:rgb(20, 58, 44);">จองคิวออนไลน์</a>
                 <a href="../user/course.php" class="btn cta-button">เรียนรู้เพิ่ม →</a>
             </div>
         </div>

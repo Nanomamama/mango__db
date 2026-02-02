@@ -47,15 +47,16 @@ $userName = mb_substr($userName, 0, 100);
 $commentText = mb_substr($commentText, 0, 1000);
 
 $stmt = $conn->prepare("
-    INSERT INTO course_comments (courses_id, name, comment_text, guest_identifier, created_at)
-    VALUES (?, ?, ?, ?, NOW())
+    INSERT INTO course_comments (courses_id, member_id, name, comment_text, guest_identifier, created_at)
+    VALUES (?, ?, ?, ?, ?, NOW())
 ");
 
 if (!$stmt) {
     json_exit(['success' => false, 'error' => 'Prepare error: ' . $conn->error]);
 }
 
-$stmt->bind_param('isss', $courseId, $userName, $commentText, $guestId);
+$member_id = $_SESSION['member_id'] ?? null;
+$stmt->bind_param('iisss', $courseId, $member_id, $userName, $commentText, $guestId);
 
 if (!$stmt->execute()) {
     json_exit(['success' => false, 'error' => 'Execute error: ' . $stmt->error]);

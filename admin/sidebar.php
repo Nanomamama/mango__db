@@ -1,3 +1,20 @@
+<?php
+// This check is to avoid re-declaring the connection if it's already included.
+// It's better to use require_once in the main files.
+if (!isset($conn)) {
+    require_once __DIR__ . '/db.php';
+}
+
+// ดึงจำนวนการจองใหม่ (pending) สำหรับการแสดงผลครั้งแรก
+$newBookingsCount = 0;
+if (isset($conn) && $conn->ping()) {
+    $result = $conn->query("SELECT COUNT(*) as count FROM bookings WHERE status = 'pending'");
+    if ($result) {
+        $row = $result->fetch_assoc();
+        $newBookingsCount = $row['count'] ?? 0;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -193,7 +210,7 @@
                 <i class='bx bxs-graduation'></i> กิจกรรมอบรม
             </a>
 
-            <a href="./booking_list.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'booking_list.php') echo ' active'; ?>">
+            <a href="./booking_list.php?filter=pending" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'booking_list.php') echo ' active'; ?>">
                 <i class='bx bxs-calendar-check'></i> รายการจอง
                 <div class="notification-bell ms-auto">
                     <i class='bx bxs-bell bell-icon'></i>
@@ -212,79 +229,74 @@
 
 
     <script>
-        // ตรวจสอบการจองใหม่ (cache-busted) และแจ้งเตือนเมื่อมีรายการใหม่
-        // เริ่มต้นจากค่าที่ server-rendered เพื่อลดการแจ้งเตือนเมื่อโหลดหน้า
-        let previousCount = <?= isset($newBookings) ? (int)$newBookings : 0 ?>;
-
-        function playBeep() {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const o = ctx.createOscillator();
-                const g = ctx.createGain();
-                o.type = 'sine';
-                o.frequency.value = 880;
-                g.gain.value = 0.05;
-                o.connect(g);
-                g.connect(ctx.destination);
-                o.start();
-                setTimeout(() => {
-                    o.stop();
-                    ctx.close();
-                }, 180);
-            } catch (e) {
-                // ignore audio errors (some browsers block autoplay)
-            }
-        }
-
-        function checkNotifications() {
-            const url = new URL('get_new_bookings.php', window.location.href);
-            url.searchParams.set('_', Date.now());
-            fetch(url.toString(), { cache: 'no-store' })
-                .then(response => response.json())
-                .then(data => {
-                    const bell = document.querySelector('.notification-bell');
-                    if (!bell) return;
-                    let badge = bell.querySelector('.notification-badge');
-                    const count = parseInt(data.count) || 0;
-
-                    if (count > 0) {
-                        if (!badge) {
-                            badge = document.createElement('span');
-                            badge.className = 'notification-badge';
-                            bell.appendChild(badge);
-                        }
-                        badge.textContent = count;
-                        bell.classList.add('has-notification');
-
-                        // ถ้าเพิ่มขึ้นจากเดิม ให้เล่นเสียงและกระพริบ
-                        if (count > previousCount) {
-                            playBeep();
-                            bell.classList.add('flash');
-                            setTimeout(() => bell.classList.remove('flash'), 2500);
-                        }
-                    } else {
-                        if (badge) badge.remove();
-                        bell.classList.remove('has-notification');
-                    }
-
-                    previousCount = count;
-                })
-                .catch(error => console.error('Fetch error:', error));
-        }
-
-        // เรียกครั้งแรกเมื่อโหลดหน้า และตั้งเวลาเรียกทุก 3 วินาที
         document.addEventListener('DOMContentLoaded', function() {
-            checkNotifications();
-            setInterval(checkNotifications, 3000);
-        });
+            // เริ่มต้นจากค่าที่ server-rendered เพื่อลดการแจ้งเตือนเมื่อโหลดหน้าครั้งแรก
+            let previousCount = <?= $newBookingsCount ?>;
 
-        // อัปเดตเมื่อคลิกเมนู
-        const bookingLink = document.querySelector('a[href="./booking_list.php"]');
-        if (bookingLink) {
-            bookingLink.addEventListener('click', function() {
-                setTimeout(checkNotifications, 300);
-            });
-        }
+            function playBeep() {
+                try {
+                    const ctx = new(window.AudioContext || window.webkitAudioContext)();
+                    const o = ctx.createOscillator();
+                    const g = ctx.createGain();
+                    o.type = 'sine';
+                    o.frequency.value = 880;
+                    g.gain.value = 0.05;
+                    o.connect(g);
+                    g.connect(ctx.destination);
+                    o.start();
+                    setTimeout(() => { o.stop(); ctx.close(); }, 180);
+                } catch (e) { /* ignore audio errors */ }
+            }
+
+            function checkNotifications() {
+                const url = new URL('get_new_bookings.php', window.location.href);
+                url.searchParams.set('_', Date.now()); // Cache busting
+
+                fetch(url.toString(), { cache: 'no-store' })
+                    .then(response => {
+                        if (response.status === 401) { // Unauthorized, session likely expired
+                            console.warn('Session expired. Stopping notification polling.');
+                            if (window.notificationPollInterval) clearInterval(window.notificationPollInterval);
+                            return null;
+                        }
+                        if (!response.ok) throw new Error('Network response was not ok.');
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data === null) return;
+
+                        const bell = document.querySelector('.notification-bell');
+                        if (!bell) return;
+                        let badge = bell.querySelector('.notification-badge');
+                        const count = parseInt(data.count) || 0;
+
+                        if (count > 0) {
+                            if (!badge) {
+                                badge = document.createElement('span');
+                                badge.className = 'notification-badge';
+                                bell.appendChild(badge);
+                            }
+                            badge.textContent = count;
+                            bell.classList.add('has-notification');
+
+                            if (count > previousCount) {
+                                playBeep();
+                                bell.classList.add('flash');
+                                setTimeout(() => bell.classList.remove('flash'), 2500);
+                            }
+                        } else {
+                            if (badge) badge.remove();
+                            bell.classList.remove('has-notification');
+                        }
+                        previousCount = count;
+                    })
+                    .catch(error => console.error('Notification fetch error:', error));
+            }
+
+            // เรียกครั้งแรกเมื่อโหลดหน้า และตั้งเวลาเรียกทุก 15 วินาที
+            checkNotifications();
+            window.notificationPollInterval = setInterval(checkNotifications, 15000);
+        });
     </script>
 
 </body>

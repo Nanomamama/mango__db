@@ -262,6 +262,99 @@
             color: white;
         }
 
+        .btn-upload-slip {
+            background: linear-gradient(135deg, var(--warning-color), #f97316);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 0.3rem 0.8rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(245, 158, 11, 0.3);
+            white-space: nowrap;
+        }
+
+        .btn-upload-slip:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(245, 158, 11, 0.4);
+            color: white;
+        }
+
+        /* Styles for slip upload modal */
+        .slip-preview-wrapper {
+            position: relative;
+            display: inline-block;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--border-radius-sm);
+            padding: 0.5rem;
+            background-color: #f8fafc;
+            width: 100%;
+            max-width: 350px;
+        }
+
+        .slip-preview-wrapper img {
+            max-height: 300px;
+            width: 100%;
+            object-fit: contain;
+        }
+
+        .slip-remove-btn {
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+        }
+
+        .pdf-preview-icon {
+            font-size: 4rem;
+            color: var(--danger-color);
+            padding: 2rem 0;
+        }
+        .pdf-preview-name {
+            font-weight: 500;
+            color: var(--text-color);
+            word-break: break-all;
+            padding: 0 1rem 1rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        .slip-upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: var(--border-radius-sm);
+            padding: 2.5rem;
+            text-align: center;
+            background-color: #f8fafc;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .slip-upload-area.dragover {
+            border-color: var(--primary-color);
+            background-color: var(--primary-light);
+        }
+
+        .slip-upload-area .upload-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .slip-upload-area .upload-text {
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .slip-upload-area .upload-hint {
+            color: var(--text-light);
+            font-size: 0.875rem;
+        }
+
         /* Step Indicator */
         .step-indicator-modern {
             display: flex;
@@ -727,7 +820,7 @@
                 <div id="calendar-section">
                     <div class="calendar-section-modern">
                         <h3 class="calendar-title-modern">
-                            <i class="far fa-calendar-alt me-3" style="color: var(--primary-color);"></i>
+                            <i class="far fa-calendar-alt" style="color: var(--primary-color);"></i>
                             เลือกวันที่ต้องการเข้าชมสวน
                         </h3>
                         <p class="text-muted mb-4">กรุณาเลือกวันที่คุณต้องการจองเข้าชมสวนจากปฏิทินด้านล่าง</p>
@@ -779,32 +872,6 @@
                             </div>
                         </div>
 
-                                                <!-- ปุ่มดำเนินการต่อ -->
-                        <div class="text-center mt-4">
-                            <button type="button" id="continueBtn" class="btn btn-primary-modern btn-modern px-5" onclick="showFormSection()" disabled>
-                                <i class="fas fa-arrow-right me-2"></i>ดำเนินการต่อ
-                            </button>
-                        </div>
-
-                        <!-- แสดงวันที่ที่เลือก -->
-                        <div id="dateSelectedBox" class="card-modern mt-4 d-none">
-                            <div class="card-body-modern">
-                                <div class="row align-items-center">
-                                    <div class="col-md-8">
-                                        <h5 class="mb-0">
-                                            <i class="far fa-calendar-check me-2" style="color: var(--primary-color);"></i>
-                                            <span class="fw-bold">วันที่คุณเลือก:</span>
-                                            <span id="selectedDateDisplay" class="fw-bold text-primary ms-2"></span>
-                                        </h5>
-                                    </div>
-                                    <div class="col-md-4 text-end">
-                                        <button type="button" class="btn btn-secondary-modern btn-modern" onclick="clearSelectedDate()">
-                                            <i class="fas fa-times me-2"></i>เปลี่ยนวันที่
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -942,7 +1009,7 @@
 
                                 <div class="col-12">
                                     <div class="d-grid">
-                                        <button type="button" class="btn btn-success btn-lg" onclick="submitForm()" id="submitButton">
+                                        <button type="button" class="btn-modern btn-success-modern btn-lg" onclick="submitForm()" id="submitButton">
                                             <span id="buttonText"><i class="fas fa-calendar-check me-2"></i>ยืนยันการจองคิว</span>
                                             <span id="buttonLoading" class="d-none"><span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>กำลังส่งข้อมูล...</span>
                                         </button>
@@ -958,29 +1025,41 @@
 
         <!-- Modal สำหรับอัพโหลดหลักฐานการโอน -->
         <div class="modal fade" id="uploadSlipModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 shadow">
-                    <div class="modal-header bg-light">
-                        <h5 class="modal-title"><i class="fas fa-upload me-2"></i>แนบหลักฐานการโอนเงิน</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content modal-content-modern">
+                    <div class="modal-header modal-header-modern">
+                        <h5 class="modal-title"><i class="fas fa-qrcode me-2"></i>ชำระเงินและแนบหลักฐาน</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <form id="slipForm">
-                        <div class="modal-body p-4">
+                        <div class="modal-body modal-body-modern">
                             <input type="hidden" id="modalBookingId">
-                            
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">เลือกรูปภาพสลิป</label>
-                                <input type="file" class="form-control" id="slipFile" accept="image/*" required>
-                                <div class="form-text">รองรับไฟล์ .jpg, .png ขนาดไม่เกิน 5MB</div>
+                            <div class="alert alert-info-modern">
+                                <p class="mb-1"><strong>ยอดชำระมัดจำ:</strong> <span id="depositAmountDisplay" class="fw-bold">...</span> บาท</p>
+                                <p class="mb-0">กรุณาชำระเงินและแนบหลักฐานการโอนเพื่อยืนยันการจองของท่าน</p>
                             </div>
-                            
-                            <div id="previewContainer" class="text-center d-none">
-                                <img id="slipPreview" src="#" alt="Preview" class="img-fluid rounded border" style="max-height: 300px;">
+
+                            <div id="slipUploadArea" class="file-upload-area-modern mb-3 text-center">
+                                <div class="file-upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                                <div>ลากไฟล์สลิปมาวาง หรือคลิกเพื่อเลือก</div>
+                                <div class="text-muted small">รองรับ: JPG, PNG, PDF (ไม่เกิน 5MB)</div>
+                                <input type="file" id="slipFile" class="d-none" accept="image/*,.pdf" required>
+                            </div>
+
+                            <div id="previewContainer" class="text-center d-none mb-3">
+                                <div class="slip-preview-wrapper">
+                                    <img id="slipPreview" src="#" alt="Preview" class="img-fluid rounded d-none">
+                                    <div id="pdfPreviewContainer" class="d-none"></div>
+                                    <button type="button" id="removeSlipBtn" class="btn btn-danger btn-sm rounded-circle slip-remove-btn" title="ลบไฟล์"><i class="fas fa-times"></i></button>
+                                </div>
                             </div>
                         </div>
-                        <div class="modal-footer bg-light">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                            <button type="submit" class="btn btn-primary">ยืนยันการส่งสลิป</button>
+                        <div class="modal-footer justify-content-between border-top-0 pt-0 px-4 pb-4">
+                            <button type="button" class="btn btn-secondary-modern btn-modern" data-bs-dismiss="modal">ยกเลิก</button>
+                            <button type="submit" class="btn-modern btn-success-modern" id="submitSlipBtn">
+                                <span class="submit-slip-text"><i class="fas fa-check-circle me-2"></i>ยืนยันการชำระเงิน</span>
+                                <span class="submit-slip-loading d-none"><span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>กำลังส่ง...</span>
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -1007,7 +1086,7 @@
                     <p id="modalMessage" class="text-muted">ระบบได้ทำการส่งข้อมูลการจองคิวเข้าชมสวนของคุณเรียบร้อยแล้ว กรุณาตรวจสอบอีเมลสำหรับข้อมูลเพิ่มเติม</p>
                 </div>
                 <div class="modal-footer justify-content-center border-top-0 pt-0">
-                    <button type="button" class="btn btn-primary-modern btn-modern px-5" data-bs-dismiss="modal">ตกลง</button>
+                    <button type="button" class="btn-modern btn-primary-modern px-5" data-bs-dismiss="modal">ตกลง</button>
                 </div>
             </div>
         </div>
@@ -1033,7 +1112,7 @@
                     <p id="errorModalMessage" class="text-muted">เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองใหม่อีกครั้งหรือติดต่อผู้ดูแลระบบ</p>
                 </div>
                 <div class="modal-footer justify-content-center border-top-0 pt-0">
-                    <button type="button" class="btn btn-danger btn-modern px-5" data-bs-dismiss="modal">ลองอีกครั้ง</button>
+                    <button type="button" class="btn-modern btn-danger-modern px-5" data-bs-dismiss="modal">ลองอีกครั้ง</button>
                 </div>
             </div>
         </div>
@@ -1059,7 +1138,27 @@
                     <p class="text-muted">กรุณาเข้าสู่ระบบหรือสมัครสมาชิกเพื่อดำเนินการต่อ</p>
                 </div>
                 <div class="modal-footer justify-content-center border-top-0 pt-0">
-                    <button type="button" class="btn btn-warning btn-modern px-5" onclick="redirectToLogin()">ตกลง</button>
+                    <button type="button" class="btn-modern btn-warning-modern px-5" onclick="redirectToLogin()">ตกลง</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Date Confirmation -->
+    <div class="modal fade" id="dateConfirmModal" tabindex="-1" aria-labelledby="dateConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-modern">
+                <div class="modal-header modal-header-modern">
+                    <h5 class="modal-title" id="dateConfirmModalLabel"><i class="far fa-calendar-check me-2"></i>ยืนยันการเลือกวัน</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body modal-body-modern text-center">
+                    <p class="fs-5">คุณต้องการจองคิวเข้าชมสวนในวันที่</p>
+                    <h4 id="confirmDateDisplay" class="text-primary fw-bold"></h4>
+                </div>
+                <div class="modal-footer justify-content-center border-top-0 pt-0">
+                    <button type="button" class="btn btn-secondary-modern btn-modern" data-bs-dismiss="modal">เปลี่ยนวัน</button>
+                    <button type="button" id="confirmDateBtn" class="btn btn-primary-modern btn-modern">ยืนยันและดำเนินการต่อ</button>
                 </div>
             </div>
         </div>
@@ -1088,8 +1187,41 @@
         const MEMBER_ID_SESSION = <?php echo json_encode($member_id_session); ?>; // ส่ง member_id ไปยัง JavaScript
         const MEMBER_DATA = <?php echo json_encode($member_data); ?>;
         let loginRequiredModalObj = null; // ตัวแปรสำหรับเก็บ instance ของ Modal
+        let dateConfirmModalObj = null; // For date confirmation modal
 
         // ฟังก์ชันสำหรับแสดง Modal แจ้งเตือนให้เข้าสู่ระบบ
+        function handleTimeChange() {
+            const timeSelect = document.getElementById('booking_time');
+            const lunchCheckbox = document.getElementById('lunch_request');
+            const lunchSection = document.getElementById('lunch_section');
+
+            if (!timeSelect || !lunchCheckbox || !lunchSection) return;
+
+            const selectedTime = timeSelect.value;
+            
+            // ถ้ายังไม่ได้เลือกเวลา ให้ปิดตัวเลือกอาหารกลางวัน
+            if (!selectedTime) {
+                lunchCheckbox.disabled = true;
+                lunchCheckbox.checked = false;
+                lunchSection.style.opacity = '0.5';
+                lunchSection.style.cursor = 'not-allowed';
+                return;
+            }
+
+            const hour = parseInt(selectedTime.split(':')[0], 10);
+
+            // ถ้าเวลาที่เลือกคือ 12:00 หรือหลังจากนั้น ให้ปิดตัวเลือกอาหารกลางวัน
+            if (hour >= 12) {
+                lunchCheckbox.disabled = true;
+                lunchCheckbox.checked = false; // ยกเลิกการเลือกถ้าถูกเลือกไว้
+                lunchSection.style.opacity = '0.5';
+                lunchSection.style.cursor = 'not-allowed';
+            } else {
+                lunchCheckbox.disabled = false;
+                lunchSection.style.opacity = '1';
+                lunchSection.style.cursor = 'pointer';
+            }
+        }
         function showLoginRequiredModal() {
             if (!loginRequiredModalObj) {
                 loginRequiredModalObj = new bootstrap.Modal(document.getElementById('loginRequiredModal'));
@@ -1097,72 +1229,157 @@
             loginRequiredModalObj.show();
         }
 
-        // ฟังก์ชันเปิด Modal
-function openUploadModal(bookingId) {
-    document.getElementById('modalBookingId').value = bookingId;
-    document.getElementById('slipForm').reset();
-    document.getElementById('previewContainer').classList.add('d-none');
-    
-    const myModal = new bootstrap.Modal(document.getElementById('uploadSlipModal'));
-    myModal.show();
-}
+        // --- Upload Slip Modal Logic ---
+        (function() {
+            const slipUploadArea = document.getElementById('slipUploadArea');
+            const slipFileInput = document.getElementById('slipFile');
+            const previewContainer = document.getElementById('previewContainer');
+            const slipPreview = document.getElementById('slipPreview');
+            const removeSlipBtn = document.getElementById('removeSlipBtn');
 
-// แสดงตัวอย่างรูปเมื่อเลือกไฟล์
-document.getElementById('slipFile').onchange = evt => {
-    const [file] = document.getElementById('slipFile').files;
-    if (file) {
-        document.getElementById('slipPreview').src = URL.createObjectURL(file);
-        document.getElementById('previewContainer').classList.remove('d-none');
-    }
-}
+            // ฟังก์ชันเปิด Modal
+            window.openUploadModal = function(bookingId, visitorCount) {
+                document.getElementById('modalBookingId').value = bookingId;
+                document.getElementById('slipForm').reset();
+                
+                const pricePerPerson = 150;
+                const depositRate = 0.3;
+                const depositAmount = (parseInt(visitorCount) || 0) * pricePerPerson * depositRate;
+                document.getElementById('depositAmountDisplay').textContent = depositAmount.toLocaleString();
 
-// จัดการการส่งฟอร์ม (Submit)
-document.getElementById('slipForm').onsubmit = function(e) {
-    e.preventDefault();
-    const bookingId = document.getElementById('modalBookingId').value;
-    const fileInput = document.getElementById('slipFile');    
-    if (fileInput.files.length === 0) {
-        alert('กรุณาเลือกไฟล์สลิป');
-        return;
-    }
+                // Reset to upload state
+                document.getElementById('pdfPreviewContainer').innerHTML = '';
+                previewContainer.classList.add('d-none');
+                slipUploadArea.classList.remove('d-none');
+                
+                const myModal = new bootstrap.Modal(document.getElementById('uploadSlipModal'));
+                myModal.show();
+            }
 
-    const formData = new FormData();
-    formData.append('booking_id', bookingId);
-    formData.append('slip', fileInput.files[0]);
+            // Trigger file input on click
+            slipUploadArea.addEventListener('click', () => slipFileInput.click());
 
-    // ส่งข้อมูลไปยัง Backend (คุณต้องสร้างไฟล์ upload_slip.php)
-    fetch('upload_slip.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(res => res.json()) // แปลง response เป็น JSON
-    .then(data => { // จัดการข้อมูลที่ได้จากเซิร์ฟเวอร์
-        const uploadModal = bootstrap.Modal.getInstance(document.getElementById('uploadSlipModal'));
-        uploadModal.hide(); // ซ่อน Modal อัปโหลด
+            // Drag and drop events
+            slipUploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                slipUploadArea.classList.add('dragover');
+            });
+            slipUploadArea.addEventListener('dragleave', () => {
+                slipUploadArea.classList.remove('dragover');
+            });
+            slipUploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                slipUploadArea.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    slipFileInput.files = e.dataTransfer.files;
+                    handleFile(slipFileInput.files[0]);
+                }
+            });
 
-        if (data.success) {
-            // แสดง Modal แจ้งเตือนสำเร็จ
-            document.getElementById('modalTitle').textContent = 'ส่งหลักฐานสำเร็จ';
-            document.getElementById('modalMessage').textContent = 'แนบสลิปเรียบร้อยแล้ว รอการตรวจสอบจากเจ้าหน้าที่';
-            const successModalEl = document.getElementById('statusModal');
-            const successModal = new bootstrap.Modal(successModalEl);
-            
-            // เมื่อ Modal ปิด ให้รีเฟรชข้อมูล
-            successModalEl.addEventListener('hidden.bs.modal', () => {
-                fetchBookings().then(() => renderCalendarTable(window.currentMonth, window.currentYear));
-            }, { once: true });
+            // Handle file selection from input
+            slipFileInput.addEventListener('change', () => {
+                if (slipFileInput.files.length) {
+                    handleFile(slipFileInput.files[0]);
+                }
+            });
 
-            successModal.show();
-        } else {
-            // แสดง Modal แจ้งเตือนข้อผิดพลาด
-            showAlert('เกิดข้อผิดพลาด: ' + (data.message || 'ไม่สามารถอัปโหลดได้'), 'error');
-        }
-    })
-    .catch(err => {
-        console.error('Upload slip error:', err);
-        alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
-    });
-};
+            // Remove image button
+            removeSlipBtn.addEventListener('click', () => {
+                slipFileInput.value = ''; 
+                previewContainer.classList.add('d-none');
+                slipUploadArea.classList.remove('d-none');
+                slipPreview.src = '#';
+                slipPreview.classList.add('d-none');
+                document.getElementById('pdfPreviewContainer').innerHTML = '';
+                document.getElementById('pdfPreviewContainer').classList.add('d-none');
+            });
+
+            function handleFile(file) {
+                if (!file) return;
+                const pdfPreviewContainer = document.getElementById('pdfPreviewContainer');
+
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        slipPreview.src = e.target.result;
+                        slipPreview.classList.remove('d-none');
+                        pdfPreviewContainer.classList.add('d-none');
+                        slipUploadArea.classList.add('d-none');
+                        previewContainer.classList.remove('d-none');
+                    };
+                    reader.readAsDataURL(file);
+                } else if (file.type === 'application/pdf') {
+                    slipPreview.classList.add('d-none');
+                    pdfPreviewContainer.innerHTML = `<div class="pdf-preview-icon"><i class="fas fa-file-pdf"></i></div><div class="pdf-preview-name">${escapeHtml(file.name)}</div>`;
+                    pdfPreviewContainer.classList.remove('d-none');
+                    slipUploadArea.classList.add('d-none');
+                    previewContainer.classList.remove('d-none');
+                } else {
+                    showAlert('กรุณาเลือกไฟล์รูปภาพ (JPG, PNG) หรือ PDF เท่านั้น', 'error');
+                }
+            }
+
+            // จัดการการส่งฟอร์ม (Submit)
+            document.getElementById('slipForm').onsubmit = function(e) {
+                e.preventDefault();
+                const bookingId = document.getElementById('modalBookingId').value;
+                const fileInput = document.getElementById('slipFile');    
+                if (fileInput.files.length === 0) {
+                    showAlert('กรุณาเลือกไฟล์สลิป', 'error');
+                    return;
+                }
+
+                const submitBtn = document.getElementById('submitSlipBtn');
+                const btnText = submitBtn.querySelector('.submit-slip-text');
+                const btnLoading = submitBtn.querySelector('.submit-slip-loading');
+
+                submitBtn.disabled = true;
+                btnText.classList.add('d-none');
+                btnLoading.classList.remove('d-none');
+
+                const formData = new FormData();
+                formData.append('booking_id', bookingId);
+                formData.append('slip', fileInput.files[0]);
+
+                // ส่งข้อมูลไปยัง Backend (คุณต้องสร้างไฟล์ upload_slip.php)
+                fetch('upload_slip.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json()) // แปลง response เป็น JSON
+                .then(data => { // จัดการข้อมูลที่ได้จากเซิร์ฟเวอร์
+                    const uploadModal = bootstrap.Modal.getInstance(document.getElementById('uploadSlipModal'));
+                    uploadModal.hide(); // ซ่อน Modal อัปโหลด
+
+                    if (data.success) {
+                        // แสดง Modal แจ้งเตือนสำเร็จ
+                        document.getElementById('modalTitle').textContent = 'ส่งหลักฐานสำเร็จ';
+                        document.getElementById('modalMessage').textContent = 'แนบสลิปเรียบร้อยแล้ว รอการตรวจสอบจากเจ้าหน้าที่';
+                        const successModalEl = document.getElementById('statusModal');
+                        const successModal = new bootstrap.Modal(successModalEl);
+                        
+                        // เมื่อ Modal ปิด ให้รีเฟรชข้อมูล
+                        successModalEl.addEventListener('hidden.bs.modal', () => {
+                            fetchBookings().then(() => renderCalendarTable(window.currentMonth, window.currentYear));
+                        }, { once: true });
+
+                        successModal.show();
+                    } else {
+                        // แสดง Modal แจ้งเตือนข้อผิดพลาด
+                        showAlert('เกิดข้อผิดพลาด: ' + (data.message || 'ไม่สามารถอัปโหลดได้'), 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error('Upload slip error:', err);
+                    showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    btnText.classList.remove('d-none');
+                    btnLoading.classList.add('d-none');
+                });
+            };
+        })();
 
         // ฟังก์ชันสำหรับนำทางไปยังหน้าเข้าสู่ระบบ
         function redirectToLogin() {
@@ -1199,17 +1416,19 @@ document.getElementById('slipForm').onsubmit = function(e) {
                         // ปกป้องข้อมูลหาก API ส่งข้อผิดพลาด
                         if (!Array.isArray(data)) data = [];
 
-                        // แปลงข้อมูลให้เรียบง่ายสำหรับปฏิทิน
-                        window.bookingData = data.map(b => ({
-                            date: b.date || b.booking_date || b.bookingDate,
-                            name: b.name || b.guest_name || b.booking_code || 'ไม่ระบุ',
-                            status: (b.status || '').toLowerCase() || 'pending',
-                            member_id: b.member_id, // เพิ่ม member_id
-                            payment_slip: b.payment_slip, // เพิ่มข้อมูลสลิป
-                            id: b.bookings_id, // เพิ่ม ID ของการจอง
-                            time: b.time || b.booking_time || b.bookingTime || '' ,
-                            visitor_count: b.visitor_count ? parseInt(b.visitor_count) : (b.visitorCount ? parseInt(b.visitorCount) : 0)
-                        }));
+                        // กรองสถานะ 'ยกเลิก' ออก และแปลงข้อมูลให้เรียบง่ายสำหรับปฏิทิน
+                        window.bookingData = data
+                            .filter(b => (b.status || '').toLowerCase() !== 'cancelled')
+                            .map(b => ({
+                                date: b.date || b.booking_date || b.bookingDate,
+                                name: b.name || b.guest_name || b.booking_code || 'ไม่ระบุ',
+                                status: (b.status || '').toLowerCase() || 'pending',
+                                member_id: b.member_id, // เพิ่ม member_id
+                                payment_slip: b.payment_slip, // เพิ่มข้อมูลสลิป
+                                id: b.bookings_id, // เพิ่ม ID ของการจอง
+                                time: b.time || b.booking_time || b.bookingTime || '' ,
+                                visitor_count: b.visitor_count ? parseInt(b.visitor_count) : (b.visitorCount ? parseInt(b.visitorCount) : 0)
+                            }));
 
                         populateLists();
                         resolve();
@@ -1392,6 +1611,19 @@ document.getElementById('slipForm').onsubmit = function(e) {
             fetchBookings().then(() => renderCalendarTable(window.currentMonth, window.currentYear));
         }
 
+        function formatThaiDateShort(dateStr) {
+            if (!dateStr) return '';
+            try {
+                // Use parseYMD to handle timezone correctly
+                const dateObj = parseYMD(dateStr);
+                const day = dateObj.getDate();
+                return `(${day}) `;
+            } catch (e) {
+                console.error('Date formatting error:', e);
+                return '';
+            }
+        }
+
         function populateLists() {
             const pendingList = document.getElementById('pendingList');
             const confirmedList = document.getElementById('confirmedList');
@@ -1418,14 +1650,15 @@ document.getElementById('slipForm').onsubmit = function(e) {
                         actionHtml = `<span class="badge-modern bg-info text-white"><i class="fas fa-check me-1"></i>ส่งสลิปแล้ว</span>`;
                     } else {
                         // ถ้ายังไม่แนบ, แสดงปุ่ม
-                        actionHtml = `<button class="btn btn-sm btn-outline-primary py-0 px-1 ms-1" onclick="openUploadModal(${b.id})" title="แนบสลิป">
-                                        <i class="fas fa-paperclip"></i> แนบสลิป
+                        const visitorCount = b.visitor_count || 0;
+                        actionHtml = `<button class="btn-modern btn-warning-modern btn-sm" onclick="openUploadModal(${b.id}, ${visitorCount})" title="แนบสลิป">
+                                        <i class="fas fa-upload me-1"></i> แนบสลิป
                                       </button>`;
                     }
                 }
 
                 li.innerHTML = `
-                    <div class="me-2">${b.name}</div>
+                    <div class="me-2">${formatThaiDateShort(b.date)}${b.name}</div>
                     <div>${actionHtml}</div>
                 `;
 
@@ -1447,16 +1680,6 @@ document.getElementById('slipForm').onsubmit = function(e) {
                 showLoginRequiredModal(); // แสดง Modal แจ้งเตือนให้เข้าสู่ระบบ
                 return;
             }
-            // ลบการเลือกเดิม
-            document.querySelectorAll('#calendarTable td.selected-date').forEach(td => {
-                td.classList.remove('selected-date');
-            });
-
-            // เลือกวันที่ใหม่
-            const selectedCell = document.querySelector(`#calendarTable td[data-date="${dateStr}"]`);
-            if (selectedCell) {
-                selectedCell.classList.add('selected-date');
-            }
 
             // ป้องกันการจองวันที่มีการยืนยันหรือรออนุมัติแล้ว
             const bookingsForDate = (window.bookingData || []).filter(b => b.date === dateStr);
@@ -1466,6 +1689,15 @@ document.getElementById('slipForm').onsubmit = function(e) {
             }
 
             selectedDate = dateStr;
+
+            // Highlight selected date on calendar
+            document.querySelectorAll('#calendarTable td.selected-date').forEach(td => {
+                td.classList.remove('selected-date');
+            });
+            const selectedCell = document.querySelector(`#calendarTable td[data-date="${dateStr}"]`);
+            if (selectedCell) {
+                selectedCell.classList.add('selected-date');
+            }
 
             // แปลงวันที่เป็นรูปแบบที่อ่านง่าย
             const dateObj = parseYMD(dateStr);
@@ -1480,22 +1712,24 @@ document.getElementById('slipForm').onsubmit = function(e) {
             const year = dateObj.getFullYear() + 543;
             const thaiDate = `${day} ${month} ${year}`;
 
-            // แสดงวันที่ที่เลือก
-            document.getElementById('selectedDateDisplay').textContent = thaiDate;
-            document.getElementById('dateSelectedBox').classList.remove('d-none');
+            // Show confirmation modal
+            if (!dateConfirmModalObj) {
+                dateConfirmModalObj = new bootstrap.Modal(document.getElementById('dateConfirmModal'));
+            }
+            document.getElementById('confirmDateDisplay').textContent = thaiDate;
+            
+            const confirmBtn = document.getElementById('confirmDateBtn');
+            confirmBtn.onclick = () => {
+                dateConfirmModalObj.hide();
+                showFormSection();
+            };
 
-            // เปิดใช้งานปุ่มดำเนินการต่อ
-            document.getElementById('continueBtn').disabled = false;
-
-            // แสดงข้อความแจ้งเตือน
-            showAlert(`คุณได้เลือกวันที่ ${thaiDate} แล้ว กรุณาดำเนินการต่อ`, 'success');
+            dateConfirmModalObj.show();
         }
 
         // ฟังก์ชันล้างวันที่ที่เลือก
         function clearSelectedDate() {
             selectedDate = null;
-            document.getElementById('dateSelectedBox').classList.add('d-none');
-            document.getElementById('continueBtn').disabled = true;
             document.querySelectorAll('#calendarTable td.selected-date').forEach(td => {
                 td.classList.remove('selected-date');
             });
@@ -1519,7 +1753,7 @@ document.getElementById('slipForm').onsubmit = function(e) {
             document.getElementById('step2').classList.add('active');
 
             // แปลงวันที่เป็นรูปแบบที่อ่านง่ายสำหรับฟอร์ม
-            const dateObj = new Date(selectedDate);
+            const dateObj = parseYMD(selectedDate);
             const thaiMonths = [
                 "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน",
                 "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม",
@@ -1553,6 +1787,7 @@ document.getElementById('slipForm').onsubmit = function(e) {
             }
             toggleOrgSection();
             calculatePrice();
+            handleTimeChange();
         }
 
         // ฟังก์ชันแสดงปฏิทินและซ่อนฟอร์ม
@@ -1808,6 +2043,25 @@ document.getElementById('slipForm').onsubmit = function(e) {
 
             // คำนวณราคาเริ่มต้น
             calculatePrice();
+
+            // ผูก event listener สำหรับการเปลี่ยนแปลงเวลา
+            const timeSelect = document.getElementById('booking_time');
+            if (timeSelect) {
+                timeSelect.addEventListener('change', handleTimeChange);
+            }
+            // เรียกใช้ครั้งแรกเพื่อกำหนดสถานะเริ่มต้น
+            handleTimeChange();
+
+            // Add event listener for when the date confirmation modal is hidden
+            const dateConfirmModalEl = document.getElementById('dateConfirmModal');
+            if (dateConfirmModalEl) {
+                dateConfirmModalEl.addEventListener('hidden.bs.modal', function () {
+                    // Check if the form section is visible. If not, it means the user cancelled.
+                    if (document.getElementById('form-section').classList.contains('d-none')) {
+                        clearSelectedDate();
+                    }
+                });
+            }
         });
     </script>
 

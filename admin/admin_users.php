@@ -73,6 +73,40 @@ while ($row = $result->fetch_assoc()) {
             --mango: #FFC107;
             --mango-dark: #E6A000;
         }
+        .btn-info { background: rgba(54, 185, 204, 0.1); color: #36b9cc; }
+        .btn-info:hover { background: #36b9cc; color: white; }
+        .btn-activity { background: rgba(114, 9, 183, 0.1); color: #7209b7; }
+        .btn-activity:hover { background: #7209b7; color: white; }
+
+        /* Timeline for Modal */
+        .bg-danger-light { background-color: rgba(231, 76, 60, 0.15); }
+        .text-danger { color: #c0392b !important; }
+        .timeline { position: relative; padding-left: 30px; }
+        .timeline::before { content: ''; position: absolute; left: 15px; top: 0; bottom: 0; width: 2px; background-color: #e9ecef; }
+        .timeline-item { position: relative; margin-bottom: 2rem; }
+        .timeline-icon { position: absolute; left: -23px; top: 0; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; border: 2px solid white; }
+        .timeline-content { background-color: #f8f9fc; border-radius: 12px; padding: 1rem 1.5rem; border: 1px solid #e9ecef; }
+        .bg-info-light { background-color: rgba(54, 185, 204, 0.15); }
+        .text-info { color: #36b9cc !important; }
+        .bg-warning-light { background-color: rgba(246, 194, 62, 0.15); }
+        .text-warning { color: #f6c23e !important; }
+        .bg-success-light { background-color: rgba(46, 204, 113, 0.15); }
+        .text-success { color: #27ae60 !important; }
+
+        /* Filter buttons in modal */
+        #activityFilterButtons .btn {
+            border-radius: 50px;
+            font-weight: 500;
+        }
+        .btn-outline-primary { border-color: var(--primary); color: var(--primary); }
+        .btn-outline-primary:hover, .btn-outline-primary.active { background-color: var(--primary); color: white; }
+        .btn-outline-info { border-color: var(--info); color: var(--info); }
+        .btn-outline-info:hover, .btn-outline-info.active { background-color: var(--info); color: white; }
+        .btn-outline-warning { border-color: var(--warning); color: var(--warning); }
+        .btn-outline-warning:hover, .btn-outline-warning.active { background-color: var(--warning); color: white; }
+        .btn-outline-success { border-color: #27ae60; color: #27ae60; }
+        .btn-outline-success:hover, .btn-outline-success.active { background-color: #27ae60; color: white; }
+
 
         body {
             font-family: 'Kanit', sans-serif;
@@ -392,6 +426,9 @@ while ($row = $result->fetch_assoc()) {
                             <h2 class="dashboard-title mb-0">จัดการผู้ใช้งานที่เป็นสมาชิก</h2>
                         </div>
                         <div class="d-flex align-items-center gap-3 mt-2 mt-md-0">
+                            <a href="user_login_logs.php" class="btn btn-light rounded-pill">
+                                <i class="bi bi-shield-check me-2"></i>ประวัติการเข้าสู่ระบบทั้งหมด
+                            </a>
                             <div class="admin-profile">
                                 <img src="https://ui-avatars.com/api/?name=<?= urlencode($admin_name) ?>&background=random&color=fff" alt="Admin">
                                 <span><?= htmlspecialchars($admin_name) ?></span>
@@ -541,12 +578,74 @@ while ($row = $result->fetch_assoc()) {
                                     <i class="bi bi-trash"></i> ลบ
                                 </button>
                             </form>
+
+                            <button type="button" class="btn action-btn btn-info view-login-history-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#loginHistoryModal"
+                                    data-member-id="<?= $user['member_id'] ?>"
+                                    data-member-name="<?= htmlspecialchars($user['fullname']) ?>">
+                                <i class="bi bi-clock-history"></i> ประวัติการเข้าสู่ระบบ
+                            </button>
+
+                            <button type="button" class="btn action-btn btn-activity view-activity-btn" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#activityModal"
+                                    data-member-id="<?= $user['member_id'] ?>"
+                                    data-member-name="<?= htmlspecialchars($user['fullname']) ?>">
+                                <i class="bi bi-list-check"></i> กิจกรรม
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
             <?php endforeach; ?>
         </div>
+    </div>
+
+    <!-- Login History Modal -->
+    <div class="modal fade user-modal" id="loginHistoryModal" tabindex="-1" aria-labelledby="loginHistoryModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="loginHistoryModalLabel">ประวัติการเข้าสู่ระบบของ <span id="loginHistoryModalUserName"></span></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="loginHistoryModalBody">
+            <!-- Login history table will be loaded here -->
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity Log Modal -->
+    <div class="modal fade user-modal" id="activityModal" tabindex="-1" aria-labelledby="activityModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="activityModalLabel">ประวัติกิจกรรมของ <span id="activityModalUserName"></span></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="activityModalBody">
+            <!-- Filter Buttons -->
+            <div class="d-flex justify-content-center gap-2 mb-4" id="activityFilterButtons">
+                <button class="btn btn-sm btn-outline-primary active" data-filter="all">ทั้งหมด</button>
+                <button class="btn btn-sm btn-outline-info" data-filter="การจอง">การจอง</button>
+                <button class="btn btn-sm btn-outline-warning" data-filter="ความคิดเห็น">ความคิดเห็น</button>
+                <button class="btn btn-sm btn-outline-success" data-filter="เข้าสู่ระบบ">เข้าสู่ระบบ</button>
+            </div>
+            <!-- Timeline Container -->
+            <div id="activityTimelineContainer">
+                <!-- Activity timeline will be loaded here -->
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- User Detail Modal -->
@@ -573,6 +672,152 @@ while ($row = $result->fetch_assoc()) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+    function translateLoginReason(reason) {
+        const reasons = {
+            'success': 'เข้าสู่ระบบสำเร็จ',
+            'wrong_password': 'รหัสผ่านไม่ถูกต้อง',
+            'not_found': 'ไม่พบอีเมลในระบบ',
+            'disabled': 'บัญชีถูกปิดใช้งาน',
+            'missing_fields': 'ข้อมูลไม่ครบถ้วน'
+        };
+        // ถ้าไม่พบในรายการ ให้แสดงค่าเดิม
+        return reasons[reason] || reason;
+    }
+
+    // Handle Login History Modal
+    const loginHistoryModal = document.getElementById('loginHistoryModal');
+    if (loginHistoryModal) {
+        loginHistoryModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const memberId = button.getAttribute('data-member-id');
+            const memberName = button.getAttribute('data-member-name');
+
+            const modalTitle = loginHistoryModal.querySelector('#loginHistoryModalUserName');
+            const modalBody = loginHistoryModal.querySelector('#loginHistoryModalBody');
+
+            modalTitle.textContent = memberName;
+            modalBody.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+            fetch(`get_user_login_logs.php?member_id=${memberId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.logs.length > 0) {
+                        let tableHtml = `
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>เวลา</th>
+                                            <th>ผลลัพธ์</th>
+                                            <th>IP Address</th>
+                                            <th>User Agent</th>
+                                            <th>เหตุผล</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>`;
+                        data.logs.forEach(log => {
+                            const successBadge = log.success 
+                                ? '<span class="badge rounded-pill bg-success-light text-success"><i class="bi bi-check-circle-fill"></i> สำเร็จ</span>' 
+                                : '<span class="badge rounded-pill bg-danger-light text-danger"><i class="bi bi-x-circle-fill"></i> ไม่สำเร็จ</span>';
+                            
+                            tableHtml += `
+                                <tr>
+                                    <td>${log.attempted_at}</td>
+                                    <td>${successBadge}</td>
+                                    <td>${log.ip_address}</td>
+                                    <td title="${log.user_agent}">${log.user_agent ? log.user_agent.substring(0, 50) + '...' : ''}</td>
+                                    <td>${translateLoginReason(log.reason || '')}</td>
+                                </tr>`;
+                        });
+                        tableHtml += `</tbody></table></div>`;
+                        modalBody.innerHTML = tableHtml;
+                    } else {
+                        modalBody.innerHTML = `<div class="text-center text-muted p-5"><i class="bi bi-folder-x fs-1"></i><p class="mt-3">ไม่พบประวัติการเข้าสู่ระบบสำหรับผู้ใช้นี้</p></div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching login logs:', error);
+                    modalBody.innerHTML = '<div class="alert alert-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>';
+                });
+        });
+    }
+
+    // Handle Activity Modal
+    const activityModal = document.getElementById('activityModal');
+    if (activityModal) {
+        activityModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const memberId = button.getAttribute('data-member-id');
+            const memberName = button.getAttribute('data-member-name');
+
+            const modalTitle = activityModal.querySelector('#activityModalUserName');
+            const timelineContainer = activityModal.querySelector('#activityTimelineContainer');
+
+            modalTitle.textContent = memberName;
+            timelineContainer.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+            // Reset active filter to 'all'
+            activityModal.querySelectorAll('#activityFilterButtons button').forEach(btn => btn.classList.remove('active'));
+            activityModal.querySelector('#activityFilterButtons button[data-filter="all"]').classList.add('active');
+
+            fetch(`get_user_activity.php?member_id=${memberId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.activities.length > 0) {
+                        let timelineHtml = '<div class="timeline">';
+                        data.activities.forEach(activity => {
+                            timelineHtml += `
+                                <div class="timeline-item" data-activity-type="${activity.type}">
+                                    <div class="timeline-icon ${activity.color}">
+                                        <i class="bi ${activity.icon}"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h6 class="fw-bold mb-0">${activity.type}</h6>
+                                            <small class="text-muted">${activity.date}</small>
+                                        </div>
+                                        <p class="mb-0 mt-1">${activity.description}</p>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        timelineHtml += '</div>';
+                        timelineContainer.innerHTML = timelineHtml;
+                    } else {
+                        timelineContainer.innerHTML = `
+                            <div class="text-center text-muted p-5">
+                                <i class="bi bi-folder-x fs-1"></i>
+                                <p class="mt-3">ไม่พบกิจกรรมสำหรับผู้ใช้นี้</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching activity log:', error);
+                    timelineContainer.innerHTML = '<div class="alert alert-danger">เกิดข้อผิดพลาดในการโหลดข้อมูลกิจกรรม</div>';
+                });
+        });
+
+        // Add event listeners to filter buttons
+        activityModal.querySelectorAll('#activityFilterButtons button').forEach(filterButton => {
+            filterButton.addEventListener('click', function() {
+                activityModal.querySelectorAll('#activityFilterButtons button').forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                const filterType = this.getAttribute('data-filter');
+                const timelineItems = activityModal.querySelectorAll('.timeline-item');
+
+                timelineItems.forEach(item => {
+                    if (filterType === 'all' || item.getAttribute('data-activity-type') === filterType) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        });
+    }
+
     document.querySelectorAll('.view-user-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const user = JSON.parse(this.getAttribute('data-user'));

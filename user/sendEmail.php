@@ -188,15 +188,6 @@ if (isset($_POST['name']) && isset($_POST['email'])) {
                             </tr>
                         </table>
                     </div>
-
-                    <div style='margin-top: 25px; padding: 15px; background-color: #eff6ff; border-left: 4px solid #2563eb; border-radius: 4px;'>
-                        <p style='margin: 0; font-size: 13px; color: #1e40af;'>
-                            <strong>⚠️ ขั้นตอนการทำงาน:</strong><br>
-                            1. ตรวจสอบตารางนัดหมายในระบบ <br>
-                            2. หากว่าง ให้ตอบกลับอีเมลลูกค้าพร้อมแนบ <b>QR Code ยอดมัดจำ ฿" . number_format($total_price * 0.3, 2) . "</b><br>
-                            3. บันทึกสถานะลงในไฟล์สรุปงาน
-                        </p>
-                    </div>
                 </div>
 
                 <div style='background: #f1f5f9; padding: 15px; text-align: center; border-top: 1px solid #e2e8f0;'>
