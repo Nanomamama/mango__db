@@ -262,6 +262,61 @@
             color: white;
         }
 
+        .btn-confirm-custom {
+            background-color: var(--dark-color, #1e293b);
+            color: white;
+            border: 2px solid var(--dark-color, #1e293b);
+        }
+
+        .btn-confirm-custom:hover {
+            background-color: white;
+            color: var(--dark-color, #1e293b);
+            border: 2px solid var(--dark-color, #1e293b);
+        }
+
+        /* New styles for document upload */
+        .document-upload-wrapper {
+            border: 2px dashed #cbd5e1;
+            border-radius: var(--border-radius-sm);
+            background-color: #f8fafc;
+            transition: all 0.3s;
+        }
+
+        .document-upload-wrapper.has-file {
+            border-style: solid;
+            border-color: #e2e8f0;
+            background-color: #ffffff;
+        }
+
+        .document-upload-prompt {
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .document-upload-prompt:hover {
+            background-color: rgba(37, 99, 235, 0.05);
+        }
+
+        .document-preview {
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .file-icon-lg { font-size: 2.5rem; margin-right: 1rem; width: 40px; text-align: center; }
+        .file-details { flex-grow: 1; overflow: hidden; }
+        .file-name { font-weight: 600; color: var(--dark-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+        .file-size { font-size: 0.85rem; color: var(--text-light); }
+        .btn-remove-file {
+            background: none; border: none; color: var(--danger-color);
+            font-size: 1.2rem; padding: 0.5rem; line-height: 1;
+            opacity: 0.7; transition: opacity 0.3s;
+        }
+        .btn-remove-file:hover {
+            opacity: 1;
+        }
+
         .btn-upload-slip {
             background: linear-gradient(135deg, var(--warning-color), #f97316);
             color: white;
@@ -963,17 +1018,25 @@
 
                                 <div id="org_upload_section" class="col-12 d-none">
                                     <label class="form-label-modern required">แนบหลักฐานหน่วยงาน (PDF/JPG/PNG)</label>
-                                    <div class="d-flex flex-column flex-sm-row gap-3 align-items-start">
-                                        <div class="file-upload-area-modern flex-grow-1 p-3" style="cursor:pointer;" onclick="document.getElementById('document').click()">
+                                    <div class="document-upload-wrapper" id="docUploadWrapper">
+                                        <!-- Prompt to upload -->
+                                        <div class="document-upload-prompt" id="docUploadPrompt" onclick="document.getElementById('document').click()">
                                             <div class="file-upload-icon mb-2"><i class="fas fa-cloud-upload-alt"></i></div>
-                                            <div>ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกรูป/เอกสาร</div>
-                                            <div class="text-muted">รองรับไฟล์ PDF, JPG, JPEG, PNG (ไม่เกิน 10MB)</div>
-                                            <input type="file" id="document" name="document" class="d-none" accept=".pdf,.jpg,.jpeg,.png" onchange="displayFileName()">
+                                            <div class="fw-bold">แนบหลักฐานหน่วยงาน</div>
+                                            <div class="text-muted small">ลากไฟล์มาวาง หรือคลิกเพื่อเลือกไฟล์ (สูงสุด 5MB)</div>
                                         </div>
-                                        <div id="file-name" class="mt-2 mt-sm-0"> 
-                                            <span class="badge-modern bg-primary"><i class="fas fa-file me-1"></i>ยังไม่มีไฟล์ที่เลือก</span>
+                                        <!-- File Preview -->
+                                        <div class="document-preview d-none" id="docPreview">
+                                            <div class="file-icon-lg" id="docPreviewIcon"></div>
+                                            <div class="file-details">
+                                                <span class="file-name" id="docPreviewName"></span>
+                                                <span class="file-size" id="docPreviewSize"></span>
+                                            </div>
+                                            <button type="button" class="btn-remove-file" id="removeDocBtn" title="ลบไฟล์"><i class="fas fa-times-circle"></i></button>
                                         </div>
+                                        <input type="file" id="document" name="document" class="d-none" accept=".pdf,.jpg,.jpeg,.png" onchange="handleDocumentFile(this)">
                                     </div>
+                                    <div id="document-file-error" class="invalid-feedback-modern" style="display: none;"></div>
                                     <div class="invalid-feedback-modern mt-2">กรุณาแนบหลักฐานหน่วยงาน</div>
                                 </div>
 
@@ -1043,8 +1106,10 @@
                                 <div class="file-upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
                                 <div>ลากไฟล์สลิปมาวาง หรือคลิกเพื่อเลือก</div>
                                 <div class="text-muted small">รองรับ: JPG, PNG, PDF (ไม่เกิน 5MB)</div>
-                                <input type="file" id="slipFile" class="d-none" accept="image/*,.pdf" required>
+                                <input type="file" id="slipFile" class="d-none" accept=".jpg,.jpeg,.png,.pdf" required>
                             </div>
+
+                            <div id="slip-file-error" class="invalid-feedback-modern text-center" style="display: none;"></div>
 
                             <div id="previewContainer" class="text-center d-none mb-3">
                                 <div class="slip-preview-wrapper">
@@ -1158,7 +1223,7 @@
                 </div>
                 <div class="modal-footer justify-content-center border-top-0 pt-0">
                     <button type="button" class="btn btn-secondary-modern btn-modern" data-bs-dismiss="modal">เปลี่ยนวัน</button>
-                    <button type="button" id="confirmDateBtn" class="btn btn-primary-modern btn-modern">ยืนยันและดำเนินการต่อ</button>
+                    <button type="button" id="confirmDateBtn" class="btn-modern btn-primary-modern px-5"><i class="bi bi-hourglass-split me-1"></i>ยืนยันและดำเนินการต่อ</button>
                 </div>
             </div>
         </div>
@@ -1236,6 +1301,7 @@
             const previewContainer = document.getElementById('previewContainer');
             const slipPreview = document.getElementById('slipPreview');
             const removeSlipBtn = document.getElementById('removeSlipBtn');
+            const errorDiv = document.getElementById('slip-file-error');
 
             // ฟังก์ชันเปิด Modal
             window.openUploadModal = function(bookingId, visitorCount) {
@@ -1251,6 +1317,10 @@
                 document.getElementById('pdfPreviewContainer').innerHTML = '';
                 previewContainer.classList.add('d-none');
                 slipUploadArea.classList.remove('d-none');
+                if (errorDiv) {
+                    errorDiv.style.display = 'none';
+                    errorDiv.textContent = '';
+                }
                 
                 const myModal = new bootstrap.Modal(document.getElementById('uploadSlipModal'));
                 myModal.show();
@@ -1292,10 +1362,39 @@
                 slipPreview.classList.add('d-none');
                 document.getElementById('pdfPreviewContainer').innerHTML = '';
                 document.getElementById('pdfPreviewContainer').classList.add('d-none');
+                if (errorDiv) {
+                    errorDiv.style.display = 'none';
+                    errorDiv.textContent = '';
+                }
             });
 
+            function resetSlipUploaderUI() {
+                slipFileInput.value = '';
+                previewContainer.classList.add('d-none');
+                slipUploadArea.classList.remove('d-none');
+                slipPreview.src = '#';
+                slipPreview.classList.add('d-none');
+                document.getElementById('pdfPreviewContainer').innerHTML = '';
+                document.getElementById('pdfPreviewContainer').classList.add('d-none');
+            }
+
             function handleFile(file) {
+                if (errorDiv) errorDiv.style.display = 'none';
+
                 if (!file) return;
+
+                const MAX_SLIP_SIZE = 5 * 1024 * 1024; // 5MB
+                if (file.size > MAX_SLIP_SIZE) {
+                    showAlert('ไฟล์มีขนาดใหญ่เกิน 5MB กรุณาเลือกไฟล์ใหม่', 'error');
+                    removeSlipBtn.click(); // Reset the uploader UI
+                    if (errorDiv) {
+                        errorDiv.textContent = 'ไฟล์มีขนาดใหญ่เกิน 5MB กรุณาเลือกไฟล์ใหม่';
+                        errorDiv.style.display = 'block';
+                    }
+                    resetSlipUploaderUI();
+                    return;
+                }
+
                 const pdfPreviewContainer = document.getElementById('pdfPreviewContainer');
 
                 if (file.type.startsWith('image/')) {
@@ -1315,7 +1414,13 @@
                     slipUploadArea.classList.add('d-none');
                     previewContainer.classList.remove('d-none');
                 } else {
-                    showAlert('กรุณาเลือกไฟล์รูปภาพ (JPG, PNG) หรือ PDF เท่านั้น', 'error');
+                    showAlert('ประเภทไฟล์ไม่ถูกต้อง กรุณาเลือกไฟล์ JPG, PNG, หรือ PDF เท่านั้น', 'error');
+                    removeSlipBtn.click(); // Reset the uploader UI
+                    if (errorDiv) {
+                        errorDiv.textContent = 'ประเภทไฟล์ไม่ถูกต้อง กรุณาเลือกไฟล์ JPG, PNG, หรือ PDF เท่านั้น';
+                        errorDiv.style.display = 'block';
+                    }
+                    resetSlipUploaderUI();
                 }
             }
 
@@ -1509,7 +1614,7 @@
                     const dateStr = toYMD(dateObj);
                     const bookings = (window.bookingData || []).filter(b => b.date === dateStr);
                     const hasConfirmed = bookings.some(b => b.status === 'confirmed');
-                    const hasPending = bookings.some(b => b.status === 'pending');
+                    const hasPending = bookings.some(b => b.status === 'pending' || b.status === 'awaiting_payment');
 
                     // กำหนดคลาสตามสถานะ
                     let cellClass = '';
@@ -1581,7 +1686,7 @@
                     const d = this.getAttribute('data-date');
                     // ป้องกันการจองวันที่มีการยืนยันหรือรออนุมัติแล้ว
                     const bookingsForDate = (window.bookingData || []).filter(b => b.date === d);
-                    if (bookingsForDate.some(b => b.status === 'confirmed' || b.status === 'pending')) {
+                    if (bookingsForDate.some(b => b.status === 'confirmed' || b.status === 'pending' || b.status === 'awaiting_payment')) {
                         showAlert('วันที่นี้มีการจองแล้ว ไม่สามารถจองเพิ่มได้', 'error');
                         return;
                     }
@@ -1630,7 +1735,7 @@
             pendingList.innerHTML = '';
             confirmedList.innerHTML = '';
 
-            const pending = (window.bookingData || []).filter(b => b.status === 'pending');
+            const pending = (window.bookingData || []).filter(b => b.status === 'pending' || b.status === 'awaiting_payment');
             const confirmed = (window.bookingData || []).filter(b => b.status === 'confirmed');
 
             document.getElementById('pendingCount').textContent = pending.length;
@@ -1683,7 +1788,7 @@
 
             // ป้องกันการจองวันที่มีการยืนยันหรือรออนุมัติแล้ว
             const bookingsForDate = (window.bookingData || []).filter(b => b.date === dateStr);
-            if (bookingsForDate.some(b => b.status === 'confirmed' || b.status === 'pending')) {
+            if (bookingsForDate.some(b => b.status === 'confirmed' || b.status === 'pending' || b.status === 'awaiting_payment')) {
                 showAlert('วันที่นี้มีการจองแล้ว ไม่สามารถจองเพิ่มได้', 'error');
                 return;
             }
@@ -1826,11 +1931,79 @@
             } else {
                 orgSection.classList.add('d-none');
                 fileInput.required = false;
-                document.getElementById('file-name').innerHTML = '<span class="badge-modern bg-primary"><i class="fas fa-file me-1"></i>ยังไม่มีไฟล์ที่เลือก</span>';
+                // Reset the uploader UI when hiding
+                if (fileInput.files.length > 0) {
+                    fileInput.value = '';
+                    handleDocumentFile(fileInput); // Call with empty input to reset UI
+                }
             }
         }
 
-        // ฟังก์ชันคำนวณราคา
+        // ฟังก์ชันจัดการไฟล์เอกสารหน่วยงาน
+        function handleDocumentFile(input) {
+            const wrapper = document.getElementById('docUploadWrapper');
+            const prompt = document.getElementById('docUploadPrompt');
+            const preview = document.getElementById('docPreview');
+            const previewIcon = document.getElementById('docPreviewIcon');
+            const previewName = document.getElementById('docPreviewName');
+            const previewSize = document.getElementById('docPreviewSize');
+            const removeBtn = document.getElementById('removeDocBtn');
+            const errorDiv = document.getElementById('document-file-error');
+
+            const file = input.files[0];
+
+            const resetUploader = () => {
+                const resetUploaderUI = () => {
+                    input.value = '';
+                    wrapper.classList.remove('has-file');
+                    preview.classList.add('d-none');
+                    prompt.classList.remove('d-none');
+                };
+
+                const resetUploader = () => {
+                    resetUploaderUI();
+                    if (errorDiv) {
+                        errorDiv.style.display = 'none';
+                        errorDiv.textContent = '';
+                    }
+                };
+
+                if (errorDiv) errorDiv.style.display = 'none';
+
+                if (!file) { resetUploader(); return; }
+            }
+            const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+            const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+
+            if (file.size > MAX_SIZE) {
+                showAlert('ไฟล์มีขนาดใหญ่เกิน 5MB กรุณาเลือกไฟล์ใหม่', 'error');
+                resetUploader(); return;
+                if (errorDiv) {
+                    errorDiv.textContent = 'ไฟล์มีขนาดใหญ่เกิน 5MB กรุณาเลือกไฟล์ใหม่';
+                    errorDiv.style.display = 'block';
+                }
+                resetUploaderUI(); return;
+            }
+            if (!ALLOWED_TYPES.includes(file.type)) {
+                showAlert('ประเภทไฟล์ไม่ถูกต้อง กรุณาเลือกไฟล์ PDF, JPG, หรือ PNG เท่านั้น', 'error');
+                resetUploader(); return;
+                if (errorDiv) {
+                    errorDiv.textContent = 'ประเภทไฟล์ไม่ถูกต้อง กรุณาเลือกไฟล์ PDF, JPG, หรือ PNG เท่านั้น';
+                    errorDiv.style.display = 'block';
+                }
+                resetUploaderUI(); return;
+            }
+
+            wrapper.classList.add('has-file');
+            prompt.classList.add('d-none');
+            preview.classList.remove('d-none');
+            previewIcon.innerHTML = file.type === 'application/pdf' ? '<i class="fas fa-file-pdf text-danger"></i>' : '<i class="fas fa-file-image text-info"></i>';
+            previewName.textContent = file.name;
+            previewSize.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+            removeBtn.onclick = resetUploader;
+        }
+
+         // ฟังก์ชันคำนวณราคา
         function calculatePrice() {
             const count = parseInt(document.getElementById('visitor_count').value) || 0;
             const pricePerPerson = 150;
@@ -1846,18 +2019,6 @@
             document.getElementById('display_total').textContent = total.toLocaleString();
             document.getElementById('display_deposit').textContent = deposit.toLocaleString();
             document.getElementById('display_balance').textContent = balance.toLocaleString();
-        }
-
-        // ฟังก์ชันแสดงชื่อไฟล์ที่เลือก
-        function displayFileName() {
-            const fileInput = document.getElementById('document');
-            const fileNameDisplay = document.getElementById('file-name');
-
-            if (fileInput.files.length > 0) {
-                fileNameDisplay.innerHTML = `<span class="badge-modern bg-success"><i class="fas fa-file me-1"></i>${fileInput.files[0].name}</span>`;
-            } else {
-                fileNameDisplay.innerHTML = '<span class="badge-modern bg-primary"><i class="fas fa-file me-1"></i>ยังไม่มีไฟล์ที่เลือก</span>';
-            }
         }
 
         // ฟังก์ชันแสดง Alert
@@ -1982,25 +2143,25 @@
             .then(json => {
                 if (json && (json.status === 'success' || json.status === 'partial')) {
                     const code = json.booking_code || json.booking_id || '';
-                    document.getElementById('modalTitle').textContent = 'จองสำเร็จ! รอการยืนยันจากเจ้าหน้าที่';
+                    document.getElementById('modalTitle').textContent = 'รับข้อมูลการจองเรียบร้อยแล้ว!';
 
                         let msg = `
                             <div class="text-start">
-                                <p>เราได้รับข้อมูลการจองของคุณแล้ว ขณะนี้ระบบกำลัง <strong>รอเจ้าหน้าที่ตรวจสอบคิวว่าง</strong> ในวันและเวลาที่คุณเลือก</p>
+                                <p>ขณะนี้เจ้าหน้าที่กำลังตรวจสอบคิวของคุณ <strong>โปรดทำตามขั้นตอนดังนี้ครับ:</strong></p>
                                 
-                                <div class="alert alert-info py-2">
-                                    <h6 class="fw-bold mb-1">สิ่งที่คุณต้องทำถัดไป:</h6>
-                                    <ol class="ps-3 mb-0">
-                                        <li>รอรับ <strong>อีเมลยืนยัน</strong> พร้อมลิงก์ชำระเงินมัดจำ (แจ้งผลภายใน 24 ชม.)</li>
-                                        <li>ชำระเงินผ่าน <strong>QR Code</strong> ในอีเมล และแนบหลักฐานในระบบทันที</li>
-                                        <li>เมื่อเจ้าหน้าที่ตรวจสอบยอดเงิน ระบบจะส่งข้อความยืนยันการจองรอบสุดท้ายให้ครับ</li>
-                                    </ol>
+                                <div class="alert alert-info py-3">
+                                    <ul class="list-unstyled mb-0">
+                                        <li class="mb-2">✅ <strong>เช็กอีเมล:</strong> รอรับสรุปยอดเงินและ QR Code สำหรับชำระเงิน</li>
+                                        <li class="mb-2">✅ <strong>ชำระเงิน:</strong> เมื่อโอนเงินแล้ว ให้แนบสลิปผ่านหน้าเว็บนี้</li>
+                                        <li>✅ <strong>รับการยืนยัน:</strong> รอรับอีเมลยืนยันการจองรอบสุดท้าย</li>
+                                    </ul>
                                 </div>
                                 
-                                <p class="mb-0 text-danger small">*โปรดชำระเงินและแนบสลิปภายใน 3 วัน มิเช่นนั้นระบบจะยกเลิกการจองโดยอัตโนมัติ</p>
+                                <p class="mb-0 text-danger" style="font-size: 0.85rem;">
+                                    *รบกวนชำระเงินและแนบสลิปภายใน 3 วัน มิเช่นนั้นระบบจะยกเลิกรายการโดยอัตโนมัตินะครับ
+                                </p>
                             </div>
                         `;
-                    // if (code) { ... } // ซ่อนรหัสอ้างอิงตามคำขอ
 
                     if (json.sendEmail_dispatched !== undefined) {
                         msg += `<br><small class="text-muted d-block mt-2 text-center">สถานะการส่งเมล: ${json.sendEmail_dispatched}</small>`;
@@ -2059,6 +2220,25 @@
                     // Check if the form section is visible. If not, it means the user cancelled.
                     if (document.getElementById('form-section').classList.contains('d-none')) {
                         clearSelectedDate();
+                    }
+                });
+            }
+
+            // Add Drag & Drop for document upload
+            const docUploadWrapper = document.getElementById('docUploadWrapper');
+            const docFileInput = document.getElementById('document');
+
+            if (docUploadWrapper && docFileInput) {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    docUploadWrapper.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }, false);
+                });
+                docUploadWrapper.addEventListener('dragover', () => docUploadWrapper.style.borderColor = 'var(--primary-color)');
+                docUploadWrapper.addEventListener('dragleave', () => docUploadWrapper.style.borderColor = '#cbd5e1');
+                docUploadWrapper.addEventListener('drop', (e) => {
+                    docUploadWrapper.style.borderColor = '#cbd5e1';
+                    if (e.dataTransfer.files.length) {
+                        docFileInput.files = e.dataTransfer.files;
+                        handleDocumentFile(docFileInput);
                     }
                 });
             }
