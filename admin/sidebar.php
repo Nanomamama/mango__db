@@ -129,10 +129,11 @@
         }
 
         .notification-bell.flash {
-            box-shadow: 0 0 12px 4px rgba(255,71,87,0.28);
+            box-shadow: 0 0 12px 4px rgba(255, 71, 87, 0.28);
             transform: scale(1.03);
             transition: transform 0.2s, box-shadow 0.2s;
         }
+
         @keyframes bellShake {
             0% {
                 transform: rotate(0deg);
@@ -183,27 +184,31 @@
             <a href="./index.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'index.php') echo ' active'; ?>">
                 <i class='bx bxs-dashboard'></i> Dashboard
             </a>
-            <!-- <a href="./manage_mango.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'manage_mango.php') echo ' active'; ?>">
-                <i class='bx bxs-tree'></i> สายพันธุ์มะม่วง
-            </a> -->
-            <a href="./manage_product.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'manage_product.php') echo ' active'; ?>">
-                <i class='bx bxs-package'></i> สินค้า
-            </a>
-            <a href="./edit_courses.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'edit_courses.php') echo ' active'; ?>">
-                <i class='bx bxs-graduation'></i> กิจกรรมอบรม
-            </a>
-
             <a href="./booking_list.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'booking_list.php') echo ' active'; ?>">
                 <i class='bx bxs-calendar-check'></i> รายการจอง
                 <div class="notification-bell ms-auto">
                     <i class='bx bxs-bell bell-icon'></i>
-                   
+
                 </div>
             </a>
+
+            <a href="./manage_orders.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'manage_orders.php') echo ' active'; ?>">
+                <i class='bx bxs-package'></i> จัดการคำสั่งซื้อ
+            </a>
+
+            <a href="./manage_product.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'manage_product.php') echo ' active'; ?>">
+                <i class='bx bxs-package'></i> สินค้า
+            </a>
+
+            <a href="./edit_courses.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'edit_courses.php') echo ' active'; ?>">
+                <i class='bx bxs-graduation'></i> กิจกรรมอบรม
+            </a>
+
+
             <a href="./admin_users.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'admin_users.php') echo ' active'; ?>">
                 <i class='bx bxs-user-account'></i> จัดการข้อมูลผู้ใช้
             </a>
-            
+
             <a href="logout.php" class="nav-link mt-5">
                 <i class='bx bx-log-out-circle'></i> ออกจากระบบ
             </a>
@@ -218,7 +223,7 @@
 
         function playBeep() {
             try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const ctx = new(window.AudioContext || window.webkitAudioContext)();
                 const o = ctx.createOscillator();
                 const g = ctx.createGain();
                 o.type = 'sine';
@@ -239,7 +244,9 @@
         function checkNotifications() {
             const url = new URL('get_new_bookings.php', window.location.href);
             url.searchParams.set('_', Date.now());
-            fetch(url.toString(), { cache: 'no-store' })
+            fetch(url.toString(), {
+                    cache: 'no-store'
+                })
                 .then(response => response.json())
                 .then(data => {
                     const bell = document.querySelector('.notification-bell');

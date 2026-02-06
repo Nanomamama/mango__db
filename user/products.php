@@ -20,26 +20,25 @@ require_once '../admin/db.php';
     border-radius:5px;
 }
 .cart-button {
-    position: fixed;        /* ทำให้ลอย */
-    bottom: 20px;           /* ห่างจากล่าง */
-    right: 20px;            /* ห่างจากขวา */
-    z-index: 999;           /* อยู่บนสุด */
-    display: none;          /* ซ่อนไว้ก่อน */
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 999;
+    display: none;
 }
-
 </style>
 </head>
 
 <body>
 <?php include 'navbar.php'; ?>
-<br>
-<br>
+<br><br>
+
 <div class="container mt-5">
     <h1 class="text-center mb-3">สินค้าผลิตภัณฑ์</h1>
 
     <div class="text-center mb-3">
         <a href="order_status.php" class="btn btn-info">ติดตามสินค้า</a>
-        <a href="cart.php" class="btn btn-primary">ไปที่ตะกร้า</a>
+        <a href="order.php" class="btn btn-primary">ไปที่ตะกร้า</a>
     </div>
 
     <input type="text" id="searchInput" class="form-control mb-4" placeholder="ค้นหาสินค้า...">
@@ -47,11 +46,16 @@ require_once '../admin/db.php';
     <div class="row" id="product-list">
 
 <?php
-$sql = "SELECT * FROM products WHERE stock > 0 ORDER BY product_id DESC";
+$sql = "SELECT * FROM products 
+        WHERE status = 'active'
+        ORDER BY product_id DESC";
+
 $result = $conn->query($sql);
 
 while ($p = $result->fetch_assoc()):
-    $image = $p['image'] ? "../admin/uploads/products/".$p['image'] : "../assets/no-image.png";
+    $image = $p['product_image'] 
+        ? "../admin/uploads/products/".$p['product_image'] 
+        : "../assets/no-image.png";
 ?>
 
 <div class="col-lg-3 col-md-4 col-sm-6 mb-4 product-item">
@@ -63,15 +67,11 @@ while ($p = $result->fetch_assoc()):
             <h5 class="card-title"><?= htmlspecialchars($p['product_name']) ?></h5>
 
             <p class="text-danger fw-bold">
-                ฿<?= number_format($p['price'],2) ?>
+                ฿<?= number_format($p['price'],2) ?> / <?= $p['unit'] ?>
             </p>
 
-            <p class="small">
-                คงเหลือ <?= $p['stock'] ?> ชิ้น
-            </p>
-
-            <?php if ($p['stock'] <= $p['min_stock']): ?>
-                <span class="badge bg-danger mb-2">ใกล้หมด</span>
+            <?php if ($p['seasonal'] == 1): ?>
+                <span class="badge bg-warning text-dark mb-2">ตามฤดูกาล</span>
             <?php endif; ?>
 
             <div class="d-grid gap-2 mt-2">
@@ -85,7 +85,6 @@ while ($p = $result->fetch_assoc()):
                         data-id="<?= $p['product_id'] ?>"
                         data-name="<?= htmlspecialchars($p['product_name']) ?>"
                         data-price="<?= $p['price'] ?>"
-                        data-stock="<?= $p['stock'] ?>"
                         data-image="<?= $image ?>">
                     🛒 เพิ่มลงตะกร้า
                 </button>
@@ -104,19 +103,18 @@ while ($p = $result->fetch_assoc()):
       </div>
       <div class="modal-body text-center">
         <img src="<?= htmlspecialchars($image) ?>" class="img-fluid mb-3">
-        <p><?= nl2br(htmlspecialchars($p['description'])) ?></p>
-        <p><strong>น้ำหนัก:</strong> <?= $p['weight'] ?> กก.</p>
+        <p><?= nl2br(htmlspecialchars($p['product_description'])) ?></p>
+        <p><strong>หน่วย:</strong> <?= $p['unit'] ?></p>
       </div>
     </div>
   </div>
 </div>
 
 <?php endwhile; ?>
-
     </div>
 </div>
 
-<a href="cart.php" class="btn btn-warning cart-button">🛒 ไปที่ตะกร้า</a>
+<a href="order.php" class="btn btn-warning cart-button">🛒 ไปที่ตะกร้า</a>
 
 <?php include 'footer.php'; ?>
 
@@ -125,22 +123,11 @@ while ($p = $result->fetch_assoc()):
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-
-//ปุ่มไปที่ตระกร้า
+// ปุ่มลอยตะกร้า
 const cartButton = document.querySelector('.cart-button');
-
-// เมื่อมีการ scroll หน้าจอ
-    window.addEventListener("scroll", function () {
-
-        // เช็คว่าเลื่อนลงมากกว่า 200px หรือยัง
-        if (window.scrollY > 100) {
-            cartButton.style.display = "block"; // แสดงปุ่ม
-        } else {
-            cartButton.style.display = "none";  // ซ่อนปุ่ม
-        }
-
-    });
-
+window.addEventListener("scroll", function () {
+    cartButton.style.display = window.scrollY > 100 ? "block" : "none";
+});
 
 // ค้นหา
 $("#searchInput").on("keyup", function(){
@@ -150,25 +137,21 @@ $("#searchInput").on("keyup", function(){
     });
 });
 
-// เพิ่มลงตะกร้า
+// เพิ่มลงตะกร้า (ไม่เช็ค stock แล้ว)
 $(".add-to-cart").click(function(){
     let product = {
-        product_id: $(this).data("id"), // ✅ สำคัญมาก
+        product_id: $(this).data("id"),
         name: $(this).data("name"),
         price: $(this).data("price"),
         image: $(this).data("image"),
-        quantity: 1,
-        stock: $(this).data("stock")
+        quantity: 1
     };
 
     let cart = JSON.parse(localStorage.getItem("cart")) || [];
-
     let found = cart.find(i => i.product_id === product.product_id);
 
     if (found) {
-        if (found.quantity < product.stock) {
-            found.quantity++;
-        }
+        found.quantity++;
     } else {
         cart.push(product);
     }
@@ -182,8 +165,6 @@ $(".add-to-cart").click(function(){
         showConfirmButton: false
     });
 });
-localStorage.removeItem("cart");
-
 </script>
 
 </body>

@@ -10,7 +10,11 @@ if (!isset($_GET['product_id'])) {
 $product_id = (int) $_GET['product_id'];
 
 /* ---------- ดึงชื่อรูปก่อนลบ ---------- */
-$stmt = $conn->prepare("SELECT image FROM products WHERE product_id = ?");
+$stmt = $conn->prepare("SELECT product_image FROM products WHERE product_id = ?");
+if (!$stmt) {
+    die("Prepare failed: " . $conn->error);
+}
+
 $stmt->bind_param("i", $product_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -21,18 +25,24 @@ if ($result->num_rows !== 1) {
 }
 
 $product = $result->fetch_assoc();
-$image = $product['image'];
+$image = $product['product_image'];
 $stmt->close();
 
 /* ---------- ลบข้อมูลสินค้า ---------- */
 $stmt = $conn->prepare("DELETE FROM products WHERE product_id = ?");
+if (!$stmt) {
+    die("Prepare failed: " . $conn->error);
+}
+
 $stmt->bind_param("i", $product_id);
 
 if ($stmt->execute()) {
 
     /* ---------- ลบรูปจากโฟลเดอร์ ---------- */
     if (!empty($image)) {
-        $image_path = "uploads/products/" . $image;
+        $image_path = "../uploads/products/" . $image; 
+        // ให้ path ตรงกับตอน upload
+
         if (file_exists($image_path)) {
             unlink($image_path);
         }

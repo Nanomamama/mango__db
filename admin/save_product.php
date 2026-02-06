@@ -14,12 +14,13 @@ if (
 }
 
 /* ---------- รับค่าจากฟอร์ม ---------- */
-$product_name  = trim($_POST['product_name']);
-$description   = trim($_POST['product_description']);
-$price         = (float) $_POST['product_price'];
-$weight        = (float) $_POST['product_weight'];
-$stock         = (int) $_POST['product_stock'];
-$min_stock     = (int) $_POST['product_min_stock'];
+$product_name = trim($_POST['product_name']);
+$category     = trim($_POST['category']);
+$description  = trim($_POST['product_description']);
+$price        = (float) $_POST['price'];
+$unit         = trim($_POST['unit']);
+$seasonal     = (int) $_POST['seasonal']; // 0 หรือ 1
+$status       = trim($_POST['status']);   // active / inactive
 
 /* ---------- จัดการอัปโหลดรูป ---------- */
 $image_name = null;
@@ -56,25 +57,26 @@ if (!empty($_FILES['product_image']['name'])) {
 
 /* ---------- INSERT ลงฐานข้อมูล ---------- */
 $sql = "INSERT INTO products 
-        (product_name, product_description, price, unit, stock_qty, productimage, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+(product_name, category, price, unit, seasonal, status, product_image, product_description)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
 $stmt = $conn->prepare($sql);
 $stmt->bind_param(
-    "ssddiis",
+    "ssdsssss",
     $product_name,
-    $description,
+    $category,
     $price,
-    $weight,
-    $stock,
-    $min_stock,
-    $image_name
+    $unit,
+    $seasonal,
+    $status,
+    $image_name,
+    $description
 );
 
 if ($stmt->execute()) {
     $_SESSION['success'] = "เพิ่มสินค้าสำเร็จ";
 } else {
-    $_SESSION['success'] = "เกิดข้อผิดพลาดในการบันทึกสินค้า";
+    $_SESSION['success'] = "เกิดข้อผิดพลาด: " . $stmt->error;
 }
 
 $stmt->close();
