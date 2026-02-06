@@ -24,7 +24,7 @@ session_start();
         }
 
         body{
-            background-color: #fff;
+            background-color: #f8f9fc;
         }
 
         .hero {
@@ -58,7 +58,8 @@ session_start();
         }
 
         .hero-contact {
-            margin-top: 10rem;
+            margin-top: 1rem;
+            text-align: center;
             position: relative;
             z-index: 1;
         }
@@ -251,15 +252,12 @@ session_start();
                 <samp> สวนลุงเผือก บ.บุฮม อ.เชียงคาน จ.เลย</samp>
             </p>
             <div class="button-2">
-                <a href="../user/booking.php" class="btn cta-button bg-white"style="color:rgb(20, 58, 44);">จองคิวออนไลน์</a>
+                <a href="../user/bookings.php" class="btn cta-button bg-white"style="color:rgb(20, 58, 44);">จองคิวออนไลน์</a>
                 <a href="../user/course.php" class="btn cta-button">เรียนรู้เพิ่ม →</a>
             </div>
         </div>
     </div>
-    
     <?php include 'location.php'; ?>
-    <br>
-    <br>
     <?php include 'footer.php'; ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

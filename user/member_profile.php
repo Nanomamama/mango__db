@@ -867,10 +867,10 @@ $recent_bookings = [];
                             <div class="profile-stat-value"><?php echo htmlspecialchars((int)$booking_count); ?></div>
                             <div class="profile-stat-label">การจองทั้งหมด</div>
                         </div>
-                        <div class="profile-stat-item">
+                        <!-- <div class="profile-stat-item">
                             <div class="profile-stat-value"><?php echo htmlspecialchars((int)$purchase_count); ?></div>
                             <div class="profile-stat-label">การซื้อสินค้า</div>
-                        </div>
+                        </div> -->
                         <div class="profile-stat-item">
                             <div class="profile-stat-value"><?php echo thaiDate($created_at); ?></div>
                             <div class="profile-stat-label">วันที่สมัครสมาชิก</div>
@@ -1072,9 +1072,9 @@ $recent_bookings = [];
                     <div class="ant-card" style="margin-bottom: 24px;">
                         <div class="ant-card-head">
                             <i class='bx bx-shopping-bag card-header-icon'></i>
-                            <span>การซื้อสินค้า</span>
+                            <!-- <span>การซื้อสินค้า</span> -->
                         </div>
-                        <div class="ant-card-body">
+                        <!-- <div class="ant-card-body">
                             <div class="ant-row">
                                 <div class="ant-col ant-col-12">
                                     <div class="ant-card action-card ant-card-bordered" style="text-align: center; padding: 24px;">
@@ -1097,7 +1097,7 @@ $recent_bookings = [];
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div> -->
                     </div>
 
                     <!-- Booking Actions -->

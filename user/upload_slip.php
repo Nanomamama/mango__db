@@ -89,7 +89,7 @@ if (move_uploaded_file($slip_file['tmp_name'], $upload_path)) {
             $adminMail->addAddress('nanoone342@gmail.com'); // อีเมล Admin
 
             // แนบไฟล์สลิป
-            $adminMail->addAttachment($upload_path, $new_filename);
+            $adminMail->addEmbeddedImage($upload_path, 'slip_image', $new_filename);
 
             $adminMail->isHTML(true);
             $adminMail->Subject = "🧾 [สลิปใหม่] มีการแนบสลิปสำหรับ Booking: " . ($booking_details['booking_code'] ?? $booking_id);
@@ -102,6 +102,9 @@ if (move_uploaded_file($slip_file['tmp_name'], $upload_path)) {
                             <li><strong>รหัสการจอง:</strong> " . htmlspecialchars($booking_details['booking_code'] ?? 'N/A') . "</li>
                             <li><strong>ชื่อผู้จอง:</strong> " . htmlspecialchars($booking_details['guest_name'] ?? 'N/A') . "</li>
                             <li><strong>Booking ID:</strong> " . $booking_id . "</li>
+                        </ul>
+                        <p style='margin-bottom: 15px; font-weight: bold; color: #016A70; text-align: center;'>สลิปการโอนเงิน</p>
+                        <img src='cid:slip_image' alt='Payment Slip' style='max-width: 100%; height: auto; display: block; margin: 0 auto; border: 1px solid #eee; border-radius: 4px;'>
                         </ul>
                         <p>กรุณาตรวจสอบความถูกต้องของสลิป (แนบในอีเมลนี้) และดำเนินการอนุมัติการจองในระบบต่อไป</p>
                         <hr>

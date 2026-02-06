@@ -10,14 +10,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+
         /* Location Section Styles */
         .location-section {
             font-family: 'Noto Sans Thai', sans-serif;
             padding: 60px 0;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            /* background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); */
+            background-color: #f8f9fc;
             border-radius: 16px;
             margin: 40px 0;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            /* box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05); */
         }
 
         .location-container {
@@ -182,7 +184,7 @@
             border-radius: 16px;
             padding: 35px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
         }
 
