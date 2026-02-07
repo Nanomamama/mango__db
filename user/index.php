@@ -238,7 +238,10 @@ session_start();
     </style>
 </head>
 <body>
-    <?php include 'navbar.php'; ?>
+    
+    <?php include __DIR__ . '/navbar.php'; ?>
+   <?php include __DIR__ . '/fb_chat_button.php'; ?>
+
     <div class="hero text-center">
         <!-- วิดีโอพื้นหลัง -->
         <video class="hero-video" autoplay muted loop playsinline>

@@ -43,16 +43,16 @@ require_once 'db.php';
 
             <h2 class="mb-3"> จัดการสินค้า</h2>
 
-            <a href="add_product.php" class="btn btn-primary mb-3">➕ เพิ่มสินค้า</a>
+            <a href="add_product.php" class="btn btn-primary mb-3"><h5>➕ เพิ่มสินค้า</h5></a>
             <div class="mb-3">
                 <a href="manage_product.php"
-                    class="btn btn-outline-dark btn-sm"><h5>ทั้งหมด</h5></a>
+                    class="btn btn-outline-dark btn-sm"><h6>ทั้งหมด</h6></a>
 
                 <a href="manage_product.php?status=active"
-                    class="btn btn-outline-success btn-sm"><h5>กำลังเปิดขาย</h5></a>
+                    class="btn btn-outline-success btn-sm"><h6>กำลังเปิดขาย</h6></a>
 
                 <a href="manage_product.php?status=inactive"
-                    class="btn btn-outline-secondary btn-sm"><h5>ปิดขายไว้</h5></a>
+                    class="btn btn-outline-secondary btn-sm"><h6>ปิดขายไว้</h6></a>
             </div>
 
             <div class="row g-4">
@@ -105,9 +105,10 @@ require_once 'db.php';
                                     <a href="edit_product.php?id=<?= $row['product_id'] ?>"
                                         class="btn btn-warning btn-sm">✏️</a>
 
-                                    <a href="delete_product.php?product_id=<?= $row['product_id'] ?>"
+                                    <!-- <a href="delete_product.php?product_id=<?= $row['product_id'] ?>"
                                         onclick="return confirm('ยืนยันการลบสินค้า?')"
-                                        class="btn btn-danger btn-sm">🗑</a>
+                                        class="btn btn-danger btn-sm">🗑</a> -->
+
                                     <a href="toggle_product.php?id=<?= $row['product_id'] ?>"
                                         class="btn btn-sm <?= $row['status'] == 'active' ? 'btn-secondary' : 'btn-success' ?>"
                                         onclick="return confirm('ต้องการเปลี่ยนสถานะสินค้านี้?')">

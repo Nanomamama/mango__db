@@ -827,7 +827,8 @@
 </head>
 
 <body>
-    <?php include 'navbar.php'; ?>
+<?php include __DIR__ . '/navbar.php'; ?>
+<?php include __DIR__ . '/fb_chat_button.php'; ?>
     <div class="page-header">
         <div class="container">
             <div class="row align-items-center">
