@@ -196,7 +196,6 @@ body {
     margin-bottom: 10px;
     min-height: 50px;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -437,7 +436,7 @@ body {
 </div>
 
 <!-- Hero Carousel -->
-<!-- <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
+ <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
   <div class="carousel-indicators">
     <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active"></button>
     <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
@@ -460,7 +459,7 @@ body {
       </div>
     </div>
 
-    <!-- Slide 2 
+    Slide 2 
     <div class="carousel-item">
       <div class="row g-0">
         <div class="col-md-6">
@@ -479,12 +478,13 @@ body {
   <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
     <span class="carousel-control-next-icon"></span>
   </button>
-</div> -->
+</div> 
 
 <div class="container">
    <!-- Hero Content -->
+    
    <div class="hero-content mb-4 animate__animated animate__fadeIn">
-        <h1 class="hero-title">🌿 ร้านค้าออนไลน์สวนลุงเผือก</h1>
+        <h1 class="hero-title"> ร้านค้าออนไลน์สวนลุงเผือก</h1>
         <p class="hero-subtitle">สินค้าเกษตรปลอดสาร สดใหม่ ส่งตรงจากสวน</p>
    </div>
 
@@ -495,7 +495,7 @@ body {
       <p><i class="fas fa-calendar-check"></i> สามารถสั่งจองล่วงหน้าได้ ทางสวนจะยืนยันคำสั่งซื้ออีกครั้ง</p>
       <p><i class="fas fa-phone-alt"></i> หากสินค้าไม่เพียงพอ ทางสวนจะติดต่อแจ้งทางโทรศัพท์</p>
       <p><i class="fas fa-search"></i> ตรวจสอบสถานะการสั่งซื้อได้ทันที ผ่านหมายเลขโทรศัพท์</p>
-      <p class="mb-0"><strong>🙏 ขอบคุณทุกท่านที่อุดหนุนสวนลุงเผือก</strong></p>
+      <p class="mb-0"><strong> ขอบคุณทุกท่านที่อุดหนุนสวนลุงเผือก</strong></p>
    </div>
 
    <!-- Action Buttons -->
