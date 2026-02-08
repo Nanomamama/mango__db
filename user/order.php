@@ -309,7 +309,7 @@ body {
 
 /* Buttons */
 .btn-submit {
-    background: #333;
+    background: #68d800;
     border: none;
     color: white;
     padding: 14px 30px;
@@ -665,7 +665,7 @@ body {
 
                     <div class="info-alert">
                         <i class="fas fa-info-circle"></i>
-                        <small>ทางสวนจะติดต่อกลับเพื่อยืนยันคำสั่งซื้ออีกครั้ง</small>
+                        <small>ทางสวนจะติดต่อกลับเมื่อสินค้ามีจำนวนไม่เพียงพอ</small>
                     </div>
 
                     <input type="hidden" name="cart_data" id="cartData">
