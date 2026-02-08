@@ -262,7 +262,7 @@ body {
     right: 30px;
     width: 65px;
     height: 65px;
-    background: #333;
+    background: #fdc304;
     color: white;
     border-radius: 50%;
     display: flex;
@@ -278,7 +278,7 @@ body {
 .cart-button:hover {
     transform: scale(1.1);
     box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-    background: #000;
+    background: #ff6309;
     color: white;
 }
 
