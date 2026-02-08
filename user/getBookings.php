@@ -15,10 +15,10 @@ if (file_exists(__DIR__ . '/../admin/db.php')) {
 $use_mysqli = isset($conn) && $conn instanceof mysqli;
 if (!$use_mysqli) {
     // Fallback: try local db.php or create PDO if variables exist
-    if (file_exists(__DIR__ . '/db/db.php')) {
-        include __DIR__ . '/db/db.php';
-    } elseif (file_exists(__DIR__ . '/db.php')) {
-        include __DIR__ . '/db.php';
+    if (file_exists(__DIR__ . '/../db/db.php')) {
+        include __DIR__ . '/../db/db.php';
+    } elseif (file_exists(__DIR__ . '/../db.php')) {
+        include __DIR__ . '/../db.php';
     }
 
     if (!isset($pdo) && isset($servername, $username, $password, $dbname)) {

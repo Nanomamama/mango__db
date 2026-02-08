@@ -10,7 +10,7 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 
-require_once 'db.php';
+    require_once __DIR__ . '/../db/db.php';
 
 $result = $conn->query("SELECT COUNT(*) as count FROM bookings WHERE status = 'pending'");
 $row = $result->fetch_assoc();

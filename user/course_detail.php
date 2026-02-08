@@ -8,7 +8,7 @@ $loggedInUserName = '';
 
 // ตรวจสอบว่ามีข้อมูลผู้ใช้ใน Session หรือไม่
 if (isset($_SESSION['member_id']) && !empty($_SESSION['member_id'])) {
-    require_once '../admin/db.php';
+    require_once __DIR__ . '/../db/db.php';
 
     // ดึงชื่อจากฐานข้อมูล
     $memberId = (int)$_SESSION['member_id'];
@@ -33,7 +33,7 @@ if (empty($loggedInUserName) && isset($_SESSION['username'])) {
 }
 
 // หากใช้ $_SESSION['user_id'] คุณอาจต้องทำการ Query เพื่อดึงชื่อผู้ใช้จากฐานข้อมูลอีกครั้ง
-require_once '../admin/db.php';
+require_once __DIR__ . '/../db/db.php';
 
 // validate id (must be integer >= 1)
 $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT, ["options" => ["min_range" => 1]]);

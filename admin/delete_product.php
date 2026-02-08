@@ -1,6 +1,6 @@
 <?php
 require_once 'auth.php';
-require_once 'db.php';
+require_once __DIR__ . '/../db/db.php';
 
 if (!isset($_GET['product_id'])) {
     header("Location: manage_product.php?error=ไม่มีรหัสสินค้า");

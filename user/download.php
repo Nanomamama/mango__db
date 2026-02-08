@@ -1,7 +1,7 @@
 <?php
 // Serve uploaded files after basic authorization checks.
 session_start();
-require_once __DIR__ . '/../admin/db.php';
+require_once __DIR__ . '/../db/db.php';
 
 // Allowed types and their directories
 $allowed = [

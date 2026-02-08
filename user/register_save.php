@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once '../admin/db.php';
+require_once __DIR__ . '/../db/db.php';
 
 // รับค่าจากฟอร์ม
 $fullname = trim($_POST['fullname']);

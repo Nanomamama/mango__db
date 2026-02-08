@@ -8,10 +8,10 @@ header('Content-Type: application/json; charset=utf-8');
 // --- 1. การเชื่อมต่อ Database และโหลดข้อมูลเดิม (กรณีเรียกผ่าน booking_code) ---
 $booking_code_post = $_POST['booking_code'] ?? null;
 if ($booking_code_post && empty($_POST['name']) && empty($_POST['email'])) {
-    if (file_exists(__DIR__ . '/db/db.php')) {
-        include __DIR__ . '/db/db.php';
-    } elseif (file_exists(__DIR__ . '/db.php')) {
-        include __DIR__ . '/db.php';
+    if (file_exists(__DIR__ . '/../db/db.php')) {
+        include __DIR__ . '/../db/db.php';
+    } elseif (file_exists(__DIR__ . '/../db.php')) {
+        include __DIR__ . '/../db.php';
     }
 
     if (!isset($pdo) && isset($servername, $username, $password, $dbname)) {

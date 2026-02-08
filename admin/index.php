@@ -1,6 +1,6 @@
 <?php
 require_once 'auth.php';
-require_once 'db.php';
+require_once __DIR__ . '/../db/db.php';
 
 // ดึงชื่อ admin จาก session
 $admin_name = $_SESSION['admin_name'] ?? '';

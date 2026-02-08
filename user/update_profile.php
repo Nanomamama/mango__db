@@ -6,7 +6,7 @@ if (!isset($_SESSION['member_id'])) {
     exit;
 }
 
-require_once '../admin/db.php';
+require_once __DIR__ . '/../db/db.php';
 
 $member_id = (int)$_SESSION['member_id'];
 

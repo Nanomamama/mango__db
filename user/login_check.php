@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once '../admin/db.php';
+require_once __DIR__ . '/../db/db.php';
 
 function get_client_ip() {
     if (!empty($_SERVER['HTTP_CLIENT_IP'])) return $_SERVER['HTTP_CLIENT_IP'];

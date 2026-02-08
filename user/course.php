@@ -3,13 +3,7 @@
 if (session_status() === PHP_SESSION_NONE) {
   session_start();
 }
-// ตรวจสอบว่าไฟล์ db.php มีอยู่จริงและเรียกใช้งานได้
-$db_path = '../admin/db.php';
-if (!file_exists($db_path)) {
-  // สามารถใส่การจัดการ error หรือหยุดการทำงานได้
-  die("Error: Database connection file not found at " . htmlspecialchars($db_path));
-}
-require_once $db_path;
+require_once __DIR__ . '/../db/db.php';
 ?>
 
 <!DOCTYPE html>

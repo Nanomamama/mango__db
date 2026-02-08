@@ -1,5 +1,5 @@
 <?php
-require_once '../admin/db.php';
+require_once __DIR__ . '/../db/db.php';
 
 if (!isset($_GET['code'])) {
     header("Location: products.php");

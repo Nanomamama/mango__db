@@ -1,7 +1,7 @@
 <?php
 // คำสั่ง SQL สำหรับการลบข้อมูล (ต้องเป็น admin และมี CSRF token)
 require_once 'auth.php';
-require_once 'db.php'; // เชื่อมต่อฐานข้อมูล
+require_once __DIR__ . '/../db/db.php';
 
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['delete_id'])) {
     // ตรวจสอบ CSRF

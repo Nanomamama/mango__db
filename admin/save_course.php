@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once 'auth.php';
-require_once 'db.php';
+require_once __DIR__ . '/../db/db.php';
 
 // รับข้อมูลจากฟอร์ม
 $course_name = htmlspecialchars($_POST['course_name'], ENT_QUOTES, 'UTF-8');

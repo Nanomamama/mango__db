@@ -1,5 +1,5 @@
 <?php
-require_once '../admin/db.php';
+require_once __DIR__ . '/../db/db.php';
 
 $member_id = $_POST['member_id'] ?: null;
 $customer_name = $_POST['customer_name'];

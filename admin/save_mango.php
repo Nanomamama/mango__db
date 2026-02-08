@@ -2,7 +2,7 @@
 <?php
 session_start();
 require_once 'auth.php';
-require_once '../admin/db.php';
+require_once __DIR__ . '/../db/db.php';
 
 // $servername = "localhost"; 
 // $username = "root";         

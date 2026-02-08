@@ -2,7 +2,7 @@
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 
-require_once '../admin/db.php';
+require_once __DIR__ . '/../db/db.php';
 
 if (!isset($_SESSION['member_id'])) {
     http_response_code(401);

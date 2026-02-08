@@ -1,7 +1,7 @@
 <?php
 // 1. ตั้งค่าการเชื่อมต่อและ Timezone
 date_default_timezone_set('Asia/Bangkok');
-require_once 'db.php';
+require_once __DIR__ . '/../db/db.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;

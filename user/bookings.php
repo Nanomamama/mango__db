@@ -2,7 +2,7 @@
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
-    require_once '../admin/db.php'; // ตรวจสอบให้แน่ใจว่ามีการเชื่อมต่อฐานข้อมูล
+    require_once __DIR__ . '/../db/db.php'; // ตรวจสอบให้แน่ใจว่ามีการเชื่อมต่อฐานข้อมูล
 
     $member_id_session = $_SESSION['member_id'] ?? null;
 

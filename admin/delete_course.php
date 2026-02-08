@@ -1,7 +1,7 @@
 <!-- ไฟล์ delete_course.php ให้เพิ่มโค้ดสำหรับลบข้อมูลในฐานข้อมูล -->
 <?php
 // $conn = new mysqli("localhost", "root", "", "db_mango");
-require_once 'db.php';
+require_once __DIR__ . '/../db/db.php';
 
 
 if ($conn->connect_error) {

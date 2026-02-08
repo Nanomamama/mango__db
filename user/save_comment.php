@@ -6,7 +6,7 @@ error_reporting(0);
 header('Content-Type: application/json; charset=utf-8');
 
 if (session_status() === PHP_SESSION_NONE) session_start();
-require_once '../admin/db.php';
+require_once __DIR__ . '/../db/db.php';
 
 function json_exit($arr) {
     ob_clean();

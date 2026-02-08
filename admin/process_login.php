@@ -1,7 +1,7 @@
 <?php
 // filepath: c:\xampp\htdocs\mango\admin\process_login.php
 session_start();
-require_once 'db.php'; // ไฟล์เชื่อมต่อฐานข้อมูล
+require_once __DIR__ . '/../db/db.php'; // ไฟล์เชื่อมต่อฐานข้อมูล
 
 $login = $_POST['login'] ?? '';
 $password = $_POST['password'] ?? '';

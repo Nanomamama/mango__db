@@ -3,8 +3,7 @@
 <?php
 session_start();
 
-// เชื่อมต่อฐานข้อมูล โดยใช้การตั้งค่าจากไฟล์กลาง admin/db.php
-require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/../db/db.php';
 
 // ฟังก์ชันสำหรับอัปโหลดไฟล์
 function uploadFile($fileInputName, $currentFilePath) {

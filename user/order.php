@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once '../admin/db.php';
+require_once __DIR__ . '/../db/db.php';
 
 // ถ้าเป็นสมาชิก
 $member_id = $_SESSION['member_id'] ?? null;

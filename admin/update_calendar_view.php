@@ -1,6 +1,6 @@
 <?php
 require_once 'auth.php';
-require_once 'db.php';
+require_once __DIR__ . '/../db/db.php';
 
 // ดึงวันว่าง/ไม่ว่างจากฐานข้อมูล
 $dates = [];

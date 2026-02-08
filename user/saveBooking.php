@@ -12,11 +12,11 @@ $dbConfig = [
 	'charset' => 'utf8mb4'
 ];
 
-// Prefer db/db.php
-if (file_exists(__DIR__ . '/db/db.php')) {
-	include __DIR__ . '/db/db.php';
-} elseif (file_exists(__DIR__ . '/db.php')) {
-	include __DIR__ . '/db.php';
+// Prefer central project's db/db.php (one directory up)
+if (file_exists(__DIR__ . '/../db/db.php')) {
+	include __DIR__ . '/../db/db.php';
+} elseif (file_exists(__DIR__ . '/../db.php')) {
+	include __DIR__ . '/../db.php';
 }
 
 // If variables are present from included file, use them

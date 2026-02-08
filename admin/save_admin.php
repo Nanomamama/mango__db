@@ -1,7 +1,7 @@
 <?php
 // filepath: c:\xampp\htdocs\mango\admin\save_admin.php
 
-require_once 'db.php';
+require_once __DIR__ . '/../db/db.php';
 session_start();
 if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
     die("CSRF Token ไม่ถูกต้อง");

@@ -10,7 +10,7 @@ header('Content-Type: application/json; charset=utf-8');
 error_reporting(0);
 ob_start();
 
-require_once '../admin/db.php';
+require_once __DIR__ . '/../db/db.php';
 
 function json_exit($arr) {
     ob_clean();

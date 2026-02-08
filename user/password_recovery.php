@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once '../admin/db.php'; // ไฟล์การเชื่อมต่อฐานข้อมูล
+require_once __DIR__ . '/../db/db.php';
 require_once __DIR__ . '/send_sms_helper.php';
 
 // แสดงข้อผิดพลาดทั้งหมด (สำหรับการพัฒนาเท่านั้น)

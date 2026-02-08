@@ -1,6 +1,6 @@
 <?php
 require_once 'auth.php';
-require_once '../admin/db.php';
+require_once __DIR__ . '/../db/db.php';
 
 // รับ id จาก query string
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
