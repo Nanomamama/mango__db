@@ -1,9 +1,18 @@
 <?php
+  if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+  }
+  require_once __DIR__ . '/../db/db.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-  session_start();
-}
-require_once __DIR__ . '/../db/db.php';
+  // Fetch images for the hero carousel
+  $carousel_images = [];
+  $carousel_sql = "SELECT course_name, image1 FROM courses WHERE image1 IS NOT NULL AND image1 != '' ORDER BY courses_id DESC LIMIT 7";
+  $carousel_result = $conn->query($carousel_sql);
+  if ($carousel_result) {
+      while ($carousel_row = $carousel_result->fetch_assoc()) {
+          $carousel_images[] = $carousel_row;
+      }
+  }
 ?>
 
 <!DOCTYPE html>
@@ -12,555 +21,569 @@ require_once __DIR__ . '/../db/db.php';
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>หลักสูตรการอบรมแบบมีฐานการเรียนรู้</title>
+  <title>กิจกรรมอบรม</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
   <style>
     :root {
-      --primary-color: #4361ee;
-      --primary-light: #eef2ff;
-      --secondary-color: #3a0ca3;
-      --primary-gradient: linear-gradient(135deg, #016A70 0%, #018992 100%);
-      --primary-light: #018992;
-      --accent-color: #4895ef;
-      --success-color: #4cc9f0;
-      --danger-color: #e63946;
-      --warning-color: #f8961e;
-      --light-color: #f8f9fa;
-      --dark-color: #212529;
-      --text-color: #333;
-      --text-light: #6c757d;
-      --border-radius: 12px;
-      --border-radius-sm: 8px;
-      --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-      --box-shadow-hover: 0 20px 50px rgba(0, 0, 0, 0.15);
-      --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      --primary: #016A70;
+      --primary-light: #E3F2FD;
+      --secondary: #FF6B6B;
+      --accent: #4ECDC4;
+      --dark: #1A2A3A;
+      --light: #F8FAFC;
+      --gray: #94A3B8;
+      --gradient-primary: linear-gradient(135deg, #016A70 0%, #018992 100%);
+      --gradient-secondary: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.12);
+      --radius-lg: 20px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+      --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     * {
-      font-family: 'Kanit', sans-serif;
-    }
-
-    .page-header {
-      background: var(--primary-gradient);
-      color: white;
-      padding: 2.5rem 0;
-      margin-bottom: 2.5rem;
-      border-radius: 0 0 20px 20px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-
-    .page-header::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
-    }
-
-    .page-header h2 {
-      font-weight: 700;
       margin: 0;
-      position: relative;
-      padding-bottom: 15px;
-    }
-
-    .page-header h2:after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 70px;
-      height: 4px;
-      background: rgba(255, 255, 255, 0.7);
-      border-radius: 10px;
+      padding: 0;
+      box-sizing: border-box;
     }
 
     body {
-      background-color: #f5f7fb;
-      color: var(--text-color);
+      font-family: 'Kanit', sans-serif;
+      background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+      color: var(--dark);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      border-radius: 10px;
+    }
+
+    /* Hero Carousel */
+    .hero-carousel .carousel-item {
+      height: 60vh;
+      min-height: 400px;
+      background-color: #777;
+    }
+
+    .hero-carousel .carousel-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+    }
+
+    .hero-carousel .carousel-caption {
+      bottom: 3rem;
+      background: rgba(26, 42, 58, 0.6);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+    }
+
+    .title-gradient {
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 800;
+      margin-bottom: 20px;
+    }
+
+    .subtitle {
+      font-size: 1.2rem;
+      color: var(--gray);
+      max-width: 600px;
+      margin: 0 auto 40px;
       line-height: 1.6;
     }
 
-    .section-title {
-      font-size: 2.25rem;
-      font-weight: 700;
-      margin-bottom: 2.5rem;
-      position: relative;
-      padding-bottom: 1rem;
-      color: var(--dark-color);
-    }
-
-    .section-title::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 80px;
-      height: 5px;
-      background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
-      border-radius: 3px;
-    }
-
-    /* Modern List Layout */
-    .courses-container {
+    /* Stats Counter */
+    .stats-container {
       display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
+      justify-content: center;
+      gap: 40px;
+      margin: 40px 0;
+      flex-wrap: wrap;
     }
 
-    .course-item {
+    .stat-item {
+      text-align: center;
+      padding: 20px;
+      min-width: 150px;
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+
+    .stat-label {
+      color: var(--gray);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    /* Course Cards - Modern Design */
+    .course-card {
       background: white;
-      border-radius: var(--border-radius);
-      padding: 2rem;
-      box-shadow: var(--box-shadow);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
       transition: var(--transition);
-      display: flex;
-      gap: 2rem;
+      overflow: hidden;
+      height: 100%;
       position: relative;
+      border: none;
+      
+    }
+
+    .course-card:hover {
+      transform: translateY(-10px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .course-card::before {
+      display: none;
+    }
+
+    .card-image-container {
+      position: relative;
+      height: 200px;
       overflow: hidden;
     }
 
-    .course-item::before {
-      content: '';
+    .course-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .course-card:hover .course-image {
+      transform: scale(1.1);
+    }
+
+    .image-overlay {
       position: absolute;
       top: 0;
       left: 0;
-      width: 5px;
-      height: 100%;
-      background: linear-gradient(to bottom, var(--primary-color), var(--accent-color));
-      transition: var(--transition);
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(to bottom, transparent 60%, rgba(0, 0, 0, 0.7));
+      opacity: 0;
+      transition: opacity 0.3s ease;
     }
 
-    .course-item:hover {
-      transform: translateY(-5px);
-      box-shadow: var(--box-shadow-hover);
+    .course-card:hover .image-overlay {
+      opacity: 1;
     }
 
-    .course-item:hover::before {
-      width: 8px;
+    .card-badge {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: var(--gradient-secondary);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      z-index: 2;
+      box-shadow: var(--shadow-sm);
     }
 
-    .course-image {
-      width: 280px;
-      height: 180px;
-      border-radius: var(--border-radius-sm);
-      object-fit: cover;
-      flex-shrink: 0;
-    }
-
-    .course-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .course-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 1rem;
+    .card-content {
+      padding: 25px;
+      position: relative;
     }
 
     .course-title {
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: var(--dark-color);
-      margin-bottom: 0.5rem;
-      line-height: 1.3;
-    }
-
-    .course-badge {
-      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-      color: white;
-      padding: 0.4rem 1rem;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 500;
-      white-space: nowrap;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 12px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
     .course-description {
-      color: var(--text-light);
-      margin-bottom: 1.5rem;
+      color: var(--gray);
+      font-size: 0.95rem;
       line-height: 1.6;
+      margin-bottom: 20px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
-    .course-meta {
+    .card-meta {
       display: flex;
-      gap: 1.5rem;
-      margin-bottom: 1.5rem;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 20px;
+      border-top: 1px solid rgba(0, 0, 0, 0.05);
     }
 
     .meta-item {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      color: var(--text-light);
+      gap: 8px;
+      color: var(--gray);
       font-size: 0.9rem;
     }
 
     .meta-item i {
-      color: var(--primary-color);
+      color: var(--primary);
+      font-size: 1rem;
     }
 
-    .rating-section {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .stars {
+    .rating-stars {
       display: flex;
       gap: 2px;
     }
 
-    .star {
-      color: #ddd;
-      font-size: 1.1rem;
+    .rating-stars i {
+      color: #FFD700;
+      font-size: 0.9rem;
     }
 
-    .star.filled {
-      color: #ffc107;
+    .card-action {
+      padding: 20px 25px 25px;
+      text-align: center;
     }
 
-    .rating-value {
-      font-weight: 600;
-      color: var(--dark-color);
-      font-size: 1.1rem;
-    }
-
-    .rating-count {
-      color: var(--text-light);
-      font-size: 0.85rem;
-    }
-
-    .course-actions {
-      display: flex;
-      gap: 1rem;
-      margin-top: auto;
-    }
-
-    .btn-detail {
-      background: var(--primary-color);
-      color: white;
+    .btn-primary-gradient {
+      background: var(--gradient-primary);
       border: none;
-      border-radius: var(--border-radius-sm);
-      padding: 0.75rem 1.5rem;
-      font-weight: 500;
-      transition: var(--transition);
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .btn-detail:hover {
-      background: var(--secondary-color);
       color: white;
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
-    }
-
-    .btn-outline {
-      background: transparent;
-      color: var(--primary-color);
-      border: 2px solid var(--primary-color);
-      border-radius: var(--border-radius-sm);
-      padding: 0.75rem 1.5rem;
-      font-weight: 500;
-      transition: var(--transition);
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .btn-outline:hover {
-      background: var(--primary-light);
-      transform: translateY(-2px);
-    }
-
-    /* Grid Layout Alternative */
-    .courses-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
-      gap: 2rem;
-    }
-
-    .grid-item {
-      background: white;
-      border-radius: var(--border-radius);
-      padding: 2rem;
-      box-shadow: var(--box-shadow);
+      padding: 12px 30px;
+      border-radius: 10px;
+      font-weight: 600;
       transition: var(--transition);
       position: relative;
       overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      gap: 10px;
     }
 
-    .grid-item::before {
+    .btn-primary-gradient:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(1, 106, 112, 0.2);
+      color: white;
+    }
+
+    .btn-primary-gradient::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: 0.5s;
+    }
+
+    .btn-primary-gradient:hover::before {
+      left: 100%;
+    }
+
+    /* Featured Course */
+    .featured-course {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      color: white;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      margin: 40px 0;
+    }
+
+    .featured-content {
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .featured-badge {
+      background: white;
+      color: var(--primary);
+      padding: 8px 20px;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      display: inline-block;
+      margin-bottom: 20px;
+      width: fit-content;
+    }
+
+    .featured-title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin-bottom: 20px;
+      line-height: 1.2;
+    }
+
+    .featured-description {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+
+    .featured-image {
+      height: 100%;
+      min-height: 300px;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+
+    .featured-image::before {
       content: '';
       position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 4px;
-      background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.3) 0%, transparent 100%);
     }
 
-    .grid-item:hover {
-      transform: translateY(-8px);
-      box-shadow: var(--box-shadow-hover);
-    }
-
-    .grid-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 1rem;
-    }
-
-    .grid-title {
-      font-size: 1.3rem;
-      font-weight: 600;
-      color: var(--dark-color);
-      margin-bottom: 0.5rem;
-      line-height: 1.3;
-    }
-
-    .grid-description {
-      color: var(--text-light);
-      margin-bottom: 1.5rem;
-      line-height: 1.6;
-    }
-
-    /* Minimal Layout */
-    .minimal-item {
+    /* Filter Section */
+    .filter-section {
       background: white;
-      border-radius: var(--border-radius);
-      padding: 2rem;
-      box-shadow: var(--box-shadow);
-      transition: var(--transition);
-      border-left: 4px solid var(--primary-color);
+      border-radius: var(--radius-lg);
+      padding: 25px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 40px;
     }
 
-    .minimal-item:hover {
-      transform: translateX(10px);
-      box-shadow: var(--box-shadow-hover);
-    }
-
-    .minimal-header {
+    .filter-group {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 1rem;
+      gap: 15px;
+      align-items: center;
+      flex-wrap: wrap;
     }
 
-    .minimal-title {
-      font-size: 1.4rem;
-      font-weight: 600;
-      color: var(--dark-color);
-      margin-bottom: 0.5rem;
-    }
-
-    .minimal-meta {
-      display: flex;
-      gap: 1.5rem;
-      margin-bottom: 1rem;
-    }
-
-    /* Tab Navigation */
-    .layout-tabs {
-      display: flex;
-      gap: 1rem;
-      margin-bottom: 2rem;
-      border-bottom: 1px solid #dee2e6;
-      padding-bottom: 1rem;
-    }
-
-    .layout-tab {
-      background: none;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: var(--border-radius-sm);
+    .filter-btn {
+      background: var(--light);
+      border: 2px solid transparent;
+      color: var(--dark);
+      padding: 10px 20px;
+      border-radius: 50px;
       font-weight: 500;
       transition: var(--transition);
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
     }
 
-    .layout-tab.active {
-      background: var(--primary-color);
+    .filter-btn:hover,
+    .filter-btn.active {
+      background: var(--gradient-primary);
       color: white;
+      border-color: var(--primary);
     }
 
-    .layout-tab:not(.active):hover {
-      background: var(--primary-light);
-      color: var(--primary-color);
+    .search-box {
+      position: relative;
+      flex: 1;
+      min-width: 250px;
     }
 
-    /* Layout Containers */
-    .layout-container {
-      display: none;
+    .search-box input {
+      width: 100%;
+      padding: 12px 20px 12px 45px;
+      border: 2px solid var(--light);
+      border-radius: 50px;
+      font-size: 1rem;
+      transition: var(--transition);
     }
 
-    .layout-container.active {
-      display: block;
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(1, 106, 112, 0.1);
+    }
+
+    .search-box i {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gray);
+    }
+
+    /* Loading Animation */
+    .loading-skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: loading 1.5s infinite;
+      border-radius: var(--radius-md);
+    }
+
+    @keyframes loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
     }
 
     /* No Courses State */
     .no-courses {
       text-align: center;
-      padding: 4rem 2rem;
+      padding: 80px 20px;
       background: white;
-      border-radius: var(--border-radius);
-      box-shadow: var(--box-shadow);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
     }
 
-    .no-courses i {
-      font-size: 4rem;
-      color: #dee2e6;
-      margin-bottom: 1.5rem;
+    .no-courses-icon {
+      font-size: 5rem;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 20px;
+      opacity: 0.5;
     }
 
-    .no-courses h4 {
-      color: var(--dark-color);
-      margin-bottom: 1rem;
+    .no-courses h3 {
+      color: var(--dark);
+      margin-bottom: 15px;
+      font-weight: 700;
+    }
+
+    .no-courses p {
+      color: var(--gray);
+      font-size: 1.1rem;
+      max-width: 500px;
+      margin: 0 auto;
     }
 
     /* Pagination */
-    .pagination-container {
+    .pagination-custom {
       display: flex;
       justify-content: center;
-      margin-top: 3rem;
+      gap: 10px;
+      margin-top: 50px;
     }
 
-    .page-link {
-      color: var(--primary-color);
-      border: 1px solid #dee2e6;
-      padding: 0.6rem 1.2rem;
-      border-radius: var(--border-radius-sm);
-      margin: 0 0.25rem;
+    .page-link-custom {
+      width: 45px;
+      height: 45px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: white;
+      border: 2px solid var(--light);
+      color: var(--dark);
+      border-radius: 12px;
+      font-weight: 600;
       transition: var(--transition);
+      text-decoration: none;
     }
 
-    .page-link:hover {
-      background-color: var(--primary-color);
+    .page-link-custom:hover {
+      background: var(--gradient-primary);
       color: white;
-      border-color: var(--primary-color);
+      border-color: var(--primary);
       transform: translateY(-2px);
     }
 
-    .page-item.active .page-link {
-      background-color: var(--primary-color);
-      border-color: var(--primary-color);
+    .page-link-custom.active {
+      background: var(--gradient-primary);
+      color: white;
+      border-color: var(--primary);
     }
 
-    /* Responsive Design */
-    @media (max-width: 768px) {
-      .course-item {
-        flex-direction: column;
-        gap: 1rem;
-      }
-
-      .course-image {
-        width: 100%;
-        height: 200px;
-      }
-
-      .courses-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .course-header {
-        flex-direction: column;
-        gap: 1rem;
-      }
-
-      .course-actions {
-        flex-direction: column;
-      }
-
-      .section-title {
-        font-size: 1.75rem;
-      }
+    /* Animations */
+    .fade-in-up {
+      animation: fadeInUp 0.6s ease forwards;
     }
 
-    /* Animation */
     @keyframes fadeInUp {
       from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(30px);
       }
-
       to {
         opacity: 1;
         transform: translateY(0);
       }
     }
 
-    .course-item,
-    .grid-item,
-    .minimal-item {
-      animation: fadeInUp 0.5s ease forwards;
+    .float-animation {
+      animation: float 6s ease-in-out infinite;
     }
 
-    .course-actions {
-      display: flex;
-      gap: 12px;
-      margin-top: 10px;
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
     }
 
-    /* ปุ่มดูรายละเอียด */
-    .btn-detail {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 10px 18px;
-      background: linear-gradient(135deg, #0d6efd, #3b82f6);
-      color: #fff;
-      border-radius: 30px;
-      text-decoration: none;
-      font-weight: 500;
-      transition: all 0.3s ease;
-    }
-
-    .btn-detail:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
-      background: linear-gradient(135deg, #3b82f6, #0d6efd);
-    }
-
-    /* ปุ่มคอมเมนต์ */
-    .comment-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 18px;
-      border-radius: 30px;
-      border: 2px solid #0d6efd;
-      background: transparent;
-      color: #0d6efd;
-      cursor: pointer;
-      font-weight: 500;
-      transition: all 0.3s ease;
-    }
-
-    .comment-btn:hover {
-      background: #0d6efd;
-      color: #fff;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
-    }
-
-    .comment-btn:active {
-      transform: scale(0.95);
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero-section {
+        padding: 60px 0 40px;
+      }
+      
+      .stats-container {
+        gap: 20px;
+      }
+      
+      .stat-item {
+        min-width: 120px;
+        padding: 15px;
+      }
+      
+      .stat-number {
+        font-size: 2rem;
+      }
+      
+      .filter-group {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .search-box {
+        min-width: 100%;
+      }
+      
+      .featured-title {
+        font-size: 1.8rem;
+      }
     }
   </style>
 </head>
@@ -569,28 +592,50 @@ require_once __DIR__ . '/../db/db.php';
 
 <?php include __DIR__ . '/navbar.php'; ?>
 <?php include __DIR__ . '/fb_chat_button.php'; ?>
-  <div class="page-header">
-    <div class="container">
-      <div class="row align-items-center">
-        <div class="col-lg-8">
-          <div class="page-header-content">
-            <h2>กิจกรรมการอบรมแบบมีฐานการเรียนรู้</h2>
-            <p class="mb-0 mt-3">มีกิจกรรมการอบรมที่ออกแบบมาเพื่อให้ผู้เรียนได้เรียนรู้และพัฒนาทักษะในรูปแบบที่มีประสิทธิภาพ</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- Course Section -->
+  <!-- Hero Carousel Section -->
+  <section class="hero-carousel-section">
+      <div id="heroCarousel" class="carousel slide hero-carousel" data-bs-ride="carousel">
+          <div class="carousel-indicators">
+              <?php foreach ($carousel_images as $index => $image): ?>
+                  <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="<?= $index ?>" class="<?= $index === 0 ? 'active' : '' ?>" aria-current="<?= $index === 0 ? 'true' : 'false' ?>" aria-label="Slide <?= $index + 1 ?>"></button>
+              <?php endforeach; ?>
+          </div>
+          <div class="carousel-inner">
+              <?php if (empty($carousel_images)): ?>
+                  <div class="carousel-item active">
+                      <img src="<?= $placeholderSrc ?? 'https://via.placeholder.com/1920x1080' ?>" class="d-block w-100" alt="Placeholder Image">
+                      <div class="carousel-caption d-none d-md-block">
+                          <h5>ยินดีต้อนรับสู่ศูนย์การเรียนรู้</h5>
+                          <p>สำรวจกิจกรรมและหลักสูตรที่น่าสนใจของเรา</p>
+                      </div>
+                  </div>
+              <?php else: ?>
+                  <?php foreach ($carousel_images as $index => $image): ?>
+                      <div class="carousel-item <?= $index === 0 ? 'active' : '' ?>" data-bs-interval="5000">
+                          <img src="../uploads/<?= htmlspecialchars($image['image1']) ?>" class="d-block w-100" alt="<?= htmlspecialchars($image['course_name']) ?>">
+                          <div class="carousel-caption d-none d-md-block">
+                              <h5><?= htmlspecialchars($image['course_name']) ?></h5>
+                              <p>กิจกรรมการอบรมที่น่าสนใจจากเรา</p>
+                          </div>
+                      </div>
+                  <?php endforeach; ?>
+              <?php endif; ?>
+          </div>
+          <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+              <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Previous</span>
+          </button>
+          <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+              <span class="carousel-control-next-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Next</span>
+          </button>
+      </div>
+  </section>
+
+  <!-- Main Content -->
   <section class="py-5">
     <div class="container">
-      <!-- Layout Tabs -->
-      <div class="layout-tabs">
-        <button class="layout-tab active" data-layout="list">
-          <i class="fas fa-list"></i>รายการ
-        </button>
-      </div>
 
       <?php
       // ตรวจสอบการเชื่อมต่อฐานข้อมูล
@@ -607,7 +652,6 @@ require_once __DIR__ . '/../db/db.php';
       $limit = 9;
       $offset = ($page - 1) * $limit;
 
-      // Validate page number
       if ($page < 1) {
         $page = 1;
         $offset = 0;
@@ -647,298 +691,138 @@ require_once __DIR__ . '/../db/db.php';
       }
       ?>
 
+      <!-- Courses Grid -->
       <?php if ($result->num_rows > 0): ?>
+        <div class="row g-4">
+          <?php $animationDelay = 0.2; ?>
+          <?php while ($row = $result->fetch_assoc()): ?>
+            <?php
+            $courseId = (int)($row['courses_id'] ?? 0);
+            $courseName = htmlspecialchars($row['course_name'] ?? 'ชื่อหลักสูตร', ENT_QUOTES, 'UTF-8');
+            $courseDesc = htmlspecialchars($row['course_description'] ?? 'ไม่มีรายละเอียด', ENT_QUOTES, 'UTF-8');
 
-        <!-- List Layout -->
-        <div class="layout-container active" id="list-layout">
-          <div class="courses-container">
-            <?php while ($row = $result->fetch_assoc()): ?>
-              <?php
-              $courseId = (int)($row['courses_id'] ?? 0);
-              $courseName = htmlspecialchars($row['course_name'] ?? 'ชื่อหลักสูตร', ENT_QUOTES, 'UTF-8');
-              $courseDesc = htmlspecialchars($row['course_description'] ?? 'ไม่มีรายละเอียด', ENT_QUOTES, 'UTF-8');
+            $images = array_filter([
+              $row['image1'] ?? '',
+              $row['image2'] ?? '',
+              $row['image3'] ?? ''
+            ]);
 
-              // ดึงรูปภาพแรกสำหรับแสดงใน card
-              $images = array_filter([
-                $row['image1'] ?? '',
-                $row['image2'] ?? '',
-                $row['image3'] ?? ''
-              ]);
+            $firstImage = !empty($images) ? reset($images) : null;
+            $imageSrc = $firstImage && is_file($uploadsDir . $firstImage) ? '../uploads/' . htmlspecialchars($firstImage, ENT_QUOTES, 'UTF-8') : $placeholderSrc;
 
-              if (!empty($images)) {
-                $firstImage = reset($images);
-                $uploadsPath = $uploadsDir . $firstImage;
-                if (is_file($uploadsPath)) {
-                  $imageSrc = '../uploads/' . htmlspecialchars($firstImage, ENT_QUOTES, 'UTF-8');
-                } else {
-                  $imageSrc = $placeholderSrc;
-                }
-              } else {
-                $imageSrc = $placeholderSrc;
-              }
+            $ratingStmt = $conn->prepare("
+              SELECT 
+                ROUND(AVG(rating),1) AS avg_rating,
+                COUNT(*) AS cnt
+              FROM course_rating
+              WHERE courses_id = ?
+            ");
+            $ratingStmt->bind_param('i', $courseId);
+            $ratingStmt->execute();
+            $ratingRes = $ratingStmt->get_result()->fetch_assoc();
+            $avg_rating = $ratingRes['avg_rating'] ?? 0;
+            $rating_count = $ratingRes['cnt'] ?? 0;
+            $ratingStmt->close();
 
-              // ดึงคะแนนเฉลี่ย
-              $ratingStmt = $conn->prepare("
-                SELECT 
-                  ROUND(AVG(rating),1) AS avg_rating,
-                  COUNT(*) AS cnt
-                FROM course_rating
-                WHERE courses_id = ?
-              ");
+            // เพิ่ม badge สำหรับคอร์สพิเศษ
+              // เพิ่ม badge สำหรับคอร์สพิเศษ: แสดง "ยอดนิยม" ถ้ามีผู้เรียน/เรตติ้งมากกว่า 5
+              $badge = ($rating_count > 5) ? 'ยอดนิยม' : null;
+            ?>
 
-              if ($ratingStmt) {
-                $ratingStmt->bind_param('i', $courseId);
-                $ratingStmt->execute();
-                $ratingRes = $ratingStmt->get_result()->fetch_assoc();
-
-                $avg_rating   = $ratingRes['avg_rating'] ?? 0;
-                $rating_count = $ratingRes['cnt'] ?? 0;
-
-                $ratingStmt->close();
-              } else {
-                $avg_rating = 0;
-                $rating_count = 0;
-              }
-
-              ?>
-
-              <div class="course-item">
-                <img src="<?php echo $imageSrc; ?>" alt="<?php echo $courseName; ?>" class="course-image">
-                <div class="course-content">
-                  <div class="course-header">
-                    <div>
-                      <h3 class="course-title"><?php echo $courseName; ?></h3>
-                      <p class="course-description"><?php echo $courseDesc; ?></p>
-                    </div>
-                  </div>
-
-                  <div class="course-meta">
-
+            <div class="col-lg-4 col-md-6">
+              <div class="course-card fade-in-up" style="animation-delay: <?php echo $animationDelay; ?>s">
+                <?php if ($badge): ?>
+                  <div class="card-badge"><?php echo $badge; ?></div>
+                <?php endif; ?>
+                
+                <div class="card-image-container">
+                  <img src="<?php echo $imageSrc; ?>" 
+                       alt="<?php echo $courseName; ?>" 
+                       class="course-image">
+                  <div class="image-overlay"></div>
+                </div>
+                
+                <div class="card-content">
+                  <h3 class="course-title"><?php echo $courseName; ?></h3>
+                  <p class="course-description"><?php echo $courseDesc; ?></p>
+                  
+                  <div class="card-meta">
                     <div class="meta-item">
                       <i class="fas fa-users"></i>
-                      <span> <?php echo $rating_count; ?> ผู้เรียน</span>
+                      <span><?php echo $rating_count; ?> ผู้เรียน</span>
+                    </div>
+                    <div class="meta-item">
+                      <div class="rating-stars">
+                        <?php
+                        $stars = round($avg_rating);
+                        for ($i = 1; $i <= 5; $i++) {
+                          if ($i <= $stars) {
+                            echo '<i class="fas fa-star"></i>';
+                          } else {
+                            echo '<i class="far fa-star"></i>';
+                          }
+                        }
+                        ?>
+                      </div>
+                      <span><?php echo number_format($avg_rating, 1, '.', ''); ?></span>
                     </div>
                   </div>
-
-                  <div class="rating-section">
-                    <div class="stars">
-                      <?php
-                      $rounded = (int) round($avg_rating);
-                      for ($i = 1; $i <= 5; $i++) {
-                        $class = $i <= $rounded ? 'star filled' : 'star';
-                        echo '<span class="' . $class . '">★</span>';
-                      }
-                      ?>
-                    </div>
-                    <span class="rating-value"><?php echo number_format($avg_rating, 1, '.', ''); ?></span>
-                    <span class="rating-count"> คะแนน</span>
-                  </div>
-
-                  <div class="course-actions">
-                    <a href="course_detail.php?id=<?php echo $courseId; ?>" class="btn-detail">
-                      ดูรายละเอียด <i class="fas fa-arrow-right ms-1"></i>
-                    </a>
-
-                    <button class="comment-btn"
-                      onclick="window.location.href='course_detail.php?id=<?= $courseId ?>#comments'">
-                      <i class="fas fa-comment-dots"></i>
-                      แสดงความคิดเห็น
-                    </button>
-                  </div>
-
-
                 </div>
-              </div>
-            <?php endwhile; ?>
-          </div>
-        </div>
-
-        <!-- Grid Layout -->
-        <div class="layout-container" id="grid-layout">
-          <div class="courses-grid">
-            <?php
-            // Reset result pointer
-            $result->data_seek(0);
-            while ($row = $result->fetch_assoc()):
-            ?>
-              <?php
-              $courseId = (int)($row['courses_id'] ?? 0);
-              $courseName = htmlspecialchars($row['course_name'] ?? 'ชื่อหลักสูตร', ENT_QUOTES, 'UTF-8');
-              $courseDesc = htmlspecialchars($row['course_description'] ?? 'ไม่มีรายละเอียด', ENT_QUOTES, 'UTF-8');
-
-              // ดึงคะแนนเฉลี่ย
-              $ratingStmt = $conn->prepare("SELECT AVG(rating) AS avg_rating, COUNT(*) AS cnt FROM course_ratings WHERE courses_id = ?");
-              if ($ratingStmt) {
-                $ratingStmt->bind_param('i', $courseId);
-                $ratingStmt->execute();
-                $ratingRes = $ratingStmt->get_result()->fetch_assoc();
-                $avg_rating = $ratingRes['avg_rating'] ? round((float)$ratingRes['avg_rating'], 1) : 0;
-                $rating_count = (int)$ratingRes['cnt'];
-                $ratingStmt->close();
-              } else {
-                $avg_rating = 0;
-                $rating_count = 0;
-              }
-              ?>
-
-              <div class="grid-item">
-                <div class="grid-header">
-                  <h3 class="grid-title"><?php echo $courseName; ?></h3>
-                  <span class="course-badge">หลักสูตรใหม่</span>
-                </div>
-
-                <p class="grid-description"><?php echo $courseDesc; ?></p>
-
-                <div class="course-meta">
-                  <div class="meta-item">
-                    <i class="far fa-clock"></i>
-                    <span>12 ชั่วโมง</span>
-                  </div>
-                  <div class="meta-item">
-                    <i class="fas fa-signal"></i>
-                    <span>ระดับกลาง</span>
-                  </div>
-                </div>
-
-                <div class="rating-section">
-                  <div class="stars">
-                    <?php
-                    $rounded = (int) round($avg_rating);
-                    for ($i = 1; $i <= 5; $i++) {
-                      $class = $i <= $rounded ? 'star filled' : 'star';
-                      echo '<span class="' . $class . '">★</span>';
-                    }
-                    ?>
-                  </div>
-                  <span class="rating-value"><?php echo number_format($avg_rating, 1, '.', ''); ?></span>
-                  <span class="rating-count">(<?php echo $rating_count; ?> คะแนน)</span>
-                </div>
-
-                <div class="course-actions">
-                  <a href="course_detail.php?id=<?php echo $courseId; ?>" class="btn-detail">
-                    ดูรายละเอียด
+                
+                <div class="card-action">
+                  <a href="course_detail.php?id=<?php echo $courseId; ?>" 
+                     class="btn-primary-gradient">
+                    <i class="fas fa-eye"></i>
+                    ดูรายละกิจกรรมอบรม
                   </a>
                 </div>
               </div>
-            <?php endwhile; ?>
-          </div>
-        </div>
-
-        <!-- Minimal Layout -->
-        <div class="layout-container" id="minimal-layout">
-          <div class="courses-container">
-            <?php
-            // Reset result pointer
-            $result->data_seek(0);
-            while ($row = $result->fetch_assoc()):
-            ?>
-              <?php
-              $courseId = (int)($row['courses_id'] ?? 0);
-              $courseName = htmlspecialchars($row['course_name'] ?? 'ชื่อหลักสูตร', ENT_QUOTES, 'UTF-8');
-              $courseDesc = htmlspecialchars($row['course_description'] ?? 'ไม่มีรายละเอียด', ENT_QUOTES, 'UTF-8');
-
-              // ดึงคะแนนเฉลี่ย
-              $ratingStmt = $conn->prepare("SELECT AVG(rating) AS avg_rating, COUNT(*) AS cnt FROM course_ratings WHERE course_id = ?");
-              if ($ratingStmt) {
-                $ratingStmt->bind_param('i', $courseId);
-                $ratingStmt->execute();
-                $ratingRes = $ratingStmt->get_result()->fetch_assoc();
-                $avg_rating = $ratingRes['avg_rating'] ? round((float)$ratingRes['avg_rating'], 1) : 0;
-                $rating_count = (int)$ratingRes['cnt'];
-                $ratingStmt->close();
-              } else {
-                $avg_rating = 0;
-                $rating_count = 0;
-              }
-              ?>
-
-              <div class="minimal-item">
-                <div class="minimal-header">
-                  <h3 class="minimal-title"><?php echo $courseName; ?></h3>
-                  <span class="course-badge">หลักสูตรใหม่</span>
-                </div>
-
-                <p class="course-description"><?php echo $courseDesc; ?></p>
-
-                <div class="minimal-meta">
-                  <div class="meta-item">
-                    <i class="far fa-clock"></i>
-                    <span>12 ชั่วโมง</span>
-                  </div>
-                  <div class="meta-item">
-                    <i class="fas fa-signal"></i>
-                    <span>ระดับกลาง</span>
-                  </div>
-                  <div class="rating-section">
-                    <div class="stars">
-                      <?php
-                      $rounded = (int) round($avg_rating);
-                      for ($i = 1; $i <= 5; $i++) {
-                        $class = $i <= $rounded ? 'star filled' : 'star';
-                        echo '<span class="' . $class . '">★</span>';
-                      }
-                      ?>
-                    </div>
-                    <span class="rating-value"><?php echo number_format($avg_rating, 1, '.', ''); ?></span>
-                  </div>
-                </div>
-
-                <div class="course-actions">
-                  <a href="course_detail.php?id=<?php echo $courseId; ?>" class="btn-detail">
-                    ดูรายละเอียด
-                  </a>
-                </div>
-              </div>
-            <?php endwhile; ?>
-          </div>
+            </div>
+            <?php $animationDelay += 0.1; ?>
+          <?php endwhile; ?>
         </div>
 
         <!-- Pagination -->
         <?php if ($totalPages > 1): ?>
-          <div class="pagination-container">
-            <nav aria-label="Page navigation">
-              <ul class="pagination">
-                <?php if ($page > 1): ?>
-                  <li class="page-item">
-                    <a class="page-link" href="?page=1">
-                      <i class="fas fa-angle-double-left"></i>
-                    </a>
-                  </li>
-                  <li class="page-item">
-                    <a class="page-link" href="?page=<?php echo $page - 1; ?>">
-                      <i class="fas fa-angle-left"></i>
-                    </a>
-                  </li>
-                <?php endif; ?>
+          <div class="pagination-custom fade-in-up" style="animation-delay: 0.3s">
+            <?php if ($page > 1): ?>
+              <a href="?page=1" class="page-link-custom">
+                <i class="fas fa-angle-double-left"></i>
+              </a>
+              <a href="?page=<?php echo $page - 1; ?>" class="page-link-custom">
+                <i class="fas fa-angle-left"></i>
+              </a>
+            <?php endif; ?>
 
-                <?php for ($i = max(1, $page - 2); $i <= min($totalPages, $page + 2); $i++): ?>
-                  <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                    <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
-                  </li>
-                <?php endfor; ?>
+            <?php for ($i = max(1, $page - 2); $i <= min($totalPages, $page + 2); $i++): ?>
+              <a href="?page=<?php echo $i; ?>" 
+                 class="page-link-custom <?php echo $i === $page ? 'active' : ''; ?>">
+                <?php echo $i; ?>
+              </a>
+            <?php endfor; ?>
 
-                <?php if ($page < $totalPages): ?>
-                  <li class="page-item">
-                    <a class="page-link" href="?page=<?php echo $page + 1; ?>">
-                      <i class="fas fa-angle-right"></i>
-                    </a>
-                  </li>
-                  <li class="page-item">
-                    <a class="page-link" href="?page=<?php echo $totalPages; ?>">
-                      <i class="fas fa-angle-double-right"></i>
-                    </a>
-                  </li>
-                <?php endif; ?>
-              </ul>
-            </nav>
+            <?php if ($page < $totalPages): ?>
+              <a href="?page=<?php echo $page + 1; ?>" class="page-link-custom">
+                <i class="fas fa-angle-right"></i>
+              </a>
+              <a href="?page=<?php echo $totalPages; ?>" class="page-link-custom">
+                <i class="fas fa-angle-double-right"></i>
+              </a>
+            <?php endif; ?>
           </div>
         <?php endif; ?>
 
       <?php else: ?>
-        <div class="no-courses">
-          <i class="fas fa-book-open"></i>
-          <h4>ไม่มีหลักสูตรในขณะนี้</h4>
-          <p class="text-muted">กรุณากลับมาตรวจสอบภายหลัง</p>
+        <div class="no-courses fade-in-up">
+          <div class="no-courses-icon">
+            <i class="fas fa-book-open"></i>
+          </div>
+          <h3>ยังไม่มีหลักสูตรในขณะนี้</h3>
+          <p>เรากำลังเตรียมหลักสูตรคุณภาพสำหรับคุณ โปรดกลับมาตรวจสอบในภายหลัง</p>
+          <button class="btn-primary-gradient mt-4" onclick="location.reload()">
+            <i class="fas fa-sync-alt"></i>
+            รีเฟรชหน้านี้
+          </button>
         </div>
       <?php endif; ?>
 
@@ -946,54 +830,112 @@ require_once __DIR__ . '/../db/db.php';
     </div>
   </section>
 
+  <?php include __DIR__ . '/footer.php'; ?>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
   <script>
-    // Layout Tabs Functionality
-    document.querySelectorAll('.layout-tab').forEach(tab => {
-      tab.addEventListener('click', function() {
-        // Remove active class from all tabs
-        document.querySelectorAll('.layout-tab').forEach(t => {
-          t.classList.remove('active');
+    // Stats Counter Animation
+    document.addEventListener('DOMContentLoaded', function() {
+      // Add hover effects to cards
+      const cards = document.querySelectorAll('.course-card');
+      cards.forEach(card => {
+        card.addEventListener('mouseenter', () => {
+          gsap.to(card, {
+            scale: 1.02,
+            duration: 0.3,
+            ease: "power2.out"
+          });
         });
-
-        // Add active class to clicked tab
-        this.classList.add('active');
-
-        // Hide all layout containers
-        document.querySelectorAll('.layout-container').forEach(container => {
-          container.classList.remove('active');
+        
+        card.addEventListener('mouseleave', () => {
+          gsap.to(card, {
+            scale: 1,
+            duration: 0.3,
+            ease: "power2.out"
+          });
         });
-
-        // Show selected layout
-        const layout = this.getAttribute('data-layout');
-        document.getElementById(`${layout}-layout`).classList.add('active');
       });
-    });
 
-    // Animation on scroll
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
-    };
+      // Filter button interaction
+      const filterBtns = document.querySelectorAll('.filter-btn');
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          filterBtns.forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          
+          // Add ripple effect
+          const ripple = document.createElement('span');
+          const rect = this.getBoundingClientRect();
+          const size = Math.max(rect.width, rect.height);
+          const x = event.clientX - rect.left - size / 2;
+          const y = event.clientY - rect.top - size / 2;
+          
+          ripple.style.cssText = `
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+            width: ${size}px;
+            height: ${size}px;
+            top: ${y}px;
+            left: ${x}px;
+          `;
+          
+          this.appendChild(ripple);
+          setTimeout(() => ripple.remove(), 600);
+        });
+      });
 
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.style.opacity = '1';
-          entry.target.style.transform = 'translateY(0)';
+      // Search functionality
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(() => {
+            const searchTerm = this.value.toLowerCase();
+            const cards = document.querySelectorAll('.course-card');
+            
+            cards.forEach(card => {
+              const title = card.querySelector('.course-title').textContent.toLowerCase();
+              const description = card.querySelector('.course-description').textContent.toLowerCase();
+              
+              if (title.includes(searchTerm) || description.includes(searchTerm)) {
+                card.style.display = 'block';
+                gsap.fromTo(card, 
+                  { opacity: 0, y: 20 },
+                  { opacity: 1, y: 0, duration: 0.5 }
+                );
+              } else {
+                gsap.to(card, {
+                  opacity: 0,
+                  y: 20,
+                  duration: 0.3,
+                  onComplete: () => {
+                    card.style.display = 'none';
+                  }
+                });
+              }
+            });
+          }, 300);
+        });
+      }
+
+      // Add CSS for ripple effect
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes ripple {
+          to {
+            transform: scale(4);
+            opacity: 0;
+          }
         }
-      });
-    }, observerOptions);
+      `;
+      document.head.appendChild(style);
 
-    // Observe all course items for animation
-    document.querySelectorAll('.course-item, .grid-item, .minimal-item').forEach(item => {
-      item.style.opacity = '0';
-      item.style.transform = 'translateY(20px)';
-      item.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-      observer.observe(item);
     });
   </script>
-
 </body>
-
 </html>

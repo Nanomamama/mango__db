@@ -125,12 +125,6 @@ if (isset($_SESSION['temp_access_token']) &&
         unset($_SESSION['temp_booking_id']);
     }
 }
-// 🔍 Debug session (ลบออกหลังแก้เสร็จ)
-// echo '<pre style="background:#000;color:#0f0;padding:10px;position:fixed;top:0;right:0;z-index:9999;font-size:12px;">';
-// echo "Session Data:\n";
-// print_r($_SESSION);
-// echo "\n\$hasAccess = " . ($hasAccess ? 'TRUE' : 'FALSE');
-// echo '</pre>';
 
 ?>
 <!DOCTYPE html>
@@ -141,107 +135,543 @@ if (isset($_SESSION['temp_access_token']) &&
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?php echo htmlspecialchars($course['course_name']); ?> - รายละเอียดหลักสูตร</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary-color: #1f7a6b;
+            --primary-light: #e8f5f2;
+            --secondary-color: #4a6572;
+            --light-gray: #f9fafb;
+            --medium-gray: #e5e7eb;
+            --dark-gray: #6b7280;
+            --border-radius: 12px;
+            --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+            --box-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Kanit', sans-serif;
-            background: #f7f8fb;
+            background-color: #ffffff;
+            color: #333;
+            line-height: 1.6;
         }
 
-        .course-hero {
-            padding: 2.5rem 0;
+        .container-custom {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
         }
 
-        .course-card {
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-            background: #fff;
+        /* Header Section */
+        .page-header {
+            padding: 1.5rem 0;
+            background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+            border-bottom: 1px solid var(--medium-gray);
+            margin-bottom: 2rem;
+        }
+
+        .back-link {
+            color: var(--dark-gray);
+            text-decoration: none;
+            font-weight: 400;
+            transition: color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-link:hover {
+            color: var(--primary-color);
         }
 
         .course-title {
-            color: #1f7a6b;
+            color: var(--primary-color);
             font-weight: 700;
+            margin-top: 0.5rem;
+            font-size: 2.2rem;
+            line-height: 1.2;
         }
 
-        .btn-enroll {
-            border-radius: 999px;
-            padding: 0.6rem 1.2rem;
+        /* Course Content */
+        .course-content-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
         }
 
-        .meta {
-            color: #666;
-            font-size: 0.95rem;
+        @media (max-width: 992px) {
+            .course-content-section {
+                grid-template-columns: 1fr;
+            }
         }
 
-        /* Carousel image sizing - responsive */
-        #courseCarousel {
+        /* Image Gallery */
+        .image-gallery {
+            border-radius: var(--border-radius);
             overflow: hidden;
+            box-shadow: var(--box-shadow);
+            background-color: white;
+            height: fit-content;
         }
 
-        #courseCarousel .carousel-inner {
-            aspect-ratio: 16 / 9;
+        .image-placeholder {
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--dark-gray);
+            font-size: 1.2rem;
+        }
+
+        /* New Modern Gallery Styles */
+        .modern-gallery {
+            display: grid;
+            gap: 0.5rem;
+            border-radius: var(--border-radius);
             overflow: hidden;
+            box-shadow: var(--box-shadow);
         }
 
-        #courseCarousel .carousel-item {
-            height: 100%;
+        .gallery-item {
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
         }
 
-        #courseCarousel img {
+        .gallery-item img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            /* ภาพไม่บิดเบี้ยว, crop ตามสัดส่วน */
             display: block;
+            transition: transform 0.4s ease, filter 0.4s ease;
         }
 
-        /* Rating styles */
-        .rating {
+        .gallery-item:hover img {
+            transform: scale(1.05);
+            filter: brightness(0.9);
+        }
+
+        .gallery-item::after {
+            content: '\f00e'; /* Font Awesome search-plus icon */
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            color: white;
+            font-size: 2.5rem;
+            background: rgba(31, 122, 107, 0.5);
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.4s ease;
+        }
+
+        .gallery-item:hover::after {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* Grid layouts based on image count */
+        .gallery-count-1 { grid-template-columns: 1fr; }
+        .gallery-count-2 { grid-template-columns: 1fr 1fr; }
+        .gallery-count-3 {
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: repeat(2, 225px);
+        }
+        .gallery-count-3 .gallery-item:first-child {
+            grid-row: span 2;
+        }
+
+        /* Lightbox Modal */
+        .lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1055;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .lightbox.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .lightbox-content {
+            max-width: 90vw;
+            max-height: 90vh;
+            position: relative;
+        }
+        .lightbox-content img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            max-width: 85vw;
+            max-height: 85vh;
+        }
+        .lightbox-close, .lightbox-prev, .lightbox-next {
+            position: absolute;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            z-index: 1056;
+        }
+        .lightbox-close { top: 10px; right: 15px; }
+        .lightbox-prev { top: 50%; left: 10px; transform: translateY(-50%); }
+        .lightbox-next { top: 50%; right: 10px; transform: translateY(-50%); }
+
+        /* Course Info Card */
+        .course-info-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--box-shadow);
+            height: fit-content;
+        }
+
+        .course-meta {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--medium-gray);
+        }
+
+        .rating-container {
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            user-select: none;
         }
 
-        .stars {
+        .rating-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .rating-stars {
             display: flex;
-            gap: 6px;
+            gap: 3px;
         }
 
-        .star {
-            width: 28px;
-            height: 28px;
-            display: inline-block;
+        .rating-star {
+            color: #ffc107;
+            font-size: 1.2rem;
+        }
+
+        .rating-count {
+            color: var(--dark-gray);
+            font-size: 0.9rem;
+        }
+
+        .course-description {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            color: var(--secondary-color);
+            font-weight: 600;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            position: relative;
+            padding-bottom: 0.5rem;
+        }
+
+        .section-title:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background-color: var(--primary-color);
+            border-radius: 3px;
+        }
+
+        /* Access Code Section */
+        .access-code-section {
+            background: var(--light-gray);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--medium-gray);
+        }
+
+        .access-code-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .access-code-icon {
+            background-color: var(--primary-color);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .access-code-input-container {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .access-code-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 0.8rem 1.2rem;
+            border: 2px solid var(--medium-gray);
+            border-radius: 8px;
+            font-size: 1.2rem;
+            text-align: center;
+            letter-spacing: 0.5rem;
+            transition: border-color 0.2s;
+        }
+
+        .access-code-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(31, 122, 107, 0.1);
+        }
+
+        .access-code-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
             cursor: pointer;
-            color: #ddd;
-            transition: color .15s ease;
-            font-size: 28px;
-            line-height: 28px;
+            transition: background-color 0.2s;
+            white-space: nowrap;
         }
 
-        .star.filled {
+        .access-code-btn:hover:not(:disabled) {
+            background-color: #166457;
+        }
+
+        .access-code-btn:disabled {
+            background-color: var(--medium-gray);
+            cursor: not-allowed;
+        }
+
+        .access-success {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .access-error {
+            color: #ef4444;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        /* Comments Section */
+        .comments-section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--box-shadow);
+            margin-bottom: 3rem;
+        }
+
+        .comment-form-card {
+            background: var(--light-gray);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2.5rem;
+            border: 1px solid var(--medium-gray);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--secondary-color);
+            display: block;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 1px solid var(--medium-gray);
+            border-radius: 8px;
+            font-family: 'Kanit', sans-serif;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(31, 122, 107, 0.1);
+        }
+
+        .char-count {
+            text-align: right;
+            color: var(--dark-gray);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+
+        .comment-rating-stars {
+            display: flex;
+            gap: 5px;
+            margin-top: 0.5rem;
+        }
+
+        .comment-star {
+            font-size: 1.8rem;
+            color: #ddd;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .comment-star.active, .comment-star:hover {
             color: #ffc107;
         }
 
-        /* gold */
-        .rating-info {
-            color: #666;
-            font-size: 0.95rem;
+        .submit-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
         }
 
-        .rate-feedback {
-            margin-top: 0.5rem;
-            color: green;
-            font-size: 0.95rem;
+        .submit-btn:hover {
+            background-color: #166457;
+        }
+
+        /* Comments List */
+        .comment-item {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid var(--medium-gray);
+        }
+
+        .comment-item:last-child {
+            border-bottom: none;
+        }
+
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.8rem;
+        }
+
+        .comment-author {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .comment-date {
+            color: var(--dark-gray);
+            font-size: 0.9rem;
+        }
+
+        .comment-rating {
+            margin: 0.5rem 0;
+        }
+
+        .comment-text {
+            color: #333;
+            line-height: 1.7;
+        }
+
+        .no-comments {
+            text-align: center;
+            padding: 3rem;
+            color: var(--dark-gray);
+        }
+
+        /* Footer */
+        .page-footer {
+            background-color: var(--light-gray);
+            padding: 2rem 0;
+            border-top: 1px solid var(--medium-gray);
+            margin-top: 3rem;
+        }
+
+        /* Utility Classes */
+        .text-success {
+            color: #10b981;
+        }
+
+        .text-error {
+            color: #ef4444;
+        }
+
+        .d-none {
             display: none;
         }
 
-        .rate-error {
-            margin-top: 0.5rem;
-            color: #c0392b;
-            font-size: 0.95rem;
-            display: none;
+        .d-flex {
+            display: flex;
+        }
+
+        .align-items-center {
+            align-items: center;
+        }
+
+        .justify-content-between {
+            justify-content: space-between;
+        }
+
+        .mb-3 {
+            margin-bottom: 1rem;
+        }
+
+        .mt-3 {
+            margin-top: 1rem;
+        }
+
+        .mb-4 {
+            margin-bottom: 1.5rem;
+        }
+
+        .mt-4 {
+            margin-top: 1.5rem;
         }
     </style>
 </head>
@@ -249,566 +679,556 @@ if (isset($_SESSION['temp_access_token']) &&
 <body>
     <?php include 'navbar.php'; ?>
 
-    <div class="container course-hero">
-        <div class="row">
-            <div class="col-12 mb-3">
-                <a href="course.php" class="btn btn-link">&larr; ย้อนกลับไปหน้าหลักสูตร</a>
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="container-custom">
+            <a href="course.php" class="back-link">
+                <i class="fas fa-arrow-left"></i>
+                กลับไปหน้าหลักสูตร
+            </a>
+            <h1 class="course-title"><?php echo htmlspecialchars($course['course_name']); ?></h1>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container-custom">
+        <!-- Course Content Section -->
+        <div class="course-content-section">
+            <!-- Image Gallery -->
+            <div class="modern-gallery gallery-count-<?php echo count($images); ?>">
+                <?php if (empty($images)): ?>
+                    <div class="image-placeholder">
+                        <i class="fas fa-image fa-3x mb-3"></i>
+                        <p>ไม่มีภาพประกอบ</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($images as $index => $img): ?>
+                        <div class="gallery-item" data-index="<?php echo $index; ?>">
+                            <img src="../uploads/<?php echo htmlspecialchars($img); ?>" 
+                                 alt="ภาพประกอบ <?php echo $index + 1; ?>"
+                                 onerror="this.src='<?php echo $placeholderSrc; ?>'">
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+
+            <!-- Course Info Card -->
+            <div class="course-info-card">
+                <div class="course-meta">
+                    <div class="rating-container">
+                        <div class="rating-value"><?php echo $avg_rating > 0 ? number_format($avg_rating, 1) : '0.0'; ?></div>
+                        <div class="rating-stars">
+                            <?php
+                            $rounded = (int) round($avg_rating);
+                            for ($i = 1; $i <= 5; $i++):
+                                $starClass = $i <= $rounded ? 'fas fa-star rating-star' : 'far fa-star rating-star';
+                            ?>
+                            <i class="<?php echo $starClass; ?>"></i>
+                            <?php endfor; ?>
+                        </div>
+                        <div class="rating-count">(<?php echo $rating_count; ?> คะแนน)</div>
+                    </div>
+                </div>
+
+                <div class="course-description">
+                    <h3 class="section-title">รายละเอียดหลักสูตร</h3>
+                    <p><?php echo nl2br(htmlspecialchars($course['course_description'] ?? 'ไม่มีรายละเอียดเพิ่มเติม')); ?></p>
+                </div>
             </div>
         </div>
 
-        <div class="row g-4">
-            <div class="col-lg-7">
-                <div class="course-card">
-                    <div id="courseCarousel" class="carousel slide" data-bs-ride="carousel">
-                        <div class="carousel-inner">
-                            <?php
-                            if (empty($images)) {
-                                echo '<div class="carousel-item active"><img src="' . $placeholderSrc . '" class="d-block w-100 img-fluid" alt="placeholder" loading="lazy"></div>';
-                            } else {
-                                $first = true;
-                                foreach ($images as $img) {
-                                    $safe = htmlspecialchars($img, ENT_QUOTES, 'UTF-8');
-                                    $path = $uploadsDir . $img;
-                                    if (is_file($path)) {
-                                        $src = '../uploads/' . $safe;
-                                    } else {
-                                        $src = $placeholderSrc;
-                                    }
-                                    $active = $first ? ' active' : '';
-                                    echo '<div class="carousel-item' . $active . '">';
-                                    echo '<img src="' . $src . '" class="d-block w-100 img-fluid" alt="' . htmlspecialchars($course['course_name']) . '" loading="lazy" onerror="this.src=\'' . $placeholderSrc . '\'">';
-                                    echo '</div>';
-                                    $first = false;
-                                }
-                            }
-                            ?>
-                        </div>
-                        <?php if (count($images) > 1): ?>
-                            <button class="carousel-control-prev" type="button" data-bs-target="#courseCarousel" data-bs-slide="prev" aria-label="ก่อนหน้า">
-                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                            </button>
-                            <button class="carousel-control-next" type="button" data-bs-target="#courseCarousel" data-bs-slide="next" aria-label="ถัดไป">
-                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                            </button>
-                        <?php endif; ?>
-                    </div>
+        <!-- Access Code Section -->
+        <div class="access-code-section">
+            <div class="access-code-header">
+                <div class="access-code-icon">
+                    <i class="fas fa-key"></i>
+                </div>
+                <div>
+                    <h3 class="section-title">รหัสยืนยันการเข้าร่วมกิจกรรม</h3>
+                    <p>กรอกรหัส 4 หลักที่ได้รับจากทางสวนเพื่อแสดงความคิดเห็น</p>
                 </div>
             </div>
 
-            <div class="col-lg-5">
-                <div class="course-card p-4 h-100 d-flex flex-column justify-content-between">
+            <div class="access-code-input-container">
+                <?php if ($hasAccess): ?>
+                <div class="access-success">
+                    <i class="fas fa-check-circle fa-2x"></i>
                     <div>
-                        <h1 class="course-title mb-2"><?php echo htmlspecialchars($course['course_name']); ?></h1>
-
-                        <hr>
-                        <h5 class="mt-3">รายละเอียด</h5>
-                        <p><?php echo nl2br(htmlspecialchars($course['course_description'] ?? 'ไม่มีรายละเอียดเพิ่มเติม')); ?></p>
-                    </div>
-
-                    <div class="mt-4">
-                        <!-- Rating block -->
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div class="rating" aria-label="ให้คะแนนหลักสูตร">
-                                <div class="stars" id="stars" data-course-id="<?php echo (int)$course['courses_id']; ?>">
-                                    <?php
-                                    // แสดง 5 ดาว (filled ตามค่าเฉลี่ย)
-                                    $rounded = (int) round($avg_rating);
-                                    for ($i = 1; $i <= 5; $i++) {
-                                        $class = $i <= $rounded ? 'star filled' : 'star';
-                                        echo '<span class="' . $class . '" data-value="' . $i . '" role="button" aria-label="' . $i . ' ดาว">&#9733;</span>';
-                                    }
-                                    ?>
-                                </div>
-                                <div class="rating-info ms-2">
-                                    <strong id="avgRating"><?php echo $avg_rating > 0 ? $avg_rating : '0.00'; ?></strong>
-                                    <small>/5</small>
-                                    <div><small id="ratingCount"><?php echo $rating_count; ?></small> คะแนน</div>
-                                </div>
-                            </div>
-                        </div>
-
-
+                        <div>ยืนยันการเข้าร่วมกิจกรรมเรียบร้อยแล้ว</div>
+                        <small>คุณสามารถแสดงความคิดเห็นได้ทันที</small>
                     </div>
                 </div>
+                <?php else: ?>
+                <input type="password" 
+                       id="accessCodeInput" 
+                       class="access-code-input" 
+                       maxlength="4" 
+                       placeholder="XXXX" 
+                       autocomplete="off"
+                       aria-label="รหัสยืนยันการเข้าร่วมกิจกรรม">
+                <button id="submitAccessCode" class="access-code-btn">ยืนยันรหัส</button>
+                <?php endif; ?>
+            </div>
+            <div id="accessCodeError" class="access-error d-none">รหัสไม่ถูกต้อง กรุณาลองอีกครั้ง</div>
+        </div>
+
+        <!-- Comments Section -->
+        <div class="comments-section">
+            <h3 class="section-title mb-4">ความคิดเห็นและข้อเสนอแนะ</h3>
+
+            <!-- Comment Form -->
+            <div id="commentFormContainer" class="comment-form-card" style="<?= $hasAccess ? '' : 'opacity: 0.6; pointer-events: none;' ?>">
+                <form id="commentForm">
+                    <input type="hidden" name="courses_id" value="<?php echo (int)$course['courses_id']; ?>">
+                    
+                    <div class="form-group">
+                        <label for="userName" class="form-label">ชื่อผู้แสดงความคิดเห็น</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="userName" 
+                               placeholder="กรุณากรอกชื่อ"
+                               value="<?php echo htmlspecialchars($loggedInUserName); ?>"
+                               <?php echo !empty($loggedInUserName) ? 'readonly' : ''; ?>
+                               required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="commentText" class="form-label">ความคิดเห็น</label>
+                        <textarea class="form-control" 
+                                  id="commentText" 
+                                  rows="4" 
+                                  placeholder="กรุณากรอกความคิดเห็นของคุณเกี่ยวกับหลักสูตรนี้"
+                                  maxlength="1000" 
+                                  required></textarea>
+                        <div class="char-count"><span id="charCount">0</span>/1000</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">ให้คะแนนความพึงพอใจ</label>
+                        <div class="comment-rating-stars" id="commentStars">
+                            <?php for ($i = 1; $i <= 5; $i++): ?>
+                            <i class="far fa-star comment-star" data-value="<?php echo $i; ?>"></i>
+                            <?php endfor; ?>
+                        </div>
+                        <input type="hidden" id="commentRating" name="rating" value="0">
+                        <small id="commentRatingText" class="text-muted">ยังไม่ได้ให้คะแนน</small>
+                    </div>
+
+                    <button type="submit" class="submit-btn">ส่งความคิดเห็น</button>
+                    
+                    <div id="commentFeedback" class="text-success mt-3 d-none">
+                        <i class="fas fa-check-circle"></i> ขอบคุณสำหรับความคิดเห็นของคุณ
+                    </div>
+                    <div id="commentError" class="text-error mt-3 d-none"></div>
+                </form>
+            </div>
+
+            <!-- Comments List -->
+            <div id="commentsList">
+                <?php if ($commentsResult->num_rows === 0): ?>
+                <div class="no-comments">
+                    <i class="far fa-comment-dots fa-3x mb-3"></i>
+                    <h4>ยังไม่มีความคิดเห็น</h4>
+                    <p>เป็นคนแรกที่แสดงความคิดเห็นเกี่ยวกับหลักสูตรนี้</p>
+                </div>
+                <?php else: ?>
+                    <?php while ($comment = $commentsResult->fetch_assoc()): ?>
+                    <div class="comment-item">
+                        <div class="comment-header">
+                            <div class="comment-author">คุณ<?php echo htmlspecialchars($comment['name'] ?? 'ผู้เข้าร่วมกิจกรรมอบรม'); ?></div>
+                            <div class="comment-date"><?php echo date('j M Y H:i', strtotime($comment['created_at'])); ?></div>
+                        </div>
+                        
+                        <?php if ((int)($comment['rating'] ?? 0) > 0): ?>
+                        <div class="comment-rating">
+                            <?php 
+                            $rating = (int)$comment['rating'];
+                            for ($i = 1; $i <= 5; $i++):
+                                $starClass = $i <= $rating ? 'fas fa-star' : 'far fa-star';
+                            ?>
+                            <i class="<?php echo $starClass; ?>" style="color: #ffc107;"></i>
+                            <?php endfor; ?>
+                            <small class="text-muted">(<?php echo $rating; ?>/5)</small>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <div class="comment-text"><?php echo nl2br(htmlspecialchars($comment['comment_text'])); ?></div>
+                    </div>
+                    <?php endwhile; ?>
+                <?php endif; ?>
             </div>
         </div>
     </div>
 
-
-    <!-- Comment Section -->
-    <section class="py-5 bg-light">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-8 mx-auto">
-                    <h4 class="mb-4" id="comments">ความคิดเห็นและข้อเสนอแนะ</h4>
-
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">ยืนยันการเข้าร่วมกิจกรรม</h5>
-                        </div>
-                        <div>
-
-                            <input type="password" 
-                            id="accessCodeInput" 
-                            class="form-control text-center fs-4" 
-                            autocomplete="off"
-                            maxlength="4" 
-                            placeholder="กรุณากรอกรหัส 4 ตัว ที่ได้รับจากทางสวน" 
-                            aria-label="กรอกรหัสเข้าร่วมกิจกรรม" 
-                            <?php if ($hasAccess): echo 'disabled value="****"';     endif; ?>>
-                        
-                            <div class="text-danger mt-2 d-none" id="accessCodeError">รหัสไม่ถูกต้อง</div>
-                        </div>
-                        <div class="modal-footer">
-                            <button class="btn btn-primary w-100" id="submitAccessCode">ยืนยัน</button>
-                        </div>
-                    </div>
-                    <!-- Comment Form -->
-                    <div id="lockedSection" style="<?= $hasAccess ? '' : 'pointer-events:none; opacity:.4;' ?>">
-                        <div class="card p-4 mb-4">
-                            <h6 class="mb-3">เพิ่มความคิดเห็นของคุณ</h6>
-                            <form id="commentForm">
-                                <input type="hidden" name="courses_id" value="<?php echo (int)$course['courses_id']; ?>">
-                                <div class="mb-3">
-                                    <label for="userName" class="form-label">ชื่อผู้แสดงความคิดเห็น</label>
-                                    <input type="text"
-                                        class="form-control"
-                                        id="userName"
-                                        placeholder="กรุณากรอกชื่อ"
-                                        required>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="commentText" class="form-label">ความคิดเห็น</label>
-                                    <textarea class="form-control" id="commentText" rows="4" placeholder="กรุณากรอกความคิดเห็น" maxlength="1000" required></textarea>
-                                    <small class="text-muted">(<span id="charCount">0</span>/1000)</small>
-                                </div>
-
-                                <!-- Rating input for this comment (guest allowed) -->
-                                <div class="mb-3">
-                                    <label class="form-label">ให้คะแนนความพึงพอใจ</label>
-                                    <div class="d-flex align-items-center">
-                                        <div class="stars" id="commentStars" data-course-id="<?php echo (int)$course['courses_id']; ?>" aria-hidden="false" role="radiogroup">
-                                            <?php for ($i = 1; $i <= 5; $i++): ?>
-                                                <span class="star" data-value="<?php echo $i; ?>" role="radio" aria-checked="false">&#9733;</span>
-                                            <?php endfor; ?>
-                                        </div>
-                                        <input type="hidden" id="commentRating" name="rating" value="0">
-                                        <small class="text-muted ms-2" id="commentRatingText">ยังไม่ได้ให้คะแนน</small>
-                                    </div>
-                                </div>
-
-                                <button type="submit" class="btn btn-primary">ส่งความคิดเห็น</button>
-                                <div id="commentFeedback" class="alert alert-success mt-2" style="display:none;">ขอบคุณสำหรับความคิดเห็นของคุณ</div>
-                                <div id="commentError" class="alert alert-danger mt-2" style="display:none;"></div>
-                            </form>
-                        </div>
-                    </div>
-                    <!-- Comments List -->
-                    <div id="commentsList">
-                        <div id="noComments" class="alert alert-info">ยังไม่มีความคิดเห็น</div>
-                        <?php
-                        // JOIN course_comments กับ course_rating เพื่อดึงคะแนนมาด้วย
-                        // ใช้ CASE WHEN เพื่อ match ทั้ง member และ guest
-                        $commentsStmt = $conn->prepare("
-                               SELECT 
-                                    cc.name,
-                                    cc.comment_text,
-                                    cc.created_at,
-                                    cr.rating
-                                    FROM course_comments cc
-                                    LEFT JOIN course_rating cr
-                                    ON cc.courses_id = cr.courses_id
-                                    AND cc.guest_identifier = cr.guest_identifier
-                                    WHERE cc.courses_id = ?
-                                    ORDER BY cc.created_at DESC
-                                    LIMIT 10
-                                ");
-
-
-                        if ($commentsStmt) {
-                            $commentsStmt->bind_param('i', $id);
-                            $commentsStmt->execute();
-                            $commentsResult = $commentsStmt->get_result();
-
-                            if ($commentsResult->num_rows > 0) {
-                                echo '<script>document.getElementById("noComments").style.display = "none";</script>';
-
-                                while ($comment = $commentsResult->fetch_assoc()) {
-                                    $date = date('j M Y H:i', strtotime($comment['created_at']));
-                                    $userName = htmlspecialchars($comment['name'] ?? 'ผู้เข้าร่วมกิจกรรมอบรม');
-                                    $commentText = nl2br(htmlspecialchars($comment['comment_text']));
-                                    $rating = (int)($comment['rating'] ?? 0);
-
-                                    echo '<div class="card mb-3 p-3">';
-                                    echo '<div class="d-flex justify-content-between align-items-center">';
-                                    echo '<h6 class="mb-0 text-primary">คุณ' . $userName . '</h6>';
-                                    echo '<small class="text-muted">' . $date . '</small>';
-                                    echo '</div>';
-
-                                    // แสดงดาว (ถ้ามีการให้คะแนน)
-                                    if ($rating > 0) {
-                                        echo '<div class="mt-2">';
-                                        for ($i = 1; $i <= 5; $i++) {
-                                            if ($i <= $rating) {
-                                                echo '<span style="color: #ffc107; font-size: 18px;">★</span>';
-                                            } else {
-                                                echo '<span style="color: #ddd; font-size: 18px;">★</span>';
-                                            }
-                                        }
-                                        echo ' <small class="text-muted">(' . $rating . '/5)</small>';
-                                        echo '</div>';
-                                    }
-
-                                    echo '<p class="card-text mt-2">' . $commentText . '</p>';
-                                    echo '</div>';
-                                }
-                            }
-                            $commentsStmt->close();
-                        }
-                        ?>
-                    </div>
-                </div>
-            </div>
+    <!-- Lightbox Modal -->
+    <div class="lightbox" id="lightbox">
+        <button class="lightbox-close">&times;</button>
+        <button class="lightbox-prev">&lt;</button>
+        <button class="lightbox-next">&gt;</button>
+        <div class="lightbox-content">
+            <img src="" alt="Enlarged image" id="lightboxImage">
         </div>
-    </section>
+    </div>
 
     <?php include 'footer.php'; ?>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        (function() {
-            const starsContainer = document.getElementById('stars');
-            if (!starsContainer) return;
-            const stars = Array.from(starsContainer.querySelectorAll('.star'));
-            const courseId = starsContainer.dataset.courseId;
-            const feedback = document.getElementById('rateFeedback');
-            const errorEl = document.getElementById('rateError');
-            const avgEl = document.getElementById('avgRating');
-            const countEl = document.getElementById('ratingCount');
-
-            function setVisual(rating) {
-                stars.forEach(s => {
-                    const val = parseInt(s.dataset.value, 10);
-                    if (val <= rating) s.classList.add('filled');
-                    else s.classList.remove('filled');
+        // Image Gallery Functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Image thumbnail selection
+            const commentText = document.getElementById('commentText');
+            const charCount = document.getElementById('charCount');
+            
+            if (commentText && charCount) {
+                commentText.addEventListener('input', function() {
+                    charCount.textContent = this.value.length;
                 });
             }
 
-            stars.forEach(s => {
+            // New Lightbox Functionality
+            const galleryItems = document.querySelectorAll('.gallery-item');
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImage = document.getElementById('lightboxImage');
+            const lightboxClose = document.querySelector('.lightbox-close');
+            const lightboxPrev = document.querySelector('.lightbox-prev');
+            const lightboxNext = document.querySelector('.lightbox-next');
+            const images = <?php echo json_encode(array_values($images)); ?>;
+            let currentIndex = 0;
 
-                // restore to current average rounded
-                const current = Math.round(parseFloat(avgEl.textContent) || 0);
-                setVisual(current);
+            function showImage(index) {
+                if (index >= 0 && index < images.length) {
+                    currentIndex = index;
+                    lightboxImage.src = '../uploads/' + images[currentIndex];
+                    lightbox.classList.add('show');
+                }
+            }
+
+            function closeLightbox() {
+                lightbox.classList.remove('show');
+            }
+
+            galleryItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    showImage(index);
+                });
             });
 
-        });
+            if (lightboxClose) {
+                lightboxClose.addEventListener('click', closeLightbox);
+            }
 
-
-
-        // commentStars behavior
-        (function() {
-            const commentStars = document.getElementById('commentStars');
-            const commentRatingInput = document.getElementById('commentRating');
-            const commentRatingText = document.getElementById('commentRatingText');
-            if (commentStars) {
-                const cs = Array.from(commentStars.querySelectorAll('.star'));
-
-                function setCommentVisual(r) {
-                    cs.forEach(s => {
-                        const v = parseInt(s.dataset.value, 10);
-                        if (v <= r) s.classList.add('filled');
-                        else s.classList.remove('filled');
-                        s.setAttribute('aria-checked', v === r ? 'true' : 'false');
-                    });
-                    commentRatingText.textContent = r > 0 ? `${r} / 5` : 'ยังไม่ได้ให้คะแนน';
-                }
-                cs.forEach(s => {
-                    s.addEventListener('mouseenter', () => setCommentVisual(parseInt(s.dataset.value, 10)));
-                    s.addEventListener('mouseleave', () => setCommentVisual(parseInt(commentRatingInput.value || 0, 10)));
-                    s.addEventListener('click', () => {
-                        const v = parseInt(s.dataset.value, 10);
-                        commentRatingInput.value = v;
-                        setCommentVisual(v);
-                    });
+            if (lightbox) {
+                lightbox.addEventListener('click', function(e) {
+                    if (e.target === lightbox) {
+                        closeLightbox();
+                    }
                 });
             }
-        })();
 
-        // Character counter
-        document.getElementById('commentText').addEventListener('input', function() {
-            document.getElementById('charCount').textContent = this.value.length;
-        });
+            if (lightboxPrev) {
+                lightboxPrev.addEventListener('click', () => {
+                    showImage((currentIndex - 1 + images.length) % images.length);
+                });
+            }
 
-        // Load user name from session or localStorage
-        (function() {
+            if (lightboxNext) {
+                lightboxNext.addEventListener('click', () => {
+                    showImage((currentIndex + 1) % images.length);
+                });
+            }
+
+            // Comment rating stars
+            const commentStars = document.querySelectorAll('#commentStars .comment-star');
+            const commentRatingInput = document.getElementById('commentRating');
+            const commentRatingText = document.getElementById('commentRatingText');
+            
+            if (commentStars.length > 0) {
+                commentStars.forEach(star => {
+                    star.addEventListener('mouseenter', function() {
+                        const value = parseInt(this.getAttribute('data-value'));
+                        updateCommentStars(value, false);
+                    });
+                    
+                    star.addEventListener('click', function() {
+                        const value = parseInt(this.getAttribute('data-value'));
+                        commentRatingInput.value = value;
+                        updateCommentStars(value, true);
+                        commentRatingText.textContent = value + ' / 5';
+                    });
+                });
+                
+                // Reset stars on mouse leave if no rating selected
+                document.getElementById('commentStars').addEventListener('mouseleave', function() {
+                    const currentRating = parseInt(commentRatingInput.value) || 0;
+                    updateCommentStars(currentRating, true);
+                });
+            }
+            
+            function updateCommentStars(rating, permanent) {
+                commentStars.forEach(star => {
+                    const value = parseInt(star.getAttribute('data-value'));
+                    
+                    if (value <= rating) {
+                        star.classList.remove('far');
+                        star.classList.add('fas');
+                        if (permanent) {
+                            star.style.color = '#ffc107';
+                        }
+                    } else {
+                        star.classList.remove('fas');
+                        star.classList.add('far');
+                        if (permanent) {
+                            star.style.color = '#ddd';
+                        }
+                    }
+                });
+            }
+            
+            // Load saved user name for guests
             const userNameInput = document.getElementById('userName');
             const loggedInName = '<?php echo $loggedInUserName; ?>';
-
-            // ถ้ามีผู้ใช้เข้าสู่ระบบแล้ว ไม่ต้องโหลดจาก localStorage
-            if (loggedInName) {
-                userNameInput.value = loggedInName;
-                userNameInput.readOnly = true; // ห้ามแก้ไขชื่อ
-            } else {
-                // ถ้าไม่มี ให้โหลดจาก localStorage (guest)
+            
+            if (!loggedInName && userNameInput) {
                 const savedName = localStorage.getItem('courseCommentUserName');
                 if (savedName) {
                     userNameInput.value = savedName;
                 }
             }
-        })();
-
-        // Submit comment (async: send rating first if provided, then save comment)
-        document.getElementById('commentForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const courseId = this.querySelector('input[name="courses_id"]').value;
-            const userName = document.getElementById('userName').value.trim();
-            const commentText = document.getElementById('commentText').value.trim();
-            const rating = parseInt(document.getElementById('commentRating').value || 0, 10);
-            const feedback = document.getElementById('commentFeedback');
-            const errorEl = document.getElementById('commentError');
-
-            if (!userName || !commentText) {
-                errorEl.textContent = 'กรุณากรอกข้อมูลให้ครบถ้วน';
-                errorEl.style.display = 'block';
-                feedback.style.display = 'none';
-                return;
-            }
-
-            feedback.style.display = 'none';
-            errorEl.style.display = 'none';
-
-            let guestIdentifier = null; // เก็บ identifier จากการให้คะแนน
-
-            try {
-                // If user provided a rating with the comment, submit it first
-                if (rating > 0) {
-                    const r = await fetch('rate_course.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            courses_id: parseInt(courseId, 10),
-                            rating: rating
-                        })
-                    }).then(async res => {
-                        const ct = res.headers.get('content-type') || '';
-                        const text = await res.text();
-                        if (ct.indexOf('application/json') === -1) {
-                            console.error('Non-JSON response from server:', text);
-                            throw new Error('Server returned non-JSON response');
-                        }
-                        try {
-                            return JSON.parse(text);
-                        } catch (e) {
-                            console.log('RAW SERVER RESPONSE >>>', text);
-                            
-
-                            throw new Error('Invalid JSON from server');
-                        }
-                    });
-
-                    if (r && r.success) {
-                        guestIdentifier = r.guest_identifier; // เก็บ identifier
-
-                        // update top aggregate UI
-                        const avgEl = document.getElementById('avgRating');
-                        const countEl = document.getElementById('ratingCount');
-                        if (typeof r.avg !== 'undefined') avgEl.textContent = parseFloat(r.avg).toFixed(2);
-                        if (typeof r.count !== 'undefined') countEl.textContent = r.count;
-
-                        // update top stars visual
-                        const topStars = document.querySelectorAll('#stars .star');
-                        const rounded = Math.round(parseFloat(document.getElementById('avgRating').textContent) || 0);
-                        topStars.forEach(s => {
-                            const v = parseInt(s.dataset.value, 10);
-                            if (v <= rounded) s.classList.add('filled');
-                            else s.classList.remove('filled');
-                        });
-                    }
-                }
-
-                // then save comment (ส่ง guest_identifier ไปด้วยถ้ามี)
-                const commentData = {
-                    courses_id: parseInt(courseId, 10), // ✔ ให้ตรงกับ PHP
-                    user_name: userName,
-                    comment_text: commentText
-                };
-
-
-                if (guestIdentifier) {
-                    commentData.guest_identifier = guestIdentifier;
-                }
-
-                const fetchResp = await fetch('save_comment.php', {
-
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(commentData)
+            
+            // Access code functionality
+            const accessCodeInput = document.getElementById('accessCodeInput');
+            const submitAccessCodeBtn = document.getElementById('submitAccessCode');
+            const accessCodeError = document.getElementById('accessCodeError');
+            
+            if (accessCodeInput && submitAccessCodeBtn) {
+                // Format input as user types (4 digits only)
+                accessCodeInput.addEventListener('input', function() {
+                    this.value = this.value.replace(/\D/g, '').slice(0, 4);
+                    accessCodeError.classList.add('d-none');
                 });
-
-                const respText = await fetchResp.text();
-                let res;
-                try {
-                    res = respText ? JSON.parse(respText) : null;
-                } catch (e) {
-                    console.error('Invalid JSON response from save_comment.php:', respText);
-                    errorEl.textContent = 'Server error: ' + (respText || 'Empty response');
-                    errorEl.style.display = 'block';
-                    return;
-                }
-
-                if (res && res.success) {
-                    // Save user name to localStorage เฉพาะ guest
-                    const loggedInName = '<?php echo $loggedInUserName; ?>';
-                    if (!loggedInName) {
-                        localStorage.setItem('courseCommentUserName', userName);
+                
+                // Submit on Enter
+                accessCodeInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        submitAccessCodeBtn.click();
                     }
-
-                    const noComments = document.getElementById('noComments');
-                    if (noComments) noComments.remove();
-
-                    const now = new Date();
-                    const dateStr = now.getDate() + ' ' + ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][now.getMonth()] + ' ' +
-                        now.getFullYear() + ' ' +
-                        String(now.getHours()).padStart(2, '0') + ':' +
-                        String(now.getMinutes()).padStart(2, '0');
-
-                    const commentsList = document.getElementById('commentsList');
-                    const newComment = document.createElement('div');
-                    newComment.className = 'card mb-3 p-3';
-
-                    // แสดงดาวถ้ามีการให้คะแนน
-                    let starsHtml = '';
-                    if (rating > 0) {
-                        starsHtml = '<div class="mt-2">';
-                        for (let i = 1; i <= 5; i++) {
-                            if (i <= rating) {
-                                starsHtml += '<span style="color: #ffc107; font-size: 18px;">★</span>';
-                            } else {
-                                starsHtml += '<span style="color: #ddd; font-size: 18px;">★</span>';
+                });
+                
+                // Submit button click
+                submitAccessCodeBtn.addEventListener('click', async function() {
+                    const code = accessCodeInput.value.trim();
+                    
+                    if (!code || code.length !== 4) {
+                        accessCodeError.textContent = 'กรุณากรอกรหัส 4 หลักให้ถูกต้อง';
+                        accessCodeError.classList.remove('d-none');
+                        return;
+                    }
+                    
+                    // Disable button and show loading
+                    const originalText = this.textContent;
+                    this.textContent = 'กำลังตรวจสอบ...';
+                    this.disabled = true;
+                    
+                    try {
+                        const response = await fetch('verify_access_code.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ code: code })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            // Success - reload page to update UI
+                            location.reload();
+                        } else {
+                            // Error
+                            accessCodeError.textContent = result.error || 'รหัสไม่ถูกต้อง';
+                            accessCodeError.classList.remove('d-none');
+                            accessCodeInput.value = '';
+                            accessCodeInput.focus();
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        accessCodeError.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
+                        accessCodeError.classList.remove('d-none');
+                    } finally {
+                        // Restore button
+                        this.textContent = originalText;
+                        this.disabled = false;
+                    }
+                });
+            }
+            
+            // Comment form submission
+            const commentForm = document.getElementById('commentForm');
+            const commentFeedback = document.getElementById('commentFeedback');
+            const commentError = document.getElementById('commentError');
+            
+            if (commentForm) {
+                commentForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const courseId = this.querySelector('input[name="courses_id"]').value;
+                    const userName = document.getElementById('userName').value.trim();
+                    const commentText = document.getElementById('commentText').value.trim();
+                    const rating = parseInt(document.getElementById('commentRating').value || 0, 10);
+                    
+                    // Validation
+                    if (!userName || !commentText) {
+                        showCommentError('กรุณากรอกข้อมูลให้ครบถ้วน');
+                        return;
+                    }
+                    
+                    // Hide previous messages
+                    commentFeedback.classList.add('d-none');
+                    commentError.classList.add('d-none');
+                    
+                    try {
+                        // If rating is provided, submit it first
+                        let guestIdentifier = null;
+                        
+                        if (rating > 0) {
+                            const ratingResponse = await fetch('rate_course.php', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    courses_id: parseInt(courseId, 10),
+                                    rating: rating
+                                })
+                            });
+                            
+                            const ratingResult = await ratingResponse.json();
+                            
+                            if (ratingResult && ratingResult.success) {
+                                guestIdentifier = ratingResult.guest_identifier;
+                                
+                                // Update overall rating display
+                                if (typeof ratingResult.avg !== 'undefined') {
+                                    document.querySelector('.rating-value').textContent = 
+                                        parseFloat(ratingResult.avg).toFixed(1);
+                                }
+                                if (typeof ratingResult.count !== 'undefined') {
+                                    document.querySelector('.rating-count').textContent = 
+                                        '(' + ratingResult.count + ' คะแนน)';
+                                }
                             }
                         }
-                        starsHtml += ` <small class="text-muted">(${rating}/5)</small></div>`;
+                        
+                        // Submit comment
+                        const commentData = {
+                            courses_id: parseInt(courseId, 10),
+                            user_name: userName,
+                            comment_text: commentText
+                        };
+                        
+                        if (guestIdentifier) {
+                            commentData.guest_identifier = guestIdentifier;
+                        }
+                        
+                        const commentResponse = await fetch('save_comment.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(commentData)
+                        });
+                        
+                        const commentResult = await commentResponse.json();
+                        
+                        if (commentResult && commentResult.success) {
+                            // Save user name for guests
+                            if (!loggedInName) {
+                                localStorage.setItem('courseCommentUserName', userName);
+                            }
+                            
+                            // Add new comment to the list
+                            addNewCommentToUI(userName, commentText, rating);
+                            
+                            // Reset form
+                            commentForm.reset();
+                            document.getElementById('charCount').textContent = '0';
+                            document.getElementById('commentRating').value = '0';
+                            commentRatingText.textContent = 'ยังไม่ได้ให้คะแนน';
+                            updateCommentStars(0, true);
+                            
+                            // Keep user name if logged in
+                            if (loggedInName) {
+                                document.getElementById('userName').value = loggedInName;
+                            }
+                            
+                            // Show success message
+                            showCommentSuccess();
+                        } else {
+                            showCommentError(commentResult.error || 'เกิดข้อผิดพลาดในการส่งความคิดเห็น');
+                        }
+                    } catch (error) {
+                        console.error('Submit error:', error);
+                        showCommentError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
                     }
-
-                    newComment.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0 text-primary">คุณ${userName}</h6>
-                    <small class="text-muted">${dateStr}</small>
-                </div>
-                ${starsHtml}
-                <p class="card-text mt-2">${commentText.replace(/\n/g, '<br>')}</p>
-            `;
-                    commentsList.insertBefore(newComment, commentsList.firstChild);
-
-                    // reset form
-                    document.getElementById('commentForm').reset();
-                    document.getElementById('charCount').textContent = '0';
-                    document.getElementById('commentRating').value = '0';
-                    const cs = document.querySelectorAll('#commentStars .star');
-                    cs.forEach(s => s.classList.remove('filled'));
-                    document.getElementById('commentRatingText').textContent = 'ยังไม่ได้ให้คะแนน';
-                    document.getElementById('userName').value = userName;
-
-                    feedback.style.display = 'block';
-                    setTimeout(() => {
-                        feedback.style.display = 'none';
-                    }, 3000);
-                } else {
-                    const msg = (res && res.error) ? res.error : (respText || 'เกิดข้อผิดพลาด');
-                    errorEl.textContent = msg;
-                    errorEl.style.display = 'block';
+                });
+            }
+            
+            function showCommentError(message) {
+                commentError.textContent = message;
+                commentError.classList.remove('d-none');
+                commentFeedback.classList.add('d-none');
+            }
+            
+            function showCommentSuccess() {
+                commentFeedback.classList.remove('d-none');
+                commentError.classList.add('d-none');
+                
+                // Hide success message after 3 seconds
+                setTimeout(() => {
+                    commentFeedback.classList.add('d-none');
+                }, 3000);
+            }
+            
+            function addNewCommentToUI(userName, commentText, rating) {
+                // Remove "no comments" message if exists
+                const noComments = document.querySelector('.no-comments');
+                if (noComments) {
+                    noComments.remove();
                 }
-            } catch (err) {
-                console.error('Submit error:', err);
-                errorEl.textContent = 'เกิดข้อผิดพลาดในการส่งข้อมูล';
-                errorEl.style.display = 'block';
+                
+                // Create new comment element
+                const commentsList = document.getElementById('commentsList');
+                const now = new Date();
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const dateStr = now.getDate() + ' ' + monthNames[now.getMonth()] + ' ' + now.getFullYear() + ' ' +
+                               String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+                
+                const newComment = document.createElement('div');
+                newComment.className = 'comment-item';
+                
+                let ratingHTML = '';
+                if (rating > 0) {
+                    ratingHTML = '<div class="comment-rating">';
+                    for (let i = 1; i <= 5; i++) {
+                        ratingHTML += i <= rating ? 
+                            '<i class="fas fa-star" style="color: #ffc107;"></i>' : 
+                            '<i class="far fa-star" style="color: #ffc107;"></i>';
+                    }
+                    ratingHTML += '<small class="text-muted">(' + rating + '/5)</small></div>';
+                }
+                
+                newComment.innerHTML = `
+                    <div class="comment-header">
+                        <div class="comment-author">คุณ${userName}</div>
+                        <div class="comment-date">${dateStr}</div>
+                    </div>
+                    ${ratingHTML}
+                    <div class="comment-text">${commentText.replace(/\n/g, '<br>')}</div>
+                `;
+                
+                // Add to the top of comments list
+                commentsList.insertBefore(newComment, commentsList.firstChild);
             }
         });
-
-
-        function openAccessModal() {
-            const modal = new bootstrap.Modal(document.getElementById('accessCodeModal'));
-            modal.show();
-        }
-
-        // วางโค้ดนี้แทนส่วน submitAccessCode 
-
-document.getElementById('submitAccessCode').addEventListener('click', async () => {
-    const codeInput = document.getElementById('accessCodeInput');
-    const code = codeInput.value.trim();
-    const errorEl = document.getElementById('accessCodeError');
-    const submitBtn = document.getElementById('submitAccessCode');
-
-    // ตรวจสอบว่ากรอกรหัสหรือยัง
-    if (!code) {
-        errorEl.textContent = 'กรุณากรอกรหัส 4 หลัก';
-        errorEl.classList.remove('d-none');
-        return;
-    }
-
-    // ตรวจสอบรูปแบบ (ต้องเป็นตัวเลข 4 หลัก)
-    if (!/^\d{4}$/.test(code)) {
-        errorEl.textContent = 'กรุณากรอกเลข 4 หลักเท่านั้น';
-        errorEl.classList.remove('d-none');
-        return;
-    }
-
-    // ซ่อน error และ disable ปุ่มชั่วคราว
-    errorEl.classList.add('d-none');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'กำลังตรวจสอบ...';
-
-    try {
-        const res = await fetch('verify_access_code.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                code: code
-            })
-        }).then(r => r.json());
-
-        if (res.success) {
-            // ✅ ตรวจสอบรหัสสำเร็จ
-            submitBtn.textContent = '✓ ยืนยันสำเร็จ!';
-            submitBtn.classList.replace('btn-primary', 'btn-success');
-            
-            // แสดงข้อความสั้นๆ แล้ว reload
-            setTimeout(() => {
-                location.reload();
-            }, 800);
-        } else {
-            // ❌ รหัสไม่ถูกต้อง
-            errorEl.textContent = res.error || 'รหัสไม่ถูกต้อง';
-            errorEl.classList.remove('d-none');
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'ยืนยัน';
-
-            // เคลียร์ input และ focus กลับ
-            codeInput.value = '';
-            codeInput.focus();
-        }
-    } catch (err) {
-        console.error('Access code error:', err);
-        errorEl.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
-        errorEl.classList.remove('d-none');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'ยืนยัน';
-    }
-});
-
-// เพิ่ม: กด Enter ในช่องรหัสก็ส่งได้เลย
-document.getElementById('accessCodeInput').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        document.getElementById('submitAccessCode').click();
-    }
-});
     </script>
 </body>
 
