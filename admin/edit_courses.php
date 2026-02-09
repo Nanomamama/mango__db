@@ -20,6 +20,9 @@ while ($row = $result->fetch_assoc()) {
         'image3' => $row['image3']
     ];
 }
+
+// แปลงข้อมูล courses เป็น JSON สำหรับใช้ใน JavaScript
+$courses_json = json_encode($courses);
 ?>
 
 <!DOCTYPE html>
@@ -449,15 +452,7 @@ while ($row = $result->fetch_assoc()) {
                                 </button>
                                 <button class="btn action-btn btn-edit edit-course-btn"
                                     data-bs-toggle="modal"
-                                    data-bs-target="#editCourseModal"
-                                    data-course='<?= htmlspecialchars(json_encode([
-                                                        'id' => $course['id'],
-                                                        'name' => $course['course_name'],
-                                                        'description' => $course['course_description'],
-                                                        'image1' => $course['image1'],
-                                                        'image2' => $course['image2'],
-                                                        'image3' => $course['image3']
-                                                    ]), ENT_QUOTES, 'UTF-8') ?>'>
+                                    data-bs-target="#editCourseModal" data-course-id="<?= $course['id'] ?>">
                                     <i class="bi bi-pencil"></i> แก้ไข
                                 </button>
                                 <button class="btn action-btn btn-delete" onclick="confirmDelete(<?= $course['id'] ?>)">
@@ -471,61 +466,67 @@ while ($row = $result->fetch_assoc()) {
         </div>
 
     </div>
+    <!-- View Course Modal -->
     <div class="modal fade course-modal" id="courseModal" tabindex="-1" aria-labelledby="courseModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="courseModalLabel">รายละเอียดหลักสูตร</h5>
+                    <h5 class="modal-title" id="courseModalLabel"><i class="bi bi-book-fill me-2"></i>รายละเอียดหลักสูตร</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <div class="table-responsive">
                         <table class="table table-bordered" id="courseDetailTable">
                         </table>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer border-0">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Add Course Modal -->
     <div class="modal fade course-modal" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="addCourseModalLabel">เพิ่มหลักสูตรใหม่</h5>
+                    <h5 class="modal-title" id="addCourseModalLabel"><i class="bi bi-plus-circle-fill me-2"></i>เพิ่มหลักสูตรใหม่</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <form action="save_course.php" method="POST" enctype="multipart/form-data">
                         <div class="mb-3">
-                            <label for="course_name" class="form-label">ชื่อหลักสูตร</label>
+                            <label for="course_name" class="form-label fw-bold">ชื่อหลักสูตร</label>
                             <input type="text" class="form-control" id="course_name" name="course_name" required>
                         </div>
                         <div class="mb-3">
-                            <label for="course_description" class="form-label">คำอธิบายหลักสูตร</label>
+                            <label for="course_description" class="form-label fw-bold">คำอธิบายหลักสูตร</label>
                             <textarea class="form-control" id="course_description" name="course_description" rows="3" required></textarea>
                         </div>
-                        <div class="mb-3">
-                            <label for="image1" class="form-label">รูปที่ 1</label>
-                            <input type="file" class="form-control" id="image1" name="image1" accept="image/*" onchange="previewImage(event, 'preview1')">
-                            <img id="preview1" src="#" alt="Preview Image 1" class="img-thumbnail mt-2" style="display: none; max-height: 150px;">
+                        <hr class="my-4">
+                        <h6 class="fw-bold mb-3">รูปภาพประกอบ</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="image1" class="form-label">รูปที่ 1 (หลัก)</label>
+                                <input type="file" class="form-control" id="image1" name="image1" accept="image/*" onchange="previewImage(event, 'preview1')">
+                                <img id="preview1" src="#" alt="Preview Image 1" class="img-thumbnail mt-2" style="display: none; max-height: 150px; width: 100%; object-fit: cover;">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="image2" class="form-label">รูปที่ 2</label>
+                                <input type="file" class="form-control" id="image2" name="image2" accept="image/*" onchange="previewImage(event, 'preview2')">
+                                <img id="preview2" src="#" alt="Preview Image 2" class="img-thumbnail mt-2" style="display: none; max-height: 150px; width: 100%; object-fit: cover;">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="image3" class="form-label">รูปที่ 3</label>
+                                <input type="file" class="form-control" id="image3" name="image3" accept="image/*" onchange="previewImage(event, 'preview3')">
+                                <img id="preview3" src="#" alt="Preview Image 3" class="img-thumbnail mt-2" style="display: none; max-height: 150px; width: 100%; object-fit: cover;">
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="image2" class="form-label">รูปที่ 2</label>
-                            <input type="file" class="form-control" id="image2" name="image2" accept="image/*" onchange="previewImage(event, 'preview2')">
-                            <img id="preview2" src="#" alt="Preview Image 2" class="img-thumbnail mt-2" style="display: none; max-height: 150px;">
-                        </div>
-                        <div class="mb-3">
-                            <label for="image3" class="form-label">รูปที่ 3</label>
-                            <input type="file" class="form-control" id="image3" name="image3" accept="image/*" onchange="previewImage(event, 'preview3')">
-                            <img id="preview3" src="#" alt="Preview Image 3" class="img-thumbnail mt-2" style="display: none; max-height: 150px;">
-                        </div>
-                        <div class="text-center">
-                            <button type="submit" class="btn btn-success">บันทึก</button>
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-4 border-top">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i>บันทึก</button>
                         </div>
                     </form>
                 </div>
@@ -533,42 +534,49 @@ while ($row = $result->fetch_assoc()) {
         </div>
     </div>
 
+    <!-- Edit Course Modal -->
     <div class="modal fade course-modal" id="editCourseModal" tabindex="-1" aria-labelledby="editCourseModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="editCourseModalLabel">แก้ไขหลักสูตร</h5>
+                    <h5 class="modal-title" id="editCourseModalLabel"><i class="bi bi-pencil-square me-2"></i>แก้ไขหลักสูตร</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <form action="update_course.php" method="POST" enctype="multipart/form-data">
                         <input type="hidden" id="editCourseId" name="id">
                         <div class="mb-3">
-                            <label for="editCourseName" class="form-label">ชื่อหลักสูตร</label>
+                            <label for="editCourseName" class="form-label fw-bold">ชื่อหลักสูตร</label>
                             <input type="text" class="form-control" id="editCourseName" name="course_name" required>
                         </div>
-                        <div class="mb-3">
-                            <label for="editCourseDescription" class="form-label">คำอธิบายหลักสูตร</label>
-                            <textarea class="form-control" id="editCourseDescription" name="course_description" rows="3" required></textarea>
+                        <div class="mb-4">
+                            <label for="editCourseDescription" class="form-label fw-bold">คำอธิบายหลักสูตร</label>
+                            <textarea class="form-control" id="editCourseDescription" name="course_description" rows="4" required></textarea>
                         </div>
-                        <div class="mb-3">
-                            <label for="editImage1" class="form-label">รูปที่ 1</label>
-                            <input type="file" class="form-control" id="editImage1" name="image1" accept="image/*" onchange="previewImage(event, 'previewEdit1')">
-                            <img id="previewEdit1" src="#" alt="Preview Image 1" class="img-thumbnail mt-2" style="max-height: 150px;">
+
+                        <hr class="my-4">
+                        <h6 class="fw-bold mb-3">รูปภาพประกอบ (เลือกไฟล์ใหม่เพื่อแทนที่ของเดิม)</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="editImage1" class="form-label">รูปที่ 1 (หลัก)</label>
+                                <input type="file" class="form-control" id="editImage1" name="image1" accept="image/*" onchange="previewImage(event, 'previewEdit1')">
+                                <img id="previewEdit1" src="#" alt="Preview Image 1" class="img-thumbnail mt-2" style="max-height: 150px; width: 100%; object-fit: cover;">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="editImage2" class="form-label">รูปที่ 2</label>
+                                <input type="file" class="form-control" id="editImage2" name="image2" accept="image/*" onchange="previewImage(event, 'previewEdit2')">
+                                <img id="previewEdit2" src="#" alt="Preview Image 2" class="img-thumbnail mt-2" style="max-height: 150px; width: 100%; object-fit: cover;">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="editImage3" class="form-label">รูปที่ 3</label>
+                                <input type="file" class="form-control" id="editImage3" name="image3" accept="image/*" onchange="previewImage(event, 'previewEdit3')">
+                                <img id="previewEdit3" src="#" alt="Preview Image 3" class="img-thumbnail mt-2" style="max-height: 150px; width: 100%; object-fit: cover;">
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="editImage2" class="form-label">รูปที่ 2</label>
-                            <input type="file" class="form-control" id="editImage2" name="image2" accept="image/*" onchange="previewImage(event, 'previewEdit2')">
-                            <img id="previewEdit2" src="#" alt="Preview Image 2" class="img-thumbnail mt-2" style="max-height: 150px;">
-                        </div>
-                        <div class="mb-3">
-                            <label for="editImage3" class="form-label">รูปที่ 3</label>
-                            <input type="file" class="form-control" id="editImage3" name="image3" accept="image/*" onchange="previewImage(event, 'previewEdit3')">
-                            <img id="previewEdit3" src="#" alt="Preview Image 3" class="img-thumbnail mt-2" style="max-height: 150px;">
-                        </div>
-                        <div class="text-center">
-                            <button type="submit" class="btn btn-success">บันทึกการเปลี่ยนแปลง</button>
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                        
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-4 border-top">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i>บันทึกการเปลี่ยนแปลง</button>
                         </div>
                     </form>
                 </div>
@@ -576,6 +584,7 @@ while ($row = $result->fetch_assoc()) {
         </div>
     </div>
 
+    <!-- Delete Confirmation Modal -->
     <div class="modal fade" id="deleteCourseModal" tabindex="-1" aria-labelledby="deleteCourseModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -594,9 +603,26 @@ while ($row = $result->fetch_assoc()) {
         </div>
     </div>
 
+    <!-- Toast Notification -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <i class="bi bi-check-circle-fill me-2 text-success"></i>
+                <strong class="me-auto">สำเร็จ</strong>
+                <small>เมื่อสักครู่</small>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toast-body">
+                <!-- Message will be injected here -->
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ใช้พาธ '../uploads/' ที่แก้แล้ว
+        // เก็บข้อมูลหลักสูตรทั้งหมดในตัวแปร JavaScript
+        const coursesData = <?= $courses_json ?>;
         const UPLOADS_PATH = '../uploads/';
 
         document.querySelectorAll('.view-course-btn').forEach(btn => {
@@ -651,11 +677,16 @@ while ($row = $result->fetch_assoc()) {
 
         document.querySelectorAll('.edit-course-btn').forEach(btn => {
             btn.addEventListener('click', function() {
-                const course = JSON.parse(this.getAttribute('data-course'));
+                const courseId = parseInt(this.getAttribute('data-course-id'), 10);
+                const course = coursesData.find(c => parseInt(c.id, 10) === courseId);
+                if (!course) {
+                    console.error('Course not found:', courseId, 'Available:', coursesData);
+                    return;
+                }
 
                 document.getElementById('editCourseId').value = course.id;
-                document.getElementById('editCourseName').value = course.name;
-                document.getElementById('editCourseDescription').value = course.description;
+                document.getElementById('editCourseName').value = course.course_name;
+                document.getElementById('editCourseDescription').value = course.course_description;
 
                 // ฟังก์ชันสำหรับตั้งค่ารูปภาพ
                 function setPreviewImage(courseImage, previewElementId) {
@@ -722,6 +753,30 @@ while ($row = $result->fetch_assoc()) {
             const deleteCourseModal = new bootstrap.Modal(document.getElementById('deleteCourseModal'));
             deleteCourseModal.show();
         }
+
+        // Toast notification for success/error messages from URL
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const success = urlParams.get('success');
+            const error = urlParams.get('error');
+            const toastEl = document.getElementById('liveToast');
+            const toastBody = document.getElementById('toast-body');
+            if (toastEl && (success || error)) {
+                let message = '';
+                if (success === 'update') {
+                    message = 'อัปเดตข้อมูลหลักสูตรสำเร็จ!';
+                } else if (success === 'add') {
+                    message = 'เพิ่มหลักสูตรใหม่สำเร็จ!';
+                } else if (error) {
+                    message = 'เกิดข้อผิดพลาด: ' + error;
+                } else {
+                    message = 'ดำเนินการสำเร็จ';
+                }
+                toastBody.textContent = message;
+                const toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            }
+        });
     </script>
 </body>
 

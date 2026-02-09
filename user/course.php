@@ -77,7 +77,7 @@
 
     /* Hero Carousel */
     .hero-carousel .carousel-item {
-      height: 60vh;
+      height: 70vh;
       min-height: 400px;
       background-color: #777;
     }
@@ -280,8 +280,54 @@
     }
 
     .card-action {
-      padding: 20px 25px 25px;
+      padding: 0 25px 25px;
       text-align: center;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .btn-action {
+      flex: 1;
+      padding: 12px 10px;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      transition: var(--transition);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 2px solid transparent;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    .btn-view {
+      background: var(--gradient-primary);
+      color: white;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-view:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px rgba(1, 106, 112, 0.2);
+      color: white;
+    }
+
+    .btn-comment {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .btn-comment:hover {
+      background: var(--primary);
+      color: white;
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-sm);
     }
 
     .btn-primary-gradient {
@@ -606,9 +652,6 @@
                   <div class="carousel-item active">
                       <img src="<?= $placeholderSrc ?? 'https://via.placeholder.com/1920x1080' ?>" class="d-block w-100" alt="Placeholder Image">
                       <div class="carousel-caption d-none d-md-block">
-                          <h5>ยินดีต้อนรับสู่ศูนย์การเรียนรู้</h5>
-                          <p>สำรวจกิจกรรมและหลักสูตรที่น่าสนใจของเรา</p>
-                      </div>
                   </div>
               <?php else: ?>
                   <?php foreach ($carousel_images as $index => $image): ?>
@@ -616,7 +659,6 @@
                           <img src="../uploads/<?= htmlspecialchars($image['image1']) ?>" class="d-block w-100" alt="<?= htmlspecialchars($image['course_name']) ?>">
                           <div class="carousel-caption d-none d-md-block">
                               <h5><?= htmlspecialchars($image['course_name']) ?></h5>
-                              <p>กิจกรรมการอบรมที่น่าสนใจจากเรา</p>
                           </div>
                       </div>
                   <?php endforeach; ?>
@@ -657,7 +699,16 @@
         $offset = 0;
       }
 
-      $query = "SELECT * FROM courses ORDER BY courses_id DESC LIMIT ? OFFSET ?";
+      // ใช้ LEFT JOIN เพื่อดึง ratings พร้อมกับ courses ในการ query เดียว (แก้ N+1 Problem)
+      $query = "SELECT 
+                  c.*,
+                  ROUND(AVG(cr.rating), 1) AS avg_rating,
+                  COUNT(cr.rating) AS rating_count
+                FROM courses c
+                LEFT JOIN course_rating cr ON c.courses_id = cr.courses_id
+                GROUP BY c.courses_id
+                ORDER BY c.courses_id DESC 
+                LIMIT ? OFFSET ?";
       $stmt = $conn->prepare($query);
 
       if (!$stmt) {
@@ -710,19 +761,9 @@
             $firstImage = !empty($images) ? reset($images) : null;
             $imageSrc = $firstImage && is_file($uploadsDir . $firstImage) ? '../uploads/' . htmlspecialchars($firstImage, ENT_QUOTES, 'UTF-8') : $placeholderSrc;
 
-            $ratingStmt = $conn->prepare("
-              SELECT 
-                ROUND(AVG(rating),1) AS avg_rating,
-                COUNT(*) AS cnt
-              FROM course_rating
-              WHERE courses_id = ?
-            ");
-            $ratingStmt->bind_param('i', $courseId);
-            $ratingStmt->execute();
-            $ratingRes = $ratingStmt->get_result()->fetch_assoc();
-            $avg_rating = $ratingRes['avg_rating'] ?? 0;
-            $rating_count = $ratingRes['cnt'] ?? 0;
-            $ratingStmt->close();
+            // ใช้ข้อมูล ratings จาก JOIN query ข้างบนแล้ว (ไม่ต้อง query แยก)
+            $avg_rating = (float)($row['avg_rating'] ?? 0);
+            $rating_count = (int)($row['rating_count'] ?? 0);
 
             // เพิ่ม badge สำหรับคอร์สพิเศษ
               // เพิ่ม badge สำหรับคอร์สพิเศษ: แสดง "ยอดนิยม" ถ้ามีผู้เรียน/เรตติ้งมากกว่า 5
@@ -738,7 +779,8 @@
                 <div class="card-image-container">
                   <img src="<?php echo $imageSrc; ?>" 
                        alt="<?php echo $courseName; ?>" 
-                       class="course-image">
+                       class="course-image"
+                       loading="lazy">
                   <div class="image-overlay"></div>
                 </div>
                 
@@ -770,11 +812,16 @@
                 </div>
                 
                 <div class="card-action">
-                  <a href="course_detail.php?id=<?php echo $courseId; ?>" 
-                     class="btn-primary-gradient">
-                    <i class="fas fa-eye"></i>
-                    ดูรายละกิจกรรมอบรม
-                  </a>
+                  <div class="button-group">
+                    <a href="course_detail.php?id=<?php echo $courseId; ?>" class="btn-action btn-view">
+                        <i class="fas fa-eye"></i>
+                        <span>ดูรายละเอียด</span>
+                    </a>
+                    <a href="course_detail.php?id=<?php echo $courseId; ?>#access-code-section" class="btn-action btn-comment">
+                        <i class="fas fa-comment-dots"></i>
+                        <span>แสดงความเห็น</span>
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>

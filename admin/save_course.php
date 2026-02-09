@@ -9,50 +9,72 @@ $course_description = htmlspecialchars($_POST['course_description'], ENT_QUOTES,
 
 // ตรวจสอบความยาวข้อมูล
 if (strlen($course_name) > 255 || strlen($course_description) > 1000) {
-    die("ข้อมูลยาวเกินไป");
+    // Redirect with an error message for better UX
+    $_SESSION['error'] = "ข้อมูลชื่อหลักสูตรหรือคำอธิบายยาวเกินไป";
+    header("Location: edit_courses.php");
+    exit;
 }
-
-// จัดการอัปโหลดรูปภาพ
-$image1 = $_FILES['image1']['name'] ? uniqid() . "_" . basename($_FILES['image1']['name']) : null;
-$image2 = $_FILES['image2']['name'] ? uniqid() . "_" . basename($_FILES['image2']['name']) : null;
-$image3 = $_FILES['image3']['name'] ? uniqid() . "_" . basename($_FILES['image3']['name']) : null;
 
 // กำหนดโฟลเดอร์สำหรับเก็บรูปภาพ
-$target_dir = "../uploads/";
+$target_dir = "../uploads";
 if (!is_dir($target_dir)) {
-    mkdir($target_dir, 0755, true); // ใช้ 0755 แทน 0777 เพื่อความปลอดภัย
+    mkdir($target_dir, 0755, true);
 }
-
-// ตรวจสอบประเภทไฟล์และอัปโหลดรูปภาพ
 $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-$allowed_extensions = ['jpg', 'jpeg', 'png', 'gif'];
+/**
+ * Handles file upload, validation, and renaming.
+ *
+ * @param string $file_key The key in the $_FILES array.
+ * @param string $target_dir The destination directory.
+ * @param array $allowed_types Allowed MIME types.
+ * @return string|null The new filename on success, or null on failure/no file.
+ */
+function handle_upload($file_key, $target_dir, $allowed_types) {
+    // ตรวจสอบว่ามีไฟล์ถูกส่งมาและไม่มีข้อผิดพลาด
+    if (isset($_FILES[$file_key]) && $_FILES[$file_key]['error'] === UPLOAD_ERR_OK) {
+        $file = $_FILES[$file_key];
+        
+        // ตรวจสอบประเภทไฟล์
+        if (!in_array($file['type'], $allowed_types)) {
+            $_SESSION['error'] = "ประเภทไฟล์ไม่ถูกต้องสำหรับ {$file_key} (รองรับเฉพาะ JPG, PNG, GIF)";
+            header("Location: edit_courses.php");
+            exit;
+        }
 
-function validateFile($file, $allowed_types, $allowed_extensions) {
-    $file_type = $file['type'];
-    $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        // สร้างชื่อไฟล์ใหม่ที่ไม่ซ้ำกันเพื่อป้องกันการเขียนทับ
+        $new_filename = uniqid() . "_" . basename($file['name']);
+        $target_path = $target_dir . $new_filename;
 
-    return in_array($file_type, $allowed_types) && in_array($file_extension, $allowed_extensions);
+        // ย้ายไฟล์ไปยังโฟลเดอร์เป้าหมาย
+        if (move_uploaded_file($file['tmp_name'], $target_path)) {
+            return $new_filename; // คืนค่าชื่อไฟล์ใหม่
+        } else {
+            $_SESSION['error'] = "ไม่สามารถอัปโหลดไฟล์ {$file_key} ได้";
+            header("Location: edit_courses.php");
+            exit;
+        }
+    }
+    // ถ้าไม่มีไฟล์ส่งมา หรือมีข้อผิดพลาด ให้คืนค่า null
+    return null;
 }
 
-if ($image1 && validateFile($_FILES['image1'], $allowed_types, $allowed_extensions)) {
-    move_uploaded_file($_FILES['image1']['tmp_name'], $target_dir . $image1);
-}
-if ($image2 && validateFile($_FILES['image2'], $allowed_types, $allowed_extensions)) {
-    move_uploaded_file($_FILES['image2']['tmp_name'], $target_dir . $image2);
-}
-if ($image3 && validateFile($_FILES['image3'], $allowed_types, $allowed_extensions)) {
-    move_uploaded_file($_FILES['image3']['tmp_name'], $target_dir . $image3);
-}
+// เรียกใช้ฟังก์ชันสำหรับแต่ละไฟล์
+$image1 = handle_upload('image1', $target_dir, $allowed_types);
+$image2 = handle_upload('image2', $target_dir, $allowed_types);
+$image3 = handle_upload('image3', $target_dir, $allowed_types);
 
 // บันทึกข้อมูลลงฐานข้อมูล
 $stmt = $conn->prepare("INSERT INTO courses (course_name, course_description, image1, image2, image3) VALUES (?, ?, ?, ?, ?)");
 $stmt->bind_param("sssss", $course_name, $course_description, $image1, $image2, $image3);
 
 if ($stmt->execute()) {
-    header("Location: edit_courses.php");
+    // Redirect with a success message
+    header("Location: edit_courses.php?success=add");
     exit();
 } else {
-    echo "เกิดข้อผิดพลาดในการบันทึกข้อมูล";
+    // Redirect with a specific error
+    header("Location: edit_courses.php?error=" . urlencode($stmt->error));
+    exit();
 }
 
 $stmt->close();
