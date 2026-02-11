@@ -340,7 +340,7 @@ body {
 }
 
 .modal-header {
-    background: #333;
+    background: #02b3aa;
     color: white;
     border: none;
     padding: 20px 30px;
@@ -627,6 +627,34 @@ if ($result->num_rows > 0):
             สินค้าตามฤดูกาล - อาจมีจำนวนจำกัด
         </div>
         <?php endif; ?>
+        <!-- เลือกจำนวน -->
+<div class="mt-4">
+    <label class="fw-bold mb-2">
+        <i class="fas fa-sort-numeric-up"></i> จำนวน
+    </label>
+
+    <div class="input-group" style="max-width: 180px;">
+        <button class="btn btn-outline-secondary" 
+                type="button"
+                onclick="decreaseQty(<?= $p['product_id'] ?>)">-</button>
+
+        <input type="number" 
+               id="qty<?= $p['product_id'] ?>" 
+               class="form-control text-center" 
+               value="1" min="1">
+
+        <button class="btn btn-outline-secondary" 
+                type="button"
+                onclick="increaseQty(<?= $p['product_id'] ?>)">+</button>
+    </div>
+</div>
+<div class="mt-4 text-center">
+    <button class="btn btn-success btn-lg w-100"
+            onclick="addToCart(<?= $p['product_id'] ?>)">
+        <i class="fas fa-cart-plus"></i> เพิ่มลงตะกร้า
+    </button>
+</div>
+
       </div>
     </div>
   </div>
@@ -759,6 +787,32 @@ function pulseCartButton() {
     }, 1000);
 }
 
+function increaseQty(id){
+    let input = document.getElementById('qty'+id);
+    input.value = parseInt(input.value) + 1;
+}
+
+function decreaseQty(id){
+    let input = document.getElementById('qty'+id);
+    if(parseInt(input.value) > 1){
+        input.value = parseInt(input.value) - 1;
+    }
+}
+
+function addToCart(product_id){
+    let qty = document.getElementById('qty'+product_id).value;
+
+    fetch('add_to_cart.php', {
+        method: 'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body: 'product_id='+product_id+'&qty='+qty
+    })
+    .then(res => res.text())
+    .then(data => {
+        alert('เพิ่มลงตะกร้าแล้ว');
+        location.reload(); // หรืออัปเดต badge
+    });
+}
 </script>
 
 </body>

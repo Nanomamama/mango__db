@@ -678,7 +678,7 @@ $statusText = $statusMap[$order['order_status']] ?? $order['order_status'];
                                     <div class="item-meta">
                                         <span>ราคา: ฿<?= number_format($i['price'], 2) ?></span>
                                         <span>จำนวน: <?= $i['quantity'] ?></span>
-                                        <span>หน่วย: <?= htmlspecialchars($i['unit'] ?? 'ชิ้น') ?></span>
+                                        <span>หน่วย: <?= htmlspecialchars($i['unit'] ?? '' ) ?></span>
                                     </div>
                                 </div>
                                 <div class="item-total">฿<?= number_format($sum, 2) ?></div>
