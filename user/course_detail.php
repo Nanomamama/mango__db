@@ -3,12 +3,22 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// ถ้าผู้ใช้ถูกปิดการใช้งาน ให้ยกเลิก session และเปลี่ยนเส้นทางกลับหน้า login ทันที
+if (isset($_SESSION['member_id']) && isset($member_status) && (int)$member_status === 0) {
+    // ทำลาย session และ redirect ไปหน้า index พร้อมพารามิเตอร์แจ้งเตือน
+    session_unset();
+    session_destroy();
+    header('Location: index.php?login_error=disabled');
+    exit;
+}
+
 // กำหนดค่าเริ่มต้นของชื่อผู้ใช้
 $loggedInUserName = '';
 
 // ตรวจสอบว่ามีข้อมูลผู้ใช้ใน Session หรือไม่
 if (isset($_SESSION['member_id']) && !empty($_SESSION['member_id'])) {
     require_once __DIR__ . '/../db/db.php';
+
 
     // ดึงชื่อจากฐานข้อมูล
     $memberId = (int)$_SESSION['member_id'];

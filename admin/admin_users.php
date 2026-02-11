@@ -12,6 +12,11 @@ $csrf_token = $_SESSION['csrf_token'];
 $admin_name = $_SESSION['admin_name'] ?? '';
 $admin_email = $_SESSION['admin_email'] ?? '';
 
+// รับข้อความจาก URL parameter
+$success_msg = $_GET['success'] ?? null;
+$warning_msg = $_GET['warning'] ?? null;
+$error_msg = $_GET['error'] ?? null;
+
 // อัพเดตสถานะหรือการลบผู้ใช้ (รับเฉพาะ POST และตรวจ CSRF)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'])) {
     // ตรวจ CSRF
@@ -39,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
     header("Location: admin_users.php");
     exit;
 }
+
 
 // ดึงข้อมูลผู้ใช้ทั้งหมด
 $result = $conn->query("SELECT * FROM members ORDER BY member_id DESC");
@@ -419,6 +425,27 @@ while ($row = $result->fetch_assoc()) {
     
     <div class="p-4" style="margin-left: 250px; flex: 1;">
         <!-- Header -->
+        <?php if ($success_msg): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i> <?= htmlspecialchars($success_msg) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+        <?php if ($warning_msg): ?>
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> <?= htmlspecialchars($warning_msg) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+        <?php if ($error_msg): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-x-circle-fill me-2"></i> <?= htmlspecialchars($error_msg) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+
+
+
         <header class="dashboard-header pb-4 mb-4">
                 <div class="container">
                     <div class="d-flex justify-content-between align-items-center flex-wrap">
@@ -494,10 +521,10 @@ while ($row = $result->fetch_assoc()) {
                             <option value="active">เปิดใช้งาน</option>
                             <option value="inactive">ปิดใช้งาน</option>
                         </select>
-                        <select class="form-select" style="border-radius: 50px;" id="sortFilter">
+                        <!-- <select class="form-select" style="border-radius: 50px;" id="sortFilter">
                             <option value="date" selected>เรียงตามวันที่</option>
                             <option value="name">เรียงตามชื่อ</option>
-                        </select>
+                        </select> -->
                     </div>
                 </div>
             </div>
@@ -551,14 +578,9 @@ while ($row = $result->fetch_assoc()) {
                             </button>
 
                             <?php if (isset($user['status']) && $user['status']): ?>
-                                <form method="post" action="admin_users.php" style="display:inline-block;">
-                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
-                                    <input type="hidden" name="id" value="<?= $user['member_id'] ?>">
-                                    <input type="hidden" name="action" value="disable">
-                                    <button type="submit" class="btn action-btn btn-disable">
-                                        <i class="bi bi-person-dash"></i> ปิดใช้งาน
-                                    </button>
-                                </form>
+                                <button type="button" class="btn action-btn btn-disable" data-bs-toggle="modal" data-bs-target="#disableUserModal" data-user-id="<?= $user['member_id'] ?>" data-user-name="<?= htmlspecialchars($user['fullname']) ?>">
+                                    <i class="bi bi-person-dash"></i> ปิดใช้งาน
+                                </button>
                             <?php else: ?>
                                 <form method="post" action="admin_users.php" style="display:inline-block;">
                                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
@@ -670,8 +692,49 @@ while ($row = $result->fetch_assoc()) {
       </div>
     </div>
 
+    <!-- Disable User Modal -->
+    <div class="modal fade" id="disableUserModal" tabindex="-1" aria-labelledby="disableUserModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <form action="disable_user_process.php" method="POST">
+            <div class="modal-header bg-danger text-white">
+              <h5 class="modal-title" id="disableUserModalLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i>ยืนยันการปิดใช้งานบัญชี</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p>คุณต้องการปิดใช้งานบัญชีของ <strong id="disableUserName"></strong> ใช่หรือไม่?</p>
+              <p>การดำเนินการนี้จะทำให้ผู้ใช้ไม่สามารถเข้าสู่ระบบได้อีก</p>
+              <div class="mb-3">
+                <label for="disableReason" class="form-label"><strong>เหตุผลในการปิดใช้งาน (จะถูกส่งไปยังอีเมลผู้ใช้):</strong></label>
+                <textarea class="form-control" id="disableReason" name="reason" rows="4" placeholder="เช่น ตรวจพบการใช้งานที่ผิดปกติ, การละเมิดข้อตกลงการใช้งาน, ฯลฯ" required></textarea>
+              </div>
+              <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+              <input type="hidden" name="id" id="disableUserId">
+              <input type="hidden" name="action" value="disable">
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+              <button type="submit" class="btn btn-danger">ยืนยันการปิดใช้งาน</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+    const disableUserModal = document.getElementById('disableUserModal');
+    if (disableUserModal) {
+        disableUserModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const userId = button.getAttribute('data-user-id');
+            const userName = button.getAttribute('data-user-name');
+            const modalUserName = disableUserModal.querySelector('#disableUserName');
+            const modalUserId = disableUserModal.querySelector('#disableUserId');
+            modalUserName.textContent = userName;
+            modalUserId.value = userId;
+        });
+    }
     function translateLoginReason(reason) {
         const reasons = {
             'success': 'เข้าสู่ระบบสำเร็จ',
