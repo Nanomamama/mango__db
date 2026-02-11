@@ -4,6 +4,27 @@
   }
   require_once __DIR__ . '/../db/db.php';
 
+  // ตรวจสอบสถานะผู้ใช้ที่เข้าสู่ระบบ
+  if (isset($_SESSION['member_id'])) {
+      $member_id_for_status_check = $_SESSION['member_id'];
+      $stmt_status = $conn->prepare("SELECT status FROM members WHERE member_id = ?");
+      if ($stmt_status) {
+          $stmt_status->bind_param("i", $member_id_for_status_check);
+          $stmt_status->execute();
+          $result_status = $stmt_status->get_result();
+          if ($row_status = $result_status->fetch_assoc()) {
+              if ((int)$row_status['status'] === 0) {
+                  // บัญชีถูกปิดใช้งาน, ทำลาย session และ redirect
+                  session_unset();
+                  session_destroy();
+                  header('Location: index.php?login_error=disabled');
+                  exit;
+              }
+          }
+          $stmt_status->close();
+      }
+  }
+
   // Fetch images for the hero carousel
   $carousel_images = [];
   $carousel_sql = "SELECT course_name, image1 FROM courses WHERE image1 IS NOT NULL AND image1 != '' ORDER BY courses_id DESC LIMIT 7";

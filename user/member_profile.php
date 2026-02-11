@@ -29,14 +29,26 @@ $email = $email ?? '';
 $created_at = $created_at ?? date('Y-m-d H:i:s');
 $member_status = $member_status ?? 0;
 
-// ถ้าผู้ใช้ถูกปิดการใช้งาน ให้ยกเลิก session และเปลี่ยนเส้นทางกลับหน้า login ทันที
-if (isset($member_status) && (int)$member_status === 0) {
-    // ทำลาย session และ redirect ไปหน้า login พร้อมพารามิเตอร์แจ้งเตือน
-    session_unset();
-    session_destroy();
-    header('Location: member_login.php?blocked=1');
-    exit;
-}
+// ตรวจสอบสถานะผู้ใช้ที่เข้าสู่ระบบ
+    if (isset($_SESSION['member_id'])) {
+        $member_id_for_status_check = $_SESSION['member_id'];
+        $stmt_status = $conn->prepare("SELECT status FROM members WHERE member_id = ?");
+        if ($stmt_status) {
+            $stmt_status->bind_param("i", $member_id_for_status_check);
+            $stmt_status->execute();
+            $result_status = $stmt_status->get_result();
+            if ($row_status = $result_status->fetch_assoc()) {
+                if ((int)$row_status['status'] === 0) {
+                    // บัญชีถูกปิดใช้งาน, ทำลาย session และ redirect
+                    session_unset();
+                    session_destroy();
+                    header('Location: index.php?login_error=disabled');
+                    exit;
+                }
+            }
+            $stmt_status->close();
+        }
+    }
 
 // นับการจองทั้งหมดสำหรับสมาชิก
 $booking_count = 0;

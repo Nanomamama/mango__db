@@ -28,7 +28,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $ip = get_client_ip();
         $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
         insert_login_log($conn, 0, $email, $ip, $ua, 0, 'missing_fields');
-        echo "<script>alert('กรุณากรอกอีเมลและรหัสผ่าน');history.back();</script>";
+        header("Location: member_login.php?error=" . urlencode('กรุณากรอกอีเมลและรหัสผ่าน'));
         exit;
     }
 
@@ -45,7 +45,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
             $mid = isset($row['member_id']) ? (int)$row['member_id'] : 0;
             insert_login_log($conn, $mid, $email, $ip, $ua, 0, 'disabled');
-            echo "<script>alert('บัญชีของคุณถูกปิดใช้งาน โปรดติดต่อผู้ดูแลระบบ');history.back();</script>";
+            // ส่งไปหน้าแรกพร้อมกับพารามิเตอร์แจ้งเตือนว่าบัญชีถูกปิด
+            header("Location: index.php?login_error=disabled");
             exit;
         }
 
@@ -72,7 +73,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
             $mid = isset($row['member_id']) ? (int)$row['member_id'] : 0;
             insert_login_log($conn, $mid, $email, $ip, $ua, 0, 'wrong_password');
-            echo "<script>alert('รหัสผ่านไม่ถูกต้อง');history.back();</script>";
+            header("Location: member_login.php?error=" . urlencode('อีเมลหรือรหัสผ่านไม่ถูกต้อง'));
             exit;
         }
     } else {
@@ -80,7 +81,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $ip = get_client_ip();
         $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
         insert_login_log($conn, 0, $email, $ip, $ua, 0, 'not_found');
-        echo "<script>alert('ไม่พบอีเมล์นี้ในระบบ');history.back();</script>";
+        header("Location: member_login.php?error=" . urlencode('อีเมลหรือรหัสผ่านไม่ถูกต้อง'));
         exit;
     }
     $stmt->close();
