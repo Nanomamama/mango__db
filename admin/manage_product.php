@@ -1,6 +1,23 @@
 <?php
 require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
+
+// ดึงชื่อ admin จาก session
+$admin_name = $_SESSION['admin_name'] ?? '';
+$admin_email = $_SESSION['admin_email'] ?? '';
+
+// Get counts for filter buttons
+$sql_counts = "SELECT 
+    COUNT(*) as total,
+    SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_count,
+    SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) as inactive_count
+    FROM products";
+$counts_result = $conn->query($sql_counts);
+$counts = $counts_result->fetch_assoc();
+
+// Get current status for active button
+$current_status = $_GET['status'] ?? 'all';
+
 ?>
 
 <!DOCTYPE html>
@@ -10,7 +27,36 @@ require_once __DIR__ . '/../db/db.php';
     <meta charset="UTF-8">
     <title>จัดการสินค้า</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+
+        :root {
+            --bs-primary-rgb: 67, 97, 238;
+            --bs-success-rgb: 46, 204, 113;
+            --bs-danger-rgb: 231, 76, 60;
+
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --info: #36b9cc;
+            --warning: #f6c23e;
+            --danger: #e74a3b;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --purple: #7209b7;
+            --teal: #20c997;
+            --pink: #e83e8c;
+            --cyan: #0dcaf0;
+            --mango: #FFC107;
+            --mango-dark: #E6A000;
+        }
+
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #f5f7fa;
+        }
+
         .main-content {
             margin-left: 250px;
             padding: 20px;
@@ -32,6 +78,58 @@ require_once __DIR__ . '/../db/db.php';
             width: 100%;
             object-fit: cover;
         }
+
+
+        .dashboard-header {
+            background: linear-gradient(120deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 1rem;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+            position: relative;
+            overflow: hidden;
+            z-index: 10;
+            border-radius: 50px;
+        }
+
+        .dashboard-header::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 70%);
+            pointer-events: none;
+        }
+
+        .admin-profile {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+        }
+
+        .admin-profile:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .admin-profile img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .admin-profile span {
+            font-weight: 500;
+            color: white;
+            font-size: 0.9rem;
+        }
+
     </style>
 </head>
 
@@ -41,18 +139,41 @@ require_once __DIR__ . '/../db/db.php';
     <div class="main-content">
         <div class="p-4">
 
-            <h2 class="mb-3"> จัดการสินค้า</h2>
-
-            <a href="add_product.php" class="btn btn-primary mb-3"><h5>➕ เพิ่มสินค้า</h5></a>
-            <div class="mb-3">
-                <a href="manage_product.php"
-                    class="btn btn-outline-dark btn-sm"><h6>ทั้งหมด</h6></a>
-
-                <a href="manage_product.php?status=active"
-                    class="btn btn-outline-success btn-sm"><h6>กำลังเปิดขาย</h6></a>
-
-                <a href="manage_product.php?status=inactive"
-                    class="btn btn-outline-secondary btn-sm"><h6>ปิดขายไว้</h6></a>
+                        <!-- Header -->
+            <header class="dashboard-header">
+                <div class="container">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <div>
+                            <h1 class="dashboard-title mb-0">จัดการสินค้า</h1>
+                        </div>
+                        <div class="d-flex align-items-center gap-3 mt-2 mt-md-0">
+                            <div class="admin-profile">
+                                <img src="https://ui-avatars.com/api/?name=<?= urlencode($admin_name) ?>&background=random&color=fff" alt="Admin">
+                                <span><?= htmlspecialchars($admin_name) ?></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            <br>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <!-- Filter Buttons -->
+                <div class="d-flex gap-2">
+                    <a href="manage_product.php" class="btn <?= $current_status == 'all' ? 'btn-dark' : 'btn-outline-dark' ?> rounded-pill">
+                        <i class="bi bi-grid-3x3-gap-fill"></i> ทั้งหมด
+                        <span class="badge text-bg-light ms-1"><?= $counts['total'] ?? 0 ?></span>
+                    </a>
+                    <a href="manage_product.php?status=active" class="btn <?= $current_status == 'active' ? 'btn-success' : 'btn-outline-success' ?> rounded-pill">
+                        <i class="bi bi-check-circle-fill"></i> กำลังเปิดขาย
+                        <span class="badge text-bg-light ms-1"><?= $counts['active_count'] ?? 0 ?></span>
+                    </a>
+                    <a href="manage_product.php?status=inactive" class="btn <?= $current_status == 'inactive' ? 'btn-secondary' : 'btn-outline-secondary' ?> rounded-pill">
+                        <i class="bi bi-x-circle-fill"></i> ปิดขายไว้
+                        <span class="badge text-bg-light ms-1"><?= $counts['inactive_count'] ?? 0 ?></span>
+                    </a>
+                </div>
+                <!-- Add Product Button -->
+                <a href="add_product.php" class="btn btn-primary rounded-pill shadow-sm"><i class="bi bi-plus-lg me-1"></i> เพิ่มสินค้าใหม่</a>
             </div>
 
             <div class="row g-4">
@@ -61,7 +182,7 @@ require_once __DIR__ . '/../db/db.php';
                 $where = "";
                 if (isset($_GET['status'])) {
                     $status = $_GET['status'];
-                    if (in_array($status, ['active', 'inactive'])) {
+                    if (in_array($status, ['active', 'inactive'], true)) {
                         $where = "WHERE status = '$status'";
                     }
                 }

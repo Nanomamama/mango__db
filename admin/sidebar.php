@@ -265,7 +265,7 @@
 
                         // ถ้าเพิ่มขึ้นจากเดิม ให้เล่นเสียงและกระพริบ
                         if (count > previousCount) {
-                            playBeep();
+                            // playBeep(); // ปิดเสียงแจ้งเตือนตามคำขอ
                             bell.classList.add('flash');
                             setTimeout(() => bell.classList.remove('flash'), 2500);
                         }
