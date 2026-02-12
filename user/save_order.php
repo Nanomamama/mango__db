@@ -11,20 +11,26 @@ $cart_json = $_POST['cart_data'];
 
 $cart = json_decode($cart_json, true);
 
-$order_code = "ORD".date("YmdHis").rand(100,999); // กันชน 100%
+$order_code = "ORD".date("YmdHis").rand(100,999);
 $order_status = "pending";
 
-/* INSERT orders */
+/* ===== คำนวณยอดรวม ===== */
+$total_amount = 0;
+foreach($cart as $p){
+    $total_amount += $p['quantity'] * $p['price'];
+}
+
+/* ===== INSERT orders (มี total_amount) ===== */
 $stmt = $conn->prepare("
 INSERT INTO orders 
 (order_code, member_id, customer_name, customer_phone,
  customer_address, receive_type, receive_datetime,
- order_status, order_date)
-VALUES (?,?,?,?,?,?,?,?,NOW())
+ order_status, order_date, total_amount)
+VALUES (?,?,?,?,?,?,?,?,NOW(),?)
 ");
 
 $stmt->bind_param(
-"ssssssss",
+"ssssssssd",
 $order_code,
 $member_id,
 $customer_name,
@@ -32,20 +38,14 @@ $customer_phone,
 $customer_address,
 $receive_type,
 $receive_datetime,
-$order_status
+$order_status,
+$total_amount
 );
 
 $stmt->execute();
 $order_id = $stmt->insert_id;
 
-$receive_type = $_POST['receive_type'];
-$customer_address = $_POST['customer_address'] ?? null;
-
-if ($receive_type === 'pickup' && empty($customer_address)) {
-    $customer_address = null;
-}
-
-/* INSERT order_items */
+/* ===== INSERT order_items ===== */
 $item = $conn->prepare("
 INSERT INTO order_items
 (order_id, product_id, quantity, price, product_name)

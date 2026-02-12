@@ -2,12 +2,15 @@
 require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
 
+// ===== รายการออเดอร์ =====
 $status = $_GET['status'] ?? 'all';
 
-/* ================== QUERY LIST ORDER ================== */
 $where = "";
+$params = [];
+
 if ($status != 'all') {
-    $where = "WHERE o.order_status = '$status'";
+    $where = "WHERE o.order_status = ?";
+    $params[] = $status;
 }
 
 $sql = "
@@ -21,26 +24,51 @@ GROUP BY o.order_id
 ORDER BY o.order_date DESC
 ";
 
-$result = $conn->query($sql);
+$stmt = $conn->prepare($sql);
+if ($params) {
+    $stmt->bind_param("s", ...$params);
+}
+$stmt->execute();
+$result = $stmt->get_result();
 
+$sumStmt = $conn->prepare("
+    SELECT SUM(total_amount) AS revenue
+    FROM orders
+    WHERE order_status = 'completed'
+");
+$sumStmt->execute();
+$revenueStats = $sumStmt->get_result()->fetch_assoc();
 
-/* ================== QUERY STATS ================== */
+// ===== สถิติออเดอร์ =====
+// ===== สถิติออเดอร์ =====
 $today = date('Y-m-d');
 
 $sql_stats = "
 SELECT 
-    COUNT(DISTINCT o.order_id) as total_count,
-    SUM(CASE WHEN o.order_status = 'pending' THEN 1 ELSE 0 END) as pending_count,
-    SUM(CASE WHEN o.order_status = 'approved' THEN 1 ELSE 0 END) as approved_count,
-    SUM(CASE WHEN o.order_status = 'rejected' THEN 1 ELSE 0 END) as rejected_count,
-    SUM(CASE WHEN DATE(o.order_date) = '$today' THEN 1 ELSE 0 END) as today_count,
-    COALESCE(SUM(oi.quantity * oi.price),0) as total_amount
-FROM orders o
-LEFT JOIN order_items oi ON o.order_id = oi.order_id
+    COUNT(order_id) as total_count,
+    SUM(order_status = 'pending') as pending_count,
+    SUM(order_status = 'approved') as approved_count,
+    SUM(order_status = 'rejected') as rejected_count,
+    SUM(DATE(order_date) = '$today') as today_count
+FROM orders
 ";
 
 $result_stats = $conn->query($sql_stats);
 $stats = $result_stats->fetch_assoc();
+
+
+// ===== สถิติยอดเงิน =====
+$sql_revenue = "
+SELECT SUM(total_amount) as revenue
+FROM orders
+WHERE order_status = 'completed'
+";
+
+$result_revenue = $conn->query($sql_revenue);
+$revenueStats = $result_revenue->fetch_assoc();
+
+
+
 ?>
 
 
@@ -172,51 +200,70 @@ $stats = $result_stats->fetch_assoc();
         }
 
         .badge-pending {
-            background-color: #fff3cd;
-            color: #856404;
+            background-color: #ffe600;
+            color: #000000;
+           
         }
 
         .badge-approved {
-            background-color: #d4edda;
-            color: #155724;
+            background-color: #78ff3a;
+            color: #000000;
+           
         }
 
         .badge-rejected {
-            background-color: #f8d7da;
-            color: #721c24;
+            background-color: #f30116;
+            color: #ffffff;
+            
         }
 
 
         .btn-action {
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.85rem;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
             text-decoration: none;
-            margin-right: 5px;
             display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
+            transition: 0.2s;
         }
 
+        /* ดูรายละเอียด = primary */
+        .btn-view {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #38bdf8;
+        }
+
+        .btn-view:hover {
+            background: #bae6fd;
+        }
+
+        /* ยืนยัน = success */
         .btn-approve {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #4ade80;
         }
 
         .btn-approve:hover {
-            background-color: #c3e6cb;
+            background: #bbf7d0;
         }
 
+        /* ปฏิเสธ = danger (ชัดที่สุด) */
         .btn-reject {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #f87171;
+
         }
 
         .btn-reject:hover {
-            background-color: #f5c6cb;
+            background: #fecaca;
         }
+
 
         .btn-view {
             background-color: #cce5ff;
@@ -283,10 +330,10 @@ $stats = $result_stats->fetch_assoc();
         }
 
         .navbar {
-            background-color: white;
+            background-color: #4361ec;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            padding: 15px 25px;
-            border-radius: 10px;
+            padding: 27px 25px;
+            border-radius: 50px;
 
         }
 
@@ -342,36 +389,34 @@ $stats = $result_stats->fetch_assoc();
         .order-card-body .total {
             font-size: 18px;
             font-weight: bold;
-            color: #2ecc71;
+            color: #00be4f;
             margin-top: 10px;
         }
 
-        .order-card-footer {
-            margin-top: 10px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
+
     </style>
 </head>
 
 <body>
+    <?php if (isset($_GET['msg']) && $_GET['msg'] == 'deleted'): ?>
+        <div id="successAlert" class="alert alert-success text-center fs-5 fw-bold">
+            ✅ ลบคำสั่งซื้อเรียบร้อยแล้ว
+        </div>
+
+        <script>
+            setTimeout(() => {
+                document.getElementById('successAlert').remove();
+            }, 3000);
+        </script>
+    <?php endif; ?>
+
     <?php include 'sidebar.php'; ?>
     <!-- Navbar -->
     <div class="navbar">
         <div class="d-flex justify-content-between align-items-center w-100">
             <div>
-                <h4 class="mb-0"><i class="fas fa-shopping-cart text-primary"></i> จัดการคำสั่งซื้อ</h4>
-                <small class="text-muted">ตรวจสอบและจัดการคำสั่งซื้อทั้งหมด</small>
-            </div>
-
-            <div class="d-flex gap-3">
-                <a href="dashboard.php" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-home"></i> แดชบอร์ด
-                </a>
-                <a href="manage_product.php" class="btn btn-outline-success btn-sm">
-                    <i class="fas fa-box"></i> จัดการสินค้า
-                </a>
+                <h2 class="mb-0 text-white"> จัดการคำสั่งซื้อ</h2>
+                <!-- <small class="text-muted ">ตรวจสอบและจัดการคำสั่งซื้อทั้งหมด</small> -->
             </div>
         </div>
     </div>
@@ -383,7 +428,7 @@ $stats = $result_stats->fetch_assoc();
                 <div class="stat-icon icon-all">
                     <i class="fas fa-shopping-cart"></i>
                 </div>
-                <div class="stat-number"><?= number_format($stats['total_count']?? 0) ?></div>
+                <div class="stat-number"><?= number_format($stats['total_count'] ?? 0) ?></div>
                 <div class="stat-title">ออเดอร์ทั้งหมด</div>
             </div>
         </div>
@@ -403,7 +448,7 @@ $stats = $result_stats->fetch_assoc();
                 <div class="stat-icon icon-approved">
                     <i class="fas fa-check-circle"></i>
                 </div>
-                <div class="stat-number"><?= number_format($stats['approved_count']?? 0) ?></div>
+                <div class="stat-number"><?= number_format($stats['approved_count'] ?? 0) ?></div>
                 <div class="stat-title">ยืนยันแล้ว</div>
             </div>
         </div>
@@ -413,7 +458,7 @@ $stats = $result_stats->fetch_assoc();
                 <div class="stat-icon icon-rejected">
                     <i class="fas fa-times-circle"></i>
                 </div>
-                <div class="stat-number"><?= number_format($stats['rejected_count']?? 0) ?></div>
+                <div class="stat-number"><?= number_format($stats['rejected_count'] ?? 0) ?></div>
                 <div class="stat-title">ปฏิเสธแล้ว</div>
             </div>
         </div>
@@ -423,7 +468,7 @@ $stats = $result_stats->fetch_assoc();
                 <div class="stat-icon icon-today">
                     <i class="fas fa-calendar-day"></i>
                 </div>
-                <div class="stat-number"><?= number_format($stats['today_count']?? 0) ?></div>
+                <div class="stat-number"><?= number_format($stats['today_count'] ?? 0) ?></div>
                 <div class="stat-title">วันนี้</div>
             </div>
         </div>
@@ -433,7 +478,9 @@ $stats = $result_stats->fetch_assoc();
                 <div class="stat-icon icon-revenue">
                     <i class="fas fa-money-bill-wave"></i>
                 </div>
-                <div class="stat-number"><?= number_format($stats['total_amount'], 2) ?></div>
+                <div class="stat-number">
+                    <?= number_format($revenueStats['revenue'] ?? 0, 2) ?>
+                </div>
                 <div class="stat-title">ยอดรวม (บาท)</div>
             </div>
         </div>
@@ -448,33 +495,35 @@ $stats = $result_stats->fetch_assoc();
         <div class="mb-4">
             <a href="?status=all"
                 class="btn-filter btn-filter-all <?= $status == 'all' ? 'active' : '' ?>">
-                <i class="fas fa-list"></i> ทั้งหมด (<?= number_format($stats['total_count']?? 0) ?>)
+                <i class="fas fa-list"></i> ทั้งหมด (<?= number_format($stats['total_count'] ?? 0) ?>)
             </a>
 
             <a href="?status=pending"
                 class="btn-filter btn-filter-pending <?= $status == 'pending' ? 'active' : '' ?>">
-                <i class="fas fa-clock"></i> รอยืนยัน (<?= number_format($stats['pending_count']?? 0) ?>)
+                <i class="fas fa-clock"></i> รอยืนยัน (<?= number_format($stats['pending_count'] ?? 0) ?>)
             </a>
 
             <a href="?status=approved"
                 class="btn-filter btn-filter-approved <?= $status == 'approved' ? 'active' : '' ?>">
-                <i class="fas fa-check-circle"></i> ยืนยันแล้ว (<?= number_format($stats['approved_count']?? 0) ?>)
+                <i class="fas fa-check-circle"></i> ยืนยันแล้ว (<?= number_format($stats['approved_count'] ?? 0) ?>)
             </a>
 
             <a href="?status=rejected"
                 class="btn-filter btn-filter-rejected <?= $status == 'rejected' ? 'active' : '' ?>">
-                <i class="fas fa-times-circle"></i> ปฏิเสธแล้ว (<?= number_format($stats['rejected_count']?? 0) ?>)
+                <i class="fas fa-times-circle"></i> ปฏิเสธแล้ว (<?= number_format($stats['rejected_count'] ?? 0) ?>)
             </a>
         </div>
     </div>
 
-    <!-- ตารางออเดอร์ -->
+    <!-- ตารางออเดอร์ -------------------------------------------------------------------------------------------------->
     <div class="dashboard-card">
         <div class="card-header">
             <h5 class="card-title">
                 <i class="fas fa-table"></i> รายการคำสั่งซื้อ
                 <?php if ($status != 'all'): ?>
-                    - <span class="text-primary"><?= $status == 'pending' ? 'รอยืนยัน' : ($status == 'approved' ? 'ยืนยันแล้ว' : 'ปฏิเสธแล้ว') ?></span>
+                    - <span class="text-primary">
+                        <?= $status == 'pending' ? 'รอยืนยัน' : ($status == 'approved' ? 'ยืนยันแล้ว' : 'ปฏิเสธแล้ว') ?>
+                    </span>
                 <?php endif; ?>
             </h5>
             <small>แสดง <?= $result->num_rows ?> รายการ</small>
@@ -485,48 +534,45 @@ $stats = $result_stats->fetch_assoc();
                 <?php while ($order = $result->fetch_assoc()): ?>
                     <div class="order-card">
 
-                        <!-- Header -->
-                        <div class="order-card-header">
-                            <div>
-                                <strong>#<?= htmlspecialchars($order['order_code']) ?></strong><br>
-                                <small><?= date('d/m/Y', strtotime($order['order_date'])) ?></small>
-                            </div>
-                            <div>
-                                <?php if ($order['order_status'] == 'pending'): ?>
-                                    <span class="status-badge badge-pending">รอยืนยัน</span>
-                                <?php elseif ($order['order_status'] == 'approved'): ?>
-                                    <span class="status-badge badge-approved">ยืนยันแล้ว</span>
-                                <?php elseif ($order['order_status'] == 'rejected'): ?>
-                                    <span class="status-badge badge-rejected">ปฏิเสธแล้ว</span>
-                                <?php endif; ?>
+                        <!-- Context + Status -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong>#<?= htmlspecialchars($order['order_code']) ?></strong>
+
+                            <?php if ($order['order_status'] == 'pending'): ?>
+                                <span class="status-badge badge-pending">รอยืนยัน</span>
+                            <?php elseif ($order['order_status'] == 'approved'): ?>
+                                <span class="status-badge badge-approved">ยืนยันแล้ว</span>
+                            <?php elseif ($order['order_status'] == 'rejected'): ?>
+                                <span class="status-badge badge-rejected">ปฏิเสธแล้ว</span>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Amount (Primary Focus) -->
+                        <div class="mb-2">
+                            <div style="font-size:20px; font-weight:bold; color:#2ecc71;">
+                                <?= number_format($order['total_amount'], 2) ?> บาท
                             </div>
                         </div>
 
-                        <!-- Body -->
-                        <div class="order-card-body">
-                            <p><strong>ลูกค้า:</strong> <?= htmlspecialchars($order['customer_name']) ?></p>
-                            <p>
-                                <i class="fas fa-phone"></i>
-                                <?= htmlspecialchars($order['customer_phone']) ?>
-                            </p>
-                            <p>
-                                <strong>การรับ:</strong>
-                                <?= $order['receive_type'] == 'pickup' ? 'รับเองที่ร้าน' : 'ส่งให้' ?>
-                            </p>
-                            <p>
-                                <strong>วันรับ/ส่ง:</strong>
+                        <!-- Info -->
+                        <div style="font-size:16px; color:#555;">
+                            <div>ชื่อ : <?= htmlspecialchars($order['customer_name']) ?></div>
+                            <div>วิธีรับสินค้า :
+                                <?= $order['receive_type'] == 'pickup' ? 'รับเองที่สวน' : 'ส่งให้' ?>
+                                |
                                 <?= !empty($order['receive_datetime'])
                                     ? date('d/m/Y H:i', strtotime($order['receive_datetime']))
                                     : '-' ?>
-                            </p>
-                            <strong class="text-success">
-                                <?= number_format($order['total_amount'], 2) ?>
-                            </strong> บาท
-
+                            </div>
                         </div>
 
-                        <!-- Footer -->
-                        <div class="order-card-footer">
+                        <!-- Actions -->
+                        <div class="order-card-footer mt-3">
+                            <a href="order_detail.php?id=<?= $order['order_id'] ?>"
+                                class="btn-action btn-view">
+                                👁 ดูรายละเอียด
+                            </a>
+
                             <?php if ($order['order_status'] == 'pending'): ?>
                                 <a href="update_order.php?id=<?= $order['order_id'] ?>&s=approved"
                                     class="btn-action btn-approve"
@@ -540,14 +586,11 @@ $stats = $result_stats->fetch_assoc();
                                     ✖ ปฏิเสธ
                                 </a>
                             <?php endif; ?>
-
-                            <a href="order_detail.php?id=<?= $order['order_id'] ?>"
-                                class="btn-action btn-view">
-                                👁 ดูรายละเอียด
-                            </a>
                         </div>
+
                     </div>
                 <?php endwhile; ?>
+
             <?php else: ?>
                 <div style="grid-column:1/-1; text-align:center; padding:40px; color:#777;">
                     <i class="fas fa-shopping-cart fa-3x"></i><br><br>
@@ -555,63 +598,35 @@ $stats = $result_stats->fetch_assoc();
                 </div>
             <?php endif; ?>
         </div>
-
     </div>
 
-    <!-- การดำเนินการด่วน -->
-    <div class="row">
-        <div class="col-md-6">
-            <div class="dashboard-card">
-                <div class="card-header">
-                    <h5 class="card-title"><i class="fas fa-bolt"></i> การดำเนินการด่วน</h5>
+
+    <!-- ตารางออเดอร์ -->
+    <!-- --------------------------------------------------------------------------------------------- -->
+
+
+    <div class="col-md-6">
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h5 class="card-title"><i class="fas fa-info-circle"></i> สถิติวันนี้</h5>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col">ทั้งหมด: <?= $stats['total_count'] ?></div>
+                <div class="col">รอยืนยัน: <?= $stats['pending_count'] ?></div>
+                <div class="col">ยืนยันแล้ว: <?= $stats['approved_count'] ?></div>
+                <div class="col">ปฏิเสธ: <?= $stats['rejected_count'] ?></div>
+                <div class="col">วันนี้: <?= $stats['today_count'] ?></div>
+                <div class="col text-success">
+                    ยอดรวม: <?= number_format($revenueStats['revenue'] ?? 0, 2) ?> บาท
                 </div>
-
-                <div class="row g-3">
-                    <div class="col-6">
-                        <a href="?status=pending" class="btn btn-warning w-100 py-3">
-                            <i class="fas fa-clock fa-2x mb-2"></i><br>
-                            ออเดอร์รอยืนยัน<br>
-                            <small><?=number_format($stats['pending']?? 0) ?> รายการ</small>
-                        </a>
-                    </div>
-
-                    <div class="col-6">
-                        <a href="#" class="btn btn-info w-100 py-3">
-                            <i class="fas fa-chart-bar fa-2x mb-2"></i><br>
-                            สรุปรายงาน<br>
-                            <small>ดูสถิติทั้งหมด</small>
-                        </a>
-                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="col-md-6">
-            <div class="dashboard-card">
-                <div class="card-header">
-                    <h5 class="card-title"><i class="fas fa-info-circle"></i> สถิติวันนี้</h5>
-                </div>
-
-                <div class="row mb-4">
-                    <div class="col">ทั้งหมด: <?= $stats['total_count'] ?></div>
-                    <div class="col">รอยืนยัน: <?= $stats['pending_count'] ?></div>
-                    <div class="col">ยืนยันแล้ว: <?= $stats['approved_count'] ?></div>
-                    <div class="col">ปฏิเสธ: <?= $stats['rejected_count'] ?></div>
-                    <div class="col">วันนี้: <?= $stats['today_count'] ?></div>
-                    <div class="col text-success">
-                        ยอดรวม: <?= number_format($stats['total_amount'], 2) ?> บาท
-                    </div>
-                </div>
-
-            </div>
         </div>
     </div>
+    </div>
 
-    <!-- Footer -->
-    <footer class="mt-5 pt-4 border-top text-center text-muted">
-        <p class="mb-0">ระบบจัดการ </p>
-        <small>© <?= date('Y') ?> All rights reserved</small>
-    </footer>
 
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -640,10 +655,11 @@ $stats = $result_stats->fetch_assoc();
 
         document.getElementById('searchOrders').addEventListener('input', function(e) {
             const searchTerm = e.target.value.toLowerCase();
-            document.querySelectorAll('.order-table tbody tr').forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            document.querySelectorAll('.order-card').forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(searchTerm) ? '' : 'none';
             });
+
         });
     </script>
 </body>

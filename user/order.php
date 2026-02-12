@@ -28,6 +28,9 @@ if ($member_id) {
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
 <style>
 * {
     font-family: 'Prompt', sans-serif;
@@ -631,37 +634,14 @@ body {
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label"><i class="fas fa-calendar-alt"></i> วันเวลาที่ต้องการรับ</label>
-                        <div class="datetime-picker">
-                            <div class="date-select-group">
-                                <label>เลือกวันที่</label>
-                                <div class="date-time-row">
-                                    <select class="date-time-select" id="day" required>
-                                        <option value="">วัน</option>
-                                    </select>
-                                    <select class="date-time-select" id="month" required>
-                                        <option value="">เดือน</option>
-                                    </select>
-                                    <select class="date-time-select" id="year" required>
-                                        <option value="">ปี</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="time-select-group">
-                                <label>เลือกเวลา</label>
-                                <div class="time-select-row">
-                                    <select class="date-time-select" id="hour" required>
-                                        <option value="">ชั่วโมง</option>
-                                    </select>
-                                    <select class="date-time-select" id="minute" required>
-                                        <option value="">นาที</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <input type="hidden" name="receive_datetime" id="receive_datetime" required>
-                    </div>
+    <label class="form-label">
+        <i class="fas fa-calendar-alt"></i> วันเวลาที่ต้องการรับ
+    </label>
+   <input type="text"
+    id="receive_datetime" 
+    name="receive_datetime" 
+    class="form-control">
+    </div>
 
                     <div class="info-alert">
                         <i class="fas fa-info-circle"></i>
@@ -837,6 +817,13 @@ function toggleAddressField(type) {
         addressInput.setAttribute('required', 'required');
     }
 }
+
+flatpickr("#receive_datetime", {
+    enableTime: true,
+    dateFormat: "Y-m-d H:i",
+    time_24hr: true,
+    minDate: "today"
+});
 
 // Submit order
 function submitOrder() {

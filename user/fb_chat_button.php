@@ -13,9 +13,9 @@
 .fb-icon {
     position: fixed;
     bottom: 20px;
-    right: 20px;
-    width: 60px;
-    height: 60px;
+    right: 30px;
+    width: 65px;
+    height: 65px;
     background: #a2c9fc;
     border-radius: 50%;
     display: flex;

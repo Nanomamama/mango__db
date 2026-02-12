@@ -113,7 +113,6 @@ $result = $stmt->get_result();
                 <table class="table table-hover align-middle">
                     <thead class="table-dark">
                         <tr>
-                            <th>ID</th>
                             <th>กิจกรรม</th>
                             <th>ชื่อ</th>
                             <th>ความคิดเห็น</th>
@@ -124,7 +123,7 @@ $result = $stmt->get_result();
                     <tbody>
                         <?php while ($row = $result->fetch_assoc()): ?>
                             <tr>
-                                <td><?= $row['comment_id'] ?></td>
+                             
                                 <td><?= htmlspecialchars($row['course_name']) ?></td>
                                 <td><?= htmlspecialchars($row['name']) ?></td>
                                 <td>
