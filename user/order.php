@@ -526,7 +526,7 @@ body {
                 <li class="breadcrumb-item active">ตะกร้าสินค้า</li>
             </ol>
         </nav>
-        <h1 class="page-title"><i class="fas fa-shopping-cart"></i> ตะกร้าสินค้า</h1>
+        <h1 class="page-title"><i class="fas fa-shopping-basket"></i> ตะกร้าสินค้า</h1>
     </div>
 </div>
 

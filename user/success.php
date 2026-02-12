@@ -75,6 +75,7 @@ $statusText = $statusMap[$order['order_status']] ?? $order['order_status'];
             --radius-sm: 8px;
             --radius-md: 12px;
             --radius-lg: 16px;
+            --green: #016A70;
         }
         
         body {
@@ -121,14 +122,17 @@ $statusText = $statusMap[$order['order_status']] ?? $order['order_status'];
             overflow: hidden;
             border: 1px solid var(--gray-light);
             height: fit-content;
+            padding: 1rem;
         }
         
         .card-header {
-            background: linear-gradient(135deg, var(--accent-green), #2ecc71);
+            background: linear-gradient( #c5ffae, #61ee29);
             color: white;
             padding: 2rem;
             text-align: center;
             position: relative;
+           
+            
         }
         
         /* Order Header Section */
@@ -186,8 +190,8 @@ $statusText = $statusMap[$order['order_status']] ?? $order['order_status'];
         }
         
         .status-pending {
-            background: var(--warning-light);
-            color: var(--warning-dark);
+            background: #fdf90d;
+            color: #000000;
         }
         
         .status-approved {
@@ -202,7 +206,7 @@ $statusText = $statusMap[$order['order_status']] ?? $order['order_status'];
         
         .status-rejected {
             background: #f8d7da;
-            color: #721c24;
+            color: #b80012;
         }
         
         /* Card Body */
@@ -222,7 +226,7 @@ $statusText = $statusMap[$order['order_status']] ?? $order['order_status'];
         .section-icon {
             width: 36px;
             height: 36px;
-            background: var(--accent-blue);
+            background: var(--);
             color: white;
             border-radius: 50%;
             display: flex;
@@ -248,20 +252,23 @@ $statusText = $statusMap[$order['order_status']] ?? $order['order_status'];
             padding: 0.75rem;
             border-radius: var(--radius-sm);
             background: var(--white-secondary);
-            border-left: 3px solid var(--accent-blue);
+            border-left: 3px solid var(--green);
         }
         
         .info-label {
             font-size: 0.8rem;
-            color: var(--text-secondary);
+            color: black;
             margin-bottom: 0.25rem;
-            font-weight: 500;
+            font-weight: 700;
+            font-size: 1rem;
+
         }
         
         .info-value {
             font-weight: 500;
-            color: var(--text-primary);
+            color: black;
             line-height: 1.4;
+            font-size: 1rem;
         }
         
         /* Order Items */
@@ -387,7 +394,7 @@ $statusText = $statusMap[$order['order_status']] ?? $order['order_status'];
             justify-content: center;
             gap: 0.5rem;
             padding: 0.75rem 1.5rem;
-            border-radius: var(--radius-md);
+            border-radius: var(--green);
             font-weight: 600;
             text-decoration: none;
             transition: all 0.3s ease;
@@ -411,14 +418,14 @@ $statusText = $statusMap[$order['order_status']] ?? $order['order_status'];
         }
         
         .btn-track {
-            background: var(--accent-blue);
+            background: var(--green);
             color: white;
-            border: 2px solid var(--accent-blue);
+            border: 2px solid var(--green);
         }
         
         .btn-track:hover {
-            background: #0b5ed7;
-            border-color: #0b5ed7;
+            background: #0bd7b5c9;
+            border-color:var(--green);
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
         }
@@ -457,6 +464,7 @@ $statusText = $statusMap[$order['order_status']] ?? $order['order_status'];
             
             .card-header {
                 padding: 1.5rem 1rem;
+               
             }
             
             .success-title {
@@ -582,6 +590,8 @@ $statusText = $statusMap[$order['order_status']] ?? $order['order_status'];
     </style>
 </head>
 <body>
+<?php include __DIR__ . '/navbar.php'; ?>
+<?php include __DIR__ . '/fb_chat_button.php'; ?>
     <div class="success-container">
         <!-- Order Header -->
         <div class="success-card order-header-section">
