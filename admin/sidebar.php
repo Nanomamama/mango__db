@@ -209,6 +209,10 @@
                 <i class='bx bxs-user-account'></i> จัดการข้อมูลผู้ใช้
             </a>
 
+            <a href="./add_admin.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'add_admin.php') echo ' active'; ?>">
+                <i class='bx bxs-user-plus'></i> เพิ่มผู้ดูแลระบบ
+            </a>
+
             <a href="logout.php" class="nav-link mt-5">
                 <i class='bx bx-log-out-circle'></i> ออกจากระบบ
             </a>
