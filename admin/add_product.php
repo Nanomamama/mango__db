@@ -12,270 +12,302 @@ if (empty($_SESSION['csrf_token'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เพิ่มสินค้าใหม่ | Modern Dashboard</title>
+    <title>เพิ่มสินค้าใหม่ | Senior Friendly UX</title>
+    <!-- Bootstrap 5 ใช้เฉพาะ Grid และ Utilities ลดความขัดแย้ง -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- ฟอนต์ ตัวโต ชัด -->
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        /* ===== VARIABLES & GLOBAL ===== */
+        /* -------------------------------
+           SENIOR FRIENDLY UX — สองฝั่ง ชัดเจน ใหญ่ อ่านง่าย
+        ------------------------------- */
         :root {
-            --primary: #4361ee;
-            --primary-light: #6c8cff;
-            --primary-soft: #eef2ff;
-            --success: #2ecc71;
-            --danger: #e74c3c;
-            --text-heading: #1e293b;
-            --text-body: #334155;
-            --text-muted: #64748b;
-            --border-light: #e2e8f0;
-            --bg-light: #f8fafc;
-            --card-bg: rgba(255,255,255,0.9);
-            --shadow-sm: 0 8px 20px rgba(0,0,0,0.02);
-            --shadow-md: 0 12px 30px rgba(0,0,0,0.05);
-            --shadow-lg: 0 20px 40px rgba(0,0,0,0.08);
-            --glass-border: 1px solid rgba(255,255,255,0.5);
-            --border-radius-card: 28px;
-            --border-radius-element: 14px;
+            --senior-primary: #0a4b7a;      /* น้ำเงินเข้ม คอนทราสสูง */
+            --senior-primary-dark: #063357;
+            --senior-success: #1e7e34;
+            --senior-danger: #b22222;
+            --senior-text: #1e1e1e;
+            --senior-text-soft: #2c3e50;
+            --senior-border: #3a4e62;
+            --senior-bg: #ffffff;
+            --senior-bg-soft: #f2f6fc;
+            --senior-input-bg: #ffffff;
+            --senior-radius: 20px;          /* มนมากขึ้นแต่ไม่เล็ก */
+            --senior-font-size: 1.25rem;    /* 20px */
+            --senior-label-size: 1.4rem;    /* 22.4px */
+            --senior-title-size: 2rem;      /* 32px */
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Kanit', sans-serif;
-            background: radial-gradient(circle at 10% 30%, #f1f5f9 0%, #e6ecf4 100%);
-            color: var(--text-body);
-            line-height: 1.6;
-            min-height: 100vh;
+            font-family: 'IBM Plex Sans Thai', sans-serif;
+            background-color: #e6edf5;      /* พื้นหลังอ่อนตา */
+            color: var(--senior-text);
+            font-size: var(--senior-font-size);
+            line-height: 1.5;
         }
 
-        /* ===== SIDEBAR ADJUSTMENT ===== */
+        /* ===== SIDEBAR (คงเดิม แต่ให้ main content เว้นระยะพอดี) ===== */
         .main-content {
-            margin-left: 260px;          /* สอดคล้องกับ sidebar */
-            padding: 2rem 2.5rem;
-            transition: margin-left 0.25s ease;
+            margin-left: 260px;
+            padding: 2.5rem 3rem;
+            transition: margin-left 0.2s;
         }
 
-        /* ===== CARD FORM — FULL WIDER LAYOUT ===== */
+        /* ===== CARD FORM — ใหญ่ สว่าง ขอบชัด ===== */
         .card-form {
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: var(--glass-border);
-            border-radius: var(--border-radius-card);
-            padding: 2.8rem 3rem;
-            box-shadow: var(--shadow-lg);
-            width: 100%;
-            max-width: 1600px;           /* 1600px กว้างขึ้นมาก */
+            background: var(--senior-bg);
+            border-radius: var(--senior-radius);
+            padding: 3rem 3.5rem;
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.08);
+            border: 2px solid #cbd5e1;      /* ขอบชัด */
+            max-width: 1600px;
             margin: 0 auto;
-            transition: all 0.3s;
-            border: 1px solid rgba(255,255,255,0.8);
         }
 
         /* ===== HEADER ===== */
         .page-header {
             text-align: center;
-            margin-bottom: 2.8rem;
-            padding-bottom: 1.8rem;
-            border-bottom: 2px dashed rgba(67, 97, 238, 0.15);
+            margin-bottom: 3rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 4px solid var(--senior-primary);
         }
         .page-title {
             font-weight: 700;
-            color: var(--primary);
-            font-size: 2.2rem;
-            letter-spacing: -0.5px;
+            color: var(--senior-primary);
+            font-size: var(--senior-title-size);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            gap: 15px;
+        }
+        .page-title i {
+            font-size: 2.5rem;
+            color: var(--senior-primary);
         }
         .page-subtitle {
-            color: var(--text-muted);
-            font-size: 1.1rem;
-            font-weight: 300;
-            margin-top: 0.25rem;
+            color: var(--senior-text-soft);
+            font-size: 1.3rem;
+            font-weight: 400;
+            margin-top: 0.6rem;
         }
 
-        /* ===== SECTION TITLE ===== */
+        /* ===== SECTION TITLE — ใหญ่, หัวชัด ===== */
         .section-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--primary);
+            font-size: 1.8rem;      /* 28.8px */
+            font-weight: 700;
+            color: var(--senior-primary);
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding-bottom: 0.8rem;
-            border-bottom: 2px solid var(--primary-soft);
-            margin-bottom: 1.8rem;
+            gap: 15px;
+            padding-bottom: 1rem;
+            border-bottom: 4px solid #d0e0f0;
+            margin-bottom: 2.2rem;
         }
         .section-title i {
-            font-size: 1.5rem;
-            background: linear-gradient(145deg, var(--primary), #304d9c);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            font-size: 2.2rem;
+            color: var(--senior-primary);
         }
 
-        /* ===== FORM CONTROLS ===== */
+        /* ===== FORM LABEL — ใหญ่, หนา, ดำ ===== */
         .form-label {
-            font-weight: 500;
-            color: var(--text-heading);
-            margin-bottom: 0.5rem;
-            font-size: 0.95rem;
+            font-weight: 700;
+            color: #000;
+            font-size: var(--senior-label-size);
+            margin-bottom: 0.7rem;
             letter-spacing: 0.3px;
         }
+
+        /* ===== INPUT, SELECT, TEXTAREA — ตัวโต สบายตา ===== */
         .form-control, .form-select {
-            border-radius: var(--border-radius-element);
-            padding: 12px 18px;
-            border: 1.5px solid var(--border-light);
-            background-color: white;
-            transition: all 0.2s ease;
-            font-size: 1rem;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.01);
+            border-radius: 18px;
+            padding: 16px 22px;
+            font-size: 1.2rem;      /* 19.2px */
+            border: 2.5px solid #9aa6b2;
+            background-color: var(--senior-input-bg);
+            color: #0a0a0a;
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.02);
         }
         .form-control:focus, .form-select:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.12);
-            background-color: white;
+            border-color: var(--senior-primary);
+            box-shadow: 0 0 0 5px rgba(10, 75, 122, 0.25);
+            background-color: #fffefc;
+        }
+        /* placeholder จางแต่อ่านออก */
+        .form-control::placeholder {
+            color: #5e6f7e;
+            opacity: 0.9;
+            font-size: 1.1rem;
         }
 
-        /* ===== BUTTONS ===== */
+        /* ===== BUTTONS — ใหญ่ กดง่าย ===== */
         .btn {
-            padding: 12px 28px;
-            font-weight: 500;
-            border-radius: 40px;
-            transition: all 0.25s cubic-bezier(0.02, 0.88, 0.41, 1.01);
-            border: none;
+            padding: 16px 36px;
+            font-weight: 600;
+            border-radius: 60px;      /* ปุ่มกลมมาก กดง่าย */
+            border: 3px solid transparent;
+            font-size: 1.3rem;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            font-size: 1rem;
-            letter-spacing: 0.3px;
+            gap: 15px;
+            transition: all 0.2s;
+            letter-spacing: 0.8px;
         }
         .btn-primary {
-            background: linear-gradient(145deg, var(--primary), #3a56d4);
+            background-color: var(--senior-primary);
+            border-color: #0e2f4a;
             color: white;
-            box-shadow: 0 6px 14px rgba(67, 97, 238, 0.25);
+            box-shadow: 0 6px 0 #052136;
         }
         .btn-primary:hover {
-            background: linear-gradient(145deg, #3a56d4, #2a46b0);
-            transform: translateY(-3px);
-            box-shadow: 0 12px 20px rgba(67, 97, 238, 0.35);
+            background-color: var(--senior-primary-dark);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 0 #031a2b;
         }
         .btn-secondary {
-            background: white;
-            color: var(--text-heading);
-            border: 1.5px solid var(--border-light);
-            box-shadow: none;
+            background-color: white;
+            color: #0a4b7a;
+            border: 3px solid #0a4b7a;
+            box-shadow: 0 6px 0 #b0c4ce;
         }
         .btn-secondary:hover {
-            background: #f1f5f9;
-            border-color: #94a3b8;
-            transform: translateY(-3px);
+            background-color: #ecf3fa;
+            transform: translateY(-4px);
+            box-shadow: 0 10px 0 #8faebf;
         }
 
-        /* ===== IMAGE UPLOAD BOX — MODERN ===== */
+        /* ===== IMAGE UPLOAD — กล่องใหญ่ ชัด ===== */
         .image-upload-box {
-            border: 2px dashed #cbd5e1;
-            border-radius: 22px;
-            padding: 2.2rem 1.8rem;
+            border: 4px dashed #2c5f7e;
+            border-radius: 30px;
+            padding: 2.8rem 1.8rem;
             text-align: center;
+            background-color: #fafdff;
             cursor: pointer;
-            transition: all 0.25s;
-            background: linear-gradient(145deg, #f8fafc, #f1f5f9);
-            position: relative;
-            margin-bottom: 1rem;
+            transition: 0.2s;
         }
         .image-upload-box:hover {
-            border-color: var(--primary);
-            background: linear-gradient(145deg, #ffffff, #eef2ff);
-            transform: scale(1.01);
-            box-shadow: var(--shadow-md);
+            border-color: var(--senior-primary);
+            background-color: #e8f0fe;
+            border-width: 5px;
         }
-        .image-upload-box.dragover {
-            border-color: var(--primary);
-            background: rgba(67, 97, 238, 0.06);
-        }
-        .upload-icon {
-            font-size: 3.8rem;
-            color: var(--primary);
-            opacity: 0.8;
-            margin-bottom: 0.5rem;
+        .upload-icon i {
+            font-size: 4.8rem;
+            color: var(--senior-primary);
         }
         .image-upload-box p {
-            font-weight: 500;
-            color: var(--text-heading);
-            margin-bottom: 0.4rem;
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: #0a4b7a;
+            margin-top: 0.8rem;
+            margin-bottom: 0.3rem;
         }
         .image-upload-box small {
-            color: var(--text-muted);
+            font-size: 1.1rem;
+            color: #2e4755;
         }
 
-        /* ===== IMAGE PREVIEW CARD ===== */
+        /* ===== PREVIEW การ์ดใหญ่ ===== */
         .preview-container {
-            background: white;
-            border-radius: 20px;
-            padding: 1.2rem;
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border-light);
+            background: #fefefe;
+            border-radius: 24px;
+            padding: 1.8rem;
+            border: 3px solid #9bb7d4;
             display: flex;
             align-items: center;
-            gap: 1.5rem;
-            margin-top: 0.8rem;
-            animation: fadeSlide 0.4s;
+            gap: 2rem;
+            margin-top: 1.5rem;
         }
         .preview-image {
-            width: 100px;
-            height: 100px;
+            width: 140px;
+            height: 140px;
             object-fit: cover;
-            border-radius: 16px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.05);
-            border: 2px solid white;
+            border-radius: 22px;
+            border: 4px solid white;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
         .preview-details {
             flex: 1;
         }
         .preview-filename {
-            font-weight: 600;
-            color: var(--text-heading);
-            margin-bottom: 0.2rem;
+            font-weight: 700;
+            font-size: 1.4rem;
+            color: #0a0a0a;
+            margin-bottom: 0.3rem;
         }
         .preview-filesize {
-            color: var(--text-muted);
-            font-size: 0.85rem;
+            color: #2a4055;
+            font-size: 1.1rem;
         }
         .remove-image {
-            color: var(--danger);
-            background: rgba(231, 76, 60, 0.1);
+            background: #fce4e4;
+            color: #b22222;
             border-radius: 50px;
-            padding: 0.45rem 1rem;
-            font-size: 0.9rem;
-            border: none;
-            transition: all 0.2s;
+            padding: 0.8rem 1.8rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border: 2px solid #b22222;
         }
         .remove-image:hover {
-            background: var(--danger);
+            background: #b22222;
             color: white;
         }
 
-        @keyframes fadeSlide {
-            0% { opacity: 0; transform: translateY(10px); }
-            100% { opacity: 1; transform: translateY(0); }
+        /* ===== VALIDATION — ชัดเจน เข้าใจง่าย ===== */
+        .was-validated .form-control:invalid,
+        .was-validated .form-select:invalid {
+            border-color: #b22222;
+            border-width: 4px;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23b22222'%3e%3cpath d='M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm0 1a5 5 0 1 1 0 10A5 5 0 0 1 8 3zM7 6h2v4H7V6zm0 5h2v2H7v-2z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 20px center;
+            background-size: 1.8rem;
+        }
+        .was-validated .form-control:valid,
+        .was-validated .form-select:valid {
+            border-color: #1e7e34;
+            border-width: 4px;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%231e7e34'%3e%3cpath d='M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm0 1a5 5 0 1 1 0 10A5 5 0 0 1 8 3zm-1.5 7L4 7.8 5.2 6.6 6.5 7.9 10.8 3.6 12 4.8 6.5 10z'/%3e%3c/svg%3e");
+            background-size: 1.8rem;
+            background-position: right 20px center;
+        }
+        .invalid-feedback, .valid-feedback {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
         }
 
-        /* ===== RESPONSIVE ===== */
-        @media (max-width: 1400px) {
-            .main-content { padding: 2rem 1.8rem; }
-            .card-form { padding: 2.2rem 2rem; }
+        /* ===== เส้นแบ่งสองฝั่งให้เห็นชัด (จอใหญ่) ===== */
+        @media (min-width: 1200px) {
+            .col-lg-7 {
+                border-right: 4px solid #cbdbe9;
+                padding-right: 3rem;
+            }
         }
-        @media (max-width: 1200px) {
-            .main-content { margin-left: 80px; }   /* sidebar mini */
-            .card-form { max-width: 100%; }
+
+        /* ===== ปรับสำหรับมือถือ ===== */
+        @media (max-width: 1199px) {
+            .main-content {
+                margin-left: 80px;
+                padding: 2rem 1.8rem;
+            }
+            .card-form {
+                padding: 2rem 1.8rem;
+            }
         }
         @media (max-width: 768px) {
             .main-content {
                 margin-left: 0;
-                padding: 1.5rem 1rem;
+                padding: 1.2rem;
             }
-            .card-form { padding: 1.8rem; }
-            .page-title { font-size: 1.8rem; }
+            .page-title {
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
@@ -286,98 +318,107 @@ if (empty($_SESSION['csrf_token'])) {
         <div class="card-form">
             <div class="page-header">
                 <h1 class="page-title">
-                    <i class="bi bi-plus-circle-fill" style="background: none; -webkit-text-fill-color: var(--primary);"></i>
+                    <i class="bi bi-plus-square-fill"></i>
                     เพิ่มสินค้าใหม่
                 </h1>
-                <p class="page-subtitle">กรอกรายละเอียดสินค้าเพื่อเพิ่มเข้าระบบ</p>
+                <p class="page-subtitle">กรอกข้อมูลให้ครบ ทุกช่องจำเป็นต้องใส่</p>
             </div>
 
             <form action="save_product.php" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
 
-                <!-- ปรับ Grid เป็น ซ้าย 7 : ขวา 5 ได้สัดส่วนสวยงามบนหน้าจอกว้าง -->
+                <!-- สองฝั่งชัดเจน ซ้าย 7 ขวา 5 (สำหรับคนแก่ เห็นส่วนต่างทันที) -->
                 <div class="row g-5">
-                    <!-- LEFT COLUMN : 7 คอลัมน์ -->
+                    <!-- LEFT COLUMN : รายละเอียดสินค้า, ราคา -->
                     <div class="col-xl-7 col-lg-7">
-                        <!-- ข้อมูลสินค้า -->
                         <div class="form-section">
-                            <h3 class="section-title"><i class="bi bi-box-seam"></i> ข้อมูลสินค้า</h3>
+                            <h3 class="section-title"><i class="bi bi-box"></i> ข้อมูลสินค้า</h3>
                             <div class="row g-4">
                                 <div class="col-md-6">
-                                    <label class="form-label">ชื่อสินค้า <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="product_name" placeholder="เช่น กล้วยอบเนย" required>
+                                    <label for="product_name" class="form-label">ชื่อสินค้า <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="product_name" name="product_name" 
+                                           placeholder="เช่น กล้วยอบเนย สูตรโบราณ" required>
+                                    <div class="invalid-feedback">กรุณากรอกชื่อสินค้า</div>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">หมวดหมู่ <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="category" placeholder="ผลไม้แปรรูป" required>
+                                    <label for="category" class="form-label">หมวดหมู่ <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="category" name="category" 
+                                           placeholder="ผลไม้แปรรูป/ขนมขบเคี้ยว" required>
+                                    <div class="invalid-feedback">ระบุหมวดหมู่สินค้า</div>
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label">รายละเอียดสินค้า <span class="text-danger">*</span></label>
-                                    <textarea class="form-control" name="product_description" rows="5" placeholder="ระบุส่วนผสม, จุดเด่น, วิธีการเก็บรักษา ฯลฯ" required></textarea>
+                                    <label for="product_description" class="form-label">รายละเอียด <span class="text-danger">*</span></label>
+                                    <textarea class="form-control" id="product_description" name="product_description" 
+                                              rows="5" placeholder="ส่วนผสม, วิธีเก็บ, จุดเด่น..." required></textarea>
+                                    <div class="invalid-feedback">ใส่รายละเอียดสินค้า</div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- ราคาและหน่วย -->
-                        <div class="form-section mt-4">
-                            <h3 class="section-title"><i class="bi bi-tags"></i> ราคาและหน่วย</h3>
+                        <div class="form-section mt-5">
+                            <h3 class="section-title"><i class="bi bi-tag"></i> ราคาและหน่วย</h3>
                             <div class="row g-4">
                                 <div class="col-md-6">
-                                    <label class="form-label">ราคา (บาท) <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control" name="price" min="0" step="0.01" placeholder="0.00" required>
+                                    <label for="price" class="form-label">ราคา (บาท) <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="price" name="price" 
+                                           min="0" step="0.01" placeholder="49.50" required>
+                                    <div class="invalid-feedback">ระบุราคาสินค้า</div>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">หน่วย <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="unit" placeholder="แพ็ค / กก. / ชิ้น" required>
+                                    <label for="unit" class="form-label">หน่วย <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="unit" name="unit" 
+                                           placeholder="แพ็ค / กล่อง / กิโลกรัม" required>
+                                    <div class="invalid-feedback">ระบุหน่วยขาย</div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- RIGHT COLUMN : 5 คอลัมน์ -->
+                    <!-- RIGHT COLUMN : สถานะ, รูปภาพ -->
                     <div class="col-xl-5 col-lg-5">
-                        <!-- สถานะและการตั้งค่า -->
                         <div class="form-section">
-                            <h3 class="section-title"><i class="bi bi-sliders2"></i> สถานะและการตั้งค่า</h3>
+                            <h3 class="section-title"><i class="bi bi-toggle-on"></i> สถานะและการตั้งค่า</h3>
                             <div class="row g-4">
                                 <div class="col-12">
-                                    <label class="form-label">สถานะสินค้า</label>
-                                    <select class="form-select" name="status" required>
-                                        <option value="active" selected>🟢 เปิดขาย</option>
-                                        <option value="inactive">🔴 ปิดขาย</option>
+                                    <label for="status" class="form-label">สถานะสินค้า</label>
+                                    <select class="form-select" id="status" name="status" required>
+                                        <option value="active" selected>🟢 เปิดขาย (พร้อมส่ง)</option>
+                                        <option value="inactive">🔴 ปิดขาย (หยุดพัก)</option>
                                     </select>
+                                    <div class="invalid-feedback">เลือกสถานะสินค้า</div>
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label">สินค้าตามฤดู</label>
-                                    <select class="form-select" name="seasonal" required>
-                                        <option value="1">✅ ใช่</option>
+                                    <label for="seasonal" class="form-label">สินค้าตามฤดู</label>
+                                    <select class="form-select" id="seasonal" name="seasonal" required>
+                                        <option value="1">✅ ใช่ สินค้าตามฤดูกาล</option>
                                         <option value="0" selected>❌ ไม่ใช่</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- รูปภาพสินค้า — อัปโหลดสวยงาม -->
-                        <div class="form-section mt-4">
+                        <div class="form-section mt-5">
                             <h3 class="section-title"><i class="bi bi-image"></i> รูปภาพสินค้า</h3>
-                            <div class="image-upload-box" id="imageUploadBox">
-                                <div class="upload-icon"><i class="bi bi-cloud-arrow-up-fill"></i></div>
-                                <p class="fw-medium">คลิกหรือลากไฟล์วางที่นี่</p>
-                                <small class="text-muted">รองรับ .jpg, .png, .gif · ขนาดไม่เกิน 2MB</small>
+                            <div class="image-upload-box" id="imageUploadBox" role="button" tabindex="0" aria-label="คลิกเพื่อเลือกรูปภาพ">
+                                <div class="upload-icon"><i class="bi bi-cloud-upload"></i></div>
+                                <p>คลิกหรือลากไฟล์วางที่นี่</p>
+                                <small>รองรับ .jpg, .png, .gif • ขนาดไม่เกิน 2MB</small>
                             </div>
                             <input type="file" class="d-none" name="product_image" id="product_image" accept="image/*" required>
-                            <div id="image_preview" class="mt-2"></div>
+                            <!-- พรีวิวภาพ -->
+                            <div id="image_preview" class="mt-3"></div>
+                            <div class="invalid-feedback d-block" id="image-feedback" style="display: none !important;"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- BUTTONS : กลับ / บันทึก -->
-                <div class="d-flex justify-content-between align-items-center mt-5 pt-4 border-top border-2" style="border-color: rgba(67,97,238,0.1) !important;">
-                    <a href="manage_product.php" class="btn btn-secondary px-4">
-                        <i class="bi bi-arrow-left"></i> กลับ
+                <!-- ปุ่มขนาดใหญ่ แยกกันชัด -->
+                <div class="d-flex flex-wrap justify-content-between align-items-center mt-5 pt-4 border-top border-4" style="border-color: #b0c8dd !important;">
+                    <a href="manage_product.php" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left-circle"></i> กลับหน้ารายการ
                     </a>
-                    <button type="submit" class="btn btn-primary px-5">
-                        <i class="bi bi-check2-circle"></i> บันทึกสินค้า
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> บันทึกสินค้า
                     </button>
                 </div>
             </form>
@@ -389,12 +430,12 @@ if (empty($_SESSION['csrf_token'])) {
         (function() {
             'use strict';
 
-            // ----- ระบบอัปโหลดรูปภาพพร้อมพรีวิวระดับสูง -----
+            // --- Senior friendly drag & drop + preview ---
             const uploadBox = document.getElementById('imageUploadBox');
             const fileInput = document.getElementById('product_image');
-            const imagePreview = document.getElementById('image_preview');
+            const previewDiv = document.getElementById('image_preview');
 
-            // คลิกที่กล่อง = เรียก file input
+            // เปิด file dialog เมื่อคลิก
             uploadBox.addEventListener('click', () => fileInput.click());
 
             // ป้องกัน default drag/drop
@@ -402,84 +443,79 @@ if (empty($_SESSION['csrf_token'])) {
                 uploadBox.addEventListener(eventName, (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                }, false);
+                });
             });
 
-            // เพิ่ม/ลบ class dragover
-            ['dragenter', 'dragover'].forEach(eventName => {
-                uploadBox.addEventListener(eventName, () => uploadBox.classList.add('dragover'), false);
-            });
-            ['dragleave', 'drop'].forEach(eventName => {
-                uploadBox.addEventListener(eventName, () => uploadBox.classList.remove('dragover'), false);
-            });
+            // สไตล์ขณะลากผ่าน
+            uploadBox.addEventListener('dragenter', () => uploadBox.style.backgroundColor = '#d9eafb');
+            uploadBox.addEventListener('dragover', () => uploadBox.style.backgroundColor = '#d9eafb');
+            uploadBox.addEventListener('dragleave', () => uploadBox.style.backgroundColor = '#fafdff');
+            uploadBox.addEventListener('drop', () => uploadBox.style.backgroundColor = '#fafdff');
 
-            // จัดการเมื่อ drop ไฟล์
+            // drop จัดการไฟล์
             uploadBox.addEventListener('drop', (e) => {
                 const files = e.dataTransfer.files;
                 if (files.length) {
                     fileInput.files = files;
-                    handleFile(files[0]);
+                    handleImagePreview(files[0]);
                 }
             });
 
-            // จัดการเมื่อเลือกไฟล์ผ่าน input
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length) handleFile(e.target.files[0]);
+            fileInput.addEventListener('change', function() {
+                if (this.files.length) handleImagePreview(this.files[0]);
             });
 
-            // ฟังก์ชันแสดงตัวอย่างรูปภาพแบบ Modern
-            function handleFile(file) {
-                imagePreview.innerHTML = '';
+            function handleImagePreview(file) {
+                previewDiv.innerHTML = '';
 
                 if (!file) return;
 
-                // ตรวจสอบประเภทไฟล์
+                // ตรวจสอบชนิดไฟล์
                 if (!file.type.startsWith('image/')) {
-                    imagePreview.innerHTML = `<div class="alert alert-danger py-2 px-3 rounded-pill"><i class="bi bi-exclamation-triangle me-2"></i>กรุณาเลือกไฟล์รูปภาพเท่านั้น</div>`;
+                    showImageError('กรุณาเลือกไฟล์รูปภาพเท่านั้น');
                     fileInput.value = '';
                     return;
                 }
 
-                // ตรวจสอบขนาดไฟล์ (2MB)
+                // ขนาดไม่เกิน 2MB
                 if (file.size > 2 * 1024 * 1024) {
-                    imagePreview.innerHTML = `<div class="alert alert-warning py-2 px-3 rounded-pill"><i class="bi bi-exclamation-circle me-2"></i>ไฟล์มีขนาดใหญ่เกิน 2MB</div>`;
+                    showImageError('ไฟล์ใหญ่เกิน 2MB กรุณาเลือกใหม่');
                     fileInput.value = '';
                     return;
                 }
 
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    // สร้าง HTML Preview แบบการ์ดสวยงาม
-                    const previewCard = document.createElement('div');
-                    previewCard.className = 'preview-container';
+                    const card = document.createElement('div');
+                    card.className = 'preview-container';
 
-                    // ขนาดไฟล์ (KB)
-                    const fileSizeKB = (file.size / 1024).toFixed(1);
-
-                    previewCard.innerHTML = `
-                        <img src="${e.target.result}" class="preview-image" alt="Preview">
+                    const sizeKB = (file.size / 1024).toFixed(1);
+                    card.innerHTML = `
+                        <img src="${e.target.result}" class="preview-image" alt="ตัวอย่างสินค้า">
                         <div class="preview-details">
-                            <div class="preview-filename"><i class="bi bi-file-image me-1"></i>${file.name}</div>
-                            <div class="preview-filesize">ขนาด ${fileSizeKB} KB</div>
+                            <div class="preview-filename"><i class="bi bi-file-earmark-image"></i> ${file.name}</div>
+                            <div class="preview-filesize">ขนาด ${sizeKB} KB</div>
                         </div>
-                        <button type="button" class="remove-image btn btn-sm" id="removeImageBtn">
-                            <i class="bi bi-trash3"></i> ลบ
+                        <button type="button" class="remove-image btn" id="removeImageBtn">
+                            <i class="bi bi-trash"></i> ลบภาพ
                         </button>
                     `;
+                    previewDiv.appendChild(card);
 
-                    imagePreview.appendChild(previewCard);
-
-                    // ปุ่มลบรูปภาพ
                     document.getElementById('removeImageBtn').addEventListener('click', function(e) {
                         e.stopPropagation();
                         fileInput.value = '';
-                        imagePreview.innerHTML = '';
+                        previewDiv.innerHTML = '';
                     });
                 };
                 reader.readAsDataURL(file);
             }
 
-            // ----- Bootstrap validation (เพิ่ม visual feedback) -----
+            function showImageError(msg) {
+                previewDiv.innerHTML = `<div class="alert alert-danger py-3 px-4 rounded-4" style="font-size:1.2rem;">⚠️ ${msg}</div>`;
+            }
+
+            // --- Bootstrap validation + ปรับข้อความให้ใหญ่ ---
             const forms = document.querySelectorAll('.needs-validation');
             Array.from(forms).forEach(form => {
                 form.addEventListener('submit', event => {
@@ -490,26 +526,7 @@ if (empty($_SESSION['csrf_token'])) {
                     form.classList.add('was-validated');
                 }, false);
             });
-
         })();
     </script>
-
-    <!-- optional: ปรับแต่ง validation style ของ Bootstrap -->
-    <style>
-        .was-validated .form-control:invalid, .was-validated .form-select:invalid {
-            border-color: #e74c3c;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23e74c3c'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23e74c3c' stroke='none'/%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right calc(0.375em + 0.1875rem) center;
-            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
-        }
-        .was-validated .form-control:valid, .was-validated .form-select:valid {
-            border-color: #2ecc71;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%232ecc71' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right calc(0.375em + 0.1875rem) center;
-            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
-        }
-    </style>
 </body>
 </html>
