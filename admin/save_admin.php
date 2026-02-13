@@ -43,7 +43,7 @@ $stmt = $conn->prepare("INSERT INTO system_administrator (username, email, passw
 $stmt->bind_param("sss", $username, $email, $hashed_password);
 
 if ($stmt->execute()) {
-    header("Location: admin_login.php");
+    header("Location: add_admin.php?success=1");
     exit();
 } else {
     echo "เกิดข้อผิดพลาด: " . $stmt->error;
@@ -51,6 +51,3 @@ if ($stmt->execute()) {
 
 $stmt->close();
 $conn->close();
-?>
-
-<form action="./save_admin.php" method="POST">
