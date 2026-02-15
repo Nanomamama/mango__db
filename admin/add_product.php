@@ -356,7 +356,7 @@ if (empty($_SESSION['csrf_token'])) {
                         </div>
 
                         <div class="form-section mt-5">
-                            <h3 class="section-title"><i class="bi bi-tag"></i> ราคาและหน่วย</h3>
+                            <h3 class="section-title"><i class="bi bi-tag"></i> ราคาและหน่วยสินค้า</h3>
                             <div class="row g-4">
                                 <div class="col-md-6">
                                     <label for="price" class="form-label">ราคา (บาท) <span class="text-danger">*</span></label>
@@ -377,7 +377,7 @@ if (empty($_SESSION['csrf_token'])) {
                     <!-- RIGHT COLUMN : สถานะ, รูปภาพ -->
                     <div class="col-xl-5 col-lg-5">
                         <div class="form-section">
-                            <h3 class="section-title"><i class="bi bi-toggle-on"></i> สถานะและการตั้งค่า</h3>
+                            <h3 class="section-title"><i class="bi bi-toggle-on"></i> การตั้งค่าสถานะสินค้า</h3>
                             <div class="row g-4">
                                 <div class="col-12">
                                     <label for="status" class="form-label">สถานะสินค้า</label>
