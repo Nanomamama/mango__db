@@ -189,9 +189,9 @@ if (
             left: 0;
             right: 0;
             bottom: 0;
-            background: 
-                radial-gradient(circle at 30% 70%, rgba(255,255,255,0.1) 0%, transparent 50%),
-                radial-gradient(circle at 70% 30%, rgba(255,255,255,0.05) 0%, transparent 50%);
+            background:
+                radial-gradient(circle at 30% 70%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
         }
 
         .back-link {
@@ -202,14 +202,14 @@ if (
             align-items: center;
             gap: 10px;
             padding: 8px 16px;
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 50px;
             transition: var(--transition);
             backdrop-filter: blur(5px);
         }
 
         .back-link:hover {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             transform: translateX(-5px);
             color: white;
         }
@@ -220,7 +220,7 @@ if (
             margin-top: 1rem;
             font-size: 2.5rem;
             line-height: 1.2;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         /* Main Content - 2 Column Layout */
@@ -316,7 +316,7 @@ if (
             position: absolute;
             bottom: 20px;
             right: 20px;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0, 0, 0, 0.7);
             color: white;
             border: none;
             padding: 10px 20px;
@@ -332,7 +332,7 @@ if (
         }
 
         .view-all-btn:hover {
-            background: rgba(0,0,0,0.9);
+            background: rgba(0, 0, 0, 0.9);
             transform: translateY(-2px);
         }
 
@@ -695,6 +695,7 @@ if (
         .comment-text {
             color: var(--dark);
             line-height: 1.7;
+            
         }
 
         .no-comments {
@@ -812,29 +813,29 @@ if (
             .main-content {
                 padding: 2rem 0;
             }
-            
+
             .gallery-column {
                 position: static;
                 margin-bottom: 2rem;
             }
-            
+
             .course-title {
                 font-size: 2rem;
             }
-            
+
             .access-code-form {
                 flex-direction: column;
             }
-            
+
             .access-code-input {
                 min-width: 100%;
             }
-            
+
             .access-code-btn {
                 width: 100%;
                 justify-content: center;
             }
-            
+
             .lightbox-btn {
                 width: 50px;
                 height: 50px;
@@ -846,19 +847,19 @@ if (
             .page-header {
                 padding: 1.5rem 0;
             }
-            
+
             .course-title {
                 font-size: 1.8rem;
             }
-            
+
             .thumbnail-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
-            
+
             .rating-value {
                 font-size: 1.5rem;
             }
-            
+
             .lightbox-nav {
                 padding: 0 1rem;
             }
@@ -890,12 +891,12 @@ if (
                         <div class="modern-gallery">
                             <!-- Main Image -->
                             <div class="main-image-container">
-                                <img id="mainImage" 
-                                     src="<?php echo !empty($images) ? '../uploads/' . htmlspecialchars($images[0]) : $placeholderSrc; ?>" 
-                                     alt="<?php echo htmlspecialchars($course['course_name']); ?>" 
-                                     class="main-image"
-                                     onerror="this.src='<?php echo $placeholderSrc; ?>'">
-                                
+                                <img id="mainImage"
+                                    src="<?php echo !empty($images) ? '../uploads/' . htmlspecialchars($images[0]) : $placeholderSrc; ?>"
+                                    alt="<?php echo htmlspecialchars($course['course_name']); ?>"
+                                    class="main-image"
+                                    onerror="this.src='<?php echo $placeholderSrc; ?>'">
+
                                 <?php if (count($images) > 0): ?>
                                     <button class="view-all-btn" id="viewAllBtn">
                                         <i class="fas fa-expand"></i>
@@ -906,16 +907,16 @@ if (
 
                             <!-- Thumbnails -->
                             <?php if (count($images) > 1): ?>
-                            <div class="thumbnail-grid">
-                                <?php foreach ($images as $index => $img): ?>
-                                <div class="thumbnail-item <?php echo $index === 0 ? 'active' : ''; ?>" 
-                                     data-index="<?php echo $index; ?>">
-                                    <img src="../uploads/<?php echo htmlspecialchars($img); ?>" 
-                                         alt="ภาพประกอบ <?php echo $index + 1; ?>"
-                                         onerror="this.src='<?php echo $placeholderSrc; ?>'">
+                                <div class="thumbnail-grid">
+                                    <?php foreach ($images as $index => $img): ?>
+                                        <div class="thumbnail-item <?php echo $index === 0 ? 'active' : ''; ?>"
+                                            data-index="<?php echo $index; ?>">
+                                            <img src="../uploads/<?php echo htmlspecialchars($img); ?>"
+                                                alt="ภาพประกอบ <?php echo $index + 1; ?>"
+                                                onerror="this.src='<?php echo $placeholderSrc; ?>'">
+                                        </div>
+                                    <?php endforeach; ?>
                                 </div>
-                                <?php endforeach; ?>
-                            </div>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -969,13 +970,13 @@ if (
                                     </div>
                                 <?php else: ?>
                                     <form class="access-code-form" id="accessCodeForm">
-                                        <input type="password" 
-                                               id="accessCodeInput" 
-                                               class="access-code-input" 
-                                               maxlength="4" 
-                                               placeholder="XXXX" 
-                                               autocomplete="off"
-                                               required>
+                                        <input type="password"
+                                            id="accessCodeInput"
+                                            class="access-code-input"
+                                            maxlength="4"
+                                            placeholder="XXXX"
+                                            autocomplete="off"
+                                            required>
                                         <button type="submit" class="access-code-btn" id="submitAccessCode">
                                             <i class="fas fa-check"></i>
                                             ยืนยันรหัส
@@ -991,9 +992,9 @@ if (
                             <h3 class="section-title mb-4">ความคิดเห็นและข้อเสนอแนะ</h3>
 
                             <!-- Comment Form -->
-                            <div id="commentFormContainer" 
-                                 class="comment-form-container" 
-                                 style="<?= $hasAccess ? '' : 'opacity: 0.6; pointer-events: none;' ?>">
+                            <div id="commentFormContainer"
+                                class="comment-form-container"
+                                style="<?= $hasAccess ? '' : 'opacity: 0.6; pointer-events: none;' ?>">
                                 <form id="commentForm">
                                     <input type="hidden" name="courses_id" value="<?php echo (int)$course['courses_id']; ?>">
 
@@ -1032,7 +1033,7 @@ if (
 
                                     <button type="submit" class="submit-btn">ส่งความคิดเห็น</button>
                                 </form>
-                                
+
                                 <!-- Feedback Messages -->
                                 <div id="commentFeedback" class="comment-feedback comment-success d-none">
                                     <i class="fas fa-check-circle"></i> ขอบคุณสำหรับความคิดเห็นของคุณ
@@ -1050,14 +1051,14 @@ if (
                                     $commentsStmt->bind_param('i', $courseId);
                                     $commentsStmt->execute();
                                     $commentsResult = $commentsStmt->get_result();
-                                    
+
                                     if ($commentsResult->num_rows === 0): ?>
                                         <div class="no-comments">
                                             <i class="far fa-comment-dots fa-3x mb-3"></i>
                                             <h4>ยังไม่มีความคิดเห็น</h4>
                                             <p>เป็นคนแรกที่แสดงความคิดเห็นเกี่ยวกับหลักสูตรนี้</p>
                                         </div>
-                                    <?php else: 
+                                        <?php else:
                                         while ($comment = $commentsResult->fetch_assoc()): ?>
                                             <div class="comment-item">
                                                 <div class="comment-header">
@@ -1084,11 +1085,15 @@ if (
                                                     </div>
                                                 <?php endif; ?>
 
-                                                <div class="comment-text">
-                                                    <?php echo nl2br(htmlspecialchars($comment['comment_text'])); ?>
+                                                <div class="comment-text-wrapper">
+                                                    <div class="comment-text">
+                                                        <?php echo nl2br(htmlspecialchars($comment['comment_text'])); ?>
+                                                    </div>
+                                                    <span class="read-more">อ่านเพิ่มเติม</span>
                                                 </div>
+
                                             </div>
-                                        <?php endwhile;
+                                <?php endwhile;
                                     endif;
                                     $commentsStmt->close();
                                 }
@@ -1106,7 +1111,7 @@ if (
         <button class="lightbox-close" id="lightboxClose">
             <i class="fas fa-times"></i>
         </button>
-        
+
         <div class="lightbox-nav">
             <button class="lightbox-btn" id="lightboxPrev">
                 <i class="fas fa-chevron-left"></i>
@@ -1115,11 +1120,11 @@ if (
                 <i class="fas fa-chevron-right"></i>
             </button>
         </div>
-        
+
         <div class="lightbox-content">
             <img id="lightboxImage" src="" alt="" class="lightbox-img">
         </div>
-        
+
         <div class="lightbox-counter" id="lightboxCounter">1 / <?php echo count($images); ?></div>
     </div>
 
@@ -1130,7 +1135,7 @@ if (
         document.addEventListener('DOMContentLoaded', function() {
             const images = <?php echo json_encode($images); ?>;
             const placeholderSrc = '<?php echo $placeholderSrc; ?>';
-            
+
             // Gallery Navigation
             const mainImage = document.getElementById('mainImage');
             const thumbnails = document.querySelectorAll('.thumbnail-item');
@@ -1141,7 +1146,7 @@ if (
             const lightboxNext = document.getElementById('lightboxNext');
             const lightboxCounter = document.getElementById('lightboxCounter');
             const viewAllBtn = document.getElementById('viewAllBtn');
-            
+
             let currentImageIndex = 0;
 
             // Update main image when thumbnail is clicked
@@ -1175,7 +1180,7 @@ if (
             // Lightbox functionality
             function openLightbox(index = 0) {
                 if (images.length === 0) return;
-                
+
                 currentImageIndex = index;
                 updateLightboxImage();
                 lightbox.classList.add('show');
@@ -1218,8 +1223,8 @@ if (
             // Keyboard navigation
             document.addEventListener('keydown', (e) => {
                 if (!lightbox.classList.contains('show')) return;
-                
-                switch(e.key) {
+
+                switch (e.key) {
                     case 'Escape':
                         closeLightbox();
                         break;
@@ -1306,9 +1311,9 @@ if (
             if (accessCodeForm) {
                 accessCodeForm.addEventListener('submit', async function(e) {
                     e.preventDefault();
-                    
+
                     const code = accessCodeInput.value.trim();
-                    
+
                     if (!code || code.length !== 4) {
                         showAccessCodeError('กรุณากรอกรหัส 4 หลักให้ถูกต้อง');
                         return;
@@ -1326,7 +1331,9 @@ if (
                             headers: {
                                 'Content-Type': 'application/json'
                             },
-                            body: JSON.stringify({ code: code })
+                            body: JSON.stringify({
+                                code: code
+                            })
                         });
 
                         const result = await response.json();
@@ -1399,7 +1406,9 @@ if (
                         if (rating > 0) {
                             const ratingResponse = await fetch('rate_course.php', {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
                                 body: JSON.stringify({
                                     courses_id: parseInt(courseId, 10),
                                     rating: rating
@@ -1434,7 +1443,9 @@ if (
 
                         const commentResponse = await fetch('save_comment.php', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
                             body: JSON.stringify(commentData)
                         });
 
@@ -1540,6 +1551,20 @@ if (
                 commentsList.insertBefore(newComment, commentsList.firstChild);
             }
         });
+
+
+document.querySelectorAll('.read-more').forEach(btn => {
+    btn.addEventListener('click', function () {
+        const text = this.previousElementSibling;
+        text.classList.toggle('expanded');
+        this.textContent = text.classList.contains('expanded')
+            ? 'ย่อข้อความ'
+            : 'อ่านเพิ่มเติม';
+    });
+});
+
+    
     </script>
 </body>
+
 </html>

@@ -412,7 +412,7 @@ $courses_json = json_encode($courses);
 
             <div class="d-flex gap-2">
     <button type="button" class="btn btn-add-course" data-bs-toggle="modal" data-bs-target="#addCourseModal">
-        <i class="bi bi-plus-circle"></i> เพิ่มหลักสูตรใหม่
+        <i class="bi bi-plus-circle"></i> เพิ่มกิจกรรมอบรมใหม่
     </button>
 
     <!-- ปุ่มไปหน้าจัดการความคิดเห็น (สไตล์เดียวกัน) -->
@@ -471,7 +471,7 @@ $courses_json = json_encode($courses);
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="courseModalLabel"><i class="bi bi-book-fill me-2"></i>รายละเอียดหลักสูตร</h5>
+                    <h5 class="modal-title" id="courseModalLabel"><i class="bi bi-book-fill me-2"></i>รายละเอียดกิจกรรมอบรม</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
@@ -492,17 +492,17 @@ $courses_json = json_encode($courses);
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="addCourseModalLabel"><i class="bi bi-plus-circle-fill me-2"></i>เพิ่มหลักสูตรใหม่</h5>
+                    <h5 class="modal-title" id="addCourseModalLabel"><i class="bi bi-plus-circle-fill me-2"></i>เพิ่มกิจกรรมอบรม</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form action="save_course.php" method="POST" enctype="multipart/form-data">
                         <div class="mb-3">
-                            <label for="course_name" class="form-label fw-bold">ชื่อหลักสูตร</label>
+                            <label for="course_name" class="form-label fw-bold">ชื่อกิจกรรมอบรม</label>
                             <input type="text" class="form-control" id="course_name" name="course_name" required>
                         </div>
                         <div class="mb-3">
-                            <label for="course_description" class="form-label fw-bold">คำอธิบายหลักสูตร</label>
+                            <label for="course_description" class="form-label fw-bold">คำอธิบาย</label>
                             <textarea class="form-control" id="course_description" name="course_description" rows="3" required></textarea>
                         </div>
                         <hr class="my-4">
@@ -539,7 +539,7 @@ $courses_json = json_encode($courses);
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="editCourseModalLabel"><i class="bi bi-pencil-square me-2"></i>แก้ไขหลักสูตร</h5>
+                    <h5 class="modal-title" id="editCourseModalLabel"><i class="bi bi-pencil-square me-2"></i>แก้ไขกิจกรรมอบรม</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
@@ -550,7 +550,7 @@ $courses_json = json_encode($courses);
                             <input type="text" class="form-control" id="editCourseName" name="course_name" required>
                         </div>
                         <div class="mb-4">
-                            <label for="editCourseDescription" class="form-label fw-bold">คำอธิบายหลักสูตร</label>
+                            <label for="editCourseDescription" class="form-label fw-bold">คำอธิบายกิจกรรมอบรม</label>
                             <textarea class="form-control" id="editCourseDescription" name="course_description" rows="4" required></textarea>
                         </div>
 

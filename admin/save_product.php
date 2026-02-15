@@ -80,5 +80,5 @@ if ($stmt->execute()) {
 }
 
 $stmt->close();
-header("Location: add_product.php");
+header("Location: manage_product.php");
 exit;
