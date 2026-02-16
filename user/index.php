@@ -267,11 +267,11 @@ if (isset($_SESSION['member_id'])) {
     <div class="hero text-center">
         <!-- วิดีโอพื้นหลัง -->
         <video class="hero-video" autoplay muted loop playsinline>
-            <source src="/video/background-video.mp4" type="video/mp4">
+            <source src="/video/background-video2.mp4" type="video/mp4">
         </video>
         <div class="hero-overlay"></div>
         <div class="hero-contact">
-            <h1>ศูนย์เรียนรู้เศรษฐกิจพอเพียง<br />สวนลุงเผือก</h1>
+            <h1>ระบบจองคิวเยี่ยมชมศูนย์การเรียนรู้<br/>เศรษฐกิจพอเพียง<br/>สวนลุงเผือก</h1>
             <p>เว็บไซต์ศูนย์การเรียนรู้เศรษฐกิจพอเพียง และเปิดให้เข้าศึกษาดูงาน
                 <br>
                 <samp> สวนลุงเผือก บ.บุฮม อ.เชียงคาน จ.เลย</samp>

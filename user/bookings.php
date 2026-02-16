@@ -1077,17 +1077,25 @@
                                             <span>150 บาท</span>
                                         </div>
                                         <div class="summary-item-modern">
+                                            <span>ค่าเข้าชมรวม:</span>
+                                            <span><span id="display_entrance_fee">150</span> บาท</span>
+                                        </div>
+                                        <div class="summary-item-modern">
+                                            <span>ค่าวิทยากร:</span>
+                                            <span>1,800 บาท</span>
+                                        </div>
+                                        <div class="summary-item-modern">
                                             <span>ยอดรวมทั้งหมด:</span>
-                                            <span><span id="display_total">150</span> บาท</span>
+                                            <span><span id="display_total">1950</span> บาท</span>
                                         </div>
                                         <div class="summary-item-modern">
                                             <span>ยอดมัดจำ (30%):</span>
-                                            <span><span id="display_deposit">45</span> บาท</span>
+                                            <span><span id="display_deposit">585</span> บาท</span>
                                         </div>
                                         <hr>
                                         <div class="summary-item-modern total-highlight-modern">
                                             <span>ยอดคงเหลือชำระวันเข้าชม:</span>
-                                            <span><span id="display_balance">105</span> บาท</span>
+                                            <span><span id="display_balance">1365</span> บาท</span>
                                         </div>
                                     </div>
                                 </div>
@@ -2029,8 +2037,10 @@
         function calculatePrice() {
             const count = parseInt(document.getElementById('visitor_count').value) || 0;
             const pricePerPerson = 150;
+            const instructorFee = 1800;
 
-            const total = count * pricePerPerson;
+            const entranceFee = count * pricePerPerson;
+            const total = entranceFee + instructorFee;
             const deposit = total * 0.3;
             const balance = total - deposit;
 
@@ -2038,9 +2048,10 @@
             document.getElementById('display_visitor_count').textContent = count.toLocaleString();
 
             // แสดงราคาในสรุป
+            document.getElementById('display_entrance_fee').textContent = entranceFee.toLocaleString();
             document.getElementById('display_total').textContent = total.toLocaleString();
-            document.getElementById('display_deposit').textContent = deposit.toLocaleString();
-            document.getElementById('display_balance').textContent = balance.toLocaleString();
+            document.getElementById('display_deposit').textContent = Math.round(deposit).toLocaleString();
+            document.getElementById('display_balance').textContent = Math.round(balance).toLocaleString();
         }
 
         // ฟังก์ชันแสดง Alert
