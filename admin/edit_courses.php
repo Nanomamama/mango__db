@@ -411,15 +411,15 @@ $courses_json = json_encode($courses);
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
 
             <div class="d-flex gap-2">
-    <button type="button" class="btn btn-add-course" data-bs-toggle="modal" data-bs-target="#addCourseModal">
-        <i class="bi bi-plus-circle"></i> เพิ่มกิจกรรมอบรมใหม่
-    </button>
+                <button type="button" class="btn btn-add-course" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+                    <i class="bi bi-plus-circle"></i> เพิ่มกิจกรรมอบรมใหม่
+                </button>
 
-    <!-- ปุ่มไปหน้าจัดการความคิดเห็น (สไตล์เดียวกัน) -->
-    <a href="manage_comments.php" class="btn btn-add-course">
-        <i class="bi bi-chat-left-dots"></i> จัดการความคิดเห็น
-    </a>
-</div>
+                <!-- ปุ่มไปหน้าจัดการความคิดเห็น (สไตล์เดียวกัน) -->
+                <a href="manage_comments.php" class="btn btn-add-course">
+                    <i class="bi bi-chat-left-dots"></i> จัดการความคิดเห็น
+                </a>
+            </div>
 
 
         </div>
@@ -573,7 +573,7 @@ $courses_json = json_encode($courses);
                                 <img id="previewEdit3" src="#" alt="Preview Image 3" class="img-thumbnail mt-2" style="max-height: 150px; width: 100%; object-fit: cover;">
                             </div>
                         </div>
-                        
+
                         <div class="d-flex justify-content-end gap-2 mt-4 pt-4 border-top">
                             <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
                             <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i>บันทึกการเปลี่ยนแปลง</button>
@@ -597,7 +597,11 @@ $courses_json = json_encode($courses);
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                    <a href="#" id="confirmDeleteButton" class="btn btn-danger">ลบ</a>
+                    <form action="delete_course.php" method="post" id="deleteForm">
+                        <input type="hidden" name="id" id="deleteCourseId">
+                        <button type="submit" class="btn btn-danger">ลบ</button>
+                    </form>
+
                 </div>
             </div>
         </div>
@@ -747,12 +751,14 @@ $courses_json = json_encode($courses);
         }
 
         function confirmDelete(id) {
-            const confirmDeleteButton = document.getElementById('confirmDeleteButton');
-            confirmDeleteButton.href = 'delete_course.php?id=' + id;
+            document.getElementById('deleteCourseId').value = id;
 
-            const deleteCourseModal = new bootstrap.Modal(document.getElementById('deleteCourseModal'));
+            const deleteCourseModal = new bootstrap.Modal(
+                document.getElementById('deleteCourseModal')
+            );
             deleteCourseModal.show();
         }
+
 
         // Toast notification for success/error messages from URL
         document.addEventListener('DOMContentLoaded', function() {
