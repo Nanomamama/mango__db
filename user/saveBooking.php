@@ -58,8 +58,9 @@ $booking_type = get('booking_type', 'private');
 
 // If client didn't send totals, compute server-side
 if (empty($price_total) || $price_total <= 0) {
-	$price_per_person = 150.00;
-	$price_total = $visitor_count * $price_per_person;
+    $price_per_person = 150.00;
+    $instructor_fee = 1800.00;
+    $price_total = ($visitor_count * $price_per_person) + $instructor_fee;
 }
 if (empty($deposit_amount) || $deposit_amount <= 0) {
 	$deposit_amount = round($price_total * 0.3, 2);

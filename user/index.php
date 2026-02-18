@@ -36,6 +36,7 @@ if (isset($_SESSION['member_id'])) {
         :root {
             --Primary: #4e73df;
             --Success:rgb(20, 58, 44);
+            --secondary-color: #018992;
             --Info: #36b9cc;
             --Warning: #f6c23e;
             --Danger:  #e74a3b;;
@@ -50,7 +51,7 @@ if (isset($_SESSION['member_id'])) {
         }
 
         .hero {
-            height: 100vh;
+            height: 90vh;
             position: relative;
             overflow: hidden;
             display: flex;

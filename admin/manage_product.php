@@ -57,7 +57,7 @@ $search_keyword = $_GET['search'] ?? '';
         }
 
         /* เพิ่มขนาดตัวอักษรโดยรวมสำหรับผู้สูงอายุ */
-        html {
+        /* html {
             font-size: 18px;
         }
 
@@ -65,7 +65,7 @@ $search_keyword = $_GET['search'] ?? '';
             html {
                 font-size: 16px;
             }
-        }
+        } */
 
         .main-content {
             margin-left: 250px;

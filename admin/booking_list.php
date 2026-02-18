@@ -38,7 +38,7 @@
             $response = ['success' => false, 'message' => 'ข้อมูลไม่ถูกต้อง'];
 
             if ($id > 0 && $qr_file && $qr_file['error'] === UPLOAD_ERR_OK) {
-                $stmt_details = $conn->prepare("SELECT guest_name, guest_email, booking_code, deposit_amount FROM bookings WHERE bookings_id = ? AND status = 'pending'");
+                $stmt_details = $conn->prepare("SELECT guest_name, guest_email, booking_code, deposit_amount, visitor_count FROM bookings WHERE bookings_id = ? AND status = 'pending'");
                 $stmt_details->bind_param("i", $id);
                 $stmt_details->execute();
                 $booking = $stmt_details->get_result()->fetch_assoc();
@@ -61,42 +61,79 @@
                         $mail->addEmbeddedImage($qr_file['tmp_name'], 'qrcode_deposit', 'qrcode.jpg');
 
                         $mail->isHTML(true);
-                        $mail->Subject = "ชำระเงินมัดจำสำหรับการจอง #" . $booking['booking_code'];
-                        $deposit_formatted = number_format($booking['deposit_amount'], 2);
-                    $mail->Body = "
-                        <div style='background-color: #f4f7f6; padding: 40px 10px; font-family: \"Sarabun\", \"Kanit\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;'>
-                            <div style='max-width: 600px; margin: 0 auto; background: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #e1e8ed;'>
-                                
-                                <h2 style='color: #016A70; text-align: center; margin-top: 0; font-size: 24px;'>แจ้งชำระเงินมัดจำการจอง</h2>
-                                
-                                <p style='font-size: 16px; color: #333;'>เรียน คุณ <strong>" . htmlspecialchars($booking['guest_name']) . "</strong>,</p>
-                                
-                                <p style='font-size: 15px; line-height: 1.6; color: #555;'>
-                                    ตามที่ท่านได้ทำการจองเข้าชมสวน รหัสอ้างอิง <span style='color: #016A70; font-weight: bold;'>" . htmlspecialchars($booking['booking_code']) . "</span> 
-                                    กรุณาชำระเงินมัดจำจำนวน <span style='font-size: 18px; color: #000; font-weight: bold;'>" . $deposit_formatted . " บาท</span> เพื่อยืนยันการจองของท่าน
-                                </p>
+                        $mail->Subject = "ชำระเงินมัดจำสำหรับการจอง";
 
-                                <div style='text-align: center; margin: 30px 0; padding: 20px; background-color: #f9f9f9; border-radius: 8px;'>
-                                    <p style='margin-bottom: 15px; font-weight: bold; color: #016A70;'>สแกนเพื่อชำระเงิน</p>
-                                    <img src='cid:qrcode_deposit' alt='QR Code' style='width: 200px; height: 200px; display: block; margin: 0 auto;'>
+                        // --- คำนวณค่าใช้จ่ายใหม่ ---
+                        $visitor_count = (int)($booking['visitor_count'] ?? 1);
+                        $price_per_person = 150;
+                        $instructor_fee = 1800;
+                        $deposit_rate = 0.3;
+
+                        $entrance_fee = $visitor_count * $price_per_person;
+                        $total_amount = $entrance_fee + $instructor_fee;
+                        $deposit_amount_calculated = round($total_amount * $deposit_rate);
+                        $deposit_formatted = number_format($deposit_amount_calculated, 2);
+
+                        // Create the direct link to open the upload modal
+                        $booking_id_for_link = $id;
+                        $visitor_count_for_link = $booking['visitor_count'] ?? 1;
+                        $upload_link = "http://localhost:8000/user/bookings.php?action=upload_slip&booking_id={$booking_id_for_link}&visitor_count={$visitor_count_for_link}";
+                        $mail->Body = "
+                            <div style='background-color: #f4f7f6; padding: 40px 10px; font-family: \"Sarabun\", \"Kanit\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;'>
+                                <div style='max-width: 600px; margin: 0 auto; background: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #e1e8ed;'>
+                                    
+                                    <h2 style='color: #016A70; text-align: center; margin-top: 0; font-size: 24px;'>แจ้งชำระเงินมัดจำการจอง</h2>
+                                    
+                                    <p style='font-size: 16px; color: #333;'>เรียน คุณ <strong>" . htmlspecialchars($booking['guest_name']) . "</strong>,</p>
+                                    
+                                    <p style='font-size: 15px; line-height: 1.6; color: #555;'>
+                                        ตามที่ท่านได้ทำการจองเข้าชมสวน กรุณาชำระเงินมัดจำเพื่อยืนยันการจองของท่าน โดยมีรายละเอียดค่าใช้จ่ายดังนี้:
+                                    </p>
+
+                                    <div style='border: 1px solid #eee; border-radius: 8px; margin: 25px 0; padding: 15px;'>
+                                        <table style='width: 100%; border-collapse: collapse; font-size: 15px;'>
+                                            <tr>
+                                                <td style='padding: 8px 0; color: #555;'>ค่าเข้าชม (" . $visitor_count . " คน x " . number_format($price_per_person, 2) . " บาท)</td>
+                                                <td style='padding: 8px 0; text-align: right;'>" . number_format($entrance_fee, 2) . " บาท</td>
+                                            </tr>
+                                            <tr>
+                                                <td style='padding: 8px 0; color: #555; border-bottom: 1px dashed #ddd;'>ค่าวิทยากร</td>
+                                                <td style='padding: 8px 0; text-align: right; border-bottom: 1px dashed #ddd;'>" . number_format($instructor_fee, 2) . " บาท</td>
+                                            </tr>
+                                            <tr style='font-weight: bold;'>
+                                                <td style='padding: 12px 0 8px;'>ยอดรวมทั้งหมด</td>
+                                                <td style='padding: 12px 0 8px; text-align: right;'>" . number_format($total_amount, 2) . " บาท</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+
+                                    <div style='text-align: center; background-color: #f0fff8; border: 1px solid #b7eb8f; padding: 15px; border-radius: 8px;'><span style='font-size: 16px; color: #333;'>ยอดมัดจำที่ต้องชำระ (30%):</span><br><span style='font-size: 24px; color: #c0392b; font-weight: bold;'>" . $deposit_formatted . " บาท</span></div>
+
+                                    <div style='text-align: center; margin: 30px 0; padding: 20px; background-color: #f9f9f9; border-radius: 8px;'>
+                                        <p style='margin-bottom: 15px; font-weight: bold; color: #016A70;'>สแกนเพื่อชำระเงิน</p>
+                                        <img src='cid:qrcode_deposit' alt='QR Code' style='width: 200px; height: 200px; display: block; margin: 0 auto;'>
+                                    </div>
+
+                                    <p style='font-size: 15px; line-height: 1.6; color: #555;'>
+                                        หลังจากชำระเงินเรียบร้อยแล้ว กรุณาอัปโหลดหลักฐานการชำระเงิน (สลิป) ในหน้าตรวจสอบการจองบนเว็บไซต์ เพื่อให้เจ้าหน้าที่ดำเนินการยืนยันในขั้นตอนต่อไป
+                                    </p>
+                                    
+                                    <p style='background-color: #fff5f5; border-left: 4px solid #c0392b; padding: 10px 15px; color: #c0392b; font-size: 14px;'>
+                                        <strong>สำคัญ:</strong> กรุณาชำระเงินภายใน 3 วัน มิฉะนั้นการจองของท่านจะถูกยกเลิกโดยอัตโนมัติ
+                                    </p>
+
+                                    <hr style='border: 0; border-top: 1px solid #eeeeee; margin: 30px 0;'>
+
+                                    <p style='text-align: center; color: #555; font-size: 15px; line-height: 1.6;'>
+                                        ท่านสามารถกดปุ่มด้านล่างเพื่อไปยังหน้าการจอง และทำการแนบสลิปของท่าน
+                                    </p>
+                                    <div style='text-align: center; margin: 25px 0;'><a href='{$upload_link}' style='background-color: #016A70; color: #ffffff; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>แนบสลิปการโอนเงิน</a></div>
+                                    <p style='text-align: center; color: #888888; font-size: 13px; line-height: 1.5;'>
+                                        ขอขอบคุณที่ไว้วางใจให้เราดูแล<br>
+                                        <strong>สวนแห่งการเรียนรู้</strong>
+                                    </p>
                                 </div>
-
-                                <p style='font-size: 15px; line-height: 1.6; color: #555;'>
-                                    หลังจากชำระเงินเรียบร้อยแล้ว กรุณาอัปโหลดหลักฐานการชำระเงิน (สลิป) ในหน้าตรวจสอบการจองบนเว็บไซต์ เพื่อให้เจ้าหน้าที่ดำเนินการยืนยันในขั้นตอนต่อไป
-                                </p>
-                                
-                                <p style='background-color: #fff5f5; border-left: 4px solid #c0392b; padding: 10px 15px; color: #c0392b; font-size: 14px;'>
-                                    <strong>สำคัญ:</strong> กรุณาชำระเงินภายใน 3 วัน มิฉะนั้นการจองของท่านจะถูกยกเลิกโดยอัตโนมัติ
-                                </p>
-
-                                <hr style='border: 0; border-top: 1px solid #eeeeee; margin: 30px 0;'>
-
-                                <p style='text-align: center; color: #888888; font-size: 13px; line-height: 1.5;'>
-                                    ขอขอบคุณที่ไว้วางใจให้เราดูแล<br>
-                                    <strong>สวนแห่งการเรียนรู้</strong>
-                                </p>
-                            </div>
-                        </div>";
+                            </div>";
 
                         if ($mail->send()) {
                             // Update status to 'awaiting_payment' after sending QR
@@ -165,86 +202,104 @@
                         $booking_time_formatted = date('H:i', strtotime($booking['booking_time']));
                         $booking_type_thai = $booking['booking_type'] === 'organization' ? 'หน่วยงาน/องค์กร' : 'บุคคลทั่วไป';
                         $lunch_request_text = $booking['lunch_request'] == 1 ? '✅ ต้องการ' : '❌ ไม่ต้องการ';
-                        $price_total_formatted = number_format($booking['price_total'], 2);
-                        $deposit_formatted = number_format($booking['deposit_amount'], 2);
-                        $balance_formatted = number_format($booking['balance_amount'], 2);
+
+                        // --- คำนวณค่าใช้จ่ายใหม่เพื่อความถูกต้อง ---
+                        $visitor_count = (int)($booking['visitor_count'] ?? 1);
+                        $price_per_person = 150;
+                        $instructor_fee = 1800;
+                        $entrance_fee = $visitor_count * $price_per_person;
+                        $total_amount_recalculated = $entrance_fee + $instructor_fee;
+                        $deposit_amount_paid = (float)$booking['deposit_amount'];
+                        $balance_recalculated = $total_amount_recalculated - $deposit_amount_paid;
+
+                        $price_total_formatted = number_format($total_amount_recalculated, 2);
+                        $deposit_formatted = number_format($deposit_amount_paid, 2);
+                        $balance_formatted = number_format($balance_recalculated, 2);
 
 
                         $userMail->Body = "
-                                <div style='font-family: \"Sarabun\", \"Kanit\", sans-serif; padding: 20px; background-color: #f4f7f6; line-height: 1.7;'>
-                                    <div style='max-width: 650px; margin: auto; background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); border-top: 5px solid #016A70;'>
-                                        
-                                        <div style='text-align: center; margin-bottom: 25px;'>
-                                            <h1 style='color: #016A70; margin: 0; font-size: 26px; font-weight: 600;'>หนังสือยืนยันการจอง</h1>
-                                            <p style='color: #555; font-size: 15px; margin-top: 5px;'>Booking Confirmation</p>
-                                        </div>
+                                    <div style='font-family: \"Sarabun\", \"Kanit\", sans-serif; padding: 20px; background-color: #f4f7f6; line-height: 1.7;'>
+                                        <div style='max-width: 650px; margin: auto; background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); border-top: 5px solid #016A70;'>
+                                            
+                                            <div style='text-align: center; margin-bottom: 25px;'>
+                                                <h1 style='color: #016A70; margin: 0; font-size: 26px; font-weight: 600;'>หนังสือยืนยันการจอง</h1>
+                                                <p style='color: #555; font-size: 15px; margin-top: 5px;'>Booking Confirmation</p>
+                                            </div>
 
-                                        <p style='color: #333; font-size: 16px;'>เรียน คุณ " . htmlspecialchars($booking['guest_name']) . ",</p>
-                                        
-                                        <p style='color: #333; font-size: 16px; text-indent: 2em;'>ตามที่ท่านได้ดำเนินการจองคิวเข้าชมสวนและชำระเงินมัดจำเรียบร้อยแล้วนั้น ทางสวนฯ มีความยินดีที่จะยืนยันว่าการจองของท่านเสร็จสมบูรณ์ โดยมีรายละเอียดดังต่อไปนี้:</p>
-                                        
-                                        <div style='background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 30px 0; text-align: center;'>
-                                            <p style='margin: 0; font-size: 15px; color: #6c757d; text-transform: uppercase; letter-spacing: 1px;'>รหัสอ้างอิงการจอง</p>
-                                            <p style='font-size: 32px; font-weight: bold; color: #016A70; margin: 8px 0 0 0; letter-spacing: 3px;'>" . htmlspecialchars($booking['booking_code']) . "</p>
-                                        </div>
+                                            <p style='color: #333; font-size: 16px;'>เรียน คุณ " . htmlspecialchars($booking['guest_name']) . ",</p>
+                                            
+                                            <p style='color: #333; font-size: 16px; text-indent: 2em;'>ตามที่ท่านได้ดำเนินการจองคิวเข้าชมสวนและชำระเงินมัดจำเรียบร้อยแล้วนั้น ทางสวนฯ มีความยินดีที่จะยืนยันว่าการจองของท่านเสร็จสมบูรณ์ โดยมีรายละเอียดดังต่อไปนี้:</p>
+                                            
+                                            <div style='background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 30px 0; text-align: center;'>
+                                                <p style='margin: 0; font-size: 15px; color: #6c757d; text-transform: uppercase; letter-spacing: 1px;'>รหัสอ้างอิงการจอง</p>
+                                                <p style='font-size: 32px; font-weight: bold; color: #016A70; margin: 8px 0 0 0; letter-spacing: 3px;'>" . htmlspecialchars($booking['booking_code']) . "</p>
+                                            </div>
 
-                                        <h3 style='color: #016A70; border-bottom: 2px solid #f1f1f1; padding-bottom: 10px; margin-top: 30px; font-size: 20px;'>สรุปข้อมูลการจอง</h3>
-                                        
-                                        <table style='width: 100%; border-collapse: collapse; margin-top: 15px; color: #333; font-size: 15px;'>
-                                            <tr>
-                                                <td style='padding: 10px 0; font-weight: 500; width: 40%; border-bottom: 1px solid #eee;'>วันที่เข้าชม:</td>
-                                                <td style='padding: 10px 0; font-weight: 600; border-bottom: 1px solid #eee;'>" . $thai_date . "</td>
-                                            </tr>
-                                            <tr>
-                                                <td style='padding: 10px 0; font-weight: 500; border-bottom: 1px solid #eee;'>เวลาโดยประมาณ:</td>
-                                                <td style='padding: 10px 0; font-weight: 600; border-bottom: 1px solid #eee;'>" . $booking_time_formatted . " น.</td>
-                                            </tr>
-                                            <tr>
-                                                <td style='padding: 10px 0; font-weight: 500; border-bottom: 1px solid #eee;'>จำนวนผู้เข้าชม:</td>
-                                                <td style='padding: 10px 0; font-weight: 600; border-bottom: 1px solid #eee;'>" . htmlspecialchars($booking['visitor_count']) . " ท่าน</td>
-                                            </tr>
-                                            <tr>
-                                                <td style='padding: 10px 0; font-weight: 500; border-bottom: 1px solid #eee;'>ประเภทการจอง:</td>
-                                                <td style='padding: 10px 0; font-weight: 600; border-bottom: 1px solid #eee;'>" . $booking_type_thai . "</td>
-                                            </tr>
-                                            <tr>
-                                                <td style='padding: 10px 0; font-weight: 500;'>บริการอาหารกลางวัน:</td>
-                                                <td style='padding: 10px 0; font-weight: 600;'>" . $lunch_request_text . "</td>
-                                            </tr>
-                                        </table>
-
-                                        <div style='margin-top: 25px; padding-top: 15px; border-top: 2px solid #f1f1f1;'>
-                                            <table style='width: 100%; color: #333; font-size: 15px;'>
+                                            <h3 style='color: #016A70; border-bottom: 2px solid #f1f1f1; padding-bottom: 10px; margin-top: 30px; font-size: 20px;'>สรุปข้อมูลการจอง</h3>
+                                            
+                                            <table style='width: 100%; border-collapse: collapse; margin-top: 15px; color: #333; font-size: 15px;'>
                                                 <tr>
-                                                    <td style='padding: 6px 0;'>ยอดรวมทั้งหมด:</td>
-                                                    <td style='padding: 6px 0; text-align: right; font-weight: 500;'>" . $price_total_formatted . " บาท</td>
+                                                    <td style='padding: 10px 0; font-weight: 500; width: 40%; border-bottom: 1px solid #eee;'>วันที่เข้าชม:</td>
+                                                    <td style='padding: 10px 0; font-weight: 600; border-bottom: 1px solid #eee;'>" . $thai_date . "</td>
                                                 </tr>
                                                 <tr>
-                                                    <td style='padding: 6px 0;'>จำนวนเงินมัดจำที่ชำระแล้ว:</td>
-                                                    <td style='padding: 6px 0; text-align: right; font-weight: 500; color: #27ae60;'>- " . $deposit_formatted . " บาท</td>
+                                                    <td style='padding: 10px 0; font-weight: 500; border-bottom: 1px solid #eee;'>เวลาโดยประมาณ:</td>
+                                                    <td style='padding: 10px 0; font-weight: 600; border-bottom: 1px solid #eee;'>" . $booking_time_formatted . " น.</td>
                                                 </tr>
-                                                <tr style='border-top: 1px solid #ccc;'>
-                                                    <td style='padding: 10px 0; font-weight: bold; font-size: 16px;'>ยอดคงเหลือชำระ ณ วันเข้าชม:</td>
-                                                    <td style='padding: 10px 0; text-align: right; font-weight: bold; color: #c0392b; font-size: 18px;'>" . $balance_formatted . " บาท</td>
+                                                <tr>
+                                                    <td style='padding: 10px 0; font-weight: 500; border-bottom: 1px solid #eee;'>จำนวนผู้เข้าชม:</td>
+                                                    <td style='padding: 10px 0; font-weight: 600; border-bottom: 1px solid #eee;'>" . htmlspecialchars($booking['visitor_count']) . " ท่าน</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style='padding: 10px 0; font-weight: 500; border-bottom: 1px solid #eee;'>ประเภทการจอง:</td>
+                                                    <td style='padding: 10px 0; font-weight: 600; border-bottom: 1px solid #eee;'>" . $booking_type_thai . "</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style='padding: 10px 0; font-weight: 500;'>บริการอาหารกลางวัน:</td>
+                                                    <td style='padding: 10px 0; font-weight: 600;'>" . $lunch_request_text . "</td>
                                                 </tr>
                                             </table>
-                                        </div>
 
-                                        <div style='margin-top: 30px; padding: 15px; background-color: #eaf2f8; border-left: 4px solid #3498db; border-radius: 4px;'>
-                                            <p style='margin: 0; font-size: 15px; color: #2874a6;'>
-                                                <strong>หมายเหตุ:</strong> กรุณาแสดงรหัสการจองหรืออีเมลฉบับนี้แก่เจ้าหน้าที่ ณ จุดลงทะเบียนเมื่อเดินทางมาถึง
-                                            </p>
-                                        </div>
+                                            <div style='margin-top: 25px; padding-top: 15px; border-top: 2px solid #f1f1f1;'>
+                                                <table style='width: 100%; color: #333; font-size: 15px;'>
+                                                    <tr>
+                                                        <td style='padding: 6px 0;'>ค่าเข้าชม (" . $visitor_count . " คน):</td>
+                                                        <td style='padding: 6px 0; text-align: right; font-weight: 500;'>" . number_format($entrance_fee, 2) . " บาท</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style='padding: 6px 0; border-bottom: 1px dashed #ddd;'>ค่าวิทยากร:</td>
+                                                        <td style='padding: 6px 0; text-align: right; font-weight: 500; border-bottom: 1px dashed #ddd;'>" . number_format($instructor_fee, 2) . " บาท</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style='padding: 10px 0; font-weight: bold;'>ยอดรวมทั้งหมด:</td>
+                                                        <td style='padding: 10px 0; text-align: right; font-weight: bold;'>" . $price_total_formatted . " บาท</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style='padding: 6px 0;'>จำนวนเงินมัดจำที่ชำระแล้ว:</td>
+                                                        <td style='padding: 6px 0; text-align: right; font-weight: 500; color: #27ae60;'>- " . $deposit_formatted . " บาท</td>
+                                                    </tr>
+                                                    <tr style='border-top: 2px solid #ccc;'>
+                                                        <td style='padding: 10px 0; font-weight: bold; font-size: 16px;'>ยอดคงเหลือชำระ ณ วันเข้าชม:</td>
+                                                        <td style='padding: 10px 0; text-align: right; font-weight: bold; color: #c0392b; font-size: 18px;'>" . $balance_formatted . " บาท</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
 
-                                        <div style='margin-top: 40px; text-align: center; color: #888; font-size: 14px;'>
-                                            <p style='margin: 0;'>ขอแสดงความนับถือ</p>
-                                            <p style='margin-top: 5px; color: #333; font-weight: 500;'>ฝ่ายบริการลูกค้า สวนแห่งการเรียนรู้</p>
-                                            <hr style='border: 0; border-top: 1px solid #eee; margin: 25px 0;'>
-                                            <p style='font-size: 12px;'>หากท่านมีข้อสงสัยประการใด สามารถติดต่อสอบถามเพิ่มเติมได้ที่เบอร์โทรศัพท์ 065-107-8576 <br> หรือตอบกลับอีเมลฉบับนี้</p>
+                                            <div style='margin-top: 30px; padding: 15px; background-color: #eaf2f8; border-left: 4px solid #3498db; border-radius: 4px;'>
+                                                <p style='margin: 0; font-size: 15px; color: #2874a6;'>
+                                                    <strong>หมายเหตุ:</strong> กรุณาแสดงรหัสการจองหรืออีเมลฉบับนี้แก่เจ้าหน้าที่ ณ จุดลงทะเบียนเมื่อเดินทางมาถึง
+                                                </p>
+                                            </div>
+
+                                            <div style='margin-top: 40px; text-align: center; color: #888; font-size: 14px;'>
+                                                <p style='margin: 0;'>ขอแสดงความนับถือ</p>
+                                                <p style='margin-top: 5px; color: #333; font-weight: 500;'>ฝ่ายบริการลูกค้า สวนแห่งการเรียนรู้</p>
+                                                <hr style='border: 0; border-top: 1px solid #eee; margin: 25px 0;'>
+                                                <p style='font-size: 12px;'>หากท่านมีข้อสงสัยประการใด สามารถติดต่อสอบถามเพิ่มเติมได้ที่เบอร์โทรศัพท์ 065-107-8576 <br> หรือตอบกลับอีเมลฉบับนี้</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ";
+                                ";
                         $userMail->send();
                     } catch (Exception $e) {
                         error_log("Confirmation Mailer Error for booking ID $id: " . $e->getMessage());
@@ -284,33 +339,33 @@
                         $thai_date = date('d/m/', strtotime($booking['booking_date'])) . (date('Y', strtotime($booking['booking_date'])) + 543);
 
                         $cancelMail->Body = "
-                                <div style='font-family: \"Sarabun\", \"Kanit\", sans-serif; padding: 20px; background-color: #f4f7f6; line-height: 1.7;'>
-                                    <div style='max-width: 650px; margin: auto; background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); border-top: 5px solid #e74a3b;'>
-                                        
-                                        <div style='text-align: center; margin-bottom: 25px;'>
-                                            <h1 style='color: #c0392b; margin: 0; font-size: 26px; font-weight: 600;'>แจ้งยกเลิกการจอง</h1>
-                                            <p style='color: #555; font-size: 15px; margin-top: 5px;'>Booking Cancellation Notice</p>
-                                        </div>
+                                    <div style='font-family: \"Sarabun\", \"Kanit\", sans-serif; padding: 20px; background-color: #f4f7f6; line-height: 1.7;'>
+                                        <div style='max-width: 650px; margin: auto; background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); border-top: 5px solid #e74a3b;'>
+                                            
+                                            <div style='text-align: center; margin-bottom: 25px;'>
+                                                <h1 style='color: #c0392b; margin: 0; font-size: 26px; font-weight: 600;'>แจ้งยกเลิกการจอง</h1>
+                                                <p style='color: #555; font-size: 15px; margin-top: 5px;'>Booking Cancellation Notice</p>
+                                            </div>
 
-                                        <p style='color: #333; font-size: 16px;'>เรียน คุณ " . htmlspecialchars($booking['guest_name']) . ",</p>
-                                        
-                                        <p style='color: #333; font-size: 16px; text-indent: 2em;'>ทางสวนแห่งการเรียนรู้มีความเสียใจที่ต้องแจ้งให้ท่านทราบว่า รายการจองของท่านสำหรับวันที่ <strong>" . $thai_date . "</strong>) ได้ถูกยกเลิกแล้ว</p>
-                                        
-                                        <div style='margin: 30px 0; padding: 20px; background-color: #fffbe6; border-left: 4px solid #f59e0b; border-radius: 4px;'>
-                                            <h4 style='margin-top: 0; color: #d35400; font-size: 16px;'>เหตุผลในการยกเลิก:</h4> 
-                                            <p style='margin-bottom: 0; color: #854d0e; font-size: 15px;'>" . (!empty($rejection_reason) ? nl2br(htmlspecialchars($rejection_reason)) : 'ไม่ระบุ') . "</p>
-                                        </div>
+                                            <p style='color: #333; font-size: 16px;'>เรียน คุณ " . htmlspecialchars($booking['guest_name']) . ",</p>
+                                            
+                                            <p style='color: #333; font-size: 16px; text-indent: 2em;'>ทางสวนแห่งการเรียนรู้มีความเสียใจที่ต้องแจ้งให้ท่านทราบว่า รายการจองของท่านสำหรับวันที่ <strong>" . $thai_date . "</strong>) ได้ถูกยกเลิกแล้ว</p>
+                                            
+                                            <div style='margin: 30px 0; padding: 20px; background-color: #fffbe6; border-left: 4px solid #f59e0b; border-radius: 4px;'>
+                                                <h4 style='margin-top: 0; color: #d35400; font-size: 16px;'>เหตุผลในการยกเลิก:</h4> 
+                                                <p style='margin-bottom: 0; color: #854d0e; font-size: 15px;'>" . (!empty($rejection_reason) ? nl2br(htmlspecialchars($rejection_reason)) : 'ไม่ระบุ') . "</p>
+                                            </div>
 
-                                        <p style='color: #333; font-size: 16px;'>หากท่านมีข้อสงสัย หรือต้องการดำเนินการจองใหม่อีกครั้ง กรุณาติดต่อเจ้าหน้าที่โดยตรงที่เบอร์โทรศัพท์ 065-107-8576 หรือตอบกลับอีเมลฉบับนี้</p>
-                                        <p style='color: #333; font-size: 16px;'>ทางเราต้องขออภัยในความไม่สะดวกมา ณ ที่นี้</p>
-                                        
-                                        <div style='margin-top: 40px; text-align: center; color: #888; font-size: 14px;'>
-                                            <p style='margin: 0;'>ขอแสดงความนับถือ</p>
-                                            <p style='margin-top: 5px; color: #333; font-weight: 500;'>ฝ่ายบริการลูกค้า สวนแห่งการเรียนรู้</p>
+                                            <p style='color: #333; font-size: 16px;'>หากท่านมีข้อสงสัย หรือต้องการดำเนินการจองใหม่อีกครั้ง กรุณาติดต่อเจ้าหน้าที่โดยตรงที่เบอร์โทรศัพท์ 065-107-8576 หรือตอบกลับอีเมลฉบับนี้</p>
+                                            <p style='color: #333; font-size: 16px;'>ทางเราต้องขออภัยในความไม่สะดวกมา ณ ที่นี้</p>
+                                            
+                                            <div style='margin-top: 40px; text-align: center; color: #888; font-size: 14px;'>
+                                                <p style='margin: 0;'>ขอแสดงความนับถือ</p>
+                                                <p style='margin-top: 5px; color: #333; font-weight: 500;'>ฝ่ายบริการลูกค้า สวนแห่งการเรียนรู้</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ";
+                                ";
 
                         $cancelMail->send();
                     } catch (Exception $e) {
@@ -1548,6 +1603,7 @@
                 <div class="col-12"><hr></div>
                 <div class="col-6"><small class="text-muted d-block">ยอดรวม</small> <strong class="text-dark">฿${parseFloat(data.price_total).toLocaleString()}</strong></div>
                 <div class="col-6"><small class="text-muted d-block">เงินมัดจำ</small> <strong class="text-success">฿${parseFloat(data.deposit_amount).toLocaleString()}</strong></div>
+                <div class="col-6"><small class="text-muted d-block">เงินคงเหลือ</small> <strong class="text-danger">฿${parseFloat(data.balance_amount).toLocaleString()}</strong></div>
                 <div class="col-12"><small class="text-muted d-block">หลักฐานการชำระเงิน</small> 
                     ${data.payment_slip ? `<a href="../user/Paymentslip-Gardenreservation/${data.payment_slip}" target="_blank" class="btn btn-sm btn-outline-primary mt-1 w-100">ดูสลิป</a>` : '<span class="text-danger">ยังไม่มีสลิป</span>'}
                 </div>

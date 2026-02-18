@@ -377,7 +377,7 @@
                 <div class="hours-header">
                     <h3><i class="fas fa-clock"></i> เวลาเปิด-ปิดทำการ</h3>
                 </div>
-                <div class="hours-grid">
+                <!-- <div class="hours-grid">
                     <div class="day-time">
                         <span class="day">จันทร์ - ศุกร์</span>
                         <span class="time">08:00 - 22:00 น.</span>
@@ -390,7 +390,7 @@
                         <span class="day">วันหยุดนักขัตฤกษ์</span>
                         <span class="time">09:00 - 21:00 น.</span>
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
     </section>

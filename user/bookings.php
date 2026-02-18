@@ -1,50 +1,50 @@
 <?php
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
-    require_once __DIR__ . '/../db/db.php'; // ตรวจสอบให้แน่ใจว่ามีการเชื่อมต่อฐานข้อมูล
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require_once __DIR__ . '/../db/db.php'; // ตรวจสอบให้แน่ใจว่ามีการเชื่อมต่อฐานข้อมูล
 
-    // ตรวจสอบสถานะผู้ใช้ที่เข้าสู่ระบบ
-    if (isset($_SESSION['member_id'])) {
-        $member_id_for_status_check = $_SESSION['member_id'];
-        $stmt_status = $conn->prepare("SELECT status FROM members WHERE member_id = ?");
-        if ($stmt_status) {
-            $stmt_status->bind_param("i", $member_id_for_status_check);
-            $stmt_status->execute();
-            $result_status = $stmt_status->get_result();
-            if ($row_status = $result_status->fetch_assoc()) {
-                if ((int)$row_status['status'] === 0) {
-                    // บัญชีถูกปิดใช้งาน, ทำลาย session และ redirect
-                    session_unset();
-                    session_destroy();
-                    header('Location: index.php?login_error=disabled');
-                    exit;
-                }
+// ตรวจสอบสถานะผู้ใช้ที่เข้าสู่ระบบ
+if (isset($_SESSION['member_id'])) {
+    $member_id_for_status_check = $_SESSION['member_id'];
+    $stmt_status = $conn->prepare("SELECT status FROM members WHERE member_id = ?");
+    if ($stmt_status) {
+        $stmt_status->bind_param("i", $member_id_for_status_check);
+        $stmt_status->execute();
+        $result_status = $stmt_status->get_result();
+        if ($row_status = $result_status->fetch_assoc()) {
+            if ((int)$row_status['status'] === 0) {
+                // บัญชีถูกปิดใช้งาน, ทำลาย session และ redirect
+                session_unset();
+                session_destroy();
+                header('Location: index.php?login_error=disabled');
+                exit;
             }
-            $stmt_status->close();
         }
+        $stmt_status->close();
     }
+}
 
-    $member_id_session = $_SESSION['member_id'] ?? null;
+$member_id_session = $_SESSION['member_id'] ?? null;
 
-    $is_member = isset($_SESSION['member_id']);
-    $member_data = [
-        'fullname' => '',
-        'email' => '',
-        'phone' => ''
-    ];
+$is_member = isset($_SESSION['member_id']);
+$member_data = [
+    'fullname' => '',
+    'email' => '',
+    'phone' => ''
+];
 
-    if ($is_member) {
-        $member_id = $_SESSION['member_id'];
-        $stmt = $conn->prepare("SELECT fullname, email, phone FROM members WHERE member_id = ?");
-        if ($stmt) {
-            $stmt->bind_param("i", $member_id);
-            $stmt->execute();
-            $result = $stmt->get_result()->fetch_assoc();
-            if ($result) $member_data = $result; // กำหนดค่าเมื่อพบข้อมูลเท่านั้น
-            $stmt->close();
-        }
+if ($is_member) {
+    $member_id = $_SESSION['member_id'];
+    $stmt = $conn->prepare("SELECT fullname, email, phone FROM members WHERE member_id = ?");
+    if ($stmt) {
+        $stmt->bind_param("i", $member_id);
+        $stmt->execute();
+        $result = $stmt->get_result()->fetch_assoc();
+        if ($result) $member_data = $result; // กำหนดค่าเมื่อพบข้อมูลเท่านั้น
+        $stmt->close();
     }
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -84,6 +84,7 @@
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --primary-rgb: 1, 106, 112;
         }
 
         * {
@@ -98,7 +99,12 @@
             min-height: 100vh;
         }
 
-        h1, h2, h3, h4, h5, h6 {
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
             font-family: 'Kanit', sans-serif;
             font-weight: 600;
             color: var(--dark-color);
@@ -315,6 +321,7 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
+
         .document-upload-prompt:hover {
             background-color: rgba(37, 99, 235, 0.05);
         }
@@ -325,15 +332,43 @@
             align-items: center;
         }
 
-        .file-icon-lg { font-size: 2.5rem; margin-right: 1rem; width: 40px; text-align: center; }
-        .file-details { flex-grow: 1; overflow: hidden; }
-        .file-name { font-weight: 600; color: var(--dark-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
-        .file-size { font-size: 0.85rem; color: var(--text-light); }
-        .btn-remove-file {
-            background: none; border: none; color: var(--danger-color);
-            font-size: 1.2rem; padding: 0.5rem; line-height: 1;
-            opacity: 0.7; transition: opacity 0.3s;
+        .file-icon-lg {
+            font-size: 2.5rem;
+            margin-right: 1rem;
+            width: 40px;
+            text-align: center;
         }
+
+        .file-details {
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: var(--dark-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+
+        .file-size {
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+
+        .btn-remove-file {
+            background: none;
+            border: none;
+            color: var(--danger-color);
+            font-size: 1.2rem;
+            padding: 0.5rem;
+            line-height: 1;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
         .btn-remove-file:hover {
             opacity: 1;
         }
@@ -392,6 +427,7 @@
             color: var(--danger-color);
             padding: 2rem 0;
         }
+
         .pdf-preview-name {
             font-weight: 500;
             color: var(--text-color);
@@ -772,20 +808,20 @@
             .step-line-modern {
                 width: 40px;
             }
-            
+
             .calendar-table-modern td {
                 height: 70px;
                 padding: 0.5rem 0.25rem;
             }
-            
+
             .calendar-day-number {
                 font-size: 1rem;
             }
-            
+
             .card-body-modern {
                 padding: 1.5rem;
             }
-            
+
             .file-upload-area-modern {
                 padding: 1.5rem;
             }
@@ -795,20 +831,20 @@
             .step-indicator-modern {
                 flex-wrap: wrap;
             }
-            
+
             .step-modern {
                 margin-bottom: 1rem;
             }
-            
+
             .calendar-table-modern td {
                 height: 60px;
                 padding: 0.25rem;
             }
-            
+
             .calendar-day-number {
                 font-size: 0.9rem;
             }
-            
+
             .page-header {
                 padding: 2rem 0;
             }
@@ -826,7 +862,8 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 1060; /* Higher than modal z-index */
+            z-index: 1060;
+            /* Higher than modal z-index */
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s ease, visibility 0.3s ease;
@@ -844,12 +881,301 @@
             color: var(--primary-color);
         }
 
+        /* Lunch Option Styling */
+        .lunch-option-wrapper {
+            position: relative;
+        }
+
+        .lunch-checkbox {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+
+        .lunch-label {
+            display: flex;
+            align-items: flex-start;
+            padding: 18px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: #fafafa;
+            position: relative;
+            gap: 12px;
+        }
+
+        .lunch-label:hover {
+            border-color: var(--primary-color);
+            background-color: rgba(var(--primary-rgb), 0.03);
+            box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.1);
+        }
+
+        .lunch-checkbox:checked+.lunch-label {
+            border-color: var(--primary-color);
+            background-color: rgba(var(--primary-rgb), 0.08);
+            box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.15);
+        }
+
+        .lunch-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--primary-color), rgba(var(--primary-rgb), 0.8));
+            color: white;
+            font-size: 1.1rem;
+            transition: transform 0.3s ease;
+        }
+
+        .lunch-checkbox:checked+.lunch-label .lunch-icon {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.3);
+        }
+
+        .lunch-text {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .lunch-title {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.05rem;
+        }
+
+        .lunch-subtitle {
+            display: block;
+            font-size: 0.9rem;
+            color: #7a7a7a;
+            font-weight: 400;
+        }
+
+        .lunch-checkmark {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            min-width: 24px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background-color: white;
+            color: transparent;
+            transition: all 0.3s ease;
+            margin-top: 2px;
+        }
+
+        .lunch-checkbox:checked+.lunch-label .lunch-checkmark {
+            border-color: var(--primary-color);
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 2px 6px rgba(var(--primary-rgb), 0.3);
+        }
+
+        .lunch-checkbox:disabled+.lunch-label {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: #f5f5f5;
+        }
+
+        .lunch-checkbox:disabled+.lunch-label .lunch-icon {
+            background: #ccc;
+        }
+
+        @media (max-width: 576px) {
+            .lunch-label {
+                padding: 16px 18px;
+                font-size: 0.95rem;
+            }
+
+            .lunch-icon {
+                width: 36px;
+                height: 36px;
+            }
+
+            .lunch-title {
+                font-size: 1rem;
+            }
+
+            .lunch-subtitle {
+                font-size: 0.85rem;
+            }
+        }
+
+        /* New Cost Summary Card */
+        .cost-summary-card {
+            background: #fff;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+
+        .cost-summary-header {
+            background: #f8fafc;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .cost-summary-header h5 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .cost-summary-body {
+            padding: 1.5rem;
+        }
+
+        .cost-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            font-size: 0.95rem;
+        }
+
+        .cost-item .label {
+            color: var(--text-light);
+        }
+
+        .cost-item .value {
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .cost-divider {
+            border-top: 1px dashed #cbd5e1;
+            margin: 1rem 0;
+        }
+
+        .cost-total-section {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .cost-total-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 0.75rem;
+        }
+
+        .cost-total-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .cost-total-item .label {
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .cost-total-item .value {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--dark-color);
+        }
+
+        .cost-total-item.deposit .value {
+            color: var(--primary-color);
+            font-size: 1.4rem;
+        }
+
+        .cost-total-item.balance .value {
+            color: var(--success-color);
+            font-size: 1.1rem;
+        }
+
+        /* Booking Sidebar & Tabs */
+        .booking-sidebar {
+            height: calc(100% - 2rem);
+        }
+
+        .booking-sidebar .nav-tabs {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.5rem;
+            background-color: #f8fafc;
+        }
+
+        .booking-sidebar .nav-link {
+            border: none;
+            color: var(--text-light);
+            font-weight: 600;
+            padding: 0.75rem 1rem;
+            border-radius: var(--border-radius-sm);
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .booking-sidebar .nav-link:hover {
+            color: var(--primary-color);
+            background-color: rgba(var(--primary-rgb), 0.05);
+        }
+
+        .booking-sidebar .nav-link.active {
+            color: var(--primary-color);
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .booking-status-list {
+            max-height: 550px;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        .booking-status-list .list-group-item {
+            border: none;
+            border-radius: var(--border-radius-sm);
+            margin-bottom: 0.5rem;
+            padding: 0.75rem 1rem;
+            background-color: #f8fafc;
+            transition: all 0.3s ease;
+        }
+
+        .booking-status-list .booking-name {
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .booking-status-list .booking-date {
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+
+        .list-empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-light);
+        }
+
+        .list-empty-state i {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.5;
+        }
     </style>
 </head>
 
 <body>
-<?php include __DIR__ . '/navbar.php'; ?>
-<?php include __DIR__ . '/fb_chat_button.php'; ?>
+    <?php include __DIR__ . '/navbar.php'; ?>
+    <?php include __DIR__ . '/fb_chat_button.php'; ?>
     <div class="page-header">
         <div class="container">
             <div class="row align-items-center">
@@ -865,7 +1191,7 @@
                             <i class="fas fa-clock fa-2x me-3" style="color: var(--primary-color);"></i>
                             <div>
                                 <div class="fw-bold">เวลาเปิดทำการ</div>
-                                <div class="small">08:00 - 17:30 น.</div>
+                                <div class="small">08:00 - 17:00 น.</div>
                             </div>
                         </div>
                     </div>
@@ -903,44 +1229,37 @@
                         <p class="text-muted mb-4">กรุณาเลือกวันที่คุณต้องการจองเข้าชมสวนจากปฏิทินด้านล่าง</p>
 
                         <!-- ปฏิทิน (รูปแบบตาราง) และแถบสถานะซ้ายมือ -->
-                        <div class="row">
-                            <div class="col-lg-3">
-                                <div class="card-modern mb-4">
+                        <div class="row g-4">
+                            <div class="col-lg-4">
+                                <div class="card-modern booking-sidebar">
                                     <div class="card-header-modern py-3">
                                         <h5 class="mb-0"><i class="fas fa-list-check me-2"></i>สถานะการจอง</h5>
                                     </div>
-                                    <div class="card-body-modern p-3">
-                                        <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded">
-                                            <div>จองสำเร็จ</div>
-                                            <span id="confirmedCount" class="badge-modern bg-success">0</span>
+                                    <div class="card-body-modern p-0">
+                                        <ul class="nav nav-tabs nav-fill" id="bookingStatusTabs" role="tablist">
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending-tab-pane" type="button" role="tab">
+                                                    รออนุมัติ <span id="pendingCount" class="badge rounded-pill bg-warning text-dark ms-1">0</span>
+                                                </button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="confirmed-tab" data-bs-toggle="tab" data-bs-target="#confirmed-tab-pane" type="button" role="tab">
+                                                    ยืนยันแล้ว <span id="confirmedCount" class="badge rounded-pill bg-success ms-1">0</span>
+                                                </button>
+                                            </li>
+                                        </ul>
+                                        <div class="tab-content" id="bookingStatusTabContent">
+                                            <div class="tab-pane fade show active" id="pending-tab-pane" role="tabpanel">
+                                                <ul id="pendingList" class="list-group list-group-flush booking-status-list"></ul>
+                                            </div>
+                                            <div class="tab-pane fade" id="confirmed-tab-pane" role="tabpanel">
+                                                <ul id="confirmedList" class="list-group list-group-flush booking-status-list"></ul>
+                                            </div>
                                         </div>
-                                        <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
-                                            <div>รอยืนยันการจอง</div>
-                                            <span id="pendingCount" class="badge-modern bg-warning text-dark">0</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="card-modern mb-4">
-                                    <div class="card-header-modern py-3">
-                                        <h6 class="mb-0"><i class="fas fa-clock me-2"></i>รออนุมัติ</h6>
-                                    </div>
-                                    <div class="card-body-modern p-3">
-                                        <ul id="pendingList" class="list-group list-group-flush" style="max-height:200px; overflow:auto;"></ul>
-                                    </div>
-                                </div>
-
-                                <div class="card-modern">
-                                    <div class="card-header-modern py-3">
-                                        <h6 class="mb-0"><i class="fas fa-check-circle me-2"></i>ยืนยันแล้ว</h6>
-                                    </div>
-                                    <div class="card-body-modern p-3">
-                                        <ul id="confirmedList" class="list-group list-group-flush" style="max-height:200px; overflow:auto;"></ul>
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="col-lg-9">
+                            <div class="col-lg-8">
                                 <div class="card-modern">
                                     <div class="card-body-modern p-3">
                                         <div id="calendarTable" class="table-responsive"></div>
@@ -1032,9 +1351,16 @@
                                 </div>
 
                                 <div class="col-12">
-                                    <div class="form-check d-flex align-items-center p-3 rounded" id="lunch_section">
-                                        <input class="form-check-input me-2" type="checkbox" id="lunch_request" name="lunch_request" value="yes">
-                                        <label class="form-check-label mb-0" for="lunch_request"><i class="fas fa-utensils me-2"></i>ต้องการอาหารกลางวัน (เฉพาะนัดก่อน 12:00 น.)</label>
+                                    <div class="lunch-option-wrapper" id="lunch_section">
+                                        <input class="lunch-checkbox" type="checkbox" id="lunch_request" name="lunch_request" value="yes">
+                                        <label class="lunch-label" for="lunch_request">
+                                            <span class="lunch-icon"><i class="fas fa-utensils"></i></span>
+                                            <span class="lunch-text">
+                                                <span class="lunch-title">ต้องการอาหารกลางวัน</span>
+                                                <span class="lunch-subtitle">(เฉพาะนัดก่อน 12:00 น.)</span>
+                                            </span>
+                                            <span class="lunch-checkmark"><i class="fas fa-check"></i></span>
+                                        </label>
                                     </div>
                                 </div>
 
@@ -1063,39 +1389,42 @@
                                 </div>
 
                                 <div class="col-12">
-                                    <div class="summary-box-modern">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <div class="fw-medium">สรุปรายละเอียดค่าใช้จ่าย</div>
-                                            <div class="text-muted">รวมและมัดจำ</div>
+                                    <div class="cost-summary-card">
+                                        <div class="cost-summary-header">
+                                            <h5><i class="fas fa-receipt"></i> สรุปค่าใช้จ่าย</h5>
                                         </div>
-                                        <div class="summary-item-modern">
-                                            <span>จำนวนผู้เข้าชม:</span>
-                                            <span><span id="display_visitor_count">1</span> คน</span>
+                                        <div class="cost-summary-body">
+                                            <div class="cost-item">
+                                                <span class="label">จำนวนผู้เข้าชม</span>
+                                                <span class="value"><span id="display_visitor_count">1</span> คน</span>
+                                            </div>
+                                            <div class="cost-item">
+                                                <span class="label">ราคาต่อคน</span>
+                                                <span class="value">150 บ.</span>
+                                            </div>
+                                            <div class="cost-item">
+                                                <span class="label">ค่าเข้าชมรวม</span>
+                                                <span class="value"><span id="display_entrance_fee">150</span> บ.</span>
+                                            </div>
+                                            <div class="cost-item">
+                                                <span class="label">ค่าวิทยากร</span>
+                                                <span class="value">1,800 บ.</span>
+                                            </div>
+                                            <div class="cost-divider"></div>
+                                            <div class="cost-item">
+                                                <span class="label fw-bold">ยอดรวมทั้งหมด</span>
+                                                <span class="value fw-bold"><span id="display_total">1950</span> บ.</span>
+                                            </div>
                                         </div>
-                                        <div class="summary-item-modern">
-                                            <span>ราคาต่อคน:</span>
-                                            <span>150 บาท</span>
-                                        </div>
-                                        <div class="summary-item-modern">
-                                            <span>ค่าเข้าชมรวม:</span>
-                                            <span><span id="display_entrance_fee">150</span> บาท</span>
-                                        </div>
-                                        <div class="summary-item-modern">
-                                            <span>ค่าวิทยากร:</span>
-                                            <span>1,800 บาท</span>
-                                        </div>
-                                        <div class="summary-item-modern">
-                                            <span>ยอดรวมทั้งหมด:</span>
-                                            <span><span id="display_total">1950</span> บาท</span>
-                                        </div>
-                                        <div class="summary-item-modern">
-                                            <span>ยอดมัดจำ (30%):</span>
-                                            <span><span id="display_deposit">585</span> บาท</span>
-                                        </div>
-                                        <hr>
-                                        <div class="summary-item-modern total-highlight-modern">
-                                            <span>ยอดคงเหลือชำระวันเข้าชม:</span>
-                                            <span><span id="display_balance">1365</span> บาท</span>
+                                        <div class="cost-total-section">
+                                            <div class="cost-total-item deposit">
+                                                <span class="label">ยอดมัดจำ 30%</span>
+                                                <span class="value"><span id="display_deposit">585</span> บ.</span>
+                                            </div>
+                                            <div class="cost-total-item balance">
+                                                <span class="label">ยอดชำระวันเข้าชม</span>
+                                                <span class="value"><span id="display_balance">1365</span> บ.</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1116,50 +1445,50 @@
         </div>
     </div>
 
-        <!-- Modal สำหรับอัพโหลดหลักฐานการโอน -->
-        <div class="modal fade" id="uploadSlipModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-lg">
-                <div class="modal-content modal-content-modern">
-                    <div class="modal-header modal-header-modern">
-                        <h5 class="modal-title"><i class="fas fa-qrcode me-2"></i>ชำระเงินและแนบหลักฐาน</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <form id="slipForm">
-                        <div class="modal-body modal-body-modern">
-                            <input type="hidden" id="modalBookingId">
-                            <div class="alert alert-info-modern">
-                                <p class="mb-1"><strong>ยอดชำระมัดจำ:</strong> <span id="depositAmountDisplay" class="fw-bold">...</span> บาท</p>
-                                <p class="mb-0">กรุณาชำระเงินและแนบหลักฐานการโอนเพื่อยืนยันการจองของท่าน</p>
-                            </div>
-
-                            <div id="slipUploadArea" class="file-upload-area-modern mb-3 text-center">
-                                <div class="file-upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
-                                <div>ลากไฟล์สลิปมาวาง หรือคลิกเพื่อเลือก</div>
-                                <div class="text-muted small">รองรับ: JPG, PNG, PDF (ไม่เกิน 5MB)</div>
-                                <input type="file" id="slipFile" class="d-none" accept=".jpg,.jpeg,.png,.pdf" required>
-                            </div>
-
-                            <div id="slip-file-error" class="invalid-feedback-modern text-center" style="display: none;"></div>
-
-                            <div id="previewContainer" class="text-center d-none mb-3">
-                                <div class="slip-preview-wrapper">
-                                    <img id="slipPreview" src="#" alt="Preview" class="img-fluid rounded d-none">
-                                    <div id="pdfPreviewContainer" class="d-none"></div>
-                                    <button type="button" id="removeSlipBtn" class="btn btn-danger btn-sm rounded-circle slip-remove-btn" title="ลบไฟล์"><i class="fas fa-times"></i></button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer justify-content-between border-top-0 pt-0 px-4 pb-4">
-                            <button type="button" class="btn btn-secondary-modern btn-modern" data-bs-dismiss="modal">ยกเลิก</button>
-                            <button type="submit" class="btn-modern btn-success-modern" id="submitSlipBtn">
-                                <span class="submit-slip-text"><i class="fas fa-check-circle me-2"></i>ยืนยันการชำระเงิน</span>
-                                <span class="submit-slip-loading d-none"><span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>กำลังส่ง...</span>
-                            </button>
-                        </div>
-                    </form>
+    <!-- Modal สำหรับอัพโหลดหลักฐานการโอน -->
+    <div class="modal fade" id="uploadSlipModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content modal-content-modern">
+                <div class="modal-header modal-header-modern">
+                    <h5 class="modal-title"><i class="fas fa-qrcode me-2"></i>ชำระเงินและแนบหลักฐาน</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
+                <form id="slipForm">
+                    <div class="modal-body modal-body-modern">
+                        <input type="hidden" id="modalBookingId">
+                        <div class="alert alert-info-modern">
+                            <p class="mb-1"><strong>ยอดชำระมัดจำ:</strong> <span id="depositAmountDisplay" class="fw-bold">...</span> บาท</p>
+                            <p class="mb-0">กรุณาชำระเงินและแนบหลักฐานการโอนเพื่อยืนยันการจองของท่าน</p>
+                        </div>
+
+                        <div id="slipUploadArea" class="file-upload-area-modern mb-3 text-center">
+                            <div class="file-upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                            <div>ลากไฟล์สลิปมาวาง หรือคลิกเพื่อเลือก</div>
+                            <div class="text-muted small">รองรับ: JPG, PNG, PDF (ไม่เกิน 5MB)</div>
+                            <input type="file" id="slipFile" class="d-none" accept=".jpg,.jpeg,.png,.pdf" required>
+                        </div>
+
+                        <div id="slip-file-error" class="invalid-feedback-modern text-center" style="display: none;"></div>
+
+                        <div id="previewContainer" class="text-center d-none mb-3">
+                            <div class="slip-preview-wrapper">
+                                <img id="slipPreview" src="#" alt="Preview" class="img-fluid rounded d-none">
+                                <div id="pdfPreviewContainer" class="d-none"></div>
+                                <button type="button" id="removeSlipBtn" class="btn btn-danger btn-sm rounded-circle slip-remove-btn" title="ลบไฟล์"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer justify-content-between border-top-0 pt-0 px-4 pb-4">
+                        <button type="button" class="btn btn-secondary-modern btn-modern" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn-modern btn-success-modern" id="submitSlipBtn">
+                            <span class="submit-slip-text"><i class="fas fa-check-circle me-2"></i>ยืนยันการชำระเงิน</span>
+                            <span class="submit-slip-loading d-none"><span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>กำลังส่ง...</span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
+    </div>
 
     <!-- Modal สำหรับแสดงสถานะการส่ง -->
     <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
@@ -1293,7 +1622,7 @@
             if (!timeSelect || !lunchCheckbox || !lunchSection) return;
 
             const selectedTime = timeSelect.value;
-            
+
             // ถ้ายังไม่ได้เลือกเวลา ให้ปิดตัวเลือกอาหารกลางวัน
             if (!selectedTime) {
                 lunchCheckbox.disabled = true;
@@ -1317,6 +1646,7 @@
                 lunchSection.style.cursor = 'pointer';
             }
         }
+
         function showLoginRequiredModal() {
             if (!loginRequiredModalObj) {
                 loginRequiredModalObj = new bootstrap.Modal(document.getElementById('loginRequiredModal'));
@@ -1337,11 +1667,14 @@
             window.openUploadModal = function(bookingId, visitorCount) {
                 document.getElementById('modalBookingId').value = bookingId;
                 document.getElementById('slipForm').reset();
-                
+
                 const pricePerPerson = 150;
+                const instructorFee = 1800;
                 const depositRate = 0.3;
-                const depositAmount = (parseInt(visitorCount) || 0) * pricePerPerson * depositRate;
-                document.getElementById('depositAmountDisplay').textContent = depositAmount.toLocaleString();
+                const entranceFee = (parseInt(visitorCount) || 0) * pricePerPerson;
+                const total = entranceFee + instructorFee;
+                const depositAmount = total * depositRate;
+                document.getElementById('depositAmountDisplay').textContent = Math.round(depositAmount).toLocaleString();
 
                 // Reset to upload state
                 document.getElementById('pdfPreviewContainer').innerHTML = '';
@@ -1351,7 +1684,7 @@
                     errorDiv.style.display = 'none';
                     errorDiv.textContent = '';
                 }
-                
+
                 const myModal = new bootstrap.Modal(document.getElementById('uploadSlipModal'));
                 myModal.show();
             }
@@ -1385,7 +1718,7 @@
 
             // Remove image button
             removeSlipBtn.addEventListener('click', () => {
-                slipFileInput.value = ''; 
+                slipFileInput.value = '';
                 previewContainer.classList.add('d-none');
                 slipUploadArea.classList.remove('d-none');
                 slipPreview.src = '#';
@@ -1458,7 +1791,7 @@
             document.getElementById('slipForm').onsubmit = function(e) {
                 e.preventDefault();
                 const bookingId = document.getElementById('modalBookingId').value;
-                const fileInput = document.getElementById('slipFile');    
+                const fileInput = document.getElementById('slipFile');
                 if (fileInput.files.length === 0) {
                     showAlert('กรุณาเลือกไฟล์สลิป', 'error');
                     return;
@@ -1478,41 +1811,43 @@
 
                 // ส่งข้อมูลไปยัง Backend (คุณต้องสร้างไฟล์ upload_slip.php)
                 fetch('upload_slip.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(res => res.json()) // แปลง response เป็น JSON
-                .then(data => { // จัดการข้อมูลที่ได้จากเซิร์ฟเวอร์
-                    const uploadModal = bootstrap.Modal.getInstance(document.getElementById('uploadSlipModal'));
-                    uploadModal.hide(); // ซ่อน Modal อัปโหลด
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.json()) // แปลง response เป็น JSON
+                    .then(data => { // จัดการข้อมูลที่ได้จากเซิร์ฟเวอร์
+                        const uploadModal = bootstrap.Modal.getInstance(document.getElementById('uploadSlipModal'));
+                        uploadModal.hide(); // ซ่อน Modal อัปโหลด
 
-                    if (data.success) {
-                        // แสดง Modal แจ้งเตือนสำเร็จ
-                        document.getElementById('modalTitle').textContent = 'ส่งหลักฐานสำเร็จ';
-                        document.getElementById('modalMessage').textContent = 'แนบสลิปเรียบร้อยแล้ว รอการตรวจสอบจากเจ้าหน้าที่';
-                        const successModalEl = document.getElementById('statusModal');
-                        const successModal = new bootstrap.Modal(successModalEl);
-                        
-                        // เมื่อ Modal ปิด ให้รีเฟรชข้อมูล
-                        successModalEl.addEventListener('hidden.bs.modal', () => {
-                            fetchBookings().then(() => renderCalendarTable(window.currentMonth, window.currentYear));
-                        }, { once: true });
+                        if (data.success) {
+                            // แสดง Modal แจ้งเตือนสำเร็จ
+                            document.getElementById('modalTitle').textContent = 'ส่งหลักฐานสำเร็จ';
+                            document.getElementById('modalMessage').textContent = 'แนบสลิปเรียบร้อยแล้ว รอการตรวจสอบจากเจ้าหน้าที่';
+                            const successModalEl = document.getElementById('statusModal');
+                            const successModal = new bootstrap.Modal(successModalEl);
 
-                        successModal.show();
-                    } else {
-                        // แสดง Modal แจ้งเตือนข้อผิดพลาด
-                        showAlert('เกิดข้อผิดพลาด: ' + (data.message || 'ไม่สามารถอัปโหลดได้'), 'error');
-                    }
-                })
-                .catch(err => {
-                    console.error('Upload slip error:', err);
-                    showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
-                })
-                .finally(() => {
-                    submitBtn.disabled = false;
-                    btnText.classList.remove('d-none');
-                    btnLoading.classList.add('d-none');
-                });
+                            // เมื่อ Modal ปิด ให้รีเฟรชข้อมูล
+                            successModalEl.addEventListener('hidden.bs.modal', () => {
+                                fetchBookings().then(() => renderCalendarTable(window.currentMonth, window.currentYear));
+                            }, {
+                                once: true
+                            });
+
+                            successModal.show();
+                        } else {
+                            // แสดง Modal แจ้งเตือนข้อผิดพลาด
+                            showAlert('เกิดข้อผิดพลาด: ' + (data.message || 'ไม่สามารถอัปโหลดได้'), 'error');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Upload slip error:', err);
+                        showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+                    })
+                    .finally(() => {
+                        submitBtn.disabled = false;
+                        btnText.classList.remove('d-none');
+                        btnLoading.classList.add('d-none');
+                    });
             };
         })();
 
@@ -1525,7 +1860,7 @@
         let selectedDate = null;
         let currentMonth = new Date().getMonth();
         let currentYear = new Date().getFullYear();
-        
+
         // ฟังก์ชันสำหรับเริ่มต้นปฏิทินแบบตาราง
         function initCalendar() {
             const today = new Date();
@@ -1561,7 +1896,7 @@
                                 member_id: b.member_id, // เพิ่ม member_id
                                 payment_slip: b.payment_slip, // เพิ่มข้อมูลสลิป
                                 id: b.bookings_id, // เพิ่ม ID ของการจอง
-                                time: b.time || b.booking_time || b.bookingTime || '' ,
+                                time: b.time || b.booking_time || b.bookingTime || '',
                                 visitor_count: b.visitor_count ? parseInt(b.visitor_count) : (b.visitorCount ? parseInt(b.visitorCount) : 0)
                             }));
 
@@ -1610,7 +1945,7 @@
         function formatTime(timeStr) {
             if (!timeStr) return '';
             const m = String(timeStr).match(/^(\d{1,2}:\d{2})/);
-            return m ? m[1] : String(timeStr).slice(0,5);
+            return m ? m[1] : String(timeStr).slice(0, 5);
         }
 
         // สร้างตารางปฏิทินสำหรับเดือนและปีที่กำหนด
@@ -1622,7 +1957,7 @@
 
             const startWeekDay = (firstDay.getDay() + 6) % 7; // เปลี่ยนให้เริ่มจันทร์=0
             const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-            
+
             let html = '<div class="calendar-navigation-modern">' +
                 '<button class="btn btn-secondary-modern btn-sm" onclick="prevMonth()"><i class="fas fa-chevron-left me-1"></i>เดือนก่อน</button>' +
                 '<h5 class="mb-0">' + thaiMonths[month] + ' ' + (year + 543) + '</h5>' +
@@ -1749,10 +2084,11 @@
         function formatThaiDateShort(dateStr) {
             if (!dateStr) return '';
             try {
-                // Use parseYMD to handle timezone correctly
                 const dateObj = parseYMD(dateStr);
                 const day = dateObj.getDate();
-                return `(${day}) `;
+                const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+                const month = thaiMonths[dateObj.getMonth()];
+                return `วันที่ ${day} ${month}`;
             } catch (e) {
                 console.error('Date formatting error:', e);
                 return '';
@@ -1771,42 +2107,67 @@
             document.getElementById('pendingCount').textContent = pending.length;
             document.getElementById('confirmedCount').textContent = confirmed.length;
 
-            pending.forEach(b => {
-                const li = document.createElement('li');
-                li.className = 'list-group-item d-flex justify-content-between align-items-center py-2 flex-wrap';
-                
-                let actionHtml = '<span class="badge-modern bg-warning text-dark">รอ</span>'; // ค่าเริ่มต้น
+            if (pending.length > 0) {
+                pending.forEach(b => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center py-2 flex-wrap';
 
-                // ตรวจสอบว่าเป็นเจ้าของการจองหรือไม่
-                if (b.member_id && b.member_id === MEMBER_ID_SESSION) {
-                    // ถ้าเป็นเจ้าของ, ตรวจสอบว่าได้แนบสลิปไปแล้วหรือยัง
-                    if (b.payment_slip) {
-                        // ถ้าแนบแล้ว, แสดงสถานะ
-                        actionHtml = `<span class="badge-modern bg-info text-white"><i class="fas fa-check me-1"></i>ส่งสลิปแล้ว</span>`;
-                    } else {
-                        // ถ้ายังไม่แนบ, แสดงปุ่ม
-                        const visitorCount = b.visitor_count || 0;
-                        actionHtml = `<button class="btn-modern btn-warning-modern btn-sm" onclick="openUploadModal(${b.id}, ${visitorCount})" title="แนบสลิป">
-                                        <i class="fas fa-upload me-1"></i> แนบสลิป
-                                      </button>`;
+                    let actionHtml = '<span class="badge-modern bg-warning text-dark">รอ</span>'; // ค่าเริ่มต้น
+
+                    // ตรวจสอบว่าเป็นเจ้าของการจองหรือไม่
+                    if (b.member_id && b.member_id === MEMBER_ID_SESSION) {
+                        // ถ้าเป็นเจ้าของ, ตรวจสอบว่าได้แนบสลิปไปแล้วหรือยัง
+                        if (b.payment_slip) {
+                            // ถ้าแนบแล้ว, แสดงสถานะ
+                            actionHtml = `<span class="badge-modern bg-info text-white"><i class="fas fa-check me-1"></i>ส่งสลิปแล้ว</span>`;
+                        } else {
+                            // ถ้ายังไม่แนบ, แสดงปุ่ม
+                            const visitorCount = b.visitor_count || 0;
+                            actionHtml = `<button class="btn-modern btn-warning-modern btn-sm" onclick="openUploadModal(${b.id}, ${visitorCount})" title="แนบสลิป">
+                                            <i class="fas fa-upload me-1"></i> แนบสลิป
+                                          </button>`;
+                        }
                     }
-                }
 
-                li.innerHTML = `
-                    <div class="me-2">${formatThaiDateShort(b.date)}${b.name}</div>
-                    <div>${actionHtml}</div>
+                    li.innerHTML = `
+                        <div>
+                            <div class="booking-name">${escapeHtml(b.name)}</div>
+                            <div class="booking-date">${formatThaiDateShort(b.date)}</div>
+                        </div>
+                        <div>${actionHtml}</div>
+                    `;
+
+                    pendingList.appendChild(li);
+                });
+            } else {
+                pendingList.innerHTML = `
+                    <li class="list-group-item list-empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p class="mb-0">ไม่มีรายการรออนุมัติ</p>
+                    </li>
                 `;
+            }
 
-                pendingList.appendChild(li);
-            });
-            
-            confirmed.forEach(b => {
-                const li = document.createElement('li');
-                li.className = 'list-group-item d-flex justify-content-between align-items-center py-2';
-                li.innerHTML = `<span>${b.name}</span>
-                                <span class="badge-modern bg-success">ยืนยัน</span>`;
-                confirmedList.appendChild(li);
-            });
+            if (confirmed.length > 0) {
+                confirmed.forEach(b => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center py-2';
+                    li.innerHTML = `
+                        <div>
+                            <div class="booking-name">${escapeHtml(b.name)}</div>
+                            <div class="booking-date">${formatThaiDateShort(b.date)}</div>
+                        </div>
+                        <span class="badge-modern bg-success">ยืนยัน</span>`;
+                    confirmedList.appendChild(li);
+                });
+            } else {
+                confirmedList.innerHTML = `
+                    <li class="list-group-item list-empty-state">
+                        <i class="fas fa-calendar-check"></i>
+                        <p class="mb-0">ไม่มีรายการที่ยืนยันแล้ว</p>
+                    </li>
+                `;
+            }
         }
 
         // ฟังก์ชันจัดการเมื่อเลือกวันที่
@@ -1852,7 +2213,7 @@
                 dateConfirmModalObj = new bootstrap.Modal(document.getElementById('dateConfirmModal'));
             }
             document.getElementById('confirmDateDisplay').textContent = thaiDate;
-            
+
             const confirmBtn = document.getElementById('confirmDateBtn');
             confirmBtn.onclick = () => {
                 dateConfirmModalObj.hide();
@@ -2000,28 +2361,35 @@
 
                 if (errorDiv) errorDiv.style.display = 'none';
 
-                if (!file) { resetUploader(); return; }
+                if (!file) {
+                    resetUploader();
+                    return;
+                }
             }
             const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
             const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 
             if (file.size > MAX_SIZE) {
                 showAlert('ไฟล์มีขนาดใหญ่เกิน 5MB กรุณาเลือกไฟล์ใหม่', 'error');
-                resetUploader(); return;
+                resetUploader();
+                return;
                 if (errorDiv) {
                     errorDiv.textContent = 'ไฟล์มีขนาดใหญ่เกิน 5MB กรุณาเลือกไฟล์ใหม่';
                     errorDiv.style.display = 'block';
                 }
-                resetUploaderUI(); return;
+                resetUploaderUI();
+                return;
             }
             if (!ALLOWED_TYPES.includes(file.type)) {
                 showAlert('ประเภทไฟล์ไม่ถูกต้อง กรุณาเลือกไฟล์ PDF, JPG, หรือ PNG เท่านั้น', 'error');
-                resetUploader(); return;
+                resetUploader();
+                return;
                 if (errorDiv) {
                     errorDiv.textContent = 'ประเภทไฟล์ไม่ถูกต้อง กรุณาเลือกไฟล์ PDF, JPG, หรือ PNG เท่านั้น';
                     errorDiv.style.display = 'block';
                 }
-                resetUploaderUI(); return;
+                resetUploaderUI();
+                return;
             }
 
             wrapper.classList.add('has-file');
@@ -2033,7 +2401,7 @@
             removeBtn.onclick = resetUploader;
         }
 
-         // ฟังก์ชันคำนวณราคา
+        // ฟังก์ชันคำนวณราคา
         function calculatePrice() {
             const count = parseInt(document.getElementById('visitor_count').value) || 0;
             const pricePerPerson = 150;
@@ -2159,24 +2527,27 @@
             if (IS_MEMBER && MEMBER_ID_SESSION) {
                 fd.set('member_id', MEMBER_ID_SESSION);
             }
-            const count = parseInt(document.getElementById('visitor_count').value) || 1;
+            const count = parseInt(document.getElementById('visitor_count').value) || 0;
             const pricePerPerson = 150;
-            const total = count * pricePerPerson;
-            const deposit = Math.round(total * 0.3 * 100) / 100;
-            const balance = Math.round((total - deposit) * 100) / 100;
+            const instructorFee = 1800;
+
+            const entranceFee = count * pricePerPerson;
+            const total = entranceFee + instructorFee;
+            const deposit = Math.round(total * 0.3);
+            const balance = total - deposit;
             fd.set('price_total', total);
             fd.set('deposit_amount', deposit);
             fd.set('balance_amount', balance);
 
             fetch('saveBooking.php', {
-                method: 'POST',
-                body: fd
-            })
-            .then(res => res.json())
-            .then(json => {
-                if (json && (json.status === 'success' || json.status === 'partial')) {
-                    const code = json.booking_code || json.booking_id || '';
-                    document.getElementById('modalTitle').textContent = 'รับข้อมูลการจองเรียบร้อยแล้ว!';
+                    method: 'POST',
+                    body: fd
+                })
+                .then(res => res.json())
+                .then(json => {
+                    if (json && (json.status === 'success' || json.status === 'partial')) {
+                        const code = json.booking_code || json.booking_id || '';
+                        document.getElementById('modalTitle').textContent = 'รับข้อมูลการจองเรียบร้อยแล้ว!';
 
                         let msg = `
                             <div class="text-start">
@@ -2196,38 +2567,40 @@
                             </div>
                         `;
 
-                    if (json.sendEmail_dispatched !== undefined) {
-                        msg += `<br><small class="text-muted d-block mt-2 text-center">สถานะการส่งเมล: ${json.sendEmail_dispatched}</small>`;
+                        if (json.sendEmail_dispatched !== undefined) {
+                            msg += `<br><small class="text-muted d-block mt-2 text-center">สถานะการส่งเมล: ${json.sendEmail_dispatched}</small>`;
+                        }
+
+                        document.getElementById('modalMessage').innerHTML = msg;
+                        const statusModalEl = document.getElementById('statusModal');
+                        const modal = new bootstrap.Modal(statusModalEl);
+
+                        // เพิ่ม Event Listener: เมื่อ Modal ปิด ให้รีโหลดหน้า
+                        statusModalEl.addEventListener('hidden.bs.modal', function() {
+                            location.reload();
+                        }, {
+                            once: true
+                        });
+
+                        modal.show();
+
+                        // ไม่จำเป็นต้องรีเซ็ตฟอร์มหรือทำอย่างอื่นแล้ว เพราะหน้าจะรีโหลด
                     }
-
-                    document.getElementById('modalMessage').innerHTML = msg;
-                    const statusModalEl = document.getElementById('statusModal');
-                    const modal = new bootstrap.Modal(statusModalEl);
-
-                    // เพิ่ม Event Listener: เมื่อ Modal ปิด ให้รีโหลดหน้า
-                    statusModalEl.addEventListener('hidden.bs.modal', function () {
-                        location.reload();
-                    }, { once: true });
-
-                    modal.show();
-
-                    // ไม่จำเป็นต้องรีเซ็ตฟอร์มหรือทำอย่างอื่นแล้ว เพราะหน้าจะรีโหลด
-                }
-            })
-            .catch(err => {
-                console.error('submitForm error:', err);
-                document.getElementById('errorModalTitle').textContent = 'เกิดข้อผิดพลาดระหว่างส่งข้อมูล';
-                document.getElementById('errorModalMessage').textContent = String(err);
-                const errModal = new bootstrap.Modal(document.getElementById('errorModal'));
-                errModal.show();
-            })
-            .finally(() => {
-                submitButton.disabled = false;
-                buttonText.classList.remove('d-none');
-                buttonLoading.classList.add('d-none');
-                // ซ่อน Loading Overlay
-                document.getElementById('loadingOverlay').classList.remove('active');
-            });
+                })
+                .catch(err => {
+                    console.error('submitForm error:', err);
+                    document.getElementById('errorModalTitle').textContent = 'เกิดข้อผิดพลาดระหว่างส่งข้อมูล';
+                    document.getElementById('errorModalMessage').textContent = String(err);
+                    const errModal = new bootstrap.Modal(document.getElementById('errorModal'));
+                    errModal.show();
+                })
+                .finally(() => {
+                    submitButton.disabled = false;
+                    buttonText.classList.remove('d-none');
+                    buttonLoading.classList.add('d-none');
+                    // ซ่อน Loading Overlay
+                    document.getElementById('loadingOverlay').classList.remove('active');
+                });
         }
 
         // เริ่มต้นเมื่อโหลดหน้าเว็บ
@@ -2249,7 +2622,7 @@
             // Add event listener for when the date confirmation modal is hidden
             const dateConfirmModalEl = document.getElementById('dateConfirmModal');
             if (dateConfirmModalEl) {
-                dateConfirmModalEl.addEventListener('hidden.bs.modal', function () {
+                dateConfirmModalEl.addEventListener('hidden.bs.modal', function() {
                     // Check if the form section is visible. If not, it means the user cancelled.
                     if (document.getElementById('form-section').classList.contains('d-none')) {
                         clearSelectedDate();
@@ -2263,7 +2636,10 @@
 
             if (docUploadWrapper && docFileInput) {
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    docUploadWrapper.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }, false);
+                    docUploadWrapper.addEventListener(eventName, e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }, false);
                 });
                 docUploadWrapper.addEventListener('dragover', () => docUploadWrapper.style.borderColor = 'var(--primary-color)');
                 docUploadWrapper.addEventListener('dragleave', () => docUploadWrapper.style.borderColor = '#cbd5e1');
@@ -2274,6 +2650,30 @@
                         handleDocumentFile(docFileInput);
                     }
                 });
+            }
+
+            // --- NEW: Handle direct link to upload slip from email ---
+            const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('action');
+            const bookingIdFromUrl = urlParams.get('booking_id');
+            const visitorCountFromUrl = urlParams.get('visitor_count');
+
+            if (action === 'upload_slip' && bookingIdFromUrl && visitorCountFromUrl) {
+                // Check if user is logged in. The page already does a PHP redirect if not.
+                if (MEMBER_ID_SESSION) {
+                    // The openUploadModal function is globally available.
+                    // We assume the backend (upload_slip.php) will verify ownership.
+                    // We call it after a short delay to ensure all DOM elements and modals are ready.
+                    setTimeout(() => {
+                        openUploadModal(bookingIdFromUrl, visitorCountFromUrl);
+                    }, 500); // 500ms delay
+
+                    // Clean the URL to prevent the modal from re-opening on refresh.
+                    const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                    window.history.replaceState({
+                        path: newUrl
+                    }, '', newUrl);
+                }
             }
         });
     </script>

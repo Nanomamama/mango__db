@@ -71,8 +71,11 @@ if (isset($_POST['name']) && isset($_POST['email'])) {
     $lunch_request = ($lunch_request_value == 1 || $lunch_request_value === 'yes') ? "ต้องการ" : "ไม่ต้องการ";
 
     $price_per_person = 150;
-    $total_price = isset($row['price_total']) ? (float)$row['price_total'] : ($visitor_count * $price_per_person);
-    $deposit_amount = isset($row['deposit_amount']) ? (float)$row['deposit_amount'] : round($total_price * 0.3, 2);
+    $instructor_fee = 1800;
+    $entrance_fee = $visitor_count * $price_per_person;
+    $total_price = $entrance_fee + $instructor_fee;
+    $deposit_amount = round($total_price * 0.3);
+    $balance_amount = $total_price - $deposit_amount;
 
     if (!empty($booking_code_post)) {
         $booking_code = $booking_code_post;
@@ -174,17 +177,25 @@ if (isset($_POST['name']) && isset($_POST['email'])) {
                     <div style='background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px;'>
                         <h4 style='margin: 0 0 15px 0; color: #1e3a8a; font-size: 15px;'>💰 สรุปยอดการจัดเก็บเงิน</h4>
                         <table style='width: 100%; border-collapse: collapse; font-size: 14px;'>
+                             <tr>
+                                <td style='padding: 5px 0; color: #64748b;'>ค่าเข้าชม (" . $visitor_count . " คน):</td>
+                                <td style='padding: 5px 0; text-align: right; font-weight: 600;'>฿" . number_format($entrance_fee, 2) . "</td>
+                            </tr>
                             <tr>
-                                <td style='padding: 5px 0; color: #64748b;'>ราคาแพ็กเกจรวมทั้งหมด:</td>
-                                <td style='padding: 5px 0; text-align: right; font-weight: bold;'>฿" . number_format($total_price, 2) . "</td>
+                                <td style='padding: 5px 0; color: #64748b;'>ค่าวิทยากร:</td>
+                                <td style='padding: 5px 0; text-align: right; font-weight: 600;'>฿" . number_format($instructor_fee, 2) . "</td>
+                            </tr>
+                            <tr>
+                                <td style='padding: 5px 0; color: #64748b; border-top: 1px dashed #ccc;'>ราคาแพ็กเกจรวมทั้งหมด:</td>
+                                <td style='padding: 5px 0; text-align: right; font-weight: bold; border-top: 1px dashed #ccc;'>฿" . number_format($total_price, 2) . "</td>
                             </tr>
                             <tr style='color: #b45309; font-size: 16px;'>
                                 <td style='padding: 10px 0; font-weight: bold;'>ยอดมัดจำที่ต้องเรียกเก็บ (30%):</td>
-                                <td style='padding: 10px 0; text-align: right; font-weight: bold; border-bottom: 2px double #b45309;'>฿" . number_format($total_price * 0.3, 2) . "</td>
+                                <td style='padding: 10px 0; text-align: right; font-weight: bold; border-bottom: 2px double #b45309;'>฿" . number_format($deposit_amount, 2) . "</td>
                             </tr>
                             <tr>
                                 <td style='padding: 10px 0 0 0; color: #64748b; font-size: 13px;'>ยอดคงเหลือต้องตามเก็บหน้างาน:</td>
-                                <td style='padding: 10px 0 0 0; text-align: right; color: #64748b;'>฿" . number_format($total_price * 0.7, 2) . "</td>
+                                <td style='padding: 10px 0 0 0; text-align: right; color: #64748b;'>฿" . number_format($balance_amount, 2) . "</td>
                             </tr>
                         </table>
                     </div>
@@ -195,7 +206,7 @@ if (isset($_POST['name']) && isset($_POST['email'])) {
                 </div>
             </div>
             </body>
-            </html>\";";
+            </html>";
 
         // --- 6. ส่งอีเมลหา USER (เพื่อแจ้งรับทราบคำขอและแจ้งขั้นตอนจ่ายเงิน) ---
         $userMail = new PHPMailer(true);
@@ -230,17 +241,25 @@ if (isset($_POST['name']) && isset($_POST['email'])) {
                         </div>
                         <div style='padding: 15px;'>
                             <table style='width: 100%; border-collapse: collapse; font-size: 15px;'>
+                                 <tr>
+                                    <td style='padding: 8px 0; color: #64748b;'>ค่าเข้าชม (" . $visitor_count . " คน):</td>
+                                    <td style='padding: 8px 0; text-align: right; font-weight: 500;'>฿" . number_format($entrance_fee, 2) . "</td>
+                                </tr>
                                 <tr>
-                                    <td style='padding: 8px 0; color: #64748b;'>ยอดรวมทั้งหมด:</td>
+                                    <td style='padding: 8px 0; color: #64748b;'>ค่าวิทยากร:</td>
+                                    <td style='padding: 8px 0; text-align: right; font-weight: 500;'>฿" . number_format($instructor_fee, 2) . "</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 8px 0; color: #64748b; font-weight: bold; border-top: 1px solid #e5e7eb;'>ยอดรวมทั้งหมด:</td>
                                     <td style='padding: 8px 0; text-align: right; font-weight: bold;'>฿" . number_format($total_price, 2) . "</td>
                                 </tr>
                                 <tr>
                                     <td style='padding: 8px 0; color: #1e40af; font-weight: bold;'>เงินมัดจำที่ต้องชำระ (30%):</td>
-                                    <td style='padding: 8px 0; text-align: right; color: #1e40af; font-weight: bold;'>฿" . number_format($total_price * 0.3, 2) . "</td>
+                                    <td style='padding: 8px 0; text-align: right; color: #1e40af; font-weight: bold;'>฿" . number_format($deposit_amount, 2) . "</td>
                                 </tr>
                                 <tr style='border-top: 1px dashed #e5e7eb;'>
                                     <td style='padding: 12px 0 0 0; color: #64748b;'>ยอดคงเหลือชำระหน้างาน:</td>
-                                    <td style='padding: 12px 0 0 0; text-align: right; font-weight: bold; color: #10b981;'>฿" . number_format($total_price * 0.7, 2) . "</td>
+                                    <td style='padding: 12px 0 0 0; text-align: right; font-weight: bold; color: #10b981;'>฿" . number_format($balance_amount, 2) . "</td>
                                 </tr>
                             </table>
                         </div>
@@ -287,7 +306,7 @@ if (isset($_POST['name']) && isset($_POST['email'])) {
                 </div>
             </div>
             </body>
-            </html>\";";
+            </html>";
 
         $adminSent = $adminMail->send();
         $userSent = $userMail->send();
