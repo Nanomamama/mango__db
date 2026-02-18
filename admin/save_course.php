@@ -16,7 +16,7 @@ if (strlen($course_name) > 255 || strlen($course_description) > 1000) {
 }
 
 // กำหนดโฟลเดอร์สำหรับเก็บรูปภาพ
-$target_dir = "../uploads";
+$target_dir = __DIR__ . '/../uploads/';
 if (!is_dir($target_dir)) {
     mkdir($target_dir, 0755, true);
 }
