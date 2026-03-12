@@ -64,6 +64,26 @@ foreach($cart as $p){
     $item->execute();
 }
 
+/* ===== สร้างข้อความแจ้งเตือน ===== */
+
+$message = "📦 มีคำสั่งซื้อใหม่\n";
+$message .= "รหัสออเดอร์: $order_code\n";
+$message .= "ลูกค้า: $customer_name\n";
+$message .= "โทร: $customer_phone\n";
+$message .= "วิธีรับสินค้า: $receive_type\n";
+$message .= "วันรับสินค้า: $receive_datetime\n\n";
+
+$message .= "รายการสินค้า\n";
+
+foreach($cart as $p){
+    $message .= "- ".$p['name']." x".$p['quantity']."\n";
+}
+
+$message .= "\nยอดรวม: ".$total_amount." บาท";
+
+/* ===== ส่ง LINE ===== */
+include __DIR__ . '/../admin/line_notify.php';
+
 header("Location: success.php?code=".$order_code);
 exit;
 ?>
