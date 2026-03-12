@@ -620,6 +620,7 @@ body {
                             <div class="receive-content">
                                 <div class="receive-title">จัดส่งถึงบ้าน</div>
                                 <div class="receive-desc">ส่งสินค้าถึงบ้าน (เฉพาะบ้านบุฮม)</div>
+                                
                             </div>
                         </div>
                     </div>

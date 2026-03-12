@@ -9,6 +9,14 @@ $receive_type = $_POST['receive_type'];
 $receive_datetime = $_POST['receive_datetime'];
 $cart_json = $_POST['cart_data'];
 
+/* ===== แปลงค่าเป็นภาษาไทย ===== */
+$receive_map = [
+    "pickup" => "รับที่สวน",
+    "delivery" => "ส่งถึงบ้าน"
+];
+
+$receive_type_text = $receive_map[$receive_type] ?? "-";
+
 $cart = json_decode($cart_json, true);
 
 $order_code = "ORD".date("YmdHis").rand(100,999);
@@ -70,16 +78,23 @@ $message = "📦 มีคำสั่งซื้อใหม่\n";
 $message .= "รหัสออเดอร์: $order_code\n";
 $message .= "ลูกค้า: $customer_name\n";
 $message .= "โทร: $customer_phone\n";
-$message .= "วิธีรับสินค้า: $receive_type\n";
-$message .= "วันรับสินค้า: $receive_datetime\n\n";
+$message .= "วิธีรับสินค้า: $receive_type_text\n";
+$message .= "วันรับสินค้า: $receive_datetime\n";
+$message .= "ถึงแอดมิน: $customer_address\n\n";
 
 $message .= "รายการสินค้า\n";
-
 foreach($cart as $p){
     $message .= "- ".$p['name']." x".$p['quantity']."\n";
 }
 
 $message .= "\nยอดรวม: ".$total_amount." บาท";
+
+$message .= "\n🔎 เข้าสู่ระบบเพื่อยืนยันคำสั่งซื้อ\n";
+$message .= "http://localhost:8000/admin/order_detail.php?id=".$order_id;
+
+
+
+
 
 /* ===== ส่ง LINE ===== */
 include __DIR__ . '/../admin/line_notify.php';
