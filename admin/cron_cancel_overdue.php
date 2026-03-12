@@ -7,23 +7,23 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
 // Path ไปยังไฟล์ PHPMailer
-require_once '../user/PHPMailer/PHPMailer.php';
-require_once '../user/PHPMailer/SMTP.php';
-require_once '../user/PHPMailer/Exception.php';
+require_once __DIR__ . '/../user/PHPMailer/PHPMailer.php';
+require_once __DIR__ . '/../user/PHPMailer/SMTP.php';
+require_once __DIR__ . '/../user/PHPMailer/Exception.php';
 
-// 2. กำหนดเงื่อนไขเวลา (3 วันที่แล้ว)
-$three_days_ago = date('Y-m-d H:i:s', strtotime('-3 days'));
+// 2. กำหนดเงื่อนไขเวลา (1 นาทีที่แล้ว สำหรับการทดสอบ)d:\mango\admin\cron_cancel_overdue.php
+$overdue_threshold = date('Y-m-d H:i:s', strtotime('-1 minute'));
 
 // 3. ค้นหาการจองที่ "ต้องยกเลิก"
-// เงื่อนไข: สถานะ pending + ไม่มีสลิป + จองมาแล้วเกิน 3 วัน (created_at)
+// เงื่อนไข: สถานะ awaiting_payment + ไม่มีสลิป + จองมาแล้วเกิน 3 วัน (created_at)
 $sql = "SELECT bookings_id, guest_name, guest_email, booking_code 
         FROM bookings 
-        WHERE status = 'pending' 
+        WHERE status = 'awaiting_payment' 
         AND (payment_slip IS NULL OR payment_slip = '') 
         AND created_at < ?";
 
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("s", $three_days_ago);
+$stmt->bind_param("s", $overdue_threshold);
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -65,7 +65,7 @@ foreach ($overdue_bookings as $booking) {
                 $mail->Host       = "smtp.gmail.com";
                 $mail->SMTPAuth   = true;
                 $mail->Username   = "nanoone342@gmail.com";
-                $mail->Password   = "cmlt zqfp jveg jxoi"; // App Password ของคุณ
+                $mail->Password   = "cmlt zqfp jveg jxoi";
                 $mail->Port       = 465;
                 $mail->SMTPSecure = "ssl";
                 $mail->CharSet    = 'UTF-8';
@@ -74,13 +74,13 @@ foreach ($overdue_bookings as $booking) {
                 $mail->addAddress($b_email, $b_name);
 
                 $mail->isHTML(true);
-                $mail->Subject = "แจ้งยกเลิกการจองอัตโนมัติ (ไม่ได้ชำระเงินตามกำหนด) - รหัส: $b_code";
+                $mail->Subject = "แจ้งยกเลิกการจองอัตโนมัติ (ไม่ได้ชำระเงินตามกำหนด) ";
                 
                 $mail->Body = "
                     <div style='font-family: \"Sarabun\", sans-serif; padding: 20px; border: 1px solid #ddd;'>
                         <h2 style='color: #c0392b;'>แจ้งยกเลิกการจองของท่าน</h2>
                         <p>เรียน คุณ <strong>$b_name</strong>,</p>
-                        <p>ขอแจ้งให้ทราบว่า รายการจองรหัส <strong>$b_code</strong> ได้ถูกยกเลิกโดยระบบเรียบร้อยแล้ว</p>
+                        <p>ขอแจ้งให้ทราบว่า รายการจอง ได้ถูกยกเลิกโดยระบบเรียบร้อยแล้ว</p>
                         <p style='color: #d35400;'><strong>เหตุผล:</strong> ไม่ได้ทำการชำระค่ามัดจำภายในเวลาที่กำหนด (3 วัน) ทางระบบจึงจำเป็นต้องยกเลิกสิทธิ์การจองของท่านเพื่อเปิดโอกาสให้ผู้ใช้อื่น</p>
                         <p>หากท่านยังต้องการใช้บริการ กรุณาดำเนินการจองใหม่อีกครั้งผ่านหน้าเว็บไซต์</p>
                         <hr>
@@ -101,4 +101,16 @@ foreach ($overdue_bookings as $booking) {
 $update_stmt->close();
 $conn->close();
 echo "--- ดำเนินการเสร็จสิ้น ---";
-?>
+
+// เพิ่มการตั้งค่าให้สคริปต์ทำงานอัตโนมัติด้วย Task Scheduler
+if (php_sapi_name() === 'cli') {
+    echo "\n[Task Scheduler] สคริปต์กำลังทำงานอัตโนมัติ...\n";
+}
+
+// เพิ่มการบันทึก Log เพื่อดูผลลัพธ์
+$log_file = __DIR__ . '/cron_log.txt';
+if (!file_exists($log_file)) {
+    file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] Log file created\n", FILE_APPEND);
+}
+$log_message = "[" . date('Y-m-d H:i:s') . "] ดำเนินการเสร็จสิ้น: พบรายการค้างชำระ " . count($overdue_bookings) . " รายการ\n";
+file_put_contents($log_file, $log_message, FILE_APPEND);
