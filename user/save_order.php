@@ -99,6 +99,6 @@ $message .= "http://localhost:8000/admin/order_detail.php?id=".$order_id;
 /* ===== ส่ง LINE ===== */
 include __DIR__ . '/../admin/line_notify.php';
 
-header("Location: success.php?code=".$order_code);
+header("Location: success.php?code=".$order_code."&name=".$customer_name."&total=".$total_amount);
 exit;
 ?>
