@@ -285,7 +285,7 @@ if (isset($_SESSION['member_id'])) {
         .cart-button {
             position: fixed;
             bottom: 180px;
-            right: 30px;
+            right: 15px;
             width: 65px;
             height: 65px;
             background: #fdc304;
@@ -312,7 +312,7 @@ if (isset($_SESSION['member_id'])) {
             position: fixed;
             bottom: 100px;
             /* สูงกว่าปุ่มตะกร้านิดนึง */
-            right: 30px;
+            right: 15px;
             width: 65px;
             height: 65px;
             border-radius: 50%;
