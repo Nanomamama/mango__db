@@ -925,7 +925,7 @@ if (!empty($_POST['q'])) {
             <div class="search-section">
                 <form method="post" class="mb-0">
                     <label class="form-label">
-                        ค้นหาด้วยเบอร์โทร หรือ ชื่อลูกค้า
+                        ค้นหาด้วยเบอร์โทร 
                     </label>
                     <div class="input-group">
                         <span class="input-group-text">
