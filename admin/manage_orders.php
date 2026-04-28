@@ -144,7 +144,12 @@ $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
 
         .icon-all {
             background-color: rgba(149, 165, 166, 0.1);
-            color: #7f8c8d;
+            color: #0aff0a;
+        }
+
+        .icon-all-today {
+            background-color: rgba(149, 165, 166, 0.1);
+            color: #f94df9;
         }
 
         .icon-pending {
@@ -468,7 +473,7 @@ $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
         <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
             <div class="stat-card">
                 <div class="stat-icon icon-all">
-                    <i class="fas fa-shopping-cart"></i>
+                    <i class="fa-solid fa-clipboard-check"></i>
                 </div>
                 <div class="stat-number"><?= number_format($stats['total_completed'] ?? 0) ?></div>
                 <div class="stat-title">ออเดอร์ทั้งหมด</div>
@@ -499,7 +504,7 @@ $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
     <div class="row mb-4">
          <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
             <div class="stat-card">
-                <div class="stat-icon icon-all">
+                <div class="stat-icon icon-all-today">
                     <i class="fas fa-shopping-cart"></i>
                 </div>
                 <div class="stat-number"><?= number_format($todayStats['total_count'] ?? 0) ?></div>
