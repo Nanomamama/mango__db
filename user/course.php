@@ -812,7 +812,7 @@
                   <div class="card-meta">
                     <div class="meta-item">
                       <i class="fas fa-users"></i>
-                      <span><?php echo $rating_count; ?> ผู้เรียน</span>
+                      <span><?php echo $rating_count; ?> คนให้คะแนน</span>
                     </div>
                     <div class="meta-item">
                       <div class="rating-stars">

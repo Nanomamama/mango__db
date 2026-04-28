@@ -285,7 +285,7 @@ if (isset($_SESSION['member_id'])) {
         .cart-button {
             position: fixed;
             bottom: 180px;
-            right: 30px;
+            right: 15px;
             width: 65px;
             height: 65px;
             background: #fdc304;
@@ -312,7 +312,7 @@ if (isset($_SESSION['member_id'])) {
             position: fixed;
             bottom: 100px;
             /* สูงกว่าปุ่มตะกร้านิดนึง */
-            right: 30px;
+            right: 15px;
             width: 65px;
             height: 65px;
             border-radius: 50%;
@@ -543,7 +543,7 @@ if (isset($_SESSION['member_id'])) {
         <!-- Info Box -->
         <div class="info-box animate__animated animate__fadeInUp">
             <h5><i class="fas fa-info-circle"></i> หมายเหตุการสั่งซื้อสินค้า</h5>
-            <p><i class="fas fa-map-marker-alt"></i> ให้บริการจัดส่งเฉพาะในพื้นที่บ้านบุฮม และสามารถรับสินค้าที่สวนได้โดยตรง</p>
+            <p><i class="fas fa-map-marker-alt"></i> ให้บริการจัดส่งเฉพาะในพื้นที่ ขั้นต่ำ 500 บาท และสามารถรับสินค้าที่สวนได้โดยตรง</p>
             <p><i class="fas fa-calendar-check"></i> สามารถสั่งจองล่วงหน้าได้ ทางสวนจะยืนยันคำสั่งซื้ออีกครั้ง</p>
             <p><i class="fas fa-phone-alt"></i> หากสินค้าไม่เพียงพอ ทางสวนจะติดต่อแจ้งทางโทรศัพท์</p>
             <p><i class="fas fa-search"></i> ตรวจสอบสถานะการสั่งซื้อได้ทันที ผ่านหมายเลขโทรศัพท์</p>

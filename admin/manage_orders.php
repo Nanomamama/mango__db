@@ -15,12 +15,9 @@ if ($status != 'all') {
 
 $sql = "
 SELECT 
-    o.*,
-    COALESCE(SUM(oi.quantity * oi.price),0) as total_amount
+    o.*
 FROM orders o
-LEFT JOIN order_items oi ON o.order_id = oi.order_id
 $where
-GROUP BY o.order_id
 ORDER BY o.order_date DESC
 ";
 
@@ -31,41 +28,61 @@ if ($params) {
 $stmt->execute();
 $result = $stmt->get_result();
 
-$sumStmt = $conn->prepare("
-    SELECT SUM(total_amount) AS revenue
-    FROM orders
-    WHERE order_status = 'completed'
-");
-$sumStmt->execute();
-$revenueStats = $sumStmt->get_result()->fetch_assoc();
 
-// ===== สถิติออเดอร์ =====
+
 // ===== สถิติออเดอร์ =====
 $today = date('Y-m-d');
 
 $sql_stats = "
 SELECT 
-    COUNT(order_id) as total_count,
+    COUNT(*) as total_count, -- ใช้สำหรับ filter (ทั้งหมดจริง)
+    SUM(order_status = 'completed') as total_completed, -- ใช้แสดงออเดอร์ทั้งหมด (ที่คุณต้องการ)
     SUM(order_status = 'pending') as pending_count,
     SUM(order_status = 'approved') as approved_count,
     SUM(order_status = 'rejected') as rejected_count,
-    SUM(DATE(order_date) = '$today') as today_count
+    SUM(order_status = 'completed') as completed_count
 FROM orders
 ";
 
-$result_stats = $conn->query($sql_stats);
-$stats = $result_stats->fetch_assoc();
+$stmt_stats = $conn->prepare($sql_stats);
+
+$stmt_stats->execute();
+$stats = $stmt_stats->get_result()->fetch_assoc();
 
 
-// ===== สถิติยอดเงิน =====
+// ===== สถิติยอดเงิน ทั้งหมด ที่สำเร็จ =====
 $sql_revenue = "
-SELECT SUM(total_amount) as revenue
+SELECT COALESCE(SUM(total_amount), 0) as revenue
 FROM orders
 WHERE order_status = 'completed'
 ";
 
 $result_revenue = $conn->query($sql_revenue);
-$revenueStats = $result_revenue->fetch_assoc();
+$overallRevenueStats = $result_revenue->fetch_assoc();
+
+
+// ===== สถิติออเดอร์วันนี้ =====
+$todayStart = date('Y-m-d 00:00:00');
+$todayEnd = date('Y-m-d 23:59:59');
+
+$sql_today_stats = "
+SELECT
+    COUNT(order_id) as total_count,
+    SUM(order_status = 'pending') as pending_count,
+    SUM(order_status = 'approved') as approved_count,
+    SUM(order_status = 'rejected') as rejected_count,
+    SUM(order_status = 'completed') as completed_count,
+    COALESCE(SUM(CASE 
+        WHEN order_status = 'completed' THEN total_amount 
+        ELSE 0 END), 0) as revenue
+FROM orders
+WHERE receive_datetime BETWEEN ? AND ?
+";
+
+$stmt_today_stats = $conn->prepare($sql_today_stats);
+$stmt_today_stats->bind_param("ss", $todayStart, $todayEnd);
+$stmt_today_stats->execute();
+$todayStats = $stmt_today_stats->get_result()->fetch_assoc();
 
 
 
@@ -145,6 +162,11 @@ $revenueStats = $result_revenue->fetch_assoc();
             color: var(--danger-color);
         }
 
+        .icon-completed {
+            background-color: rgba(13, 202, 240, 0.12);
+            color: #0c8599;
+        }
+
         .icon-today {
             background-color: rgba(52, 152, 219, 0.1);
             color: var(--info-color);
@@ -215,6 +237,11 @@ $revenueStats = $result_revenue->fetch_assoc();
             background-color: #f30116;
             color: #ffffff;
             
+        }
+
+        .badge-completed {
+            background-color: #0dcaf0;
+            color: #062c33;
         }
 
 
@@ -329,6 +356,17 @@ $revenueStats = $result_revenue->fetch_assoc();
             border-color: #dc3545;
         }
 
+        .btn-filter-completed {
+            background-color: #cff4fc;
+            color: #055160;
+        }
+
+        .btn-filter-completed.active {
+            background-color: #0dcaf0;
+            color: #062c33;
+            border-color: #0dcaf0;
+        }
+
         .navbar {
             background-color: #4361ec;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
@@ -421,15 +459,51 @@ $revenueStats = $result_revenue->fetch_assoc();
         </div>
     </div>
     <br>
-    <!-- สถิติออเดอร์ -->
+
+    <!-- สถิติออเดอร์ ------------------------------------------------------------------------------------------------>
+     <div class="stat-amount">
+        <h2>สถิติออเดอร์ทั้งหมด</h2>
+    </div>
     <div class="row mb-4">
         <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
             <div class="stat-card">
                 <div class="stat-icon icon-all">
                     <i class="fas fa-shopping-cart"></i>
                 </div>
-                <div class="stat-number"><?= number_format($stats['total_count'] ?? 0) ?></div>
+                <div class="stat-number"><?= number_format($stats['total_completed'] ?? 0) ?></div>
                 <div class="stat-title">ออเดอร์ทั้งหมด</div>
+            </div>
+        </div>
+
+
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="stat-card">
+                <div class="stat-icon icon-revenue">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="stat-number">
+                    <?= number_format($overallRevenueStats['revenue'] ?? 0, 2) ?>
+                </div>
+                <div class="stat-title">ยอดรวม (บาท)</div>
+            </div>
+        </div>
+    </div>
+
+    <!------------------------------------------------------end stats order- --------------------------------------------------------- -->
+
+    <!-- สถิติ วันของนี้ - ------------------------------------------------------------------------------------------>
+    
+    <div class="stat-today">
+        <h2>สถิติออเดอร์วันนี้</h2>
+    </div>
+    <div class="row mb-4">
+         <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="stat-card">
+                <div class="stat-icon icon-all">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <div class="stat-number"><?= number_format($todayStats['total_count'] ?? 0) ?></div>
+                <div class="stat-title">ออเดอร์ทั้งหมดวันนี้</div>
             </div>
         </div>
 
@@ -438,7 +512,7 @@ $revenueStats = $result_revenue->fetch_assoc();
                 <div class="stat-icon icon-pending">
                     <i class="fas fa-clock"></i>
                 </div>
-                <div class="stat-number"><?= number_format($stats['pending_count'] ?? 0) ?></div>
+                <div class="stat-number"><?= number_format($todayStats['pending_count'] ?? 0) ?></div>
                 <div class="stat-title">รอยืนยัน</div>
             </div>
         </div>
@@ -448,7 +522,7 @@ $revenueStats = $result_revenue->fetch_assoc();
                 <div class="stat-icon icon-approved">
                     <i class="fas fa-check-circle"></i>
                 </div>
-                <div class="stat-number"><?= number_format($stats['approved_count'] ?? 0) ?></div>
+                <div class="stat-number"><?= number_format($todayStats['approved_count'] ?? 0) ?></div>
                 <div class="stat-title">ยืนยันแล้ว</div>
             </div>
         </div>
@@ -458,18 +532,18 @@ $revenueStats = $result_revenue->fetch_assoc();
                 <div class="stat-icon icon-rejected">
                     <i class="fas fa-times-circle"></i>
                 </div>
-                <div class="stat-number"><?= number_format($stats['rejected_count'] ?? 0) ?></div>
+                <div class="stat-number"><?= number_format($todayStats['rejected_count'] ?? 0) ?></div>
                 <div class="stat-title">ปฏิเสธแล้ว</div>
             </div>
         </div>
 
         <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
             <div class="stat-card">
-                <div class="stat-icon icon-today">
-                    <i class="fas fa-calendar-day"></i>
+                <div class="stat-icon icon-completed">
+                    <i class="fa-solid fa-check-double"></i>
                 </div>
-                <div class="stat-number"><?= number_format($stats['today_count'] ?? 0) ?></div>
-                <div class="stat-title">วันนี้</div>
+                <div class="stat-number"><?= number_format($todayStats['completed_count'] ?? 0) ?></div>
+                <div class="stat-title">เสร็จสิ้นแล้ว</div>
             </div>
         </div>
 
@@ -479,12 +553,15 @@ $revenueStats = $result_revenue->fetch_assoc();
                     <i class="fas fa-money-bill-wave"></i>
                 </div>
                 <div class="stat-number">
-                    <?= number_format($revenueStats['revenue'] ?? 0, 2) ?>
+                    <?= number_format($todayStats['revenue'] ?? 0, 2) ?>
                 </div>
                 <div class="stat-title">ยอดรวม (บาท)</div>
             </div>
         </div>
     </div>
+
+    <!-- สถิติ วันของนี้ - ------------------------------------------------------------------------------------------>
+
 
     <!-- ฟิลเตอร์สถานะ -->
     <div class="dashboard-card">
@@ -512,6 +589,11 @@ $revenueStats = $result_revenue->fetch_assoc();
                 class="btn-filter btn-filter-rejected <?= $status == 'rejected' ? 'active' : '' ?>">
                 <i class="fas fa-times-circle"></i> ปฏิเสธแล้ว (<?= number_format($stats['rejected_count'] ?? 0) ?>)
             </a>
+
+            <a href="?status=completed"
+                class="btn-filter btn-filter-completed <?= $status == 'completed' ? 'active' : '' ?>">
+                <i class="fas fa-box-check"></i> เสร็จสิ้นทั้งหมด (<?= number_format($stats['completed_count'] ?? 0) ?>)
+            </a>
         </div>
     </div>
 
@@ -522,7 +604,7 @@ $revenueStats = $result_revenue->fetch_assoc();
                 <i class="fas fa-table"></i> รายการคำสั่งซื้อ
                 <?php if ($status != 'all'): ?>
                     - <span class="text-primary">
-                        <?= $status == 'pending' ? 'รอยืนยัน' : ($status == 'approved' ? 'ยืนยันแล้ว' : 'ปฏิเสธแล้ว') ?>
+                        <?= $status == 'pending' ? 'รอยืนยัน' : ($status == 'approved' ? 'ยืนยันแล้ว' : ($status == 'rejected' ? 'ปฏิเสธแล้ว' : 'เสร็จสิ้นทั้งหมด')) ?>
                     </span>
                 <?php endif; ?>
             </h5>
@@ -544,6 +626,8 @@ $revenueStats = $result_revenue->fetch_assoc();
                                 <span class="status-badge badge-approved">ยืนยันแล้ว</span>
                             <?php elseif ($order['order_status'] == 'rejected'): ?>
                                 <span class="status-badge badge-rejected">ปฏิเสธแล้ว</span>
+                            <?php elseif ($order['order_status'] == 'completed'): ?>
+                                <span class="status-badge badge-completed">เสร็จสิ้นแล้ว</span>
                             <?php endif; ?>
                         </div>
 
@@ -573,19 +657,7 @@ $revenueStats = $result_revenue->fetch_assoc();
                                 👁 ดูรายละเอียด
                             </a>
 
-                            <?php if ($order['order_status'] == 'pending'): ?>
-                                <a href="update_order.php?id=<?= $order['order_id'] ?>&s=approved"
-                                    class="btn-action btn-approve"
-                                    onclick="return confirm('ยืนยันการอนุมัติออเดอร์นี้?')">
-                                    ✔ ยืนยัน
-                                </a>
-
-                                <a href="update_order.php?id=<?= $order['order_id'] ?>&s=rejected"
-                                    class="btn-action btn-reject"
-                                    onclick="return confirm('ปฏิเสธออเดอร์นี้?')">
-                                    ✖ ปฏิเสธ
-                                </a>
-                            <?php endif; ?>
+                           
                         </div>
 
                     </div>
@@ -605,25 +677,6 @@ $revenueStats = $result_revenue->fetch_assoc();
     <!-- --------------------------------------------------------------------------------------------- -->
 
 
-    <div class="col-md-6">
-        <div class="dashboard-card">
-            <div class="card-header">
-                <h5 class="card-title"><i class="fas fa-info-circle"></i> สถิติวันนี้</h5>
-            </div>
-
-            <div class="row mb-4">
-                <div class="col">ทั้งหมด: <?= $stats['total_count'] ?></div>
-                <div class="col">รอยืนยัน: <?= $stats['pending_count'] ?></div>
-                <div class="col">ยืนยันแล้ว: <?= $stats['approved_count'] ?></div>
-                <div class="col">ปฏิเสธ: <?= $stats['rejected_count'] ?></div>
-                <div class="col">วันนี้: <?= $stats['today_count'] ?></div>
-                <div class="col text-success">
-                    ยอดรวม: <?= number_format($revenueStats['revenue'] ?? 0, 2) ?> บาท
-                </div>
-                </div>
-            </div>
-
-        </div>
     </div>
     </div>
 

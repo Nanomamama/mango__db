@@ -1,4 +1,5 @@
 <?php
+require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
 $id = $_GET['id'] ?? 0;
 

@@ -13,10 +13,10 @@
 .fb-icon {
     position: fixed;
     bottom: 20px;
-    right: 30px;
+    right: 15px;
     width: 65px;
     height: 65px;
-    background: #a2c9fc;
+    background: #ffffff;
     border-radius: 50%;
     display: flex;
     justify-content: center;
