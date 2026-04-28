@@ -1044,8 +1044,25 @@ if (
                             <!-- Comments List -->
                             <div id="commentsList">
                                 <?php
-                                // Query comments
-                                $commentsQuery = "SELECT * FROM course_comments WHERE courses_id = ? ORDER BY created_at DESC LIMIT 10";
+                                // Query comments พร้อม rating ของคนเดียวกัน
+                                $commentsQuery = "SELECT
+                                                    c.*,
+                                                    (
+                                                        SELECT cr.rating
+                                                        FROM course_rating cr
+                                                        WHERE cr.courses_id = c.courses_id
+                                                          AND (
+                                                            (c.member_id IS NOT NULL AND cr.member_id = c.member_id)
+                                                            OR
+                                                            (c.member_id IS NULL AND c.guest_identifier <> '' AND cr.guest_identifier = c.guest_identifier)
+                                                          )
+                                                        ORDER BY cr.created_at DESC, cr.rating_id DESC
+                                                        LIMIT 1
+                                                    ) AS rating
+                                                  FROM course_comments c
+                                                  WHERE c.courses_id = ?
+                                                  ORDER BY c.created_at DESC
+                                                  LIMIT 10";
                                 $commentsStmt = $conn->prepare($commentsQuery);
                                 if ($commentsStmt) {
                                     $commentsStmt->bind_param('i', $courseId);
@@ -1371,6 +1388,21 @@ if (
                 accessCodeError.classList.add('d-none');
             }
 
+            function updateOverallRatingStars(avgRating) {
+                const overallStars = document.querySelectorAll('.rating-container .rating-stars .rating-star');
+                const roundedRating = Math.round(avgRating);
+
+                overallStars.forEach((star, index) => {
+                    if ((index + 1) <= roundedRating) {
+                        star.classList.remove('far');
+                        star.classList.add('fas');
+                    } else {
+                        star.classList.remove('fas');
+                        star.classList.add('far');
+                    }
+                });
+            }
+
             // Comment form submission
             const commentForm = document.getElementById('commentForm');
             const commentFeedback = document.getElementById('commentFeedback');
@@ -1402,6 +1434,7 @@ if (
                     try {
                         // If rating is provided, submit it first
                         let guestIdentifier = null;
+                        let ratingMode = null;
 
                         if (rating > 0) {
                             const ratingResponse = await fetch('rate_course.php', {
@@ -1419,14 +1452,20 @@ if (
 
                             if (ratingResult && ratingResult.success) {
                                 guestIdentifier = ratingResult.guest_identifier;
+                                ratingMode = ratingResult.mode || 'created';
 
                                 // Update overall rating display
                                 if (typeof ratingResult.avg !== 'undefined') {
-                                    document.querySelector('.rating-value').textContent = parseFloat(ratingResult.avg).toFixed(1);
+                                    const avgValue = parseFloat(ratingResult.avg);
+                                    document.querySelector('.rating-value').textContent = avgValue.toFixed(1);
+                                    updateOverallRatingStars(avgValue);
                                 }
                                 if (typeof ratingResult.count !== 'undefined') {
                                     document.querySelector('.rating-count').textContent = '(' + ratingResult.count + ' คะแนน)';
                                 }
+                            } else {
+                                showCommentError(ratingResult.error || 'à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”à¹ƒà¸™à¸à¸²à¸£à¹ƒà¸«à¹‰à¸„à¸°à¹à¸™à¸™');
+                                return;
                             }
                         }
 
@@ -1455,6 +1494,15 @@ if (
                             // Save user name for guests
                             if (!'<?php echo $loggedInUserName; ?>') {
                                 localStorage.setItem('courseCommentUserName', userName);
+                            }
+
+                            const commentMode = commentResult.mode || 'created';
+                            if (ratingMode === 'updated' || commentMode === 'updated') {
+                                showCommentSuccess();
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 800);
+                                return;
                             }
 
                             // Add new comment to the list

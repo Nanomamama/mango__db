@@ -49,12 +49,15 @@ SELECT
     SUM(order_status = 'pending') as pending_count,
     SUM(order_status = 'approved') as approved_count,
     SUM(order_status = 'rejected') as rejected_count,
-    SUM(DATE(order_date) = '$today') as today_count
+    SUM(order_status = 'completed') as completed_count,
+    SUM(DATE(order_date) = ?) as today_count
 FROM orders
 ";
 
-$result_stats = $conn->query($sql_stats);
-$stats = $result_stats->fetch_assoc();
+$stmt_stats = $conn->prepare($sql_stats);
+$stmt_stats->bind_param("s", $today);
+$stmt_stats->execute();
+$stats = $stmt_stats->get_result()->fetch_assoc();
 
 
 // ===== สถิติยอดเงิน =====
@@ -217,6 +220,11 @@ $revenueStats = $result_revenue->fetch_assoc();
             
         }
 
+        .badge-completed {
+            background-color: #0dcaf0;
+            color: #062c33;
+        }
+
 
         .btn-action {
             padding: 6px 14px;
@@ -327,6 +335,17 @@ $revenueStats = $result_revenue->fetch_assoc();
             background-color: #dc3545;
             color: white;
             border-color: #dc3545;
+        }
+
+        .btn-filter-completed {
+            background-color: #cff4fc;
+            color: #055160;
+        }
+
+        .btn-filter-completed.active {
+            background-color: #0dcaf0;
+            color: #062c33;
+            border-color: #0dcaf0;
         }
 
         .navbar {
@@ -512,6 +531,11 @@ $revenueStats = $result_revenue->fetch_assoc();
                 class="btn-filter btn-filter-rejected <?= $status == 'rejected' ? 'active' : '' ?>">
                 <i class="fas fa-times-circle"></i> ปฏิเสธแล้ว (<?= number_format($stats['rejected_count'] ?? 0) ?>)
             </a>
+
+            <a href="?status=completed"
+                class="btn-filter btn-filter-completed <?= $status == 'completed' ? 'active' : '' ?>">
+                <i class="fas fa-box-check"></i> เสร็จสิ้นทั้งหมด (<?= number_format($stats['completed_count'] ?? 0) ?>)
+            </a>
         </div>
     </div>
 
@@ -522,7 +546,7 @@ $revenueStats = $result_revenue->fetch_assoc();
                 <i class="fas fa-table"></i> รายการคำสั่งซื้อ
                 <?php if ($status != 'all'): ?>
                     - <span class="text-primary">
-                        <?= $status == 'pending' ? 'รอยืนยัน' : ($status == 'approved' ? 'ยืนยันแล้ว' : 'ปฏิเสธแล้ว') ?>
+                        <?= $status == 'pending' ? 'รอยืนยัน' : ($status == 'approved' ? 'ยืนยันแล้ว' : ($status == 'rejected' ? 'ปฏิเสธแล้ว' : 'เสร็จสิ้นทั้งหมด')) ?>
                     </span>
                 <?php endif; ?>
             </h5>
@@ -544,6 +568,8 @@ $revenueStats = $result_revenue->fetch_assoc();
                                 <span class="status-badge badge-approved">ยืนยันแล้ว</span>
                             <?php elseif ($order['order_status'] == 'rejected'): ?>
                                 <span class="status-badge badge-rejected">ปฏิเสธแล้ว</span>
+                            <?php elseif ($order['order_status'] == 'completed'): ?>
+                                <span class="status-badge badge-completed">เสร็จสิ้นแล้ว</span>
                             <?php endif; ?>
                         </div>
 

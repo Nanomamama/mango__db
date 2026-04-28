@@ -45,15 +45,16 @@ if ($_SESSION['access_attempts'] >= 10) {
 }
 
 $stmt = $conn->prepare("
-    SELECT bookings_id, booking_code,
-           TIMESTAMP(booking_date, booking_time) AS booking_datetime
+    SELECT bookings_id, booking_code
     FROM bookings
-    WHERE booking_code LIKE CONCAT('%', ?)
+    WHERE RIGHT(booking_code, 4) = ?
       AND status = 'confirmed'
-      AND TIMESTAMP(booking_date, booking_time) >= NOW() - INTERVAL 7 DAY
+    ORDER BY booking_date DESC, booking_time DESC
     LIMIT 1
 ");
 
+// เงื่อนไขเพิ่มเติม: ต้องเป็นการจองที่เกิดขึ้นภายใน 7 วันที่ผ่านมา
+//   AND TIMESTAMP(booking_date, booking_time) >= NOW() - INTERVAL 7 DAY 
 
 if (!$stmt) {
     json_exit(['success' => false, 'error' => 'เกิดข้อผิดพลาดในระบบ']);

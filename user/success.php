@@ -23,8 +23,13 @@ if (!$order) {
 
 // ดึงรายการสินค้า
 $item = $conn->prepare("
-    SELECT * FROM order_items 
-    WHERE order_id = ?
+    SELECT
+        oi.*,
+        p.unit,
+        p.product_image
+    FROM order_items oi
+    LEFT JOIN products p ON oi.product_id = p.product_id
+    WHERE oi.order_id = ?
 ");
 $item->bind_param("i", $order['order_id']);
 $item->execute();
@@ -804,28 +809,13 @@ $line_link = "https://line.me/R/ti/p/@755pzlcs?text=" . urlencode($msg);
                                 <i class="fas fa-search"></i>
                                 ติดตามสถานะ
                             </a>
-
-                            <a href="<?= $line_link ?>" target="_blank" class="btn btn-success">
-                                <i class="fab fa-line"></i> เพิ่มเพื่อนและแจ้งออเดอร์
-                            </a>
-
-
-                            <div class="order-tips mt-3 p-3 bg-light rounded">
-                                <small class="text-muted d-block mb-1">
-                                    <i class="fas fa-lightbulb"></i> หมายเหตุสำคัญ
-                                </small>
-                                <small class="text-muted">
-                                    กรุณาบันทึกหมายเลขคำสั่งซื้อไว้สำหรับติดตามสถานะ<br>
-                                    ทางเราจะติดต่อกลับเพื่อยืนยันการสั่งซื้อภายใน 24 ชั่วโมง
-                                </small>
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
         <script>
             // Clear cart from localStorage
             localStorage.removeItem("cart");
@@ -862,52 +852,7 @@ $line_link = "https://line.me/R/ti/p/@755pzlcs?text=" . urlencode($msg);
                     }, 300);
                 }
             });
-            
-            document.addEventListener("DOMContentLoaded", function() {
-
-                let lineModal = new bootstrap.Modal(document.getElementById('lineModal'));
-
-                setTimeout(function() {
-                    lineModal.show();
-                }, 1500);
-
-            });
         </script>
-        <div class="modal fade" id="lineModal" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-
-                    <div class="modal-header">
-                        <h5 class="modal-title">
-                            <i class="fab fa-line text-success"></i>
-                            เพิ่มเพื่อน LINE และแจ้งเลขออเดอร์
-                        </h5>
-
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-
-                    <div class="modal-body text-center">
-
-                        <p class="mb-3">
-                            เพิ่มเพื่อน LINE แล้วกดส่งข้อความเพื่อแจ้งเลขคำสั่งซื้อ
-                        </p>
-
-                        <a href="<?= $line_link ?>" target="_blank" class="btn btn-success btn-lg w-100">
-                            <i class="fab fa-line"></i>
-                            เพิ่มเพื่อนและแจ้งออเดอร์
-                        </a>
-
-                        <p class="text-muted mt-3 small">
-                            คุณสามารถปิดหน้าต่างนี้ได้หากไม่ต้องการเพิ่มเพื่อน
-                        </p>
-
-                    </div>
-
-                </div>
-            </div>
-        </div>
-
-       
 </body>
 
 </html>

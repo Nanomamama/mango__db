@@ -13,6 +13,7 @@ if ($member_id) {
     $stmt = $conn->prepare("
         SELECT * FROM orders 
         WHERE member_id = ?
+        AND order_status != 'completed'
         ORDER BY order_date DESC
     ");
     $stmt->bind_param("i", $member_id);
@@ -29,6 +30,7 @@ if (!empty($_POST['q'])) {
     if (preg_match('/^[0-9]+$/', $q)) {
         $sql = "SELECT * FROM orders 
                 WHERE customer_phone LIKE ?
+                AND order_status != 'completed'
                 ORDER BY order_date DESC";
         $stmt = $conn->prepare($sql);
         $like = "%$q%";
@@ -38,6 +40,7 @@ if (!empty($_POST['q'])) {
     else {
         $sql = "SELECT * FROM orders 
                 WHERE customer_name LIKE ?
+                AND order_status != 'completed'
                 ORDER BY order_date DESC";
         $stmt = $conn->prepare($sql);
         $like = "%$q%";

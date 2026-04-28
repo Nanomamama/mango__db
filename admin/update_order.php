@@ -1,8 +1,16 @@
 <?php
+require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
-$id = $_REQUEST['id'];
-$status = $_REQUEST['s'];
+
+$id = isset($_REQUEST['id']) ? (int) $_REQUEST['id'] : 0;
+$status = $_REQUEST['s'] ?? '';
 $note = $_POST['admin_note'] ?? null;
+$allowedStatuses = ['approved', 'rejected', 'completed'];
+
+if ($id <= 0 || !in_array($status, $allowedStatuses, true)) {
+    header("Location: manage_orders.php");
+    exit;
+}
 
 if ($status == 'rejected') {
     $stmt = $conn->prepare("UPDATE orders SET order_status=?, admin_note=? WHERE order_id=?");
@@ -30,6 +38,8 @@ if ($status == 'completed') {
     ");
     $stmt->bind_param("di", $total, $id);
     $stmt->execute();
+    header("Location: manage_orders.php");
+    exit;
 }
 
 $stmt->execute();
