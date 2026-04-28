@@ -56,11 +56,12 @@ $deposit_amount = (float)get('deposit_amount', 0.00);
 $balance_amount = (float)get('balance_amount', 0.00);
 $booking_type = get('booking_type', 'private');
 
-// If client didn't send totals, compute server-side
+// If client didn't send totals, compute server-side (include venue fee)
 if (empty($price_total) || $price_total <= 0) {
-    $price_per_person = 150.00;
-    $instructor_fee = 1800.00;
-    $price_total = ($visitor_count * $price_per_person) + $instructor_fee;
+	$price_per_person = 150.00;
+	$instructor_fee = 1800.00;
+	$venue_fee = 3000.00;
+	$price_total = ($visitor_count * $price_per_person) + $instructor_fee + $venue_fee;
 }
 if (empty($deposit_amount) || $deposit_amount <= 0) {
 	$deposit_amount = round($price_total * 0.3, 2);

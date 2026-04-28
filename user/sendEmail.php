@@ -72,8 +72,9 @@ if (isset($_POST['name']) && isset($_POST['email'])) {
 
     $price_per_person = 150;
     $instructor_fee = 1800;
+    $venue_fee = 3000;
     $entrance_fee = $visitor_count * $price_per_person;
-    $total_price = $entrance_fee + $instructor_fee;
+    $total_price = $entrance_fee + $instructor_fee + $venue_fee;
     $deposit_amount = round($total_price * 0.3);
     $balance_amount = $total_price - $deposit_amount;
 
@@ -107,11 +108,21 @@ if (isset($_POST['name']) && isset($_POST['email'])) {
 
         // --- 5. ส่งอีเมลหา ADMIN (เพื่อแจ้งเตือนให้ไปตรวจวันและส่ง QR) ---
         $adminMail = new PHPMailer(true);
+        // Enable SMTP debug output to PHP error log for troubleshooting
+        $adminMail->SMTPDebug = 2;
+        $adminMail->Debugoutput = 'error_log';
         $adminMail->isSMTP();
+        $adminMail->SMTPOptions = [
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true
+            ]
+        ];
         $adminMail->Host       = "smtp.gmail.com";
         $adminMail->SMTPAuth   = true;
         $adminMail->Username   = "nanoone342@gmail.com";
-        $adminMail->Password   = "cmlt zqfp jveg jxoi";
+        $adminMail->Password   = "yaud bhqb pibw lipz";
         $adminMail->Port       = 465;
         $adminMail->SMTPSecure = "ssl";
         $adminMail->CharSet    = 'UTF-8';
@@ -177,13 +188,17 @@ if (isset($_POST['name']) && isset($_POST['email'])) {
                     <div style='background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px;'>
                         <h4 style='margin: 0 0 15px 0; color: #1e3a8a; font-size: 15px;'>💰 สรุปยอดการจัดเก็บเงิน</h4>
                         <table style='width: 100%; border-collapse: collapse; font-size: 14px;'>
-                             <tr>
+                            <tr>
                                 <td style='padding: 5px 0; color: #64748b;'>ค่าเข้าชม (" . $visitor_count . " คน):</td>
                                 <td style='padding: 5px 0; text-align: right; font-weight: 600;'>฿" . number_format($entrance_fee, 2) . "</td>
                             </tr>
                             <tr>
                                 <td style='padding: 5px 0; color: #64748b;'>ค่าวิทยากร:</td>
                                 <td style='padding: 5px 0; text-align: right; font-weight: 600;'>฿" . number_format($instructor_fee, 2) . "</td>
+                            </tr>
+                            <tr>
+                                <td style='padding: 5px 0; color: #64748b;'>ค่าสถานที่:</td>
+                                <td style='padding: 5px 0; text-align: right; font-weight: 600;'>฿" . number_format($venue_fee, 2) . "</td>
                             </tr>
                             <tr>
                                 <td style='padding: 5px 0; color: #64748b; border-top: 1px dashed #ccc;'>ราคาแพ็กเกจรวมทั้งหมด:</td>
@@ -210,11 +225,21 @@ if (isset($_POST['name']) && isset($_POST['email'])) {
 
         // --- 6. ส่งอีเมลหา USER (เพื่อแจ้งรับทราบคำขอและแจ้งขั้นตอนจ่ายเงิน) ---
         $userMail = new PHPMailer(true);
+        // Enable SMTP debug output to PHP error log for troubleshooting
+        $userMail->SMTPDebug = 2;
+        $userMail->Debugoutput = 'error_log';
         $userMail->isSMTP();
+        $userMail->SMTPOptions = [
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true
+            ]
+        ];
         $userMail->Host       = "smtp.gmail.com";
         $userMail->SMTPAuth   = true;
         $userMail->Username   = "nanoone342@gmail.com";
-        $userMail->Password   = "cmlt zqfp jveg jxoi";
+        $userMail->Password   = "yaud bhqb pibw lipz";
         $userMail->Port       = 465;
         $userMail->SMTPSecure = "ssl";
         $userMail->CharSet    = 'UTF-8';
@@ -229,7 +254,7 @@ if (isset($_POST['name']) && isset($_POST['email'])) {
                 
                 <div style='background-color: #1e40af; background-image: linear-gradient(to right, #1e40af, #2563eb); color: white; padding: 40px 20px; text-align: center;'>
                     <h2 style='margin: 0; font-size: 24px; letter-spacing: 0.5px;'>คำขอจองคิวของคุณ</h2>
-                </div>
+                </div> 
 
                 <div style='padding: 30px; line-height: 1.6; color: #374151;'>
                     <p style='margin-top: 0;'>เรียน <strong>คุณ $name</strong>,</p>
@@ -248,6 +273,10 @@ if (isset($_POST['name']) && isset($_POST['email'])) {
                                 <tr>
                                     <td style='padding: 8px 0; color: #64748b;'>ค่าวิทยากร:</td>
                                     <td style='padding: 8px 0; text-align: right; font-weight: 500;'>฿" . number_format($instructor_fee, 2) . "</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 8px 0; color: #64748b;'>ค่าสถานที่:</td>
+                                    <td style='padding: 8px 0; text-align: right; font-weight: 500;'>฿" . number_format($venue_fee, 2) . "</td>
                                 </tr>
                                 <tr>
                                     <td style='padding: 8px 0; color: #64748b; font-weight: bold; border-top: 1px solid #e5e7eb;'>ยอดรวมทั้งหมด:</td>

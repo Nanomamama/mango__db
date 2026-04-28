@@ -76,11 +76,22 @@ if (move_uploaded_file($slip_file['tmp_name'], $upload_path)) {
         // ส่งอีเมลแจ้งเตือน Admin
         try {
             $adminMail = new PHPMailer(true);
+            // Debug to PHP error log for troubleshooting
+            $adminMail->SMTPDebug = 2;
+            $adminMail->Debugoutput = 'error_log';
             $adminMail->isSMTP();
+            // Relax SSL checks for environments missing CA bundle (debug helper)
+            $adminMail->SMTPOptions = [
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true,
+                ]
+            ];
             $adminMail->Host       = "smtp.gmail.com";
             $adminMail->SMTPAuth   = true;
             $adminMail->Username   = "nanoone342@gmail.com";
-            $adminMail->Password   = "cmlt zqfp jveg jxoi"; // App Password
+            $adminMail->Password   = "yaud bhqb pibw lipz"; // App Password
             $adminMail->Port       = 465;
             $adminMail->SMTPSecure = "ssl";
             $adminMail->CharSet    = 'UTF-8';

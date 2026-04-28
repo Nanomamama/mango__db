@@ -47,11 +47,22 @@
                 if ($booking && !empty($booking['guest_email'])) {
                     try {
                         $mail = new PHPMailer(true);
+                        // Enable SMTP debug output to PHP error log for troubleshooting
+                        $mail->SMTPDebug = 2;
+                        $mail->Debugoutput = 'error_log';
                         $mail->isSMTP();
+                        // Relax SSL checks for environments with missing CA bundle (helpful for debugging)
+                        $mail->SMTPOptions = [
+                            'ssl' => [
+                                'verify_peer' => false,
+                                'verify_peer_name' => false,
+                                'allow_self_signed' => true
+                            ]
+                        ];
                         $mail->Host       = "smtp.gmail.com";
                         $mail->SMTPAuth   = true;
                         $mail->Username   = "nanoone342@gmail.com";
-                        $mail->Password   = "cmlt zqfp jveg jxoi"; // App Password
+                        $mail->Password   = "yaud bhqb pibw lipz"; // App Password
                         $mail->Port       = 465;
                         $mail->SMTPSecure = "ssl";
                         $mail->CharSet    = 'UTF-8';
@@ -63,14 +74,15 @@
                         $mail->isHTML(true);
                         $mail->Subject = "ชำระเงินมัดจำสำหรับการจอง";
 
-                        // --- คำนวณค่าใช้จ่ายใหม่ ---
+                        // --- คำนวณค่าใช้จ่ายใหม่ (รวมค่าสถานที่) ---
                         $visitor_count = (int)($booking['visitor_count'] ?? 1);
                         $price_per_person = 150;
                         $instructor_fee = 1800;
+                        $venue_fee = 3000;
                         $deposit_rate = 0.3;
 
                         $entrance_fee = $visitor_count * $price_per_person;
-                        $total_amount = $entrance_fee + $instructor_fee;
+                        $total_amount = $entrance_fee + $instructor_fee + $venue_fee;
                         $deposit_amount_calculated = round($total_amount * $deposit_rate);
                         $deposit_formatted = number_format($deposit_amount_calculated, 2);
 
@@ -99,6 +111,10 @@
                                             <tr>
                                                 <td style='padding: 8px 0; color: #555; border-bottom: 1px dashed #ddd;'>ค่าวิทยากร</td>
                                                 <td style='padding: 8px 0; text-align: right; border-bottom: 1px dashed #ddd;'>" . number_format($instructor_fee, 2) . " บาท</td>
+                                            </tr>
+                                            <tr>
+                                                <td style='padding: 8px 0; color: #555; border-bottom: 1px dashed #ddd;'>ค่าสถานที่</td>
+                                                <td style='padding: 8px 0; text-align: right; border-bottom: 1px dashed #ddd;'>" . number_format($venue_fee, 2) . " บาท</td>
                                             </tr>
                                             <tr style='font-weight: bold;'>
                                                 <td style='padding: 12px 0 8px;'>ยอดรวมทั้งหมด</td>
@@ -183,11 +199,21 @@
                 if ($booking && !empty($booking['guest_email'])) {
                     try {
                         $userMail = new PHPMailer(true);
+                        // Enable SMTP debug output to PHP error log for troubleshooting
+                        $userMail->SMTPDebug = 2;
+                        $userMail->Debugoutput = 'error_log';
                         $userMail->isSMTP();
+                        $userMail->SMTPOptions = [
+                            'ssl' => [
+                                'verify_peer' => false,
+                                'verify_peer_name' => false,
+                                'allow_self_signed' => true
+                            ]
+                        ];
                         $userMail->Host       = "smtp.gmail.com";
                         $userMail->SMTPAuth   = true;
                         $userMail->Username   = "nanoone342@gmail.com";
-                        $userMail->Password   = "cmlt zqfp jveg jxoi"; // App Password
+                        $userMail->Password   = "yaud bhqb pibw lipz"; // App Password
                         $userMail->Port       = 465;
                         $userMail->SMTPSecure = "ssl";
                         $userMail->CharSet    = 'UTF-8';
@@ -203,12 +229,13 @@
                         $booking_type_thai = $booking['booking_type'] === 'organization' ? 'หน่วยงาน/องค์กร' : 'บุคคลทั่วไป';
                         $lunch_request_text = $booking['lunch_request'] == 1 ? '✅ ต้องการ' : '❌ ไม่ต้องการ';
 
-                        // --- คำนวณค่าใช้จ่ายใหม่เพื่อความถูกต้อง ---
+                        // --- คำนวณค่าใช้จ่ายใหม่เพื่อความถูกต้อง (รวมค่าสถานที่) ---
                         $visitor_count = (int)($booking['visitor_count'] ?? 1);
                         $price_per_person = 150;
                         $instructor_fee = 1800;
+                        $venue_fee = 3000;
                         $entrance_fee = $visitor_count * $price_per_person;
-                        $total_amount_recalculated = $entrance_fee + $instructor_fee;
+                        $total_amount_recalculated = $entrance_fee + $instructor_fee + $venue_fee;
                         $deposit_amount_paid = (float)$booking['deposit_amount'];
                         $balance_recalculated = $total_amount_recalculated - $deposit_amount_paid;
 
@@ -271,6 +298,10 @@
                                                         <td style='padding: 6px 0; text-align: right; font-weight: 500; border-bottom: 1px dashed #ddd;'>" . number_format($instructor_fee, 2) . " บาท</td>
                                                     </tr>
                                                     <tr>
+                                                        <td style='padding: 6px 0;'>ค่าสถานที่:</td>
+                                                        <td style='padding: 6px 0; text-align: right; font-weight: 500;'>" . number_format($venue_fee, 2) . " บาท</td>
+                                                    </tr>
+                                                    <tr>
                                                         <td style='padding: 10px 0; font-weight: bold;'>ยอดรวมทั้งหมด:</td>
                                                         <td style='padding: 10px 0; text-align: right; font-weight: bold;'>" . $price_total_formatted . " บาท</td>
                                                     </tr>
@@ -322,11 +353,21 @@
                 if ($booking && !empty($booking['guest_email'])) {
                     try {
                         $cancelMail = new PHPMailer(true);
+                        // Enable SMTP debug output to PHP error log for troubleshooting
+                        $cancelMail->SMTPDebug = 2;
+                        $cancelMail->Debugoutput = 'error_log';
                         $cancelMail->isSMTP();
+                        $cancelMail->SMTPOptions = [
+                            'ssl' => [
+                                'verify_peer' => false,
+                                'verify_peer_name' => false,
+                                'allow_self_signed' => true
+                            ]
+                        ];
                         $cancelMail->Host       = "smtp.gmail.com";
                         $cancelMail->SMTPAuth   = true;
                         $cancelMail->Username   = "nanoone342@gmail.com";
-                        $cancelMail->Password   = "cmlt zqfp jveg jxoi"; // App Password
+                        $cancelMail->Password   = "yaud bhqb pibw lipz"; // App Password
                         $cancelMail->Port       = 465;
                         $cancelMail->SMTPSecure = "ssl";
                         $cancelMail->CharSet    = 'UTF-8';

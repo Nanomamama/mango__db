@@ -1319,7 +1319,7 @@ if ($is_member) {
                                         <option value="17:00">17:00 น.</option>
                                     </select>
                                     <div class="invalid-feedback-modern">กรุณาเลือกเวลาเข้าชม</div>
-                                    <small class="text-muted d-block mt-1">เวลาเปิดทำการ: 08:00 - 17:30 น.</small>
+                                    <small class="text-muted d-block mt-1">เวลาเปิดทำการ: 08:00 - 17:00 น.</small>
                                 </div>
 
                                 <div class="col-12 col-md-6">
@@ -1409,6 +1409,10 @@ if ($is_member) {
                                             <div class="cost-item">
                                                 <span class="label">ค่าวิทยากร</span>
                                                 <span class="value">1,800 บ.</span>
+                                            </div>
+                                            <div class="cost-item">
+                                                <span class="label">ค่าสถานที่</span>
+                                                <span class="value"><span id="display_venue_fee">3000</span> บ.</span>
                                             </div>
                                             <div class="cost-divider"></div>
                                             <div class="cost-item">
@@ -1668,12 +1672,13 @@ if ($is_member) {
                 document.getElementById('modalBookingId').value = bookingId;
                 document.getElementById('slipForm').reset();
 
-                const pricePerPerson = 150;
-                const instructorFee = 1800;
-                const depositRate = 0.3;
-                const entranceFee = (parseInt(visitorCount) || 0) * pricePerPerson;
-                const total = entranceFee + instructorFee;
-                const depositAmount = total * depositRate;
+                    const pricePerPerson = 150;
+                    const instructorFee = 1800;
+                    const venueFee = 3000;
+                    const depositRate = 0.3;
+                    const entranceFee = (parseInt(visitorCount) || 0) * pricePerPerson;
+                    const total = entranceFee + instructorFee + venueFee;
+                    const depositAmount = total * depositRate;
                 document.getElementById('depositAmountDisplay').textContent = Math.round(depositAmount).toLocaleString();
 
                 // Reset to upload state
@@ -2406,9 +2411,10 @@ if ($is_member) {
             const count = parseInt(document.getElementById('visitor_count').value) || 0;
             const pricePerPerson = 150;
             const instructorFee = 1800;
+            const venueFee = 3000;
 
             const entranceFee = count * pricePerPerson;
-            const total = entranceFee + instructorFee;
+            const total = entranceFee + instructorFee + venueFee;
             const deposit = total * 0.3;
             const balance = total - deposit;
 
@@ -2417,6 +2423,9 @@ if ($is_member) {
 
             // แสดงราคาในสรุป
             document.getElementById('display_entrance_fee').textContent = entranceFee.toLocaleString();
+            // venue fee stays constant but update display element in case
+            const venueEl = document.getElementById('display_venue_fee');
+            if (venueEl) venueEl.textContent = venueFee.toLocaleString();
             document.getElementById('display_total').textContent = total.toLocaleString();
             document.getElementById('display_deposit').textContent = Math.round(deposit).toLocaleString();
             document.getElementById('display_balance').textContent = Math.round(balance).toLocaleString();
@@ -2530,9 +2539,10 @@ if ($is_member) {
             const count = parseInt(document.getElementById('visitor_count').value) || 0;
             const pricePerPerson = 150;
             const instructorFee = 1800;
+            const venueFee = 3000;
 
             const entranceFee = count * pricePerPerson;
-            const total = entranceFee + instructorFee;
+            const total = entranceFee + instructorFee + venueFee;
             const deposit = Math.round(total * 0.3);
             const balance = total - deposit;
             fd.set('price_total', total);
