@@ -87,7 +87,6 @@ $stmt_today_stats->execute();
 $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
 
 
-
 ?>
 
 
