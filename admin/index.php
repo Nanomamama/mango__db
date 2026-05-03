@@ -2,1265 +2,1231 @@
 require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
 
-// ดึงชื่อ admin จาก session
-$admin_name = $_SESSION['admin_name'] ?? '';
+$admin_name  = $_SESSION['admin_name']  ?? '';
 $admin_email = $_SESSION['admin_email'] ?? '';
 
-// ดึงข้อมูลยอดขาย
-// รายวัน 7 วันล่าสุด
-$sales_day = [];
-$labels_day = [];
-$sql = "SELECT DATE(created_at) as day, SUM(total_price) as total 
-            FROM orders 
-            WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-            GROUP BY day ORDER BY day";
-try {
-    $result = $conn->query($sql);
-} catch (mysqli_sql_exception $e) {
-    error_log('admin/index.php: DB exception (sales_day): ' . $e->getMessage());
-    $result = false;
-}
-if ($result) {
-    while ($row = $result->fetch_assoc()) {
-        $labels_day[] = $row['day'];
-        $sales_day[] = (float)$row['total'];
+// ---- helper: run query safely, return mysqli_result or false ----
+function safeQuery(mysqli $conn, string $sql): mysqli_result|false {
+    try {
+        $r = $conn->query($sql);
+        if (!$r) { error_log('DB error: ' . $conn->error . ' | SQL: ' . $sql); }
+        return $r;
+    } catch (mysqli_sql_exception $e) {
+        error_log('DB exception: ' . $e->getMessage() . ' | SQL: ' . $sql);
+        return false;
     }
-} else {
-    error_log('admin/index.php: DB error (sales_day): ' . $conn->error);
 }
 
-// รายสัปดาห์ 8 สัปดาห์ล่าสุด
-$sales_week = [];
-$labels_week = [];
-$sql = "SELECT YEARWEEK(created_at, 1) as week, SUM(total_price) as total 
-            FROM orders 
-            WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 WEEK)
-            GROUP BY week ORDER BY week";
-try {
-    $result = $conn->query($sql);
-} catch (mysqli_sql_exception $e) {
-    error_log('admin/index.php: DB exception (sales_week): ' . $e->getMessage());
-    $result = false;
-}
-if ($result) {
-    while ($row = $result->fetch_assoc()) {
-        $labels_week[] = $row['week'];
-        $sales_week[] = (float)$row['total'];
-    }
-} else {
-    error_log('admin/index.php: DB error (sales_week): ' . $conn->error);
+// ============================================================
+//  ยอดขายจาก orders  (ใช้ order_date, total_amount)
+//  ตัดสถานะ rejected ออก
+// ============================================================
+
+// รายวัน – 7 วันล่าสุด แยกเป็นวัน
+$labels_day = $sales_day = [];
+$r = safeQuery($conn,
+    "SELECT DATE_FORMAT(order_date,'%d/%m') AS lbl,
+            COALESCE(SUM(total_amount),0)   AS total
+     FROM   orders
+     WHERE  order_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+       AND  order_status <> 'rejected'
+     GROUP  BY DATE(order_date)
+     ORDER  BY DATE(order_date)");
+if ($r) while ($row = $r->fetch_assoc()) {
+    $labels_day[] = $row['lbl'];
+    $sales_day[]  = (float)$row['total'];
 }
 
-// รายเดือน 12 เดือนล่าสุด
-$sales_month = [];
-$labels_month = [];
-$sql = "SELECT DATE_FORMAT(created_at, '%Y-%m') as month, SUM(total_price) as total 
-            FROM orders 
-            WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
-            GROUP BY month ORDER BY month";
-try {
-    $result = $conn->query($sql);
-} catch (mysqli_sql_exception $e) {
-    error_log('admin/index.php: DB exception (sales_month): ' . $e->getMessage());
-    $result = false;
-}
-if ($result) {
-    while ($row = $result->fetch_assoc()) {
-        $labels_month[] = $row['month'];
-        $sales_month[] = (float)$row['total'];
-    }
-} else {
-    error_log('admin/index.php: DB error (sales_month): ' . $conn->error);
+// รายสัปดาห์ – 8 สัปดาห์ล่าสุด
+$labels_week = $sales_week = [];
+$r = safeQuery($conn,
+    "SELECT CONCAT('สัปดาห์ที่ ', WEEK(order_date,3)) AS lbl,
+            COALESCE(SUM(total_amount),0)              AS total
+     FROM   orders
+     WHERE  order_date >= DATE_SUB(CURDATE(), INTERVAL 7 WEEK)
+       AND  order_status <> 'rejected'
+     GROUP  BY YEARWEEK(order_date,3)
+     ORDER  BY YEARWEEK(order_date,3)");
+if ($r) while ($row = $r->fetch_assoc()) {
+    $labels_week[] = $row['lbl'];
+    $sales_week[]  = (float)$row['total'];
 }
 
-// รายปี 5 ปีล่าสุด
-$sales_year = [];
-$labels_year = [];
-$sql = "SELECT YEAR(created_at) as year, SUM(total_price) as total 
-            FROM orders 
-            WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 4 YEAR)
-            GROUP BY year ORDER BY year";
-try {
-    $result = $conn->query($sql);
-} catch (mysqli_sql_exception $e) {
-    error_log('admin/index.php: DB exception (sales_year): ' . $e->getMessage());
-    $result = false;
-}
-if ($result) {
-    while ($row = $result->fetch_assoc()) {
-        $labels_year[] = $row['year'];
-        $sales_year[] = (float)$row['total'];
-    }
-} else {
-    error_log('admin/index.php: DB error (sales_year): ' . $conn->error);
+// รายเดือน – 12 เดือนล่าสุด
+$thai_months = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.',
+                'ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+$labels_month = $sales_month = [];
+$r = safeQuery($conn,
+    "SELECT MONTH(order_date) AS mnum,
+            COALESCE(SUM(total_amount),0) AS total
+     FROM   orders
+     WHERE  order_date >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
+       AND  order_status <> 'rejected'
+     GROUP  BY YEAR(order_date), MONTH(order_date)
+     ORDER  BY YEAR(order_date), MONTH(order_date)");
+if ($r) while ($row = $r->fetch_assoc()) {
+    $labels_month[] = $thai_months[(int)$row['mnum']];
+    $sales_month[]  = (float)$row['total'];
 }
 
-// ดึงจำนวนการจองเข้าชมสวน รายเดือน 12 เดือนล่าสุด
-$booking_month = [];
-$labels_booking_month = [];
-$sql = "SELECT DATE_FORMAT(date, '%Y-%m') as month, COUNT(*) as total 
-            FROM bookings 
-            WHERE date >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
-            GROUP BY month ORDER BY month";
-try {
-    $result = $conn->query($sql);
-} catch (mysqli_sql_exception $e) {
-    error_log('admin/index.php: DB exception (booking_month): ' . $e->getMessage());
-    $result = false;
-}
-if ($result) {
-    while ($row = $result->fetch_assoc()) {
-        $labels_booking_month[] = $row['month'];
-        $booking_month[] = (int)$row['total'];
-    }
-} else {
-    error_log('admin/index.php: DB error (booking_month): ' . $conn->error);
+// รายปี – 5 ปีล่าสุด
+$labels_year = $sales_year = [];
+$r = safeQuery($conn,
+    "SELECT YEAR(order_date) AS yr,
+            COALESCE(SUM(total_amount),0) AS total
+     FROM   orders
+     WHERE  order_date >= DATE_SUB(CURDATE(), INTERVAL 4 YEAR)
+       AND  order_status <> 'rejected'
+     GROUP  BY YEAR(order_date)
+     ORDER  BY yr");
+if ($r) while ($row = $r->fetch_assoc()) {
+    $labels_year[] = (string)$row['yr'];
+    $sales_year[]  = (float)$row['total'];
 }
 
-// นับจำนวนสายพันธุ์มะม่วงที่ไม่ซ้ำกัน
-$sql = "SELECT COUNT(DISTINCT mango_name) AS variety_count FROM mango_varieties";
-try {
-    $result = $conn->query($sql);
-} catch (mysqli_sql_exception $e) {
-    error_log('admin/index.php: DB exception (variety_count): ' . $e->getMessage());
-    $result = false;
-}
-if ($result) {
-    $row = $result->fetch_assoc();
-    $variety_count = $row['variety_count'];
-} else {
-    error_log('admin/index.php: DB error (variety_count): ' . $conn->error);
-    $variety_count = 0;
+// ============================================================
+//  การจองเข้าชมสวน (bookings)
+//  ใช้ booking_date  – ตัด cancelled ออก
+// ============================================================
+
+// Donut: จำนวนจองรายเดือน 12 เดือนล่าสุด
+$labels_booking_month = $booking_month = [];
+$r = safeQuery($conn,
+    "SELECT MONTH(booking_date) AS mnum, COUNT(*) AS cnt
+     FROM   bookings
+     WHERE  booking_date >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
+       AND  status <> 'cancelled'
+     GROUP  BY YEAR(booking_date), MONTH(booking_date)
+     ORDER  BY YEAR(booking_date), MONTH(booking_date)");
+if ($r) while ($row = $r->fetch_assoc()) {
+    $labels_booking_month[] = $thai_months[(int)$row['mnum']];
+    $booking_month[]        = (int)$row['cnt'];
 }
 
-// ดึงยอดมัดจำรวมและยอดคงเหลือรวมจาก bookings เฉพาะที่อนุมัติแล้ว
-$sql = "SELECT SUM(deposit_amount) AS deposit_total, SUM(remain_amount) AS remain_total, SUM(total_amount) AS total_amount 
-        FROM bookings 
-        WHERE status = 'อนุมัติแล้ว'";
-try {
-    $result = $conn->query($sql);
-} catch (mysqli_sql_exception $e) {
-    error_log('admin/index.php: DB exception (deposit/remain totals): ' . $e->getMessage());
-    $result = false;
+// Line chart เปรียบเทียบ: จำนวนจองแยกสถานะ รายเดือน 12 เดือนล่าสุด
+$bc_raw = [];
+$r = safeQuery($conn,
+    "SELECT MONTH(booking_date) AS mnum, status, COUNT(*) AS cnt
+     FROM   bookings
+     WHERE  booking_date >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
+     GROUP  BY YEAR(booking_date), MONTH(booking_date), status
+     ORDER  BY YEAR(booking_date), MONTH(booking_date)");
+if ($r) while ($row = $r->fetch_assoc()) {
+    $m = $thai_months[(int)$row['mnum']];
+    $bc_raw[$m][$row['status']] = (int)$row['cnt'];
 }
-if ($result) {
-    $row = $result->fetch_assoc();
-    $deposit_total = $row['deposit_total'] ?? 0;
-    $remain_total = $row['remain_total'] ?? 0;
-    $total_amount = $row['total_amount'] ?? 0;
-} else {
-    error_log('admin/index.php: DB error (deposit/remain totals): ' . $conn->error);
-    $deposit_total = 0;
-    $remain_total = 0;
-    $total_amount = 0;
+$bc_labels = array_keys($bc_raw);
+$bc_status_config = [
+    'pending'          => ['label'=>'รอดำเนินการ',  'color'=>'#f6c23e'],
+    'awaiting_payment' => ['label'=>'รอชำระเงิน',   'color'=>'#4e73df'],
+    'confirmed'        => ['label'=>'ยืนยันแล้ว',   'color'=>'#1cc88a'],
+    'cancelled'        => ['label'=>'ยกเลิก',        'color'=>'#e74a3b'],
+];
+$bc_datasets = [];
+foreach ($bc_status_config as $st => $cfg) {
+    $data = array_map(fn($m) => $bc_raw[$m][$st] ?? 0, $bc_labels);
+    $bc_datasets[] = [
+        'label'           => $cfg['label'],
+        'data'            => $data,
+        'borderColor'     => $cfg['color'],
+        'backgroundColor' => $cfg['color'] . '20',
+        'tension'         => 0.4,
+        'fill'            => false,
+        'borderWidth'     => 2,
+        'pointRadius'     => 4,
+        'pointHoverRadius'=> 6,
+    ];
 }
+
+// ============================================================
+//  ยอดมัดจำ / ค้างชำระ / รวมทั้งหมด  (เฉพาะ confirmed)
+// ============================================================
+$deposit_total = $remain_total = $total_amount = 0;
+$r = safeQuery($conn,
+    "SELECT COALESCE(SUM(deposit_amount),0) AS dep,
+            COALESCE(SUM(balance_amount),0) AS bal,
+            COALESCE(SUM(price_total),0)    AS tot
+     FROM   bookings
+     WHERE  status = 'confirmed'");
+if ($r) {
+    $row           = $r->fetch_assoc();
+    $deposit_total = (float)$row['dep'];
+    $remain_total  = (float)$row['bal'];
+    $total_amount  = (float)$row['tot'];
+}
+
+// ============================================================
+//  สินค้า: จำนวนสินค้า active
+// ============================================================
+$product_count = 0;
+$r = safeQuery($conn, "SELECT COUNT(*) AS cnt FROM products WHERE status = 'active'");
+if ($r) $product_count = (int)$r->fetch_assoc()['cnt'];
+
+// ============================================================
+//  จำนวนสมาชิกทั้งหมด
+// ============================================================
+$member_count = 0;
+$r = safeQuery($conn, "SELECT COUNT(*) AS cnt FROM members WHERE status = 1");
+if ($r) $member_count = (int)$r->fetch_assoc()['cnt'];
+
+// คำนวณเปอร์เซ็นต์การเปลี่ยนแปลง
+$previous_month_sales = 0;
+$r = safeQuery($conn,
+    "SELECT COALESCE(SUM(total_amount),0) AS total
+     FROM   orders
+     WHERE  order_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 2 MONTH) AND DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
+       AND  order_status <> 'rejected'");
+if ($r && $row = $r->fetch_assoc()) {
+    $previous_month_sales = (float)$row['total'];
+}
+$current_month_sales = !empty($sales_month) ? end($sales_month) : 0;
+$sales_change = $previous_month_sales > 0 ? (($current_month_sales - $previous_month_sales) / $previous_month_sales) * 100 : 0;
 ?>
-
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Admin - Mango Paradise</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <style>
         :root {
             --primary: #4361ee;
-            --secondary: #3f37c9;
+            --primary-dark: #3a0ca3;
+            --secondary: #7209b7;
             --success: #4cc9f0;
             --info: #36b9cc;
             --warning: #f6c23e;
             --danger: #e74a3b;
-            --light: #f8f9fa;
-            --dark: #212529;
-            --purple: #7209b7;
+            --dark: #1e1e2f;
+            --light: #f8f9fc;
             --teal: #20c997;
-            --pink: #e83e8c;
-            --cyan: #0dcaf0;
-            --mango: #FFC107;
-            --mango-dark: #E6A000;
+            --purple: #b5179e;
+            --orange: #f8961e;
         }
-
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
             font-family: 'Kanit', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4e7f1 100%);
-            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             overflow-x: hidden;
-        }
-
-        .dashboard-header {
-            background: linear-gradient(120deg, var(--primary), var(--secondary));
-            color: white;
-            padding: 1rem;
-            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
-            position: relative;
-            overflow: hidden;
-            z-index: 10;
-            border-radius: 50px;
-        }
-
-        .dashboard-header::before {
-            content: "";
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 70%);
-            pointer-events: none;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
             transition: all 0.3s ease;
-            overflow: hidden;
-            height: 100%;
-            position: relative;
-            border: none;
         }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
+        
+        body.dark-mode {
+            background: linear-gradient(135deg, #1e1e2f 0%, #2d2d44 100%);
         }
-
-        .stat-card::after {
-            content: "";
-            position: absolute;
-            bottom: 0;
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 10px;
+        }
+        
+        /* Loading Animation */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
             left: 0;
             width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-        }
-
-        .stat-card.sales::after {
-            background: linear-gradient(90deg, var(--primary), var(--info));
-        }
-
-        .stat-card.expenses::after {
-            background: linear-gradient(90deg, var(--danger), var(--pink));
-        }
-
-        .stat-card.projects::after {
-            background: linear-gradient(90deg, var(--success), var(--cyan));
-        }
-
-        .stat-card.invoices::after {
-            background: linear-gradient(90deg, var(--purple), #9d4edd);
-        }
-
-        .stat-card .card-title {
-            font-size: 1rem;
-            font-weight: 500;
-            color: #6c757d;
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-card .card-value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            color: var(--dark);
-        }
-
-        .stat-card .card-change {
-            font-size: 0.9rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-        }
-
-        .increase {
-            color: #2ecc71;
-        }
-
-        .decrease {
-            color: #e74c3c;
-        }
-
-        .chart-container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
-            padding: 1.5rem;
             height: 100%;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .chart-container::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(45deg, rgba(67, 97, 238, 0.05), transparent);
-            border-bottom-left-radius: 100%;
-            pointer-events: none;
-        }
-
-        .chart-header {
-            display: flex;
-            justify-content: space-between;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
             align-items: center;
-            margin-bottom: 1.5rem;
-            position: relative;
-            z-index: 2;
         }
-
-        .chart-header h5 {
-            font-weight: 600;
-            color: var(--dark);
-            margin: 0;
-            font-size: 1.1rem;
-        }
-
-        .chart-legend {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .chart-legend-item {
-            display: flex;
-            align-items: center;
-            font-size: 0.8rem;
-        }
-
-        .legend-color {
-            width: 10px;
-            height: 10px;
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-top-color: var(--primary);
             border-radius: 50%;
-            margin-right: 4px;
+            animation: spin 1s linear infinite;
         }
-
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Dashboard Header */
+        .dashboard-header {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        body.dark-mode .dashboard-header {
+            background: rgba(30,30,47,0.95);
+            color: white;
+        }
+        
+        .dashboard-title {
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-size: 1.8rem;
+        }
+        
         .admin-profile {
             display: flex;
             align-items: center;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            padding: 0.5rem 1rem;
+            gap: 15px;
+            background: linear-gradient(135deg, rgba(67,97,238,0.1), rgba(114,9,183,0.1));
+            padding: 0.5rem 1.5rem;
             border-radius: 50px;
-            transition: all 0.3s ease;
+            cursor: pointer;
+            transition: all 0.3s;
         }
-
+        
         .admin-profile:hover {
-            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
-
-        .admin-profile img {
-            width: 36px;
-            height: 36px;
+        
+        .admin-avatar {
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
-            margin-right: 10px;
-            border: 2px solid rgba(255, 255, 255, 0.5);
+            border: 3px solid var(--primary);
+            object-fit: cover;
         }
-
-        .admin-profile span {
-            font-weight: 500;
-            color: white;
-            font-size: 0.9rem;
-        }
-
-        .dashboard-title {
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            position: relative;
-            display: inline-block;
-            font-size: 1.5rem;
-        }
-
-        .dashboard-title::after {
-            content: "";
-            position: absolute;
-            bottom: -5px;
-            left: 0;
-            width: 50%;
-            height: 3px;
+        
+        /* Stat Cards */
+        .stat-card {
             background: white;
-            border-radius: 3px;
+            border-radius: 20px;
+            padding: 1.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
         }
-
-        .notification-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: var(--danger);
+        
+        body.dark-mode .stat-card {
+            background: rgba(30,30,47,0.95);
             color: white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .stat-card:hover::before {
+            left: 100%;
+        }
+        
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.7rem;
-            font-weight: bold;
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
         }
-
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 0.5rem 0;
+        }
+        
+        .stat-change {
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .stat-change.positive { color: #1cc88a; }
+        .stat-change.negative { color: #e74a3b; }
+        
+        /* Chart Toggle Buttons */
         .chart-toggle {
             display: flex;
-            justify-content: flex-end;
-            margin-bottom: 1.5rem;
-            gap: 0.5rem;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            justify-content: center;
         }
-
+        
         .chart-toggle-btn {
+            padding: 0.75rem 1.8rem;
             border: none;
-            background: rgba(67, 97, 238, 0.1);
-            color: var(--primary);
-            font-weight: 600;
-            padding: 0.5rem 1.2rem;
             border-radius: 50px;
-            transition: all 0.3s ease;
-            font-size: 0.9rem;
+            font-weight: 600;
+            font-family: 'Kanit', sans-serif;
+            transition: all 0.3s;
+            cursor: pointer;
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-
+        
+        body.dark-mode .chart-toggle-btn {
+            background: rgba(30,30,47,0.95);
+            color: var(--primary);
+        }
+        
         .chart-toggle-btn:hover {
-            background: rgba(67, 97, 238, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
-
+        
         .chart-toggle-btn.active {
-            background: var(--primary);
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
         }
-
-        .center-number {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #43cea2;
-            pointer-events: none;
-        }
-
-        /* ปรับโครงสร้างกราฟแยก */
-        .all-charts-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
+        
+        /* Chart Cards */
         .chart-card {
             background: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-            padding: 1.2rem;
-            height: 280px;
-            /* กำหนดความสูงตายตัว */
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .chart-card-header {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #4e73df;
-            margin-bottom: 0.8rem;
-            text-align: center;
-        }
-
-        .chart-card-content {
-            flex: 1;
-            position: relative;
-            min-height: 0;
-            /* สำคัญสำหรับ flex ใน container */
-        }
-
-        .chart-card canvas {
-            width: 100% !important;
-            height: 100% !important;
-        }
-
-        /* การ์ดข้อมูล */
-        .data-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-            padding: 1.2rem;
-            height: 280px;
-            /* กำหนดความสูงเท่ากับกราฟ */
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .data-card-title {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #6c757d;
-            margin-bottom: 0.8rem;
-        }
-
-        .data-card-value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-        }
-
-        .data-card-extra {
-            font-size: 0.9rem;
-            color: #6c757d;
-        }
-
-        .booking-card {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s;
             height: 100%;
-            position: relative;
         }
-
-        .booking-count {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 24px;
-            font-weight: bold;
-            color: #4e73df;
+        
+        body.dark-mode .chart-card {
+            background: rgba(30,30,47,0.95);
+            color: white;
+        }
+        
+        .chart-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+        }
+        
+        .chart-card-header {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 1rem;
             text-align: center;
         }
-
+        
+        .chart-wrapper {
+            position: relative;
+            height: 350px;
+            margin-top: 1rem;
+        }
+        
+        /* Data Cards */
+        .data-card {
+            border-radius: 20px;
+            padding: 1.8rem;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .data-card:hover {
+            transform: translateY(-5px);
+        }
+        
         .deposit-card {
             background: linear-gradient(135deg, var(--info), var(--primary));
             color: white;
-            border-radius: 16px;
-            padding: 1.2rem;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
         }
-
-        .deposit-title {
-            font-size: 1rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .deposit-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-        }
-
+        
         .remain-card {
-            background: linear-gradient(135deg, var(--warning), #f8b400);
-            color: #333;
-            border-radius: 16px;
-            padding: 1.2rem;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            background: linear-gradient(135deg, var(--warning), var(--orange));
+            color: white;
         }
-
-        .remain-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
+        
+        .total-card {
+            background: linear-gradient(135deg, var(--success), var(--teal));
+            color: white;
         }
-
-        .variety-card {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            position: relative;
-        }
-
-        .variety-count {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--success);
+        
+        .card-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
             margin-bottom: 0.5rem;
         }
-
-        .variety-label {
-            font-size: 0.9rem;
-            color: #6c757d;
-            text-align: center;
+        
+        .card-value {
+            font-size: 2rem;
+            font-weight: 800;
         }
-
-        /* กราฟเปรียบเทียบ */
-        .compare-chart-container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
-            padding: 1.5rem;
-            height: 400px;
-            position: relative;
-            overflow: hidden;
+        
+        /* Dark Mode Toggle */
+        .dark-mode-toggle {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transition: all 0.3s;
+            font-size: 1.5rem;
         }
-
-        .chart-wrapper {
-            position: relative;
-            height: 320px;
+        
+        .dark-mode-toggle:hover {
+            transform: scale(1.1);
         }
-
+        
+        /* Responsive */
         @media (max-width: 768px) {
-            .chart-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 1rem;
+            .dashboard-header {
+                padding: 1rem;
             }
-
-            .chart-toggle {
-                justify-content: center;
+            
+            .dashboard-title {
+                font-size: 1.2rem;
             }
-
-            .all-charts-container {
-                grid-template-columns: 1fr;
+            
+            .stat-value {
+                font-size: 1.5rem;
             }
-
-            .chart-card,
-            .data-card {
-                height: 250px;
-            }
-
-            .compare-chart-container {
-                height: 350px;
-            }
-
+            
             .chart-wrapper {
                 height: 280px;
             }
+            
+            .chart-toggle-btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+            }
         }
-
-        .center-variety-count {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 2rem;
-            font-weight: bold;
-            color: #43cea2;
-            pointer-events: none;
-            z-index: 2;
+        
+        /* Fade In Animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in {
+            animation: fadeInUp 0.6s ease-out;
         }
     </style>
 </head>
-
 <body>
-    <div class="d-flex">
-        <?php include 'sidebar.php'; ?>
-        <div class="p-4" style="margin-left: 250px; flex: 1;">
 
-            <!-- Header -->
-            <header class="dashboard-header">
-                <div class="container">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap">
-                        <div>
-                            <h1 class="dashboard-title mb-0">Dashboard Admin</h1>
-                            <p class="mb-0 mt-2 text-white-20">Manage Mango Orchard and Ordering System</p>
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+</div>
+
+<!-- Dark Mode Toggle Button -->
+<button class="dark-mode-toggle" id="darkModeToggle">
+    <i class="bi bi-moon-fill"></i>
+</button>
+
+<div class="d-flex">
+    <?php include 'sidebar.php'; ?>
+    <div class="p-4" style="margin-left: 250px; flex: 1;">
+        
+        <!-- Header -->
+        <div class="dashboard-header fade-in">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h1 class="dashboard-title">
+                        <i class="bi bi-speedometer2"></i> Dashboard Admin
+                    </h1>
+                    <p class="text-muted mb-0 mt-2">
+                        <i class="bi bi-calendar3"></i> วันนี้: <?= date('d/m/Y') ?>
+                    </p>
+                </div>
+                <div class="admin-profile" onclick="location.reload()">
+                    <img class="admin-avatar" src="https://ui-avatars.com/api/?name=<?= urlencode($admin_name) ?>&background=4361ee&color=fff&bold=true" alt="Admin">
+                    <div>
+                        <div class="fw-bold"><?= htmlspecialchars($admin_name) ?></div>
+                        <small class="opacity-75"><?= htmlspecialchars($admin_email) ?></small>
+                    </div>
+                    <i class="bi bi-arrow-repeat"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="container-fluid px-0">
+            
+            <!-- Stat Cards Row -->
+            <div class="row g-4 mb-4">
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="stat-card fade-in">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <small class="text-muted">ยอดขายรวม (ปีนี้)</small>
+                                <div class="stat-value">฿<span id="totalSales"><?= number_format(array_sum($sales_year), 2) ?></span></div>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="bi bi-graph-up"></i>
+                            </div>
                         </div>
-                        <div class="d-flex align-items-center gap-3 mt-2 mt-md-0">
-                            <div class="admin-profile">
-                                <img src="https://ui-avatars.com/api/?name=<?= urlencode($admin_name) ?>&background=random&color=fff" alt="Admin">
-                                <span><?= htmlspecialchars($admin_name) ?></span>
+                        <div class="stat-change <?= $sales_change >= 0 ? 'positive' : 'negative' ?>">
+                            <i class="bi bi-arrow-<?= $sales_change >= 0 ? 'up' : 'down' ?>-short"></i>
+                            <?= number_format(abs($sales_change), 1) ?>% จากเดือนที่แล้ว
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="stat-card fade-in">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <small class="text-muted">การจองปีนี้</small>
+                                <div class="stat-value"><span id="totalBookings"><?= number_format(array_sum($booking_month)) ?></span> คณะ</div>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="bi bi-calendar-check"></i>
                             </div>
                         </div>
                     </div>
                 </div>
-            </header>
-
-            <div class="container py-3">
-                <!-- Chart Toggle -->
-                <div class="chart-toggle">
-                    <button class="chart-toggle-btn" id="showAllChartsBtn">แสดงกราฟแยก</button>
-                    <button class="chart-toggle-btn" id="showCompareChartBtn">แสดงกราฟเปรียบเทียบยอดขาย</button>
-                    <button class="chart-toggle-btn" id="showBookingCompareBtn">กราฟเปรียบเทียบยอดจองชมสวน (รายเดือน)</button>
-                </div>
-
-                <!-- All Charts View -->
-                <div id="allSalesCharts" class="d-none">
-                    <div class="row g-4 mb-4">
-                        <!-- ยอดขายรายวัน -->
-                        <div class="col-12 col-md-6 col-lg-3">
-                            <div class="chart-card h-100">
-                                <div class="chart-card-header">ยอดขายรายวัน</div>
-                                <div class="chart-card-content">
-                                    <canvas id="salesDayChart"></canvas>
-                                </div>
-                                <div class="text-center mt-2">
-                                    <small>รวม: <?= number_format(array_sum($sales_day), 2) ?> บาท</small>
-                                </div>
+                
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="stat-card fade-in">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <small class="text-muted">สินค้า (Active)</small>
+                                <div class="stat-value"><span id="productCount"><?= $product_count ?></span> รายการ</div>
                             </div>
-                        </div>
-                        <!-- ยอดขายรายสัปดาห์ -->
-                        <div class="col-12 col-md-6 col-lg-3">
-                            <div class="chart-card h-100">
-                                <div class="chart-card-header">ยอดขายรายสัปดาห์</div>
-                                <div class="chart-card-content">
-                                    <canvas id="salesWeekChart"></canvas>
-                                </div>
-                                <div class="text-center mt-2">
-                                    <small>รวม: <?= number_format(array_sum($sales_week), 2) ?> บาท</small>
-                                </div>
+                            <div class="stat-icon">
+                                <i class="bi bi-box-seam"></i>
                             </div>
-                        </div>
-                        <!-- ยอดขายรายเดือน -->
-                        <div class="col-12 col-md-6 col-lg-3">
-                            <div class="chart-card h-100">
-                                <div class="chart-card-header">ยอดขายรายเดือน</div>
-                                <div class="chart-card-content">
-                                    <canvas id="salesMonthChart"></canvas>
-                                </div>
-                                <div class="text-center mt-2">
-                                    <small>รวม: <?= number_format(array_sum($sales_month), 2) ?> บาท</small>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- ยอดขายรายปี -->
-                        <div class="col-12 col-md-6 col-lg-3">
-                            <div class="chart-card h-100">
-                                <div class="chart-card-header">ยอดขายรายปี</div>
-                                <div class="chart-card-content">
-                                    <canvas id="salesYearChart"></canvas>
-                                </div>
-                                <div class="text-center mt-2">
-                                    <small>รวม: <?= number_format(array_sum($sales_year), 2) ?> บาท</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="all-charts-container">
-                        <!-- กราฟการจองเข้าชมสวน -->
-                        <div class="chart-card">
-                            <div class="chart-card-header">การจองเข้าชมสวน</div>
-                            <div class="chart-card-content">
-                                <div class="d-flex flex-column align-items-center h-100">
-                                    <div style="position:relative; width:250px; height:250px;">
-                                        <canvas id="bookingMonthChart"></canvas>
-                                        <div class="booking-count" id="centerBookingCount"></div>
-                                    </div>
-                                    <div id="monthLabel" class="mt-2 text-muted"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- จำนวนสายพันธุ์มะม่วง -->
-                        <div class="data-card">
-                            <div class="data-card-title">สายพันธุ์มะม่วงในระบบ</div>
-                            <div class="mt-3" style="height: 100px; width: 100px; position: relative;">
-                                <canvas id="mangoVarietyCountChart"></canvas>
-                                <div class="center-variety-count"><?= $variety_count ?></div>
-                            </div>
-                        </div>
-
-                    </div>
-                    <div class="all-charts-container">
-                      <!-- ยอดมัดจำรวม -->
-                        <div class="data-card deposit-card">
-                            <div class="deposit-title">ยอดมัดจำรวม</div>
-                            <div class="deposit-value"><?= number_format($deposit_total, 2) ?> บาท</div>
-                            <div class="data-card-extra">
-                            </div>
-                        </div>
-
-                        <!-- ยอดคงเหลือรวม -->
-                        <div class="data-card remain-card">
-                            <div class="deposit-title">ยอดค้างชำระรวม</div>
-                            <div class="remain-value"><?= number_format($remain_total, 2) ?> บาท</div>
-                            <div class="data-card-extra">
-                            </div>
-                        </div>
-                        <!-- ยอดรวมทั้งหมด -->
-                        <div class="data-card deposit-card" style="background: linear-gradient(135deg, var(--success), var(--teal));">
-                            <div class="deposit-title">ยอดรวมทั้งหมด</div>
-                            <div class="remain-value"><?= number_format($total_amount, 2) ?> บาท</div>
-                            <div class="data-card-extra">
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- Compare Chart View -->
-                <div id="compareSalesChartWrapper">
-                    <div class="compare-chart-container">
-                        <div class="chart-header">
-                            <h5>กราฟเปรียบเทียบยอดขาย</h5>
-                            <div class="chart-legend">
-                                <div class="chart-legend-item">
-                                    <div class="legend-color" style="background-color: #4e73df;"></div>
-                                    <span>รายวัน</span>
-                                </div>
-                                <div class="chart-legend-item">
-                                    <div class="legend-color" style="background-color: #1cc88a;"></div>
-                                    <span>รายสัปดาห์</span>
-                                </div>
-                                <div class="chart-legend-item">
-                                    <div class="legend-color" style="background-color: #e74a3b;"></div>
-                                    <span>รายเดือน</span>
-                                </div>
-                                <div class="chart-legend-item">
-                                    <div class="legend-color" style="background-color: #36b9cc;"></div>
-                                    <span>รายปี</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="chart-wrapper">
-                            <canvas id="compareSalesChart"></canvas>
                         </div>
                     </div>
                 </div>
-
-                <!-- เพิ่ม div สำหรับกราฟเปรียบเทียบการจองรายเดือน -->
-                <div id="bookingCompareChartWrapper" class="d-none">
-                    <div class="compare-chart-container">
-                        <div class="chart-header">
-                            <h5>กราฟเปรียบเทียบการจองเข้าชมสวน</h5>
-                        </div>
-                        <div class="chart-wrapper">
-                            <canvas id="bookingCompareChart"></canvas>
+                
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="stat-card fade-in">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <small class="text-muted">สมาชิกทั้งหมด</small>
+                                <div class="stat-value"><span id="memberCount"><?= $member_count ?></span> คน</div>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="bi bi-people"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-            <script>
-                // ข้อมูลจาก PHP
-                const salesDayLabels = <?= json_encode($labels_day) ?>;
-                const salesDayData = <?= json_encode($sales_day) ?>;
-                const salesWeekLabels = <?= json_encode($labels_week) ?>;
-                const salesWeekData = <?= json_encode($sales_week) ?>;
-                const salesMonthLabels = <?= json_encode($labels_month) ?>;
-                const salesMonthData = <?= json_encode($sales_month) ?>;
-                const salesYearLabels = <?= json_encode($labels_year) ?>;
-                const salesYearData = <?= json_encode($sales_year) ?>;
-                const bookingMonthLabels = <?= json_encode($labels_booking_month) ?>;
-                const bookingMonthData = <?= json_encode($booking_month) ?>;
-
-                // กราฟยอดขายรายวัน
-                new Chart(document.getElementById('salesDayChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: salesDayLabels,
-                        datasets: [{
-                            label: 'ยอดขาย (บาท)',
-                            data: salesDayData,
-                            backgroundColor: '#4e73df',
-                            borderRadius: 5,
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: false
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        return 'ยอดขาย: ฿' + context.parsed.y.toLocaleString();
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    display: false
-                                },
-                                ticks: {
-                                    callback: value => '฿' + value.toLocaleString()
-                                }
-                            },
-                            x: {
-                                grid: {
-                                    display: false
-                                }
-                            }
-                        }
-                    }
-                });
-
-                // กราฟยอดขายรายสัปดาห์
-                new Chart(document.getElementById('salesWeekChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: salesWeekLabels,
-                        datasets: [{
-                            label: 'ยอดขาย (บาท)',
-                            data: salesWeekData,
-                            backgroundColor: '#1cc88a',
-                            borderRadius: 5
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: false
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    display: false
-                                },
-                                ticks: {
-                                    callback: value => '฿' + value.toLocaleString()
-                                }
-                            },
-                            x: {
-                                grid: {
-                                    display: false
-                                }
-                            }
-                        }
-                    }
-                });
-
-                // กราฟยอดขายรายเดือน
-                new Chart(document.getElementById('salesMonthChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: salesMonthLabels,
-                        datasets: [{
-                            label: 'ยอดขาย (บาท)',
-                            data: salesMonthData,
-                            backgroundColor: '#e74a3b',
-                            borderRadius: 5
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: false
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    display: false
-                                },
-                                ticks: {
-                                    callback: value => '฿' + value.toLocaleString()
-                                }
-                            },
-                            x: {
-                                grid: {
-                                    display: false
-                                }
-                            }
-                        }
-                    }
-                });
-
-                // กราฟยอดขายรายปี
-                new Chart(document.getElementById('salesYearChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: salesYearLabels,
-                        datasets: [{
-                            label: 'ยอดขาย (บาท)',
-                            data: salesYearData,
-                            backgroundColor: '#36b9cc',
-                            borderRadius: 5
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: false
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    display: false
-                                },
-                                ticks: {
-                                    callback: value => '฿' + value.toLocaleString()
-                                }
-                            },
-                            x: {
-                                grid: {
-                                    display: false
-                                }
-                            }
-                        }
-                    }
-                });
-
-                // กราฟการจองเข้าชมสวน - แสดงทั้งหมดทุกเดือน
-                const totalAllMonths = bookingMonthData.reduce((sum, count) => sum + count, 0);
-                const latestMonthLabel = bookingMonthLabels.length > 0 ? bookingMonthLabels[bookingMonthLabels.length - 1] : 'เดือนปัจจุบัน';
-
-                // อัพเดทตัวเลขกลางและ label
-                document.getElementById('centerBookingCount').textContent = totalAllMonths.toLocaleString() + ' คณะ';
-                document.getElementById('monthLabel').textContent = 'ทั้งหมด ' + bookingMonthData.length + ' เดือน';
-
-                // กราฟแบบแสดงทุกเดือน (แต่ละเดือนเป็นส่วนในวง)
-                new Chart(document.getElementById('bookingMonthChart'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: bookingMonthLabels,
-                        datasets: [{
-                            label: 'จำนวนการจอง',
-                            data: bookingMonthData,
-                            backgroundColor: [
-                                '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
-                                '#5a5c69', '#858796', '#b7b9cc', '#dfe0eb', '#f8f9fc',
-                                '#2e59d9', '#17a673'
-                            ]
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                display: false // ซ่อน legend เพราะมีหลายเดือน
-                            },
-                            tooltip: {
-                                enabled: true,
-                                callbacks: {
-                                    label: function(context) {
-                                        return context.label + ': ' + context.raw.toLocaleString() + ' คณะ';
-                                    }
-                                }
-                            }
-                        },
-                        cutout: '70%'
-                    }
-                });
-
-                // ตัวเลขกลางยังแสดงผลรวมทั้งหมด
-                document.getElementById('centerBookingCount').textContent = totalAllMonths.toLocaleString() + ' คณะ';
-                document.getElementById('monthLabel').textContent = 'ทั้งหมด ' + bookingMonthData.length + ' เดือน';
-
-                // กราฟจำนวนสายพันธุ์มะม่วง
-                new Chart(document.getElementById('mangoVarietyCountChart'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['สายพันธุ์มะม่วง', ''],
-                        datasets: [{
-                            data: [<?= $variety_count ?>, 100 - <?= $variety_count ?>],
-                            backgroundColor: ['#43cea2', '#e9ecef'],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        cutout: '70%',
-                        plugins: {
-                            legend: {
-                                display: false
-                            },
-                            tooltip: {
-                                enabled: false
-                            }
-                        }
-                    }
-                });
-
-                // กราฟเปรียบเทียบ
-                const compareChart = new Chart(document.getElementById('compareSalesChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: ['รายวัน', 'รายสัปดาห์', 'รายเดือน', 'รายปี'],
-                        datasets: [{
-                            label: 'ยอดขายรวม',
-                            data: [
-                                salesDayData.reduce((a, b) => a + b, 0),
-                                salesWeekData.reduce((a, b) => a + b, 0),
-                                salesMonthData.reduce((a, b) => a + b, 0),
-                                salesYearData.reduce((a, b) => a + b, 0)
-                            ],
-                            backgroundColor: [
-                                '#4e73df', '#1cc88a', '#e74a3b', '#36b9cc'
-                            ]
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: false
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        return 'ยอดขายรวม: ฿' + context.parsed.y.toLocaleString();
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: value => '฿' + value.toLocaleString()
-                                }
-                            }
-                        }
-                    }
-                });
-
-                // Toggle between chart views
-                document.getElementById('showCompareChartBtn').addEventListener('click', function() {
-                    document.getElementById('allSalesCharts').classList.add('d-none');
-                    document.getElementById('compareSalesChartWrapper').classList.remove('d-none');
-                    this.classList.add('active');
-                    document.getElementById('showAllChartsBtn').classList.remove('active');
-                });
-
-                document.getElementById('showAllChartsBtn').addEventListener('click', function() {
-                    document.getElementById('allSalesCharts').classList.remove('d-none');
-                    document.getElementById('compareSalesChartWrapper').classList.add('d-none');
-                    this.classList.add('active');
-                    document.getElementById('showCompareChartBtn').classList.remove('active');
-                });
-
-                // Initially show all charts (กราฟแยก) เป็นอันแรก
-                document.getElementById('allSalesCharts').classList.remove('d-none');
-                document.getElementById('compareSalesChartWrapper').classList.add('d-none');
-                document.getElementById('showAllChartsBtn').classList.add('active');
-                document.getElementById('showCompareChartBtn').classList.remove('active');
-
-                // กราฟเปรียบเทียบการจองเข้าชมสวน (รายเดือน) แบบ Line Chart ทันสมัย
-                const ctxBookingCompare = document.getElementById('bookingCompareChart').getContext('2d');
-                // สร้าง gradient
-                const gradient = ctxBookingCompare.createLinearGradient(0, 0, 0, 320);
-                gradient.addColorStop(0, 'rgba(67, 206, 162, 0.35)');
-                gradient.addColorStop(1, 'rgba(67, 206, 162, 0.02)');
-
-                new Chart(ctxBookingCompare, {
-                    type: 'line',
-                    data: {
-                        labels: bookingMonthLabels,
-                        datasets: [{
-                            label: 'จำนวนการจอง (คณะ) ต่อเดือน',
-                            data: bookingMonthData,
-                            borderColor: '#43cea2',
-                            backgroundColor: gradient,
-                            tension: 0.4,
-                            fill: true,
-                            pointBackgroundColor: '#43cea2',
-                            pointBorderColor: '#185a9d',
-                            pointRadius: 6,
-                            pointHoverRadius: 10,
-                            pointStyle: 'circle'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                labels: {
-                                    color: '#185a9d',
-                                    font: {
-                                        weight: 'bold',
-                                        size: 14
-                                    }
-                                }
-                            },
-                            tooltip: {
-                                backgroundColor: '#185a9d',
-                                titleColor: '#fff',
-                                bodyColor: '#fff',
-                                borderColor: '#43cea2',
-                                borderWidth: 1,
-                                callbacks: {
-                                    label: function(context) {
-                                        return ' ' + context.parsed.y.toLocaleString() + ' คณะ';
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    color: '#185a9d',
-                                    font: {
-                                        size: 13
-                                    },
-                                    callback: value => value + ' คณะ'
-                                },
-                                grid: {
-                                    color: 'rgba(67, 206, 162, 0.08)'
-                                }
-                            },
-                            x: {
-                                ticks: {
-                                    color: '#185a9d',
-                                    font: {
-                                        size: 13
-                                    }
-                                },
-                                grid: {
-                                    display: false
-                                }
-                            }
-                        }
-                    }
-                });
-
-                // เพิ่ม event listener สำหรับปุ่มกราฟเปรียบเทียบการจอง
-                let bookingCompareActive = false;
-                document.getElementById('showBookingCompareBtn').addEventListener('click', function() {
-                    bookingCompareActive = !bookingCompareActive;
-                    if (bookingCompareActive) {
-                        document.getElementById('allSalesCharts').classList.add('d-none');
-                        document.getElementById('compareSalesChartWrapper').classList.add('d-none');
-                        document.getElementById('bookingCompareChartWrapper').classList.remove('d-none');
-                        this.classList.add('active');
-                        document.getElementById('showAllChartsBtn').classList.remove('active');
-                        document.getElementById('showCompareChartBtn').classList.remove('active');
-                    } else {
-                        document.getElementById('allSalesCharts').classList.remove('d-none');
-                        document.getElementById('compareSalesChartWrapper').classList.add('d-none');
-                        document.getElementById('bookingCompareChartWrapper').classList.add('d-none');
-                        this.classList.remove('active');
-                        document.getElementById('showAllChartsBtn').classList.add('active');
-                        document.getElementById('showCompareChartBtn').classList.remove('active');
-                    }
-                });
-            </script>
+            
+            <!-- Chart Toggle Buttons -->
+            <div class="chart-toggle fade-in">
+                <button class="chart-toggle-btn active" id="showAllChartsBtn">
+                    <i class="bi bi-grid-3x3-gap-fill"></i> แสดงกราฟทั้งหมด
+                </button>
+                <button class="chart-toggle-btn" id="showCompareChartBtn">
+                    <i class="bi bi-bar-chart-steps"></i> เปรียบเทียบยอดขาย
+                </button>
+                <button class="chart-toggle-btn" id="showBookingCompareBtn">
+                    <i class="bi bi-calendar-week"></i> เปรียบเทียบการจอง
+                </button>
+            </div>
+            
+            <!-- All Charts View -->
+            <div id="allSalesCharts" class="fade-in">
+                <!-- Sales Charts Row -->
+                <div class="row g-4 mb-4">
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <div class="chart-card">
+                            <div class="chart-card-header">
+                                <i class="bi bi-calendar-day"></i> ยอดขายรายวัน (7 วันล่าสุด)
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="salesDayChart"></canvas>
+                            </div>
+                            <div class="text-center mt-2">
+                                <small class="text-muted">รวม ฿<?= number_format(array_sum($sales_day), 2) ?></small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <div class="chart-card">
+                            <div class="chart-card-header">
+                                <i class="bi bi-calendar-week"></i> ยอดขายรายสัปดาห์ (8 สัปดาห์)
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="salesWeekChart"></canvas>
+                            </div>
+                            <div class="text-center mt-2">
+                                <small class="text-muted">รวม ฿<?= number_format(array_sum($sales_week), 2) ?></small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <div class="chart-card">
+                            <div class="chart-card-header">
+                                <i class="bi bi-calendar-month"></i> ยอดขายรายเดือน (12 เดือน)
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="salesMonthChart"></canvas>
+                            </div>
+                            <div class="text-center mt-2">
+                                <small class="text-muted">รวม ฿<?= number_format(array_sum($sales_month), 2) ?></small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <div class="chart-card">
+                            <div class="chart-card-header">
+                                <i class="bi bi-calendar-year"></i> ยอดขายรายปี (5 ปี)
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="salesYearChart"></canvas>
+                            </div>
+                            <div class="text-center mt-2">
+                                <small class="text-muted">รวม ฿<?= number_format(array_sum($sales_year), 2) ?></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Booking Donut Chart -->
+                <div class="row g-4 mb-4">
+                    <div class="col-12 col-md-6">
+                        <div class="chart-card">
+                            <div class="chart-card-header">
+                                <i class="bi bi-pie-chart"></i> การจองเข้าชมสวน (รายเดือน)
+                            </div>
+                            <div class="chart-wrapper" style="height: 350px;">
+                                <canvas id="bookingMonthChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Summary Cards -->
+                    <div class="col-12 col-md-6">
+                        <div class="row g-4 h-100">
+                            <div class="col-12">
+                                <div class="data-card deposit-card">
+                                    <div class="card-label">
+                                        <i class="bi bi-wallet2"></i> ยอดมัดจำรวม
+                                    </div>
+                                    <div class="card-value">฿<?= number_format($deposit_total, 2) ?></div>
+                                    <small class="mt-2 d-block opacity-75">จากยอดทั้งหมด <?= number_format($total_amount, 2) ?> บาท</small>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="data-card remain-card">
+                                    <div class="card-label">
+                                        <i class="bi bi-clock-history"></i> ยอดค้างชำระรวม
+                                    </div>
+                                    <div class="card-value">฿<?= number_format($remain_total, 2) ?></div>
+                                    <small class="mt-2 d-block opacity-75">คิดเป็น <?= $total_amount > 0 ? number_format(($remain_total/$total_amount)*100, 1) : 0 ?>% ของยอดทั้งหมด</small>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="data-card total-card">
+                                    <div class="card-label">
+                                        <i class="bi bi-cash-stack"></i> ยอดรวมทั้งหมด
+                                    </div>
+                                    <div class="card-value">฿<?= number_format($total_amount, 2) ?></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Compare Sales Chart View -->
+            <div id="compareSalesChartWrapper" class="d-none fade-in">
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <i class="bi bi-bar-chart-fill"></i> กราฟเปรียบเทียบยอดขายรวม
+                    </div>
+                    <div class="chart-wrapper" style="height: 450px;">
+                        <canvas id="compareSalesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Booking Compare Chart View -->
+            <div id="bookingCompareChartWrapper" class="d-none fade-in">
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <i class="bi bi-calendar-range"></i> กราฟเปรียบเทียบการจองแยกตามสถานะ
+                    </div>
+                    <div class="chart-wrapper" style="height: 450px;">
+                        <canvas id="bookingCompareChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
         </div>
-</body>
+    </div>
+</div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Charts Configuration
+let charts = {};
+
+// Function to create gradient
+function createGradient(ctx, colorStart, colorEnd) {
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, colorStart);
+    gradient.addColorStop(1, colorEnd);
+    return gradient;
+}
+
+// Create Bar Chart with Gradient
+function createBarChart(id, labels, data, colorStart, colorEnd) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return null;
+    const ctx = canvas.getContext('2d');
+    const gradient = createGradient(ctx, colorStart, colorEnd);
+    
+    return new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'ยอดขาย (บาท)',
+                data: data,
+                backgroundColor: gradient,
+                borderRadius: 8,
+                borderWidth: 0,
+                barPercentage: 0.7,
+                categoryPercentage: 0.8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return '฿' + context.parsed.y.toLocaleString('th-TH', {minimumFractionDigits: 2});
+                        }
+                    },
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: '#4361ee',
+                    borderWidth: 2
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return '฿' + value.toLocaleString();
+                        },
+                        font: {
+                            size: 11
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            },
+            animation: {
+                duration: 1500,
+                easing: 'easeInOutQuart'
+            }
+        }
+    });
+}
+
+// Create Line Chart
+function createLineChart(id, labels, data, color) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return null;
+    
+    return new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'ยอดขาย (บาท)',
+                data: data,
+                borderColor: color,
+                backgroundColor: color + '20',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointRadius: 5,
+                pointHoverRadius: 8,
+                pointBackgroundColor: color,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return '฿' + context.parsed.y.toLocaleString('th-TH', {minimumFractionDigits: 2});
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '฿' + value.toLocaleString();
+                        }
+                    }
+                }
+            },
+            animation: {
+                duration: 1500,
+                easing: 'easeInOutQuart'
+            }
+        }
+    });
+}
+
+// Initialize all charts
+document.addEventListener('DOMContentLoaded', function() {
+    // Sales Charts
+    charts.salesDay = createBarChart('salesDayChart', 
+        <?= json_encode($labels_day) ?>, 
+        <?= json_encode($sales_day) ?>, 
+        '#4e73df', '#36b9cc');
+    
+    charts.salesWeek = createBarChart('salesWeekChart', 
+        <?= json_encode($labels_week) ?>, 
+        <?= json_encode($sales_week) ?>, 
+        '#1cc88a', '#20c997');
+    
+    charts.salesMonth = createLineChart('salesMonthChart', 
+        <?= json_encode($labels_month) ?>, 
+        <?= json_encode($sales_month) ?>, 
+        '#e74a3b');
+    
+    charts.salesYear = createBarChart('salesYearChart', 
+        <?= json_encode($labels_year) ?>, 
+        <?= json_encode($sales_year) ?>, 
+        '#36b9cc', '#4e73df');
+    
+    // Booking Donut Chart
+    const bookingCtx = document.getElementById('bookingMonthChart');
+    if (bookingCtx) {
+        charts.bookingDonut = new Chart(bookingCtx, {
+            type: 'doughnut',
+            data: {
+                labels: <?= json_encode($labels_booking_month) ?>,
+                datasets: [{
+                    data: <?= json_encode($booking_month) ?>,
+                    backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#b5179e', '#f8961e', '#20c997', '#3a0ca3', '#7209b7', '#f72585', '#4895ef'],
+                    borderWidth: 3,
+                    borderColor: '#fff',
+                    hoverOffset: 15
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: {
+                                size: 11,
+                                family: 'Kanit'
+                            },
+                            padding: 10,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a,b) => a+b, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return `${context.label}: ${context.parsed} คณะ (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    animateRotate: true,
+                    duration: 1500
+                }
+            }
+        });
+    }
+    
+    // Compare Sales Chart
+    const compareCtx = document.getElementById('compareSalesChart');
+    if (compareCtx) {
+        charts.compareSales = new Chart(compareCtx, {
+            type: 'bar',
+            data: {
+                labels: ['รายวัน (7 วัน)', 'รายสัปดาห์ (8 สัปดาห์)', 'รายเดือน (12 เดือน)', 'รายปี (5 ปี)'],
+                datasets: [{
+                    label: 'ยอดขายรวม (บาท)',
+                    data: [
+                        <?= array_sum($sales_day) ?>,
+                        <?= array_sum($sales_week) ?>,
+                        <?= array_sum($sales_month) ?>,
+                        <?= array_sum($sales_year) ?>
+                    ],
+                    backgroundColor: ['#4e73df', '#1cc88a', '#e74a3b', '#36b9cc'],
+                    borderRadius: 10,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return '฿' + context.parsed.y.toLocaleString('th-TH', {minimumFractionDigits: 2});
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '฿' + value.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1500,
+                    easing: 'easeInOutQuart'
+                }
+            }
+        });
+    }
+    
+    // Booking Compare Chart (Line Chart)
+    const bookingCompareCtx = document.getElementById('bookingCompareChart');
+    if (bookingCompareCtx && <?= json_encode($bc_datasets) ?>.length > 0) {
+        charts.bookingCompare = new Chart(bookingCompareCtx, {
+            type: 'line',
+            data: {
+                labels: <?= json_encode($bc_labels) ?>,
+                datasets: <?= json_encode($bc_datasets) ?>
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 12,
+                                family: 'Kanit'
+                            },
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.parsed.y} คณะ`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value) {
+                                return value + ' คณะ';
+                            }
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                animation: {
+                    duration: 1500,
+                    easing: 'easeInOutQuart'
+                }
+            }
+        });
+    }
+    
+    // Counter Animation for Stats
+    function animateValue(element, start, end, duration) {
+        if (!element) return;
+        const range = end - start;
+        const increment = range / (duration / 10);
+        let current = start;
+        const timer = setInterval(() => {
+            current += increment;
+            if ((range > 0 && current >= end) || (range < 0 && current <= end)) {
+                clearInterval(timer);
+                current = end;
+            }
+            element.textContent = Math.round(current).toLocaleString();
+        }, 10);
+    }
+    
+    // ตั้งค่า Animation สำหรับตัวเลข
+    // (Optional: จะเพิ่มหรือไม่ก็ได้ เพราะตัวเลขแสดงอยู่แล้ว)
+});
+
+// Toggle Views
+(function() {
+    const panels = {
+        all: document.getElementById('allSalesCharts'),
+        compare: document.getElementById('compareSalesChartWrapper'),
+        booking: document.getElementById('bookingCompareChartWrapper')
+    };
+    
+    const btns = {
+        all: document.getElementById('showAllChartsBtn'),
+        compare: document.getElementById('showCompareChartBtn'),
+        booking: document.getElementById('showBookingCompareBtn')
+    };
+    
+    function activatePanel(panelName) {
+        Object.keys(panels).forEach(key => {
+            if (panels[key]) {
+                panels[key].classList.toggle('d-none', key !== panelName);
+            }
+        });
+        
+        Object.keys(btns).forEach(key => {
+            if (btns[key]) {
+                btns[key].classList.toggle('active', key === panelName);
+            }
+        });
+    }
+    
+    if (btns.all) btns.all.addEventListener('click', () => activatePanel('all'));
+    if (btns.compare) btns.compare.addEventListener('click', () => activatePanel('compare'));
+    if (btns.booking) btns.booking.addEventListener('click', () => activatePanel('booking'));
+})();
+
+// Dark Mode Toggle
+const darkModeToggle = document.getElementById('darkModeToggle');
+if (darkModeToggle) {
+    darkModeToggle.addEventListener('click', function() {
+        document.body.classList.toggle('dark-mode');
+        const icon = this.querySelector('i');
+        if (document.body.classList.contains('dark-mode')) {
+            icon.classList.remove('bi-moon-fill');
+            icon.classList.add('bi-sun-fill');
+        } else {
+            icon.classList.remove('bi-sun-fill');
+            icon.classList.add('bi-moon-fill');
+        }
+    });
+}
+
+// Auto Refresh every 5 minutes
+setInterval(() => {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) overlay.style.display = 'flex';
+    setTimeout(() => {
+        location.reload();
+    }, 500);
+}, 300000);
+
+// Show loading on page load
+window.addEventListener('beforeunload', function() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) overlay.style.display = 'flex';
+});
+
+// Hide loading when page loads
+window.addEventListener('load', function() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        setTimeout(() => {
+            overlay.style.display = 'none';
+        }, 500);
+    }
+});
+</script>
+</body>
 </html>

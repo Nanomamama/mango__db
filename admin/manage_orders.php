@@ -31,7 +31,7 @@ $result = $stmt->get_result();
 
 
 // ===== สถิติออเดอร์ =====
-$today = date('Y-m-d');
+
 
 $sql_stats = "
 SELECT 
@@ -39,13 +39,12 @@ SELECT
     SUM(order_status = 'completed') as total_completed, -- ใช้แสดงออเดอร์ทั้งหมด (ที่คุณต้องการ)
     SUM(order_status = 'pending') as pending_count,
     SUM(order_status = 'approved') as approved_count,
-    SUM(order_status = 'rejected') as rejected_count,
-    SUM(order_status = 'completed') as completed_count
+    SUM(order_status = 'rejected') as rejected_count
+  
 FROM orders
 ";
 
 $stmt_stats = $conn->prepare($sql_stats);
-
 $stmt_stats->execute();
 $stats = $stmt_stats->get_result()->fetch_assoc();
 
@@ -72,9 +71,12 @@ SELECT
     SUM(order_status = 'approved') as approved_count,
     SUM(order_status = 'rejected') as rejected_count,
     SUM(order_status = 'completed') as completed_count,
-    COALESCE(SUM(CASE 
-        WHEN order_status = 'completed' THEN total_amount 
-        ELSE 0 END), 0) as revenue
+    COALESCE(SUM(
+        CASE 
+            WHEN order_status = 'completed' THEN total_amount 
+            ELSE 0 
+        END
+    ), 0) as revenue
 FROM orders
 WHERE receive_datetime BETWEEN ? AND ?
 ";
@@ -83,7 +85,6 @@ $stmt_today_stats = $conn->prepare($sql_today_stats);
 $stmt_today_stats->bind_param("ss", $todayStart, $todayEnd);
 $stmt_today_stats->execute();
 $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
-
 
 
 ?>
@@ -110,7 +111,6 @@ $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
         body {
             background-color: #f8f9fa;
             font-family: 'Segoe UI', 'Prompt', sans-serif;
-            padding: 20px;
             margin-left: 250px;
             padding: 20px;
             max-width: calc(100vw - 250px);
@@ -144,7 +144,12 @@ $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
 
         .icon-all {
             background-color: rgba(149, 165, 166, 0.1);
-            color: #7f8c8d;
+            color: #0aff0a;
+        }
+
+        .icon-all-today {
+            background-color: rgba(149, 165, 166, 0.1);
+            color: #f94df9;
         }
 
         .icon-pending {
@@ -215,7 +220,7 @@ $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
         }
 
         .status-badge {
-            padding: 6px 15px;
+            padding: 6px 11px;
             border-radius: 20px;
             font-size: 0.85rem;
             font-weight: 600;
@@ -224,19 +229,19 @@ $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
         .badge-pending {
             background-color: #ffe600;
             color: #000000;
-           
+
         }
 
         .badge-approved {
             background-color: #78ff3a;
             color: #000000;
-           
+
         }
 
         .badge-rejected {
             background-color: #f30116;
             color: #ffffff;
-            
+
         }
 
         .badge-completed {
@@ -431,8 +436,111 @@ $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
             margin-top: 10px;
         }
 
+        .badge-new {
+            background-color: #ff4757;
+            color: white;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 100px;
+            font-weight: 700;
+            animation: pulse 1.5s infinite;
+        }
 
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+}
+
+
+   .order-amount {
+    font-size: 22px;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.order-amount span {
+    font-size: 13px;
+    color: #888;
+    font-weight: 400;
+    margin-left: 4px;
+}
+
+.order-divider {
+    border: none;
+    border-top: 0.5px solid #e5e7eb;
+    margin: 4px 0;
+}
+
+.order-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.info-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #555;
+}
+
+.info-row strong {
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.dot-pickup  { background: #1D9E75; }
+.dot-deliver { background: #378ADD; }
+
+.order-date-small {
+    font-size: 11px;
+    color: #aaa;
+}
+
+.btn-detail {
+    display: block;
+    text-align: center;
+    padding: 8px;
+    border-radius: 8px;
+    border: 0.5px solid #d1d5db;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    background: #85c2ff;
+    text-decoration: none;
+    transition: background 0.15s;
+}
+
+.btn-detail:hover {
+    background: #f3f4f6;
+    color: #111;
+}
     </style>
+
+
+
 </head>
 
 <body>
@@ -461,17 +569,17 @@ $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
     <br>
 
     <!-- สถิติออเดอร์ ------------------------------------------------------------------------------------------------>
-     <div class="stat-amount">
+    <div class="stat-amount">
         <h2>สถิติออเดอร์ทั้งหมด</h2>
     </div>
     <div class="row mb-4">
         <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
             <div class="stat-card">
                 <div class="stat-icon icon-all">
-                    <i class="fas fa-shopping-cart"></i>
+                    <i class="fa-solid fa-clipboard-check"></i>
                 </div>
                 <div class="stat-number"><?= number_format($stats['total_completed'] ?? 0) ?></div>
-                <div class="stat-title">ออเดอร์ทั้งหมด</div>
+                <div class="stat-title">ขายไปทั้งหมด/ออเดอร์</div>
             </div>
         </div>
 
@@ -492,14 +600,14 @@ $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
     <!------------------------------------------------------end stats order- --------------------------------------------------------- -->
 
     <!-- สถิติ วันของนี้ - ------------------------------------------------------------------------------------------>
-    
+
     <div class="stat-today">
         <h2>สถิติออเดอร์วันนี้</h2>
     </div>
     <div class="row mb-4">
-         <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
             <div class="stat-card">
-                <div class="stat-icon icon-all">
+                <div class="stat-icon icon-all-today">
                     <i class="fas fa-shopping-cart"></i>
                 </div>
                 <div class="stat-number"><?= number_format($todayStats['total_count'] ?? 0) ?></div>
@@ -598,8 +706,11 @@ $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
     </div>
 
     <!-- ตารางออเดอร์ -------------------------------------------------------------------------------------------------->
+
+
     <div class="dashboard-card">
         <div class="card-header">
+
             <h5 class="card-title">
                 <i class="fas fa-table"></i> รายการคำสั่งซื้อ
                 <?php if ($status != 'all'): ?>
@@ -614,53 +725,76 @@ $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
         <div class="order-grid">
             <?php if ($result->num_rows > 0): ?>
                 <?php while ($order = $result->fetch_assoc()): ?>
-                    <div class="order-card">
 
-                        <!-- Context + Status -->
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <strong>#<?= htmlspecialchars($order['order_code']) ?></strong>
 
-                            <?php if ($order['order_status'] == 'pending'): ?>
-                                <span class="status-badge badge-pending">รอยืนยัน</span>
-                            <?php elseif ($order['order_status'] == 'approved'): ?>
-                                <span class="status-badge badge-approved">ยืนยันแล้ว</span>
-                            <?php elseif ($order['order_status'] == 'rejected'): ?>
-                                <span class="status-badge badge-rejected">ปฏิเสธแล้ว</span>
-                            <?php elseif ($order['order_status'] == 'completed'): ?>
-                                <span class="status-badge badge-completed">เสร็จสิ้นแล้ว</span>
-                            <?php endif; ?>
-                        </div>
+                  <div class="order-card">
 
-                        <!-- Amount (Primary Focus) -->
-                        <div class="mb-2">
-                            <div style="font-size:20px; font-weight:bold; color:#2ecc71;">
-                                <?= number_format($order['total_amount'], 2) ?> บาท
-                            </div>
-                        </div>
+    <?php
+    $orderTime = strtotime($order['order_date']);
+    $now = time();
+    $diffHours = ($now - $orderTime) / 3600;
+    ?>
 
-                        <!-- Info -->
-                        <div style="font-size:16px; color:#555;">
-                            <div>ชื่อ : <?= htmlspecialchars($order['customer_name']) ?></div>
-                            <div>วิธีรับสินค้า :
-                                <?= $order['receive_type'] == 'pickup' ? 'รับเองที่สวน' : 'ส่งให้' ?>
-                                |
-                                <?= !empty($order['receive_datetime'])
-                                    ? date('d/m/Y H:i', strtotime($order['receive_datetime']))
-                                    : '-' ?>
-                            </div>
-                        </div>
+    <!-- Top: รหัส + badge ใหม่ + status -->
+    <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <span class="order-code">#<?= htmlspecialchars($order['order_code']) ?></span>
+            <?php if ($diffHours <= 24 && $order['order_status'] == 'pending'): ?>
+                <span class="badge-new">ใหม่</span>
+            <?php endif; ?>
+        </div>
 
-                        <!-- Actions -->
-                        <div class="order-card-footer mt-3">
-                            <a href="order_detail.php?id=<?= $order['order_id'] ?>"
-                                class="btn-action btn-view">
-                                👁 ดูรายละเอียด
-                            </a>
+        <?php if ($order['order_status'] == 'pending'): ?>
+            <span class="status-badge badge-pending">รอยืนยัน</span>
+        <?php elseif ($order['order_status'] == 'approved'): ?>
+            <span class="status-badge badge-approved">ยืนยันแล้ว</span>
+        <?php elseif ($order['order_status'] == 'rejected'): ?>
+            <span class="status-badge badge-rejected">ปฏิเสธแล้ว</span>
+        <?php elseif ($order['order_status'] == 'completed'): ?>
+            <span class="status-badge badge-completed">เสร็จสิ้นแล้ว</span>
+        <?php endif; ?>
+    </div>
 
-                           
-                        </div>
+    <!-- ยอดเงิน -->
+    <div class="order-amount">
+        ฿<?= number_format($order['total_amount'], 2) ?>
+        <span>บาท</span>
+    </div>
 
-                    </div>
+    <hr class="order-divider">
+
+    <!-- ข้อมูล -->
+    <div class="order-info">
+        <div class="info-row">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M8 1v2M8 13v2M1 8h2M13 8h2" stroke="currentColor" stroke-width="1.2"/>
+            </svg>
+            <strong><?= htmlspecialchars($order['customer_name']) ?></strong>
+        </div>
+
+        <div class="info-row">
+            <span class="dot <?= $order['receive_type'] == 'pickup' ? 'dot-pickup' : 'dot-deliver' ?>"></span>
+            <?= $order['receive_type'] == 'pickup' ? 'รับเองที่สวน' : 'ส่งให้' ?> ·
+            <strong>
+                <?= !empty($order['receive_datetime'])
+                    ? date('d/m/Y H:i', strtotime($order['receive_datetime']))
+                    : '-' ?>
+            </strong>
+        </div>
+
+        <div class="info-row order-date-small">
+            สั่งเมื่อ <?= date('d/m/Y H:i', strtotime($order['order_date'])) ?>
+        </div>
+    </div>
+
+    <!-- ปุ่ม -->
+    <a href="order_detail.php?id=<?= $order['order_id'] ?>" class="btn-detail">
+        ดูรายละเอียด
+    </a>
+
+</div>
+                    
                 <?php endwhile; ?>
 
             <?php else: ?>
@@ -684,16 +818,6 @@ $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ยืนยันการเปลี่ยนแปลงสถานะ
-        document.querySelectorAll('a[href*="update_order.php"]').forEach(link => {
-            link.addEventListener('click', function(e) {
-                const action = this.textContent.includes('ยืนยัน') ? 'อนุมัติ' : 'ปฏิเสธ';
-                if (!confirm(`คุณแน่ใจที่จะ${action}ออเดอร์นี้?`)) {
-                    e.preventDefault();
-                }
-            });
-        });
-
         // ค้นหาออเดอร์
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
@@ -701,7 +825,8 @@ $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
         searchInput.placeholder = 'ค้นหาออเดอร์... (รหัส, ชื่อ, เบอร์โทร)';
         searchInput.id = 'searchOrders';
 
-        const cardHeader = document.querySelector('.dashboard-card .card-header');
+        const allCards = document.querySelectorAll('.dashboard-card .card-header');
+        const cardHeader = allCards[allCards.length - 1]; // อันสุดท้าย
         if (cardHeader) {
             cardHeader.parentNode.insertBefore(searchInput, cardHeader.nextElementSibling);
         }
