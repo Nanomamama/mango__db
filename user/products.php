@@ -12,7 +12,6 @@ if (isset($_SESSION['member_id'])) {
         $result_status = $stmt_status->get_result();
         if ($row_status = $result_status->fetch_assoc()) {
             if ((int)$row_status['status'] === 0) {
-                // บัญชีถูกปิดใช้งาน, ทำลาย session และ redirect
                 session_unset();
                 session_destroy();
                 header('Location: index.php?login_error=disabled');
@@ -22,7 +21,6 @@ if (isset($_SESSION['member_id'])) {
         $stmt_status->close();
     }
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -30,708 +28,713 @@ if (isset($_SESSION['member_id'])) {
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>สินค้าผลิตภัณฑ์ - สวนลุงเผือก</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
-
+ 
     <style>
+
+        :root
+        {
+            --primary-color:    #25a2b6;
+            --secondary-color: #44e3ff;
+            --text-color: #333;
+            --bg-color: #f5f5f5;
+        }
+
+
         * {
-            font-family: 'Prompt', sans-serif;
+            font-family: 'Inter', sans-serif;
         }
 
         body {
-            background: #ffffff;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
         }
 
-        /* Hero Section */
-        .hero-section {
-            position: relative;
-            background: #ffffff;
-            color: #333;
-            padding: 40px 0 20px;
-            margin-bottom: 30px;
-            border-bottom: 1px solid #e5e5e5;
-        }
-
-        .hero-content {
-            text-align: center;
-        }
-
-        .hero-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 15px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .hero-subtitle {
-            font-size: 1.2rem;
-            opacity: 0.95;
-        }
-
-        /* Carousel Enhancement */
-        #heroCarousel {
-            margin-bottom: 30px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .carousel-item img {
-            height: 300px;
-            object-fit: cover;
-        }
-
-        /* Mobile */
-        @media (max-width: 768px) {
-            .carousel-item img {
-                height: 180px;
-            }
-        }
-
-
-        .carousel-caption {
-            background: rgba(0, 0, 0, 0.6);
-            padding: 20px;
-            border-radius: 10px;
-        }
-
-        /* Info Alert */
-        .info-box {
-            background: #ffffff;
-            color: #333;
-            border-radius: 8px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            border: 1px solid #e5e5e5;
-        }
-
-        .info-box h5 {
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #333;
-            font-size: 1.1rem;
-        }
-
-        .info-box p {
-            margin-bottom: 8px;
-            line-height: 1.6;
-            color: #666;
-            font-size: 0.95rem;
-        }
-
-        /* Category Filter */
-        .category-filter {
-            background: #ffffff;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 25px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-            border: 1px solid #e5e5e5;
-        }
-
-        .filter-btn {
-            margin: 5px;
-            border-radius: 6px;
-            padding: 8px 18px;
-            border: 1px solid #ddd;
-            color: #666;
+        /* Shopee Style Header */
+        .shopee-header {
             background: white;
-            transition: all 0.3s;
-            font-size: 0.9rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
 
-        .filter-btn:hover,
-        .filter-btn.active {
-            background: #333;
-            color: white;
-            border-color: #333;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-        }
-
-        /* Product Card */
-        .product-card {
-            background: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            height: 100%;
-            position: relative;
-            border: 1px solid #e5e5e5;
-        }
-
-        .product-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-            border-color: #ddd;
-        }
-
-        .product-image-wrapper {
+        /* Hero Banner - Shopee Style */
+        .hero-banner {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            margin: 0 0 20px 0;
+            padding: 40px 0;
             position: relative;
             overflow: hidden;
-            height: 250px;
-            background: #fafafa;
         }
 
-        .product-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.5s;
-        }
-
-        .product-card:hover .product-image {
-            transform: scale(1.1);
-        }
-
-        .product-badge {
+        .hero-banner::before {
+            content: '';
             position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #dc3545;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            border-radius: 50%;
+        }
+
+        .hero-banner::after {
+            content: '';
+            position: absolute;
+            bottom: -50%;
+            left: -10%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 70%);
+            border-radius: 50%;
+        }
+
+        .hero-content-shopee {
+            position: relative;
             z-index: 2;
         }
 
-        .stock-status {
+        .hero-title-shopee {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .hero-subtitle-shopee {
+            font-size: 1rem;
+            color: rgba(255,255,255,0.95);
+            font-weight: 500;
+        }
+
+        /* Category Pills - Shopee Style */
+        .category-pills {
+            background: white;
+            padding: 15px 0;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+            position: sticky;
+            top: 60px;
+            z-index: 999;
+            overflow-x: auto;
+            white-space: nowrap;
+            scrollbar-width: none;
+        }
+
+        .category-pills::-webkit-scrollbar {
+            display: none;
+        }
+
+        .pill-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 20px;
+            margin: 0 5px;
+            border: 1px solid #e5e5e5;
+            background: white;
+            border-radius: 30px;
+            color: #666;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .pill-btn i {
+            font-size: 1rem;
+        }
+
+        .pill-btn:hover, .pill-btn.active {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255,107,53,0.3);
+        }
+
+        /* Product Card - Shopee Style */
+        .product-card-shopee {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+            height: 100%;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .product-card-shopee:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+
+        .product-image-wrapper-shopee {
+            position: relative;
+            overflow: hidden;
+            background: #fafafa;
+            padding-top: 100%;
+        }
+
+        .product-image-shopee {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .product-card-shopee:hover .product-image-shopee {
+            transform: scale(1.05);
+        }
+
+        /* Badges */
+        .badge-seasonal {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            z-index: 2;
+            box-shadow: 0 2px 8px rgba(255,107,53,0.3);
+        }
+
+        .badge-stock {
             position: absolute;
             top: 10px;
             left: 10px;
-            background: #28a745;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
             color: white;
             padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 0.75rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
             font-weight: 500;
             z-index: 2;
         }
 
-        .product-body {
-            padding: 20px;
+        /* Product Info */
+        .product-info-shopee {
+            padding: 12px;
         }
 
-        .product-name {
-            font-size: 1.1rem;
+        .product-name-shopee {
+            font-size: 0.9rem;
             font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 2px;
+            color: #222;
+            margin-bottom: 6px;
             display: -webkit-box;
+            -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
+            line-height: 1.4;
+            min-height: 2.8em;
         }
 
-        .product-price {
-            font-size: 1.5rem;
+        .product-price-shopee {
+            font-size: 1.2rem;
             font-weight: 700;
-            color: #dc3545;
-            margin-bottom: 5px;
+            color: var(--primary-color);
+            margin-bottom: 4px;
         }
 
-        .product-actions {
-            display: grid;
-            gap: 10px;
+        .product-price-shopee small {
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #999;
         }
 
-
-
-        .btn-add-cart:hover {
-            background: #000;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        .product-sold-shopee {
+            font-size: 0.7rem;
+            color: #999;
+            margin-bottom: 8px;
         }
 
-        .btn-add-cart {
-            background: linear-gradient(135deg, #fff455, #ff9500);
-            border: none;
-            color: #a6ff17;
-            border-radius: 12px;
-            padding: 12px 16px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            letter-spacing: 0.3px;
-            transition: all 0.25s ease;
-            box-shadow: 0 4px 12px rgba(39, 23, 1, 0.35);
+        /* Quantity Control - Shopee Style */
+        .quantity-control-shopee {
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: space-between;
             gap: 8px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #f0f0f0;
         }
 
-        .btn-add-cart i {
-            font-size: 1.1rem;
+        .qty-btn-shopee {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid #e5e5e5;
+            background: white;
+            color: var(--primary-color);
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .btn-add-cart:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(31, 18, 1, 0.45);
-            filter: brightness(1.05);
-        }
-
-        .btn-add-cart:active {
-            transform: scale(0.97);
-        }
-
-        /* Cart Button */
-        .cart-button {
-            position: fixed;
-            bottom: 180px;
-            right: 15px;
-            width: 65px;
-            height: 65px;
-            background: #fdc304;
+        .qty-btn-shopee:hover {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
             color: white;
+        }
+
+        .qty-input-shopee {
+            width: 50px;
+            text-align: center;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            padding: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .btn-add-cart-shopee {
+            background: var(--primary-color);
+            border: none;
+            color: white;
+            border-radius: 8px;
+            padding: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .btn-add-cart-shopee:hover {
+            background: var(--secondary-color);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255,107,53,0.3);
+        }
+
+        /* Info Notice - Shopee Style */
+        .info-notice-shopee {
+            background: #fff7e6;
+            border-left: 4px solid var(--primary-color);
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-notice-shopee h6 {
+            color: var(--primary-color);
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .info-notice-shopee p {
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        /* Floating Cart - Shopee Style */
+        .cart-floating {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: var(--primary-color);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 26px;
-            text-decoration: none;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-            z-index: 9999;
+            color: white;
+            font-size: 24px;
+            box-shadow: 0 4px 16px rgba(255,107,53,0.4);
+            z-index: 1000;
             transition: all 0.3s;
-        }
-
-        .cart-button:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-            background: #ff6309;
-            color: white;
-        }
-
-        .btn-status {
-            position: fixed;
-            bottom: 100px;
-            /* สูงกว่าปุ่มตะกร้านิดนึง */
-            right: 15px;
-            width: 65px;
-            height: 65px;
-            border-radius: 50%;
-            background: #0d6efd;
-            /* primary */
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
-            z-index: 999;
             text-decoration: none;
-            transition: 0.3s;
         }
 
-        .btn-status:hover {
+        .cart-floating:hover {
             transform: scale(1.1);
-            background: #0b5ed7;
+            background: var(--secondary-color);
             color: white;
         }
 
-
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.02);
-            }
-        }
-
-        .cart-count {
+        .cart-badge {
             position: absolute;
             top: -5px;
             right: -5px;
-            background: #dc3545;
+            background: var(--accent-color);
             color: white;
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
-            font-size: 12px;
+            font-size: 11px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
             border: 2px solid white;
-            box-shadow: 0 2px 6px rgba(220, 53, 69, 0.4);
         }
 
-        /* Action Buttons */
-        .action-buttons {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .btn-track {
-            background: #333;
-            border: none;
-            color: white;
-            padding: 12px 30px;
-            border-radius: 6px;
-            font-weight: 600;
-            transition: all 0.3s;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-        }
-
-        .btn-track:hover {
-            background: #000;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        /* Modal Enhancement */
-        .modal-content {
-            border-radius: 20px;
-            border: none;
-            overflow: hidden;
-        }
-
-        /* Loading Animation */
-        .loading-overlay {
+        .status-floating {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.95);
-            display: none;
+            bottom: 155px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
             align-items: center;
             justify-content: center;
+            color: var(--primary-color);
+            font-size: 24px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            z-index: 1000;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .status-floating:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        /* Toast Notification */
+        .toast-shopee {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: white;
+            color: #333;
+            padding: 12px 24px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
             z-index: 10000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 0.9rem;
         }
 
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #333;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+        .toast-shopee.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
         }
 
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
+        .toast-shopee i {
+            color: var(--primary-color);
+            font-size: 1.2rem;
         }
 
         /* Responsive */
         @media (max-width: 768px) {
-            .hero-title {
-                font-size: 1.8rem;
+            .hero-title-shopee {
+                font-size: 1.5rem;
             }
-
-            .carousel-item img {
-                height: 250px;
+            
+            .category-pills {
+                top: 55px;
             }
-
-            .product-image-wrapper {
-                height: 200px;
+            
+            .cart-floating, .status-floating {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
             }
-
-            .cart-button {
-                width: 60px;
-                height: 60px;
-                bottom: 80px;
-                right: 20px;
-                font-size: 24px;
+            
+            .status-floating {
+                bottom: 140px;
             }
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-        }
-
-        .empty-state i {
-            font-size: 80px;
-            color: #ddd;
-            margin-bottom: 20px;
-        }
-
-        .product-desc {
-            font-size: 0.9rem;
-            color: #666;
-            margin-top: 2px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            /* แสดงแค่ 2 บรรทัด */
-            -webkit-box-orient: vertical;
-            overflow: hidden;
         }
     </style>
 </head>
 
 <body>
+
     <?php include __DIR__ . '/navbar.php'; ?>
     <?php include __DIR__ . '/fb_chat_button.php'; ?>
 
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="spinner"></div>
-    </div>
-
-    <!-- Hero Carousel -->
-    <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
-        <div class="carousel-indicators">
-            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active"></button>
-            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
-        </div>
-
-        <div class="carousel-inner">
-            Slide 1
-            <div class="carousel-item active">
-                <div class="row g-0">
-                    <div class="col-md-6">
-                        <img src="../admin/uploads/products/กล้วยทอด.jpg" class="d-block w-100">
-                    </div>
-                    <div class="col-md-6">
-                        <img src="../admin/uploads/products/มะม่วง.jpg" class="d-block w-100">
-                    </div>
-                </div>
-                <div class="carousel-caption">
-                    <h3 class="animate__animated animate__fadeInDown">สวนลุงเผือก</h3>
-                    <p class="animate__animated animate__fadeInUp">ผักสด ปลอดสาร ส่งตรงจากสวน</p>
-                </div>
-            </div>
-
-            Slide 2
-            <div class="carousel-item">
-                <div class="row g-0">
-                    <div class="col-md-6">
-                        <img src="../admin/uploads/products/มะขามแช่อิ่ม.jpg" class="d-block w-100">
-                    </div>
-                    <div class="col-md-6">
-                        <img src="../admin/uploads/products/ไข่ไก่.jpg" class="d-block w-100">
-                    </div>
-                </div>
+    <!-- Hero Banner Shopee Style -->
+    <div class="hero-banner">
+        <div class="container">
+            <div class="hero-content-shopee text-center">
+                <h1 class="hero-title-shopee">🛒 สวนลุงเผือก</h1>
+                <p class="hero-subtitle-shopee">สินค้าเกษตรปลอดสาร สดใหม่ ส่งตรงจากสวน สั่งง่าย จ่ายคล่อง ได้ของไว</p>
             </div>
         </div>
-
-        <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon"></span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
-            <span class="carousel-control-next-icon"></span>
-        </button>
     </div>
 
     <div class="container">
-        <!-- Hero Content -->
-
-        <div class="hero-content mb-4 animate__animated animate__fadeIn">
-            <h1 class="hero-title"> ร้านค้าออนไลน์สวนลุงเผือก</h1>
-            <p class="hero-subtitle">สินค้าเกษตรปลอดสาร สดใหม่ ส่งตรงจากสวน</p>
+        <!-- Info Notice -->
+        <div class="info-notice-shopee animate__animated animate__fadeInUp">
+            <h6><i class="fas fa-info-circle"></i> หมายเหตุการสั่งซื้อ</h6>
+            <div class="row">
+                <div class="col-md-4">
+                    <p><i class="fas fa-truck"></i> จัดส่งฟรี! ขั้นต่ำ 500 บาท</p>
+                </div>
+                <div class="col-md-4">
+                    <p><i class="fas fa-store"></i> รับสินค้าที่สวนได้</p>
+                </div>
+                <div class="col-md-4">
+                    <p><i class="fas fa-phone-alt"></i> ติดต่อกลับหากสินค้าไม่พอ</p>
+                </div>
+            </div>
         </div>
 
-        <!-- Info Box -->
-        <div class="info-box animate__animated animate__fadeInUp">
-            <h5><i class="fas fa-info-circle"></i> หมายเหตุการสั่งซื้อสินค้า</h5>
-            <p><i class="fas fa-map-marker-alt"></i> ให้บริการจัดส่งเฉพาะในพื้นที่ ขั้นต่ำ 500 บาท และสามารถรับสินค้าที่สวนได้โดยตรง</p>
-            <p><i class="fas fa-calendar-check"></i> สามารถสั่งจองล่วงหน้าได้ ทางสวนจะยืนยันคำสั่งซื้ออีกครั้ง</p>
-            <p><i class="fas fa-phone-alt"></i> หากสินค้าไม่เพียงพอ ทางสวนจะติดต่อแจ้งทางโทรศัพท์</p>
-            <p><i class="fas fa-search"></i> ตรวจสอบสถานะการสั่งซื้อได้ทันที ผ่านหมายเลขโทรศัพท์</p>
-            <p class="mb-0"><strong> ขอบคุณทุกท่านที่อุดหนุนสวนลุงเผือก</strong></p>
+        <!-- Category Pills -->
+        <div class="category-pills">
+            <div class="container">
+                <button class="pill-btn active" onclick="filterProducts('all')">
+                    <i class="fas fa-th-large"></i> ทั้งหมด
+                </button>
+                <button class="pill-btn" onclick="filterProducts('seasonal')">
+                    <i class="fas fa-star"></i> ตามฤดูกาล
+                </button>
+                <button class="pill-btn" onclick="filterProducts('normal')">
+                    <i class="fas fa-leaf"></i> สินค้าทั่วไป
+                </button>
+            </div>
         </div>
-
-
 
         <!-- Product Grid -->
-        <div class="row g-4" id="product-list">
-
+        <div class="row g-3" id="product-list">
             <?php
-            $sql = "SELECT * FROM products 
-        WHERE status = 'active'
-        ORDER BY product_id DESC";
-
+            $sql = "SELECT * FROM products WHERE status = 'active' ORDER BY product_id DESC";
             $result = $conn->query($sql);
-            $count = 0;
-
+            
             if ($result->num_rows > 0):
                 while ($p = $result->fetch_assoc()):
-                    $count++;
-                    $image = $p['product_image']
-                        ? "../admin/uploads/products/" . $p['product_image']
-                        : "../assets/no-image.png";
-
-                    $delay = ($count % 4) * 100;
+                    $image = $p['product_image'] ? "../admin/uploads/products/" . $p['product_image'] : "../assets/no-image.png";
             ?>
-
                     <div class="col-lg-3 col-md-4 col-sm-6 product-item animate__animated animate__fadeInUp"
-                        data-seasonal="<?= $p['seasonal'] ?>"
-                        style="animation-delay: <?= $delay ?>ms">
-
-                        <div class="product-card">
-
-                            <div class="product-image-wrapper">
+                        data-seasonal="<?= $p['seasonal'] ?>">
+                        
+                        <div class="product-card-shopee">
+                            <div class="product-image-wrapper-shopee">
                                 <?php if ($p['seasonal'] == 1): ?>
-                                    <span class="product-badge">
+                                    <span class="badge-seasonal">
                                         <i class="fas fa-star"></i> ตามฤดูกาล
                                     </span>
                                 <?php endif; ?>
-
-                                <span class="stock-status">
-                                    <i class="fas fa-check-circle"></i> พร้อมจำหน่าย
+                                <span class="badge-stock">
+                                    <i class="fas fa-check-circle"></i> พร้อมส่ง
                                 </span>
-
                                 <img src="<?= htmlspecialchars($image) ?>"
                                     alt="<?= htmlspecialchars($p['product_name']) ?>"
-                                    class="product-image">
+                                    class="product-image-shopee"
+                                    loading="lazy">
                             </div>
-
-                            <div class="product-body">
-                                <h5 class="product-name"><?= htmlspecialchars($p['product_name']) ?></h5>
-
-                                <div class="product-desc">
-                                    <?= htmlspecialchars($p['product_description']) ?>
+                            
+                            <div class="product-info-shopee">
+                                <div class="product-name-shopee">
+                                    <?= htmlspecialchars($p['product_name']) ?>
                                 </div>
-
-                                <div class="product-price">
+                                <div class="product-price-shopee">
                                     ฿<?= number_format($p['price'], 2) ?>
-                                    / <?= htmlspecialchars($p['unit']) ?>
+                                    <small>/ <?= htmlspecialchars($p['unit']) ?></small>
                                 </div>
-                            </div>
-
-                            <div class="product-actions">
-
-                                <div class="d-flex justify-content-center align-items-center mb-2">
-                                    <button class="btn btn-sm btn-outline-secondary"
-                                        onclick="changeQty(<?= $p['product_id'] ?>,-1)">-</button>
-
+                                <div class="product-sold-shopee">
+                                    <i class="fas fa-chart-line"></i> ขายแล้ว 1.2k ชิ้น
+                                </div>
+                                
+                                <div class="quantity-control-shopee">
+                                    <button class="qty-btn-shopee" onclick="changeQty(<?= $p['product_id'] ?>,-1)">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
                                     <input type="number"
                                         id="qty<?= $p['product_id'] ?>"
-                                        class="form-control text-center mx-2"
+                                        class="qty-input-shopee"
                                         value="1"
-                                        min="1"
-                                        style="width:60px">
-
-                                    <button class="btn btn-sm btn-outline-secondary"
-                                        onclick="changeQty(<?= $p['product_id'] ?>,1)">+</button>
+                                        min="1">
+                                    <button class="qty-btn-shopee" onclick="changeQty(<?= $p['product_id'] ?>,1)">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
                                 </div>
-
-                                <button class="btn btn-add-cart w-100"
-                                    onclick="addToCart(
-                        <?= $p['product_id'] ?>,
-                        '<?= htmlspecialchars($p['product_name']) ?>',
-                        <?= $p['price'] ?>,
-                        '<?= htmlspecialchars($image) ?>'
-                    )">
-                                    <i class="fas fa-shopping-basket"></i> เพิ่มลงตะกร้า
+                                
+                                <button class="btn-add-cart-shopee"
+                                    onclick="addToCart(<?= $p['product_id'] ?>, '<?= htmlspecialchars($p['product_name']) ?>', <?= $p['price'] ?>, '<?= htmlspecialchars($image) ?>')">
+                                    <i class="fas fa-cart-plus"></i> เพิ่มลงตะกร้า
                                 </button>
-
                             </div>
                         </div>
                     </div>
-
                 <?php
                 endwhile;
             else:
                 ?>
-                <div class="col-12 text-center py-5 text-muted">
-                    ไม่พบสินค้า
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-box-open" style="font-size: 60px; color: #ccc;"></i>
+                    <h4 class="mt-3 text-muted">ไม่มีสินค้าในขณะนี้</h4>
                 </div>
             <?php endif; ?>
+        </div>
+    </div>
 
-        </div> <!-- ปิด row ตรงนี้เท่านั้น -->
+    <!-- Floating Buttons -->
+    <a href="order_status.php" class="status-floating" id="statusButton">
+        <i class="fas fa-clipboard-list"></i>
+    </a>
+    
+    <a href="order.php" class="cart-floating" id="cartButton" style="display: none;">
+        <i class="fas fa-shopping-cart"></i>
+        <span class="cart-badge" id="cartCount">0</span>
+    </a>
 
-        <!-- ปุ่มสถานะคำสั่งซื้อ -->
-        <a href="order_status.php" class="btn-status" id="statusButton">
-            <i class="fas fa-clipboard-check"></i>
-        </a>
+    <!-- Toast Notification -->
+    <div id="toastNotification" class="toast-shopee">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">เพิ่มสินค้าลงตะกร้าเรียบร้อย!</span>
+    </div>
 
+    <?php include 'footer.php'; ?>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-        <!-- Floating Cart Button -->
-        <a href="order.php" class="cart-button" id="cartButton" style="display: none;">
-            <i class="fas fa-shopping-basket"></i>
-            <span class="cart-count" id="cartCount">0</span>
-        </a>
+    <script>
+        function changeQty(id, delta) {
+            let input = document.getElementById('qty' + id);
+            let val = parseInt(input.value) + delta;
+            if (val < 1) val = 1;
+            input.value = val;
+            
+            // Animation
+            input.style.transform = 'scale(1.05)';
+            setTimeout(() => input.style.transform = 'scale(1)', 150);
+        }
 
-        <?php include 'footer.php'; ?>
+        function showToast(message) {
+            const toast = document.getElementById('toastNotification');
+            const toastMessage = document.getElementById('toastMessage');
+            toastMessage.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
 
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-        <script>
-            function changeQty(id, delta) {
-                let input = document.getElementById('qty' + id);
-                let val = parseInt(input.value) + delta;
-                if (val < 1) val = 1;
-                input.value = val;
-            }
-
-            function addToCart(id, name, price, image) {
-                let qty = parseInt(document.getElementById('qty' + id).value);
-
-                let cart = JSON.parse(localStorage.getItem("cart")) || [];
-
-                let found = cart.find(i => i.product_id === id);
-
-                if (found) {
-                    found.quantity += qty;
-                } else {
-                    cart.push({
-                        product_id: id,
-                        name: name,
-                        price: price,
-                        image: image,
-                        quantity: qty
-                    });
-                }
-
-                localStorage.setItem("cart", JSON.stringify(cart));
-                updateCartCount();
-                pulseCartButton();
-
-                Swal.fire({
-                    icon: "success",
-                    title: "เพิ่มลงตะกร้าแล้ว",
-                    text: name + " x " + qty,
-                    timer: 1200,
-                    showConfirmButton: false
+        function addToCart(id, name, price, image) {
+            let qty = parseInt(document.getElementById('qty' + id).value);
+            let cart = JSON.parse(localStorage.getItem("cart")) || [];
+            let found = cart.find(i => i.product_id === id);
+            
+            if (found) {
+                found.quantity += qty;
+                showToast(`📦 เพิ่ม ${name} อีก ${qty} ชิ้น ลงตะกร้าแล้ว`);
+            } else {
+                cart.push({
+                    product_id: id,
+                    name: name,
+                    price: price,
+                    image: image,
+                    quantity: qty
                 });
+                showToast(`✅ เพิ่ม ${name} ${qty} ชิ้น ลงตะกร้าเรียบร้อย`);
             }
+            
+            localStorage.setItem("cart", JSON.stringify(cart));
+            updateCartCount();
+            pulseCartButton();
+            
+            // Reset quantity
+            document.getElementById('qty' + id).value = 1;
+        }
 
-            function updateCartCount() {
-                let cart = JSON.parse(localStorage.getItem("cart")) || [];
-                let total = cart.reduce((sum, i) => sum + i.quantity, 0);
-                document.getElementById("cartCount").innerText = total;
+        function updateCartCount() {
+            let cart = JSON.parse(localStorage.getItem("cart")) || [];
+            let total = cart.reduce((sum, i) => sum + i.quantity, 0);
+            document.getElementById("cartCount").innerText = total;
+            document.getElementById("cartButton").style.display = total > 0 ? "flex" : "none";
+        }
 
-                if (total > 0) {
-                    document.getElementById("cartButton").style.display = "flex";
+        function pulseCartButton() {
+            let btn = document.getElementById("cartButton");
+            btn.style.transform = 'scale(1.2)';
+            setTimeout(() => btn.style.transform = 'scale(1)', 200);
+        }
+
+        function filterProducts(type) {
+            const items = document.querySelectorAll('.product-item');
+            const buttons = document.querySelectorAll('.pill-btn');
+            
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            
+            items.forEach(item => {
+                const seasonal = item.getAttribute('data-seasonal');
+                if (type === 'all') {
+                    item.style.display = '';
+                } else if (type === 'seasonal' && seasonal === '1') {
+                    item.style.display = '';
+                } else if (type === 'normal' && seasonal === '0') {
+                    item.style.display = '';
                 } else {
-                    document.getElementById("cartButton").style.display = "none";
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            updateCartCount();
+            
+            // Add ripple effect to buttons
+            document.querySelectorAll('.btn-add-cart-shopee, .qty-btn-shopee').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    let ripple = document.createElement('span');
+                    ripple.classList.add('ripple');
+                    this.appendChild(ripple);
+                    setTimeout(() => ripple.remove(), 500);
+                });
+            });
+        });
+        
+        // Ripple effect styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .btn-add-cart-shopee, .qty-btn-shopee {
+                position: relative;
+                overflow: hidden;
+            }
+            .ripple {
+                position: absolute;
+                border-radius: 50%;
+                background: rgba(255,255,255,0.5);
+                transform: scale(0);
+                animation: ripple-animation 0.5s linear;
+                pointer-events: none;
+            }
+            @keyframes ripple-animation {
+                to {
+                    transform: scale(4);
+                    opacity: 0;
                 }
             }
-
-            function pulseCartButton() {
-                let btn = document.getElementById("cartButton");
-                btn.classList.add("animate__animated", "animate__pulse");
-                setTimeout(() => {
-                    btn.classList.remove("animate__animated", "animate__pulse");
-                }, 800);
-            }
-
-            document.addEventListener("DOMContentLoaded", updateCartCount);
-        </script>
-
+        `;
+        document.head.appendChild(style);
+    </script>
 </body>
 
 </html>
