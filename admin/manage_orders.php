@@ -39,7 +39,8 @@ SELECT
     SUM(order_status = 'completed') as total_completed, -- ใช้แสดงออเดอร์ทั้งหมด (ที่คุณต้องการ)
     SUM(order_status = 'pending') as pending_count,
     SUM(order_status = 'approved') as approved_count,
-    SUM(order_status = 'rejected') as rejected_count
+    SUM(order_status = 'rejected') as rejected_count,
+    SUM(order_status = 'completed') as completed_count
   
 FROM orders
 ";
@@ -69,7 +70,6 @@ SELECT
     COUNT(order_id) as total_count,
     SUM(order_status = 'pending') as pending_count,
     SUM(order_status = 'approved') as approved_count,
-    SUM(order_status = 'rejected') as rejected_count,
     SUM(order_status = 'completed') as completed_count,
     COALESCE(SUM(
         CASE 
@@ -87,6 +87,7 @@ $stmt_today_stats->execute();
 $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
 
 
+// keep $todayStats from query above (do not overwrite)
 ?>
 
 
@@ -605,45 +606,7 @@ $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
         <h2>สถิติออเดอร์วันนี้</h2>
     </div>
     <div class="row mb-4">
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <div class="stat-card">
-                <div class="stat-icon icon-all-today">
-                    <i class="fas fa-shopping-cart"></i>
-                </div>
-                <div class="stat-number"><?= number_format($todayStats['total_count'] ?? 0) ?></div>
-                <div class="stat-title">ออเดอร์ทั้งหมดวันนี้</div>
-            </div>
-        </div>
 
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <div class="stat-card">
-                <div class="stat-icon icon-pending">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div class="stat-number"><?= number_format($todayStats['pending_count'] ?? 0) ?></div>
-                <div class="stat-title">รอยืนยัน</div>
-            </div>
-        </div>
-
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <div class="stat-card">
-                <div class="stat-icon icon-approved">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="stat-number"><?= number_format($todayStats['approved_count'] ?? 0) ?></div>
-                <div class="stat-title">ยืนยันแล้ว</div>
-            </div>
-        </div>
-
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <div class="stat-card">
-                <div class="stat-icon icon-rejected">
-                    <i class="fas fa-times-circle"></i>
-                </div>
-                <div class="stat-number"><?= number_format($todayStats['rejected_count'] ?? 0) ?></div>
-                <div class="stat-title">ปฏิเสธแล้ว</div>
-            </div>
-        </div>
 
         <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
             <div class="stat-card">
@@ -699,9 +662,14 @@ $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
             </a>
 
             <a href="?status=completed"
-                class="btn-filter btn-filter-completed <?= $status == 'completed' ? 'active' : '' ?>">
-                <i class="fas fa-box-check"></i> เสร็จสิ้นทั้งหมด (<?= number_format($stats['completed_count'] ?? 0) ?>)
-            </a>
+   class="btn-filter btn-filter-completed <?= $status == 'completed' ? 'active' : '' ?>">
+
+    <i class="fas fa-box-check"></i>
+
+    เสร็จสิ้นทั้งหมด
+    (<?= number_format($stats['completed_count'] ?? 0) ?>)
+
+</a>
         </div>
     </div>
 

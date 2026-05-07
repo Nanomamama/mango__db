@@ -6,9 +6,12 @@ require_once __DIR__ . '/../db/db.php';
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 // ดึงข้อมูลจากฐานข้อมูล
-$sql = "SELECT *, mango_id AS id FROM mango_varieties WHERE mango_id = $id";
-$result = $conn->query($sql);
+$stmt = $conn->prepare("SELECT *, mango_id AS id FROM mango_varieties WHERE mango_id = ? LIMIT 1");
+$stmt->bind_param("i", $id);
+$stmt->execute();
+$result = $stmt->get_result();
 $mango = $result->fetch_assoc();
+$stmt->close();
 
 if (!$mango) {
     echo "ไม่พบข้อมูล";

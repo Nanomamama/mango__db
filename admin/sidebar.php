@@ -1,3 +1,30 @@
+
+<?php
+require_once 'auth.php';
+require_once __DIR__ . '/../db/db.php';
+
+// =========================
+// นับออเดอร์รอยืนยัน
+// =========================
+
+$sql_pending = "
+SELECT COUNT(*) AS total_pending
+FROM orders
+WHERE order_status = 'pending'
+";
+
+$stmt_pending = $conn->prepare($sql_pending);
+
+$stmt_pending->execute();
+
+$result_pending = $stmt_pending->get_result();
+
+$pending = $result_pending->fetch_assoc();
+
+$total_pending = $pending['total_pending'];
+
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -170,6 +197,68 @@
                 transform: scale(1);
             }
         }
+/* =========================
+   จุดแดงแจ้งเตือนออเดอร์
+========================= */
+
+.notification-dot{
+
+    position: absolute;
+
+    top: 8px;
+    right: 10px;
+
+    min-width: 18px;
+    height: 18px;
+
+    padding: 0 5px;
+
+    border-radius: 50px;
+
+    background: #ff0000;
+    color: #fff;
+
+    font-size: 11px;
+    font-weight: bold;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    line-height: 1;
+
+    animation: pulseRed 1s infinite;
+
+    box-shadow: 0 0 10px rgba(255,0,0,0.5);
+}
+
+/* สำคัญมาก */
+.modern-sidebar .nav-link{
+    position: relative;
+}
+
+/* กระพริบ */
+
+@keyframes pulseRed{
+
+    0%{
+        transform: scale(1);
+        opacity:1;
+    }
+
+    50%{
+        transform: scale(1.15);
+        opacity:0.7;
+    }
+
+    100%{
+        transform: scale(1);
+        opacity:1;
+    }
+
+}
+        
+
     </style>
 </head>
 
@@ -192,9 +281,21 @@
                 </div>
             </a>
 
-            <a href="./manage_orders.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'manage_orders.php') echo ' active'; ?>">
-                <i class='bx bxs-package'></i> จัดการคำสั่งซื้อ
-            </a>
+ <a href="./manage_orders.php"
+   class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'manage_orders.php') echo ' active'; ?>">
+
+    <i class='bx bxs-package'></i>
+    จัดการคำสั่งซื้อ
+
+    <?php if($total_pending > 0): ?>
+
+        <span class="notification-dot">
+    <?= (int)$total_pending ?>
+</span>
+
+    <?php endif; ?>
+
+</a>
 
             <a href="./manage_product.php" class="nav-link<?php if (basename($_SERVER['PHP_SELF']) == 'manage_product.php') echo ' active'; ?>">
                 <i class='bx bxs-package'></i> สินค้า

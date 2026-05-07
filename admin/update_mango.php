@@ -37,7 +37,7 @@ function uploadFile($fileInputName, $currentFilePath) {
 }
 
 // รับค่าจากฟอร์ม
-$id                   = $_POST['id'];
+$id                   = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 $mango_name           = $_POST['mango_name'];
 $scientific_name      = $_POST['scientific_name'];
 $local_name           = isset($_POST['local_name']) ? $_POST['local_name'] : '';
@@ -52,8 +52,10 @@ $mango_category       = isset($_POST['mango_category']) ? $_POST['mango_category
 $processing_methods   = isset($_POST['processing_methods']) ? implode(',', $_POST['processing_methods']) : ''; // แปลงเป็น string
 
 // ดึงข้อมูลเดิมของสายพันธุ์มะม่วง เพื่อเก็บค่าเดิมของรูปภาพ ถ้ายังไม่มีการอัปโหลดใหม่
-$sqlSelect = "SELECT fruit_image, tree_image, leaf_image, flower_image, branch_image FROM mango_varieties WHERE mango_id = $id";
-$result = $conn->query($sqlSelect);
+$selectStmt = $conn->prepare("SELECT fruit_image, tree_image, leaf_image, flower_image, branch_image FROM mango_varieties WHERE mango_id = ? LIMIT 1");
+$selectStmt->bind_param("i", $id);
+$selectStmt->execute();
+$result = $selectStmt->get_result();
 if ($result->num_rows > 0) {
     $row = $result->fetch_assoc();
     $currentFruitImage  = $row['fruit_image'];
