@@ -454,65 +454,133 @@ unset($_SESSION['order_error']);
             }
         }
 
-        /* Date Time Picker Simplified */
-        .datetime-picker {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            border: 2px solid #e5e5e5;
-        }
+       /* ===== Date Time Modern ===== */
 
-        .date-select-group,
-        .time-select-group {
-            margin-bottom: 15px;
-        }
+.dt-trigger {
+    border: 2px dashed #cfe8b4;
+    background: linear-gradient(135deg, #f8fff1, #ffffff);
+    border-radius: 18px;
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    color: #3b4b2a;
+    transition: 0.25s;
+    box-shadow: 0 4px 15px rgba(104, 216, 0, 0.08);
+}
 
-        .date-select-group label,
-        .time-select-group label {
-            display: block;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
-            font-size: 1rem;
-        }
+.dt-trigger:hover {
+    transform: translateY(-2px);
+    border-color: #68d800;
+    box-shadow: 0 8px 25px rgba(104, 216, 0, 0.15);
+}
 
-        .date-time-row {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-        }
+.dt-trigger i:first-child {
+    width: 42px;
+    height: 42px;
+    background: #68d800;
+    color: white;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
-        .date-time-select {
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #333;
-            background: white;
-            cursor: pointer;
-        }
+/* modal */
+#dateModal .modal-content {
+    border-radius: 28px;
+    overflow: hidden;
+}
 
-        .date-time-select:focus {
-            border-color: #333;
-            outline: none;
-        }
+/* quick buttons */
+.quick-date-btn {
+    border: none;
+    background: #f4f7f1;
+    border-radius: 16px;
+    padding: 14px;
+    font-weight: 600;
+    transition: 0.25s;
+    color: #444;
+}
 
-        .time-select-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
+.quick-date-btn:hover {
+    background: #68d800;
+    color: white;
+    transform: translateY(-2px);
+}
 
-        @media (max-width: 576px) {
-            .date-time-row {
-                grid-template-columns: 1fr;
-            }
+.quick-date-btn.active {
+    background: #68d800;
+    color: white;
+    box-shadow: 0 6px 20px rgba(104, 216, 0, 0.25);
+}
 
-            .time-select-row {
-                grid-template-columns: 1fr;
-            }
-        }
+/* input */
+.modern-input {
+    border-radius: 16px;
+    border: 2px solid #edf1e8;
+    padding: 14px 16px;
+    font-size: 1rem;
+    transition: 0.25s;
+    background: #fafcf8;
+}
+
+.modern-input:focus {
+    border-color: #68d800;
+    box-shadow: 0 0 0 4px rgba(104, 216, 0, 0.12);
+    background: white;
+}
+
+/* time buttons */
+.time-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.time-btn {
+    border: none;
+    background: #f7f7f7;
+    border-radius: 16px;
+    padding: 14px 10px;
+    font-weight: 700;
+    transition: 0.2s;
+    color: #444;
+}
+
+.time-btn:hover {
+    transform: translateY(-2px);
+    background: #eaf8d8;
+}
+
+.time-btn.active {
+    background: linear-gradient(135deg, #68d800, #56b800);
+    color: white;
+    box-shadow: 0 8px 20px rgba(104, 216, 0, 0.25);
+}
+
+/* confirm button */
+.btn-confirm-date {
+    background: linear-gradient(135deg, #68d800, #57ba00);
+    border: none;
+    border-radius: 18px;
+    padding: 15px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    transition: 0.25s;
+}
+
+.btn-confirm-date:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(104, 216, 0, 0.3);
+}
+
+@media(max-width:576px) {
+    .time-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
     </style>
 </head>
 
@@ -676,72 +744,132 @@ unset($_SESSION['order_error']);
 
     <!-- Date & Time Modal -->
 
-<div class="modal fade" id="dateModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content border-0 rounded-4 shadow-lg">
+<div class="modal fade" id="dateModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+
             <div class="modal-body p-4">
 
-                <!-- Header with close icon -->
+                <!-- header -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="fw-bold text-dark mb-0">
-                        <i class="bi bi-calendar-check me-2 text-success"></i>
-                        เลือกวันรับสินค้า
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div>
+                        <h4 class="fw-bold mb-1">
+                            <i class="fas fa-calendar-check text-success me-2"></i>
+                            เลือกวันรับสินค้า
+                        </h4>
+
+                        <small class="text-muted">
+                            กรุณาเลือกวันที่และเวลาที่สะดวก
+                        </small>
+                    </div>
+
+                    <button class="btn-close"
+                        data-bs-dismiss="modal"></button>
                 </div>
 
-                <!-- Quick date buttons -->
-                <div class="d-flex gap-2 mb-4">
-                    <button type="button" class="btn btn-outline-success flex-fill py-2 rounded-3 fw-semibold" onclick="setQuickDate(0)">
-                        <i class="bi bi-sun me-1"></i> วันนี้
-                    </button>
-                    <button type="button" class="btn btn-outline-success flex-fill py-2 rounded-3 fw-semibold" onclick="setQuickDate(1)">
-                        <i class="bi bi-moon-stars me-1"></i> พรุ่งนี้
-                    </button>
+                <!-- quick -->
+                <div class="row g-2 mb-4">
+
+                    <div class="col-6">
+                        <button type="button"
+                            class="quick-date-btn w-100"
+                            onclick="setQuickDate(0,this)">
+                             วันนี้
+                        </button>
+                    </div>
+
+                    <div class="col-6">
+                        <button type="button"
+                            class="quick-date-btn w-100"
+                            onclick="setQuickDate(1,this)">
+                             พรุ่งนี้
+                        </button>
+                    </div>
+
                 </div>
 
-                <!-- Custom date picker -->
+                <!-- date -->
                 <div class="mb-4">
-                    <label class="form-label fw-semibold text-secondary small mb-2">
-                        <i class="bi bi-calendar me-1"></i> หรือเลือกวันที่ต้องการ
+                    <label class="fw-semibold mb-2">
+                        วันที่รับสินค้า
                     </label>
-                    <input type="date" id="customDate" class="form-control border-2 rounded-3 py-2 px-3 shadow-sm">
+
+                    <input type="date"
+                        id="customDate"
+                        class="form-control modern-input">
                 </div>
 
-                <!-- Time section -->
+                <!-- time -->
                 <div class="mb-4">
-                    <label class="form-label fw-semibold text-secondary small mb-3">
-                        <i class="bi bi-clock me-1"></i> เลือกช่วงเวลา
+
+                    <label class="fw-semibold mb-3">
+                        เวลา
                     </label>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <button type="button" class="btn btn-light w-100 py-2 rounded-3 time-btn shadow-sm" onclick="setTime('08:30')">08:30</button>
-                        </div>
-                        <div class="col-6">
-                            <button type="button" class="btn btn-light w-100 py-2 rounded-3 time-btn shadow-sm" onclick="setTime('10:00')">10:00</button>
-                        </div>
-                        <div class="col-6">
-                            <button type="button" class="btn btn-light w-100 py-2 rounded-3 time-btn shadow-sm" onclick="setTime('13:00')">13:00</button>
-                        </div>
-                        <div class="col-6">
-                            <button type="button" class="btn btn-light w-100 py-2 rounded-3 time-btn shadow-sm" onclick="setTime('15:00')">15:00</button>
-                        </div>
-                        <div class="col-12">
-                            <button type="button" class="btn btn-light w-100 py-2 rounded-3 time-btn shadow-sm" onclick="setTime('17:00')">17:00</button>
-                        </div>
+
+                    <!-- input time -->
+                    <input type="time"
+                        id="customTime"
+                        class="form-control modern-input mb-3"
+                        min="08:00"
+                        max="18:00"
+                        step="1800">
+
+                    <!-- quick time -->
+                    <div class="time-grid">
+
+                        <button type="button"
+                            class="time-btn"
+                            onclick="setTime('08:30',this)">
+                            08:30
+                        </button>
+
+                        <button type="button"
+                            class="time-btn"
+                            onclick="setTime('10:00',this)">
+                            10:00
+                        </button>
+
+                        <button type="button"
+                            class="time-btn"
+                            onclick="setTime('13:00',this)">
+                            13:00
+                        </button>
+
+                        <button type="button"
+                            class="time-btn"
+                            onclick="setTime('15:00',this)">
+                            15:00
+                        </button>
+
+                        <button type="button"
+                            class="time-btn"
+                            onclick="setTime('17:00',this)">
+                            17:00
+                        </button>
+
+                        <button type="button"
+                            class="time-btn"
+                            onclick="setTime('18:00',this)">
+                            18:00
+                        </button>
+
                     </div>
                 </div>
 
-                <!-- Confirm button -->
-                <button class="btn btn-success w-100 py-2 rounded-3 fw-bold shadow-sm" onclick="confirmDate()">
-                    <i class="bi bi-check-lg me-2"></i> ยืนยันการเลือก
+                <!-- confirm -->
+                <button class="btn btn-success btn-confirm-date w-100"
+                    onclick="confirmDate()">
+
+                    <i class="fas fa-check-circle me-2"></i>
+                    ยืนยันวันรับสินค้า
+
                 </button>
 
             </div>
+
         </div>
     </div>
 </div>
-
     <!-- End of Modal -->
     <?php include 'footer.php'; ?>
 
@@ -986,51 +1114,82 @@ unset($_SESSION['order_error']);
             <?php endif; ?>
         });
 
-        let selectedDate = "";
-        let selectedTime = "";
+      let selectedDate = "";
+let selectedTime = "";
 
-        function openDateModal() {
-            const modal = new bootstrap.Modal(document.getElementById('dateModal'));
-            modal.show();
-        }
+function openDateModal() {
+    const modal = new bootstrap.Modal(
+        document.getElementById('dateModal')
+    );
 
-        function setQuickDate(offset) {
-            const d = new Date();
-            d.setDate(d.getDate() + offset);
-            selectedDate = d.toISOString().split('T')[0];
-        }
+    modal.show();
+}
 
-        function setTime(time) {
-            selectedTime = time;
-        }
+function setQuickDate(offset, el) {
 
-        function confirmDate() {
-            const custom = document.getElementById("customDate").value;
+    const d = new Date();
 
-            if (custom) selectedDate = custom;
+    d.setDate(d.getDate() + offset);
 
-            if (!selectedDate || !selectedTime) {
-                Swal.fire("กรุณาเลือกวันและเวลา");
-                return;
-            }
+    selectedDate = d.toISOString().split('T')[0];
 
-            const full = selectedDate + " " + selectedTime;
+    document.getElementById('customDate').value = selectedDate;
 
-            document.getElementById("receive_datetime").value = full;
-            document.getElementById("triggerText").innerText = full;
+    document.querySelectorAll('.quick-date-btn')
+        .forEach(btn => btn.classList.remove('active'));
 
-            bootstrap.Modal.getInstance(document.getElementById('dateModal')).hide();
-        }
+    el.classList.add('active');
+}
 
+function setTime(time, el) {
 
+    selectedTime = time;
 
+    document.getElementById('customTime').value = time;
 
-        // Listen to receive type changes
-        document.querySelectorAll('input[name="receive_type"]').forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                toggleAddressField(e.target.value);
-            });
+    document.querySelectorAll('.time-btn')
+        .forEach(btn => btn.classList.remove('active'));
+
+    el.classList.add('active');
+}
+
+function confirmDate() {
+
+    const customDate =
+        document.getElementById("customDate").value;
+
+    const customTime =
+        document.getElementById("customTime").value;
+
+    if (customDate)
+        selectedDate = customDate;
+
+    if (customTime)
+        selectedTime = customTime;
+
+    if (!selectedDate || !selectedTime) {
+
+        Swal.fire({
+            icon: 'warning',
+            title: 'กรุณาเลือกวันเวลา',
+            text: 'โปรดเลือกวันและเวลารับสินค้า'
         });
+
+        return;
+    }
+
+    const full =
+        selectedDate + " " + selectedTime;
+
+    document.getElementById("receive_datetime").value = full;
+
+    document.getElementById("triggerText").innerHTML =
+        `📅 ${selectedDate} เวลา ${selectedTime} น.`;
+
+    bootstrap.Modal.getInstance(
+        document.getElementById('dateModal')
+    ).hide();
+}
     </script>
 
 </body>

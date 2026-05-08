@@ -21,6 +21,8 @@ if (isset($_SESSION['member_id'])) {
         $stmt_status->close();
     }
 }
+
+
 ?>
 
 <!DOCTYPE html>
@@ -35,15 +37,16 @@ if (isset($_SESSION['member_id'])) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
- 
-    <style>
 
-        :root
-        {
-            --primary-color:    #25a2b6;
+    <style>
+        :root {
+            --primary-color: #25a2b6;
             --secondary-color: #44e3ff;
-            --text-color: #333;
+            --text-color: #686767;
             --bg-color: #f5f5f5;
+            --red: #ff4d4f;
+            --green: #7ad04f;
+            --yellow: #ffcc00;
         }
 
 
@@ -60,7 +63,7 @@ if (isset($_SESSION['member_id'])) {
         /* Shopee Style Header */
         .shopee-header {
             background: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
             position: sticky;
             top: 0;
             z-index: 1000;
@@ -82,7 +85,7 @@ if (isset($_SESSION['member_id'])) {
             right: -10%;
             width: 500px;
             height: 500px;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 70%);
             border-radius: 50%;
         }
 
@@ -93,26 +96,26 @@ if (isset($_SESSION['member_id'])) {
             left: -10%;
             width: 400px;
             height: 400px;
-            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 70%);
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 70%);
             border-radius: 50%;
         }
 
-        .hero-content-shopee {
+        .hero-content {
             position: relative;
             z-index: 2;
         }
 
-        .hero-title-shopee {
+        .hero-title {
             font-size: 2.2rem;
             font-weight: 800;
             color: white;
             margin-bottom: 10px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
-        .hero-subtitle-shopee {
+        .hero-subtitle {
             font-size: 1rem;
-            color: rgba(255,255,255,0.95);
+            color: rgba(255, 255, 255, 0.95);
             font-weight: 500;
         }
 
@@ -121,7 +124,7 @@ if (isset($_SESSION['member_id'])) {
             background: white;
             padding: 15px 0;
             margin-bottom: 20px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
             position: sticky;
             top: 60px;
             z-index: 999;
@@ -153,39 +156,42 @@ if (isset($_SESSION['member_id'])) {
             font-size: 1rem;
         }
 
-        .pill-btn:hover, .pill-btn.active {
+        .pill-btn:hover,
+        .pill-btn.active {
             background: var(--primary-color);
             border-color: var(--primary-color);
             color: white;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255,107,53,0.3);
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
         }
 
         /* Product Card - Shopee Style */
-        .product-card-shopee {
+        .product-card {
             background: white;
             border-radius: 12px;
             overflow: hidden;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
             height: 100%;
             position: relative;
             cursor: pointer;
         }
 
-        .product-card-shopee:hover {
+        .product-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
         }
 
-        .product-image-wrapper-shopee {
+        .product-image-wrapper {
             position: relative;
             overflow: hidden;
             background: #fafafa;
             padding-top: 100%;
         }
 
-        .product-image-shopee {
+        .product-image {
             position: absolute;
             top: 0;
             left: 0;
@@ -195,7 +201,7 @@ if (isset($_SESSION['member_id'])) {
             transition: transform 0.5s ease;
         }
 
-        .product-card-shopee:hover .product-image-shopee {
+        .product-card:hover .product-image {
             transform: scale(1.05);
         }
 
@@ -204,22 +210,22 @@ if (isset($_SESSION['member_id'])) {
             position: absolute;
             top: 10px;
             right: 10px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            /* background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); */
+            background: var(--yellow);
             color: white;
             padding: 4px 10px;
             border-radius: 20px;
             font-size: 0.7rem;
             font-weight: 600;
             z-index: 2;
-            box-shadow: 0 2px 8px rgba(255,107,53,0.3);
+            box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
         }
 
         .badge-stock {
             position: absolute;
             top: 10px;
             left: 10px;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(4px);
+            background: var(--green);
             color: white;
             padding: 4px 10px;
             border-radius: 20px;
@@ -229,44 +235,104 @@ if (isset($_SESSION['member_id'])) {
         }
 
         /* Product Info */
-        .product-info-shopee {
+        .product-info {
             padding: 12px;
+
+            display: flex;
+            flex-direction: column;
+
+            flex: 1;
         }
 
-        .product-name-shopee {
-            font-size: 0.9rem;
+        .product-name {
+            font-size: 1.2rem;
             font-weight: 600;
-            color: #222;
-            margin-bottom: 6px;
+            color: var(--text-color);
+            /* margin-bottom: 6px; */
             display: -webkit-box;
-            -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
             line-height: 1.4;
             min-height: 2.8em;
         }
 
-        .product-price-shopee {
+        /* Product Description */
+        .product-description {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-color);
+
+        }
+
+        .product-description-wrapper {
+            margin-bottom: 10px;
+        }
+
+        .product-description-shopee {
+            font-size: 1rem;
+            color: #777;
+            line-height: 1.5;
+
+            display: -webkit-box;
+              line-clamp: 2;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+
+            overflow: hidden;
+            transition: all .3s ease;
+            
+        }
+
+        .product-description-shopee.expanded {
+            -webkit-line-clamp: unset;
+            overflow: visible;
+        }
+
+        .read-more-btn {
+            border: none;
+            background: none;
+            color: var(--primary-color);
+            font-size: 0.75rem;
+            padding: 0;
+            margin-top: 4px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .read-more-btn:hover {
+            text-decoration: underline;
+        }
+
+        /* end Product Price */
+        .product-price {
             font-size: 1.2rem;
             font-weight: 700;
-            color: var(--primary-color);
+            color: var(--red);
             margin-bottom: 4px;
         }
 
-        .product-price-shopee small {
-            font-size: 0.7rem;
+        .product-price small {
+            font-size: 1.2rem;
             font-weight: 500;
             color: #999;
         }
 
-        .product-sold-shopee {
-            font-size: 0.7rem;
+        .price-sold-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .product-sold {
+            font-size: 0.75rem;
             color: #999;
-            margin-bottom: 8px;
+            white-space: nowrap;
+            margin-bottom: 0;
         }
 
         /* Quantity Control - Shopee Style */
-        .quantity-control-shopee {
+        .quantity-control {
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -276,7 +342,7 @@ if (isset($_SESSION['member_id'])) {
             border-top: 1px solid #f0f0f0;
         }
 
-        .qty-btn-shopee {
+        .qty-btn {
             width: 32px;
             height: 32px;
             border-radius: 8px;
@@ -290,13 +356,13 @@ if (isset($_SESSION['member_id'])) {
             justify-content: center;
         }
 
-        .qty-btn-shopee:hover {
+        .qty-btn:hover {
             background: var(--primary-color);
             border-color: var(--primary-color);
             color: white;
         }
 
-        .qty-input-shopee {
+        .qty-input {
             width: 50px;
             text-align: center;
             border: 1px solid #e5e5e5;
@@ -306,7 +372,7 @@ if (isset($_SESSION['member_id'])) {
             font-weight: 600;
         }
 
-        .btn-add-cart-shopee {
+        .btn-add-cart {
             background: var(--primary-color);
             border: none;
             color: white;
@@ -320,17 +386,17 @@ if (isset($_SESSION['member_id'])) {
             justify-content: center;
             gap: 6px;
             width: 100%;
-            margin-top: 8px;
+            margin-top: auto;
         }
 
-        .btn-add-cart-shopee:hover {
+        .btn-add-cart:hover {
             background: var(--secondary-color);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(255,107,53,0.3);
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
         }
 
         /* Info Notice - Shopee Style */
-        .info-notice-shopee {
+        .info-notice {
             background: #fff7e6;
             border-left: 4px solid var(--primary-color);
             padding: 15px 20px;
@@ -338,13 +404,13 @@ if (isset($_SESSION['member_id'])) {
             margin-bottom: 20px;
         }
 
-        .info-notice-shopee h6 {
+        .info-notice h6 {
             color: var(--primary-color);
             font-weight: 700;
             margin-bottom: 8px;
         }
 
-        .info-notice-shopee p {
+        .info-notice p {
             margin-bottom: 5px;
             font-size: 0.85rem;
             color: #666;
@@ -353,7 +419,7 @@ if (isset($_SESSION['member_id'])) {
         /* Floating Cart - Shopee Style */
         .cart-floating {
             position: fixed;
-            bottom: 80px;
+            bottom: 95px;
             right: 20px;
             width: 60px;
             height: 60px;
@@ -364,7 +430,7 @@ if (isset($_SESSION['member_id'])) {
             justify-content: center;
             color: white;
             font-size: 24px;
-            box-shadow: 0 4px 16px rgba(255,107,53,0.4);
+            box-shadow: 0 4px 16px rgba(255, 107, 53, 0.4);
             z-index: 1000;
             transition: all 0.3s;
             text-decoration: none;
@@ -373,14 +439,14 @@ if (isset($_SESSION['member_id'])) {
         .cart-floating:hover {
             transform: scale(1.1);
             background: var(--secondary-color);
-            color: white;
+            color: black;
         }
 
         .cart-badge {
             position: absolute;
             top: -5px;
             right: -5px;
-            background: var(--accent-color);
+            background: var(--red);
             color: white;
             width: 22px;
             height: 22px;
@@ -395,7 +461,7 @@ if (isset($_SESSION['member_id'])) {
 
         .status-floating {
             position: fixed;
-            bottom: 155px;
+            bottom: 170px;
             right: 20px;
             width: 60px;
             height: 60px;
@@ -406,7 +472,7 @@ if (isset($_SESSION['member_id'])) {
             justify-content: center;
             color: var(--primary-color);
             font-size: 24px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
             z-index: 1000;
             transition: all 0.3s;
             text-decoration: none;
@@ -414,11 +480,11 @@ if (isset($_SESSION['member_id'])) {
 
         .status-floating:hover {
             transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
         }
 
         /* Toast Notification */
-        .toast-shopee {
+        .toast {
             position: fixed;
             bottom: 30px;
             left: 50%;
@@ -430,7 +496,7 @@ if (isset($_SESSION['member_id'])) {
             display: flex;
             align-items: center;
             gap: 10px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
             z-index: 10000;
             opacity: 0;
             transition: all 0.3s ease;
@@ -438,34 +504,71 @@ if (isset($_SESSION['member_id'])) {
             font-size: 0.9rem;
         }
 
-        .toast-shopee.show {
+        .toast.show {
             transform: translateX(-50%) translateY(0);
             opacity: 1;
         }
 
-        .toast-shopee i {
+        .toast i {
             color: var(--primary-color);
             font-size: 1.2rem;
         }
 
         /* Responsive */
         @media (max-width: 768px) {
-            .hero-title-shopee {
+            .hero-title {
                 font-size: 1.5rem;
             }
-            
+
             .category-pills {
                 top: 55px;
             }
-            
-            .cart-floating, .status-floating {
+
+            .cart-floating,
+            .status-floating {
                 width: 50px;
                 height: 50px;
                 font-size: 20px;
             }
-            
+
             .status-floating {
                 bottom: 140px;
+            }
+        }
+
+        @media (max-width: 576px) {
+
+            #product-list {
+                --bs-gutter-x: 10px;
+                --bs-gutter-y: 10px;
+            }
+
+            .product-info {
+                padding: 10px;
+            }
+
+            .product-name {
+                font-size: 0.8rem;
+                min-height: 2.5em;
+            }
+
+            .product-price {
+                font-size: 1rem;
+            }
+
+            .btn-add-cart {
+                font-size: 0.75rem;
+                padding: 8px;
+            }
+
+            .qty-btn {
+                width: 28px;
+                height: 28px;
+            }
+
+            .qty-input {
+                width: 40px;
+                font-size: 0.8rem;
             }
         }
     </style>
@@ -479,20 +582,21 @@ if (isset($_SESSION['member_id'])) {
     <!-- Hero Banner Shopee Style -->
     <div class="hero-banner">
         <div class="container">
-            <div class="hero-content-shopee text-center">
-                <h1 class="hero-title-shopee">🛒 สวนลุงเผือก</h1>
-                <p class="hero-subtitle-shopee">สินค้าเกษตรปลอดสาร สดใหม่ ส่งตรงจากสวน สั่งง่าย จ่ายคล่อง ได้ของไว</p>
+            <div class="hero-content text-center">
+                <h1 class="hero-title">ร้านค้าสวนลุงเผือก</h1>
+                <p class="hero-subtitle"></p>
             </div>
         </div>
     </div>
 
     <div class="container">
         <!-- Info Notice -->
-        <div class="info-notice-shopee animate__animated animate__fadeInUp">
+        <div class="info-notice animate__animated animate__fadeInUp">
             <h6><i class="fas fa-info-circle"></i> หมายเหตุการสั่งซื้อ</h6>
             <div class="row">
                 <div class="col-md-4">
                     <p><i class="fas fa-truck"></i> จัดส่งฟรี! ขั้นต่ำ 500 บาท</p>
+                    <p>ในพื้นที่ที่กำหนด บ้านน้อย เชียงคาน แก่งคุดคู้</p>
                 </div>
                 <div class="col-md-4">
                     <p><i class="fas fa-store"></i> รับสินค้าที่สวนได้</p>
@@ -519,20 +623,46 @@ if (isset($_SESSION['member_id'])) {
         </div>
 
         <!-- Product Grid -->
+
         <div class="row g-3" id="product-list">
+
             <?php
-            $sql = "SELECT * FROM products WHERE status = 'active' ORDER BY product_id DESC";
+
+            $sql = "
+            SELECT  p.*,
+                COALESCE(SUM(
+                CASE 
+                    WHEN o.order_status = 'completed' 
+                    THEN oi.quantity 
+                    ELSE 0 
+                END
+            ),0) AS sold_count
+
+                FROM products p
+
+                LEFT JOIN order_items oi 
+                    ON p.product_id = oi.product_id
+
+                LEFT JOIN orders o 
+                    ON oi.order_id = o.order_id
+
+            WHERE p.status = 'active'
+
+            GROUP BY p.product_id
+
+            ORDER BY p.product_id DESC ";
+
             $result = $conn->query($sql);
-            
+
             if ($result->num_rows > 0):
                 while ($p = $result->fetch_assoc()):
                     $image = $p['product_image'] ? "../admin/uploads/products/" . $p['product_image'] : "../assets/no-image.png";
             ?>
-                    <div class="col-lg-3 col-md-4 col-sm-6 product-item animate__animated animate__fadeInUp"
+                    <div class="col-6 col-sm-6 col-md-4 col-lg-3 product-item animate__animated animate__fadeInUp"
                         data-seasonal="<?= $p['seasonal'] ?>">
-                        
-                        <div class="product-card-shopee">
-                            <div class="product-image-wrapper-shopee">
+
+                        <div class="product-card">
+                            <div class="product-image-wrapper">
                                 <?php if ($p['seasonal'] == 1): ?>
                                     <span class="badge-seasonal">
                                         <i class="fas fa-star"></i> ตามฤดูกาล
@@ -543,39 +673,63 @@ if (isset($_SESSION['member_id'])) {
                                 </span>
                                 <img src="<?= htmlspecialchars($image) ?>"
                                     alt="<?= htmlspecialchars($p['product_name']) ?>"
-                                    class="product-image-shopee"
+                                    class="product-image"
                                     loading="lazy">
                             </div>
-                            
-                            <div class="product-info-shopee">
-                                <div class="product-name-shopee">
+
+                            <div class="product-info">
+                                <div class="product-name">
                                     <?= htmlspecialchars($p['product_name']) ?>
                                 </div>
-                                <div class="product-price-shopee">
-                                    ฿<?= number_format($p['price'], 2) ?>
-                                    <small>/ <?= htmlspecialchars($p['unit']) ?></small>
+
+                                <div class="product-description-wrapper">
+
+                                    <div class="product-description-shopee"
+                                        id="desc<?= $p['product_id'] ?>">
+
+                                        <?= nl2br(htmlspecialchars($p['product_description'])) ?>
+
+                                    </div>
+
+                                    <?php if (mb_strlen($p['product_description']) > 80): ?>
+                                        <button class="read-more-btn"
+                                            onclick="toggleDescription(<?= $p['product_id'] ?>, this)">
+                                            อ่านเพิ่มเติม
+                                        </button>
+                                    <?php endif; ?>
+
                                 </div>
-                                <div class="product-sold-shopee">
-                                    <i class="fas fa-chart-line"></i> ขายแล้ว 1.2k ชิ้น
+
+                                <div class="price-sold-row">
+
+                                    <div class="product-price">
+                                        ฿<?= number_format($p['price']) ?>
+                                        <small>/ <?= htmlspecialchars($p['unit']) ?></small>
+                                    </div>
+
+                                    <div class="product-sold">
+                                        ขายแล้ว <?= number_format($p['sold_count']) ?>
+                                    </div>
+
                                 </div>
-                                
-                                <div class="quantity-control-shopee">
-                                    <button class="qty-btn-shopee" onclick="changeQty(<?= $p['product_id'] ?>,-1)">
+
+                                <div class="quantity-control">
+                                    <button class="qty-btn" onclick="changeQty(<?= $p['product_id'] ?>,-1)">
                                         <i class="fas fa-minus"></i>
                                     </button>
                                     <input type="number"
                                         id="qty<?= $p['product_id'] ?>"
-                                        class="qty-input-shopee"
+                                        class="qty-input"
                                         value="1"
                                         min="1">
-                                    <button class="qty-btn-shopee" onclick="changeQty(<?= $p['product_id'] ?>,1)">
+                                    <button class="qty-btn" onclick="changeQty(<?= $p['product_id'] ?>,1)">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                 </div>
-                                
-                                <button class="btn-add-cart-shopee"
+
+                                <button class="btn-add-cart"
                                     onclick="addToCart(<?= $p['product_id'] ?>, '<?= htmlspecialchars($p['product_name']) ?>', <?= $p['price'] ?>, '<?= htmlspecialchars($image) ?>')">
-                                    <i class="fas fa-cart-plus"></i> เพิ่มลงตะกร้า
+                                    <i class="fas fa-shopping-basket"></i> เพิ่มลงตะกร้า
                                 </button>
                             </div>
                         </div>
@@ -596,14 +750,14 @@ if (isset($_SESSION['member_id'])) {
     <a href="order_status.php" class="status-floating" id="statusButton">
         <i class="fas fa-clipboard-list"></i>
     </a>
-    
+
     <a href="order.php" class="cart-floating" id="cartButton" style="display: none;">
-        <i class="fas fa-shopping-cart"></i>
+        <i class="fas fa-shopping-basket"></i>
         <span class="cart-badge" id="cartCount">0</span>
     </a>
 
     <!-- Toast Notification -->
-    <div id="toastNotification" class="toast-shopee">
+    <div id="toastNotification" class="toast">
         <i class="fas fa-check-circle"></i>
         <span id="toastMessage">เพิ่มสินค้าลงตะกร้าเรียบร้อย!</span>
     </div>
@@ -619,7 +773,7 @@ if (isset($_SESSION['member_id'])) {
             let val = parseInt(input.value) + delta;
             if (val < 1) val = 1;
             input.value = val;
-            
+
             // Animation
             input.style.transform = 'scale(1.05)';
             setTimeout(() => input.style.transform = 'scale(1)', 150);
@@ -630,20 +784,20 @@ if (isset($_SESSION['member_id'])) {
             const toastMessage = document.getElementById('toastMessage');
             toastMessage.textContent = message;
             toast.classList.add('show');
-            
+
             setTimeout(() => {
                 toast.classList.remove('show');
-            }, 2000);
+            }, 3000);
         }
 
         function addToCart(id, name, price, image) {
             let qty = parseInt(document.getElementById('qty' + id).value);
             let cart = JSON.parse(localStorage.getItem("cart")) || [];
             let found = cart.find(i => i.product_id === id);
-            
+
             if (found) {
                 found.quantity += qty;
-                showToast(`📦 เพิ่ม ${name} อีก ${qty} ชิ้น ลงตะกร้าแล้ว`);
+                showToast(` เพิ่ม ${name} อีก ${qty} ชิ้น ลงตะกร้าแล้ว`);
             } else {
                 cart.push({
                     product_id: id,
@@ -652,13 +806,13 @@ if (isset($_SESSION['member_id'])) {
                     image: image,
                     quantity: qty
                 });
-                showToast(`✅ เพิ่ม ${name} ${qty} ชิ้น ลงตะกร้าเรียบร้อย`);
+                showToast(` เพิ่ม ${name} ${qty} ชิ้น ลงตะกร้าเรียบร้อย`);
             }
-            
+
             localStorage.setItem("cart", JSON.stringify(cart));
             updateCartCount();
             pulseCartButton();
-            
+
             // Reset quantity
             document.getElementById('qty' + id).value = 1;
         }
@@ -679,10 +833,10 @@ if (isset($_SESSION['member_id'])) {
         function filterProducts(type) {
             const items = document.querySelectorAll('.product-item');
             const buttons = document.querySelectorAll('.pill-btn');
-            
+
             buttons.forEach(btn => btn.classList.remove('active'));
             event.currentTarget.classList.add('active');
-            
+
             items.forEach(item => {
                 const seasonal = item.getAttribute('data-seasonal');
                 if (type === 'all') {
@@ -697,11 +851,26 @@ if (isset($_SESSION['member_id'])) {
             });
         }
 
+        // Toggle product description
+        function toggleDescription(id, btn) {
+
+            const desc = document.getElementById('desc' + id);
+
+            desc.classList.toggle('expanded');
+
+            if (desc.classList.contains('expanded')) {
+                btn.innerText = 'ย่อข้อความ';
+            } else {
+                btn.innerText = 'อ่านเพิ่มเติม';
+            }
+        }
+        // -------------------------------------------------------------
+
         document.addEventListener("DOMContentLoaded", () => {
             updateCartCount();
-            
+
             // Add ripple effect to buttons
-            document.querySelectorAll('.btn-add-cart-shopee, .qty-btn-shopee').forEach(btn => {
+            document.querySelectorAll('.btn-add-cart, .qty-btn').forEach(btn => {
                 btn.addEventListener('click', function(e) {
                     let ripple = document.createElement('span');
                     ripple.classList.add('ripple');
@@ -710,11 +879,11 @@ if (isset($_SESSION['member_id'])) {
                 });
             });
         });
-        
+
         // Ripple effect styles
         const style = document.createElement('style');
         style.textContent = `
-            .btn-add-cart-shopee, .qty-btn-shopee {
+            .btn-add-cart, .qty-btn {
                 position: relative;
                 overflow: hidden;
             }
