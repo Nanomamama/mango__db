@@ -2,7 +2,6 @@
 session_start();
 require_once __DIR__ . '/../db/db.php';
 
-// ถ้าเป็นสมาชิก
 $member_id = $_SESSION['member_id'] ?? null;
 $member_name = '';
 $member_phone = '';
@@ -12,8 +11,8 @@ if ($member_id) {
     $m->bind_param("i", $member_id);
     $m->execute();
     $mem = $m->get_result()->fetch_assoc();
-    $member_name = $mem['fullname'];
-    $member_phone = $mem['phone'];
+    $member_name = $mem['fullname'] ?? '';
+    $member_phone = $mem['phone'] ?? '';
 }
 
 $order_error = $_SESSION['order_error'] ?? '';
@@ -25,575 +24,1006 @@ unset($_SESSION['order_error']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ตะกร้าสินค้า - สวนลุงเผือก</title>
-
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>ตะกร้าสินค้า — สวนลุงเผือก</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Mitr:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-
-
     <style>
-        * {
-            font-family: 'Prompt', sans-serif;
+        /* ===== RESET & ROOT ===== */
+        :root {
+            --sage: #016A70;
+            --sage-light: #2ad3bc;
+            --sage-pale: #e8f4f3;
+            --sage-mist: #dcfffc;
+            --cream: #f4fdfa;
+            --earth: #4e808b;
+            --earth-pale: #e2f5f3;
+            --text: #373833;
+            --text-muted: #4a4b48;
+            --white: #ffffff;
+            --red: #f82424;
+
+            --shadow-sm: 0 2px 12px rgba(60, 80, 30, .07);
+            --shadow-md: 0 6px 28px rgba(60, 80, 30, .10);
+            --shadow-lg: 0 16px 48px rgba(60, 80, 30, .13);
+            --radius-sm: 10px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
         }
 
-        body {
-            background: #f8f9fa;
-        }
-
-        /* Header */
-        .page-header {
-            background: white;
-            padding: 30px 0;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        }
-
-        .page-title {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #333;
-            margin: 0;
-        }
-
-        .breadcrumb {
-            background: none;
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
 
-        .breadcrumb-item a {
-            color: #666;
+        body {
+            background: var(--cream);
+            color: var(--text);
+
+            font-size: 15px;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* ===== AMBIENT BACKGROUND ===== */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 900px 600px at 80% -10%, rgba(127, 166, 96, .10) 0%, transparent 70%),
+                radial-gradient(ellipse 600px 400px at -5% 80%, rgba(90, 122, 74, .08) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ===== PAGE HEADER ===== */
+        .pg-header {
+            background: linear-gradient(135deg, var(--sage) 0%, var(--sage-light) 100%);
+            color: white;
+            padding: 32px 0 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pg-header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 28px;
+            background: var(--cream);
+            border-radius: 50% 50% 0 0 / 28px 28px 0 0;
+        }
+
+        .pg-header .breadcrumb {
+            opacity: .75;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .pg-header .breadcrumb a {
+            color: white;
             text-decoration: none;
         }
 
-        .breadcrumb-item.active {
-            color: #333;
+        .pg-header .breadcrumb-item.active {
+            color: var(--white);
         }
 
-        /* Cart Section */
-        .cart-section {
-            background: white;
-            border-radius: 8px;
-            padding: 25px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-            margin-bottom: 25px;
+        .pg-header .breadcrumb-item+.breadcrumb-item::before {
+            color:var(--white);
         }
 
-        .section-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
-        }
+    
+        .pg-title {
 
-        /* Cart Table */
-        .cart-table {
-            width: 100%;
-        }
-
-        .cart-item {
-            border-bottom: 1px solid #f0f0f0;
-            padding: 20px 0;
+            font-size: 2rem;
+            font-weight: 500;
+            color: white;
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
+        }
+
+        .pg-title-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--earth);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+
+        /* ===== MAIN WRAPPER ===== */
+        .main-wrap {
+            position: relative;
+            z-index: 1;
+            padding: 32px 0 80px;
+        }
+
+        /* ===== SECTION LABEL ===== */
+        .section-label {
+
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--sage);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* ===== CART HEADER ROW ===== */
+        .cart-col-header {
+            display: grid;
+            grid-template-columns: 2.6fr 1fr 1.2fr 1fr 48px;
+            gap: 16px;
+            padding: 0 24px 14px;
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .cart-col-header>* {
+            text-align: center;
+        }
+
+        .cart-col-header>*:first-child {
+            text-align: left;
+        }
+
+        /* ===== CART CARD ===== */
+        .cart-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* ===== CART ITEM ===== */
+        .cart-item {
+            display: grid;
+            grid-template-columns: 2.6fr 1fr 1.2fr 1fr 48px;
+            gap: 16px;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid #f0f5ea;
+            transition: background .2s;
         }
 
         .cart-item:last-child {
             border-bottom: none;
         }
 
-        .product-image {
+        .cart-item:hover {
+            background: var(--sage-mist);
+        }
+
+        /* product cell */
+        .item-product {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .item-img-wrap {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .item-img {
             width: 80px;
             height: 80px;
             object-fit: cover;
-            border-radius: 8px;
-            border: 1px solid #e5e5e5;
-            flex-shrink: 0;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
         }
 
-        .product-info {
-            flex: 1;
-            min-width: 0;
+        .item-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: var(--sage);
+            color: white;
+            font-size: .65rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 20px;
         }
 
-        .product-name {
+        .item-name {
             font-weight: 600;
-            color: #333;
-            margin-bottom: 5px;
-            font-size: 1rem;
+            color: var(--text);
+            font-size: .97rem;
+            line-height: 1.4;
         }
 
-        .product-price {
-            color: #dc3545;
+        .item-tag {
+            display: inline-block;
+            background: var(--sage-pale);
+            color: var(--sage);
+            font-size: .72rem;
             font-weight: 600;
-            font-size: 1.1rem;
+            padding: 2px 10px;
+            border-radius: 20px;
+            margin-top: 6px;
         }
 
-        .quantity-control {
-            display: flex;
+        /* price cell */
+        .item-price {
+            text-align: center;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: .93rem;
+        }
+
+        /* qty cell */
+        .item-qty {
+            text-align: center;
+        }
+
+        .item-actions {
+            display: contents;
+        }
+
+        .qty-wrap {
+            display: inline-flex;
             align-items: center;
-            gap: 10px;
-            flex-shrink: 0;
+            background: var(--sage-pale);
+            border-radius: 50px;
+            padding: 4px;
+            gap: 4px;
         }
 
         .qty-btn {
-            width: 32px;
-            height: 32px;
-            border: 1px solid #ddd;
+            width: 30px;
+            height: 30px;
+            border: none;
             background: white;
-            border-radius: 4px;
+            border-radius: 50%;
+            color: var(--sage);
+            font-size: .85rem;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: .18s;
+            box-shadow: 0 1px 4px rgba(90, 122, 74, .15);
         }
 
         .qty-btn:hover {
-            background: #f8f9fa;
-            border-color: #999;
-        }
-
-        .qty-input {
-            width: 60px;
-            height: 32px;
-            text-align: center;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-weight: 600;
-        }
-
-        .item-total {
-            font-weight: 700;
-            color: #333;
-            font-size: 1.1rem;
-            min-width: 100px;
-            text-align: right;
-        }
-
-        .btn-remove {
-            background: white;
-            border: 1px solid #dc3545;
-            color: #dc3545;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            transition: all 0.3s;
-        }
-
-        .btn-remove:hover {
-            background: #dc3545;
+            background: var(--sage);
             color: white;
         }
 
-        /* Cart Summary */
-        .cart-summary {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 20px;
+        .qty-num {
+            width: 36px;
+            text-align: center;
+            border: none;
+            background: transparent;
+
+            font-weight: 500;
+            font-size: 1rem;
+            color: var(--text);
+        }
+
+        /* total cell */
+        .item-total {
+            text-align: center;
+            ;
+            font-weight: 500;
+            font-size: 1rem;
+            color: var(--sage);
+        }
+
+        /* remove btn */
+        .btn-remove {
+            width: 36px;
+            height: 36px;
+            border: 1px solid #f0ddd5;
+            background: #fef4ef;
+            color: var(--red);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: .18s;
+            font-size: .85rem;
+        }
+
+        .btn-remove:hover {
+            background: var(--red);
+            color: white;
+            border-color: var(--red);
+        }
+
+        /* ===== CART FOOTER ===== */
+        .cart-footer {
+            padding: 20px 24px;
+            background: var(--sage-mist);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .btn-clear {
+            border: 1px solid #f0ddd5;
+            background: white;
+            color: var(--red);
+            padding: 10px 18px;
+            border-radius: var(--red);
+            /* fon; */
+            font-size: .88rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: .2s;
+        }
+
+        .btn-clear:hover {
+            background: #e05a38;
+            color: white;
+            border-color: #e05a38;
+        }
+
+        .footer-total-wrap {
+            text-align: right;
+        }
+
+        .footer-total-label {
+            font-size: .8rem;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+
+        .footer-total-amount {
+
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: var(--sage);
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            padding: 72px 24px;
+            text-align: center;
+        }
+
+        .empty-icon {
+            width: 100px;
+            height: 100px;
+            background: var(--sage-pale);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.6rem;
+            color: var(--sage-light);
+            margin: 0 auto 20px;
+        }
+
+        .empty-title {
+
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .empty-sub {
+            color: var(--text-muted);
+            font-size: .9rem;
+            margin-bottom: 24px;
+        }
+
+        .btn-shop-now {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--sage);
+            color: white;
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            font-weight: 600;
+            transition: .2s;
+        }
+
+        .btn-shop-now:hover {
+            background: var(--sage-light);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* ===== CHECKOUT PANEL ===== */
+        .checkout-panel {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            position: sticky;
+            top: 24px;
+        }
+
+        .panel-head {
+            background: linear-gradient(135deg, var(--sage) 0%, var(--sage-light) 100%);
+            padding: 20px 24px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-head-icon {
+            width: 38px;
+            height: 38px;
+            background: rgba(255, 255, 255, .2);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .panel-head-title {
+
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .panel-body {
+            padding: 24px;
+        }
+
+        /* summary box */
+        .summary-box {
+            background: var(--sage-mist);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 16px 18px;
+            margin-bottom: 24px;
         }
 
         .summary-row {
             display: flex;
             justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #e0e0e0;
+            align-items: center;
+            padding: 8px 0;
+            font-size: .92rem;
+            color: var(--text-muted);
         }
 
-        .summary-row:last-child {
-            border-bottom: none;
-            padding-top: 15px;
-            margin-top: 10px;
-            border-top: 2px solid #333;
+        .summary-row:not(:last-child) {
+            border-bottom: 1px dashed var(--border);
         }
 
-        .summary-label {
-            color: #666;
-            font-weight: 500;
+        .summary-row.total-row {
+            color: var(--text);
+            font-weight: 700;
+            padding-top: 14px;
+            margin-top: 4px;
         }
 
-        .summary-value {
-            font-weight: 600;
-            color: #333;
+        .summary-row.total-row span:last-child {
+
+            font-size: 1.3rem;
+            color: var(--sage);
         }
 
-        .summary-total {
-            font-size: 1.5rem;
-            color: #dc3545;
+        .free-tag {
+            background: #e8f8e0;
+            color: #4a8c30;
+            font-size: .72rem;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 20px;
         }
 
-        /* Form Section */
-        .form-section {
-            background: white;
-            border-radius: 8px;
-            padding: 25px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-            margin-bottom: 25px;
-        }
-
+        /* form */
         .form-label {
             font-weight: 600;
-            color: #333;
+            font-size: .87rem;
+            color: var(--text);
+            display: block;
             margin-bottom: 8px;
         }
 
         .form-control,
-        .form-select {
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 10px 15px;
-            transition: all 0.3s;
+        .form-input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--sage-light);
+            font-size: .93rem;
+            color: var(--text);
+            transition: .2s;
+            outline: none;
         }
 
         .form-control:focus,
-        .form-select:focus {
-            border-color: #333;
-            box-shadow: 0 0 0 0.2rem rgba(51, 51, 51, 0.1);
+        .form-input:focus {
+            border-color: var(--sage);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(90, 122, 74, .10);
         }
 
-        .receive-type-card {
-            border: 2px solid #e5e5e5;
-            border-radius: 6px;
-            padding: 12px 15px;
-            margin-bottom: 10px;
+        textarea.form-control {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .mb-field {
+            margin-bottom: 18px;
+        }
+
+        /* receive cards */
+        .receive-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .receive-card {
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 14px;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: .2s;
             display: flex;
             align-items: center;
             gap: 12px;
+            background: var(--sage-mist);
         }
 
-        .receive-type-card:hover {
-            border-color: #999;
+        .receive-card input[type="radio"] {
+            display: none;
         }
 
-        .receive-type-card.active {
-            border-color: #333;
-            background: #f8f9fa;
+        .receive-card:hover {
+            border-color: var(--sage);
+            background: var(--sage-light);
         }
 
-        .receive-type-card input[type="radio"] {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
+        .receive-card.active {
+            border-color: var(--sage);
+            background: var(--sage-light);
+            box-shadow: 0 0 0 3px rgba(90, 122, 74, .12);
         }
 
         .receive-icon {
-            font-size: 1.5rem;
-            color: #666;
-            min-width: 35px;
-            text-align: center;
-        }
-
-        .receive-type-card.active .receive-icon {
-            color: #333;
-        }
-
-        .receive-content {
-            flex: 1;
-        }
-
-        .receive-title {
-            font-weight: 600;
-            color: #333;
-            margin: 0;
-            font-size: 1rem;
-        }
-
-        .receive-desc {
-            color: #666;
-            margin: 0;
-            font-size: 0.85rem;
-        }
-
-        /* Buttons */
-        .btn-submit {
-            background: #68d800;
-            border: none;
-            color: white;
-            padding: 14px 30px;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 1.1rem;
-            transition: all 0.3s;
-            width: 100%;
-        }
-
-        .btn-submit:hover {
-            background: #000;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-
-        .btn-continue {
+            width: 42px;
+            height: 42px;
+            border-radius: var(--radius-sm);
             background: white;
-            border: 1px solid #333;
-            color: #333;
-            padding: 12px 25px;
-            border-radius: 6px;
+            border: 1.5px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--sage);
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            transition: .2s;
+        }
+
+        .receive-card.active .receive-icon {
+            background: var(--sage);
+            color: white;
+            border-color: var(--sage);
+        }
+
+        .receive-text strong {
+            display: block;
+            font-size: .88rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+
+        .receive-text small {
+            font-size: .76rem;
+            color: var(--text-muted);
+        }
+
+        /* date trigger */
+        .date-btn {
+            width: 100%;
+            border: 1.5px dashed var(--sage-light);
+            background: var(--sage-mist);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: .2s;
+            color: var(--text);
+
+            font-size: .93rem;
+            text-align: left;
+        }
+
+        .date-btn:hover {
+            border-color: var(--sage);
+            background: var(--sage-pale);
+        }
+
+        .date-btn-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--sage);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        #triggerText {
             font-weight: 600;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
+            color: var(--sage);
         }
 
-        .btn-continue:hover {
-            background: #f8f9fa;
-            color: #333;
-        }
-
-        /* Empty Cart */
-        .empty-cart {
-            text-align: center;
-            padding: 60px 20px;
-        }
-
-        .empty-cart i {
-            font-size: 80px;
-            color: #ddd;
-            margin-bottom: 20px;
-        }
-
-        .empty-cart h4 {
-            color: #666;
-            margin-bottom: 15px;
-        }
-
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .page-title {
-                font-size: 1.5rem;
-            }
-
-            .cart-item {
-                flex-wrap: wrap;
-                gap: 10px;
-            }
-
-            .product-image {
-                width: 60px;
-                height: 60px;
-            }
-
-            .product-info {
-                flex: 1 1 100%;
-                order: 2;
-            }
-
-            .quantity-control {
-                order: 3;
-            }
-
-            .item-total {
-                order: 4;
-                min-width: auto;
-            }
-
-            .btn-remove {
-                order: 5;
-                width: 100%;
-                margin-top: 10px;
-            }
-
-            .summary-total {
-                font-size: 1.3rem;
-            }
-        }
-
-        /* Alert Info */
+        /* info alert */
         .info-alert {
-            background: #e7f3ff;
-            border-left: 4px solid #2196f3;
-            padding: 15px;
-            border-radius: 4px;
+            background: var(--sage-pale);
+            border: 1px solid #61d1f3;
+            border-left: 4px solid var(--sage);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            font-size: .85rem;
+            color: var(--text);
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
             margin-bottom: 20px;
         }
 
-        .info-alert i {
-            color: #2196f3;
-            margin-right: 10px;
+        /* submit */
+        .btn-checkout {
+            width: 100%;
+            border: none;
+            background: linear-gradient(135deg, var(--sage) 0%, var(--sage-light) 100%);
+            color: white;
+            height: 52px;
+            border-radius: var(--radius-md);
+            ;
+            font-weight: 400;
+            font-size: 1.05rem;
+            cursor: pointer;
+            transition: .25s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 6px 20px rgba(90, 122, 74, .25);
         }
 
-        /* Loading */
+        .btn-checkout:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(90, 122, 74, .32);
+        }
+
+        .btn-checkout:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        .btn-continue-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+            height: 44px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: .88rem;
+            transition: .2s;
+            background: white;
+        }
+
+        .btn-continue-link:hover {
+            border-color: var(--sage);
+            color: var(--sage);
+        }
+
+        /* ===== MODAL ===== */
+        #dateModal .modal-content {
+            border: none;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        .modal-head {
+            background: linear-gradient(135deg, var(--sage) 0%, var(--sage-light) 100%);
+            padding: 22px 24px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-head h5 {
+            font-size: 1.1rem;
+            font-weight: 400;
+            margin: 0;
+        }
+
+        .modal-head .btn-close {
+            filter: brightness(0) invert(1);
+            opacity: .8;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .quick-date-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .quick-btn {
+            border: 1.5px solid var(--border);
+            background: var(--cream);
+            border-radius: var(--radius-md);
+            padding: 14px;
+            font-weight: 600;
+            font-size: .9rem;
+            color: var(--text);
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .quick-btn:hover {
+            border-color: var(--sage-light);
+            background: var(--sage-pale);
+        }
+
+        .quick-btn.active {
+            border-color: var(--sage);
+            background: var(--sage-pale);
+            color: var(--sage);
+        }
+
+        .modal-label {
+            font-weight: 700;
+            font-size: .85rem;
+            color: var(--text);
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .time-pill {
+            border: 1.5px solid var(--border);
+            background: var(--cream);
+            border-radius: 50px;
+            padding: 10px;
+            text-align: center;
+            font-weight: 700;
+            font-size: .88rem;
+            color: var(--text);
+            cursor: pointer;
+            transition: .18s;
+        }
+
+        .time-pill:hover {
+            border-color: var(--sage-light);
+            background: var(--sage-pale);
+        }
+
+        .time-pill.active {
+            border-color: var(--sage);
+            background: var(--sage);
+            color: white;
+        }
+
+        .btn-confirm {
+            width: 100%;
+            border: none;
+            background: linear-gradient(135deg, var(--sage) 0%, var(--sage-light) 100%);
+            color: white;
+            height: 50px;
+            border-radius: var(--radius-md);
+            ;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: .2s;
+            margin-top: 24px;
+        }
+
+        .btn-confirm:hover {
+            box-shadow: 0 8px 24px rgba(90, 122, 74, .28);
+            transform: translateY(-1px);
+        }
+
+        /* ===== LOADING ===== */
         .loading-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.95);
+            inset: 0;
+            background: rgba(253, 250, 244, .92);
             z-index: 9999;
             align-items: center;
             justify-content: center;
+            flex-direction: column;
+            gap: 16px;
         }
 
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #333;
+        .spinner-leaf {
+            width: 52px;
+            height: 52px;
+            border: 4px solid var(--border);
+            border-top-color: var(--sage);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
 
         @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
+            to {
                 transform: rotate(360deg);
             }
         }
 
-       /* ===== Date Time Modern ===== */
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 991px) {
 
-.dt-trigger {
-    border: 2px dashed #cfe8b4;
-    background: linear-gradient(135deg, #f8fff1, #ffffff);
-    border-radius: 18px;
-    padding: 16px 18px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-weight: 600;
-    color: #3b4b2a;
-    transition: 0.25s;
-    box-shadow: 0 4px 15px rgba(104, 216, 0, 0.08);
-}
+            .cart-col-header {
+                display: none;
+            }
 
-.dt-trigger:hover {
-    transform: translateY(-2px);
-    border-color: #68d800;
-    box-shadow: 0 8px 25px rgba(104, 216, 0, 0.15);
-}
+            .cart-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                padding: 12px;
+            }
 
-.dt-trigger i:first-child {
-    width: 42px;
-    height: 42px;
-    background: #68d800;
-    color: white;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+            /* ฝั่งซ้าย */
+            .item-product {
+                flex: 1;
+                min-width: 0;
+                gap: 10px;
+            }
 
-/* modal */
-#dateModal .modal-content {
-    border-radius: 28px;
-    overflow: hidden;
-}
+            .item-img {
+                width: 62px;
+                height: 62px;
+            }
 
-/* quick buttons */
-.quick-date-btn {
-    border: none;
-    background: #f4f7f1;
-    border-radius: 16px;
-    padding: 14px;
-    font-weight: 600;
-    transition: 0.25s;
-    color: #444;
-}
+            .item-name {
+                font-size: .88rem;
+                line-height: 1.3;
+            }
 
-.quick-date-btn:hover {
-    background: #68d800;
-    color: white;
-    transform: translateY(-2px);
-}
+            .item-tag {
+                font-size: .65rem;
+                padding: 2px 8px;
+            }
 
-.quick-date-btn.active {
-    background: #68d800;
-    color: white;
-    box-shadow: 0 6px 20px rgba(104, 216, 0, 0.25);
-}
+            /* ซ่อนราคาเดี่ยว */
+            .item-price {
+                display: none;
+            }
 
-/* input */
-.modern-input {
-    border-radius: 16px;
-    border: 2px solid #edf1e8;
-    padding: 14px 16px;
-    font-size: 1rem;
-    transition: 0.25s;
-    background: #fafcf8;
-}
+            /* ฝั่งขวา */
+            .item-actions {
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 8px;
+                flex-shrink: 0;
+            }
 
-.modern-input:focus {
-    border-color: #68d800;
-    box-shadow: 0 0 0 4px rgba(104, 216, 0, 0.12);
-    background: white;
-}
 
-/* time buttons */
-.time-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-}
+        }
 
-.time-btn {
-    border: none;
-    background: #f7f7f7;
-    border-radius: 16px;
-    padding: 14px 10px;
-    font-weight: 700;
-    transition: 0.2s;
-    color: #444;
-}
+        .qty-wrap {
+            gap: 2px;
+            padding: 3px;
+        }
 
-.time-btn:hover {
-    transform: translateY(-2px);
-    background: #eaf8d8;
-}
+        .qty-btn {
+            width: 28px;
+            height: 28px;
+            font-size: .75rem;
+        }
 
-.time-btn.active {
-    background: linear-gradient(135deg, #68d800, #56b800);
-    color: white;
-    box-shadow: 0 8px 20px rgba(104, 216, 0, 0.25);
-}
+        .qty-num {
+            width: 28px;
+            font-size: .9rem;
+        }
 
-/* confirm button */
-.btn-confirm-date {
-    background: linear-gradient(135deg, #68d800, #57ba00);
-    border: none;
-    border-radius: 18px;
-    padding: 15px;
-    font-weight: 700;
-    font-size: 1.05rem;
-    transition: 0.25s;
-}
+        .item-total {
+            font-size: .9rem;
+            min-width: 62px;
+            text-align: right;
+        }
 
-.btn-confirm-date:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 24px rgba(104, 216, 0, 0.3);
-}
+        .btn-remove {
+            width: 32px;
+            height: 32px;
+            flex-shrink: 0;
+            border-radius: 10px;
+            padding: 0;
+        }
 
-@media(max-width:576px) {
-    .time-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
+        .checkout-panel {
+            position: static;
+            margin-top: 24px;
+        }
+
+        .receive-grid {
+            grid-template-columns: 1fr;
+        }
+
+
+        @media (max-width: 768px) {
+            .pg-title {
+                font-size: 1.5rem;
+            }
+
+            .footer-total-amount {
+                font-size: 1.2rem;
+            }
+        }
     </style>
 </head>
 
 <body>
     <?php include __DIR__ . '/navbar.php'; ?>
 
-    <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
-        <div class="spinner"></div>
+        <div class="spinner-leaf"></div>
+        <p style="color:var(--sage);font-weight:600;">กำลังดำเนินการ...</p>
     </div>
 
-    <!-- Page Header -->
-    <div class="page-header">
+    <!-- PAGE HEADER -->
+    <div class="pg-header">
         <div class="container">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
@@ -601,390 +1031,408 @@ unset($_SESSION['order_error']);
                     <li class="breadcrumb-item active">ตะกร้าสินค้า</li>
                 </ol>
             </nav>
-            <h1 class="page-title"><i class="fas fa-shopping-basket"></i> ตะกร้าสินค้า</h1>
-        </div>
-    </div>
-
-    <div class="container mb-5">
-        <form action="save_order.php" method="post" onsubmit="return submitOrder()">
-            <div class="row">
-                <!-- Cart Items Section -->
-                <div class="col-lg-7 mb-4">
-                    <div class="cart-section">
-                        <h3 class="section-title">
-                            <i class="fas fa-shopping-basket"></i> รายการสินค้า
-                            <span class="badge bg-dark ms-2" id="itemCount">0</span>
-                        </h3>
-
-                        <div id="cartItems">
-                            <!-- Cart items will be rendered here -->
-                        </div>
-
-                        <div id="emptyCart" class="empty-cart" style="display: none;">
-                            <i class="fas fa-shopping-cart"></i>
-                            <h4>ตะกร้าสินค้าว่างเปล่า</h4>
-                            <p class="text-muted">ยังไม่มีสินค้าในตะกร้า กรุณาเลือกสินค้าที่ต้องการ</p>
-                            <a href="products.php" class="btn-continue mt-3">
-                                <i class="fas fa-arrow-left"></i> เลือกซื้อสินค้า
-                            </a>
-                        </div>
-
-                        <!-- Cart Summary -->
-                        <div class="cart-summary" id="cartSummary" style="display: none;">
-                            <div class="summary-row">
-                                <span class="summary-label">ยอดรวมสินค้า</span>
-                                <span class="summary-value" id="subtotal">฿0.00</span>
-                            </div>
-                            <div class="summary-row">
-                                <span class="summary-label">ค่าจัดส่ง</span>
-                                <span class="summary-value text-success">ฟรี</span>
-                            </div>
-                            <div class="summary-row">
-                                <span class="summary-label"><strong>รวมทั้งสิ้น</strong></span>
-                                <span class="summary-total" id="totalPrice">฿0.00</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Continue Shopping Button (Mobile) -->
-                    <div class="d-lg-none mb-3">
-                        <a href="products.php" class="btn-continue w-100 text-center">
-                            <i class="fas fa-arrow-left"></i> เลือกซื้อสินค้าเพิ่ม
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Order Form Section -->
-                <div class="col-lg-5">
-                    <div class="form-section">
-                        <h3 class="section-title">
-                            <i class="fas fa-user-circle"></i> ข้อมูลผู้สั่งซื้อ
-                        </h3>
-
-                        <input type="hidden" name="member_id" value="<?= $member_id ?>">
-
-                        <div class="mb-3">
-                            <label class="form-label"><i class="fas fa-user"></i> ชื่อ-นามสกุล</label>
-                            <input type="text" name="customer_name" class="form-control"
-                                value="<?= htmlspecialchars($member_name) ?>"
-                                placeholder="กรอกชื่อ-นามสกุล" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label"><i class="fas fa-phone"></i> เบอร์โทรศัพท์</label>
-                            <input type="tel" name="customer_phone" class="form-control"
-                                value="<?= htmlspecialchars($member_phone) ?>"
-                                placeholder="กรอกเบอร์โทรศัพท์" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label"><i class="fas fa-truck"></i> วิธีรับสินค้า</label>
-
-                            <div class="receive-type-card active" onclick="selectReceiveType('pickup')">
-                                <input type="radio" name="receive_type" value="pickup" id="pickup" checked>
-                                <div class="receive-icon"><i class="fas fa-store"></i></div>
-                                <div class="receive-content">
-                                    <div class="receive-title">รับที่สวน</div>
-                                    <div class="receive-desc">รับสินค้าด้วยตัวเองที่สวนลุงเผือก</div>
-                                </div>
-                            </div>
-
-                            <div class="receive-type-card" onclick="selectReceiveType('delivery')">
-                                <input type="radio" name="receive_type" value="delivery" id="delivery">
-                                <div class="receive-icon"><i class="fas fa-shipping-fast"></i></div>
-                                <div class="receive-content">
-                                    <div class="receive-title">จัดส่งถึงบ้าน</div>
-                                    <div class="receive-desc">ส่งสินค้าถึงบ้าน (เฉพาะพื้นที่ที่กำหนด ขั้นต่ำ 500 บาท)</div>
-                                </div>
-                            </div>
-                            
-                        </div>
-			                    <div class="mb-3">
-                        <label class="form-label" id="address_label">
-                            <i class="fas fa-sticky-note"></i> หมายเหตุถึงแอดมิน (ถ้ามี)
-                        </label>
-                        <textarea name="customer_address" id="customer_address"
-                                  class="form-control" rows="3"
-                                  placeholder="เช่น จะไปรับช่วงบ่าย 3 โมง"></textarea>
-                    </div>
-                        <div class="mb-3">
-                            <label class="form-label">
-                                <i class="fas fa-calendar-alt"></i> วันเวลาที่ต้องการรับ
-                            </label>
-                            <button type="button" class="dt-trigger w-100" onclick="openDateModal()">
-                                <i class="fas fa-calendar"></i>
-                                <span id="triggerText">กดเพื่อเลือกวัน-เวลา</span>
-                                <i class="fas fa-chevron-down ms-auto"></i>
-                            </button>
-                            <input type="hidden" id="receive_datetime" name="receive_datetime">
-
-
-                            <div class="info-alert">
-                                <i class="fas fa-info-circle"></i>
-                                <small>ทางสวนจะติดต่อกลับเมื่อสินค้ามีจำนวนไม่เพียงพอ</small>
-                            </div>
-
-                            <input type="hidden" name="cart_data" id="cartData">
-
-                            <button type="submit" class="btn-submit" id="submitBtn">
-                                <i class="fas fa-check-circle"></i> ยืนยันการสั่งซื้อ
-                            </button>
-                        </div>
-
-                        <!-- Continue Shopping Button (Desktop) -->
-                        <div class="d-none d-lg-block mt-3">
-                            <a href="products.php" class="btn-continue w-100 text-center">
-                                <i class="fas fa-arrow-left"></i> เลือกซื้อสินค้าเพิ่ม
-                            </a>
-                        </div>
-                    </div>
-                </div>
-        </form>
-    </div>
-
-    <!-- Date & Time Modal -->
-
-<div class="modal fade" id="dateModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg">
-
-            <div class="modal-body p-4">
-
-                <!-- header -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h4 class="fw-bold mb-1">
-                            <i class="fas fa-calendar-check text-success me-2"></i>
-                            เลือกวันรับสินค้า
-                        </h4>
-
-                        <small class="text-muted">
-                            กรุณาเลือกวันที่และเวลาที่สะดวก
-                        </small>
-                    </div>
-
-                    <button class="btn-close"
-                        data-bs-dismiss="modal"></button>
-                </div>
-
-                <!-- quick -->
-                <div class="row g-2 mb-4">
-
-                    <div class="col-6">
-                        <button type="button"
-                            class="quick-date-btn w-100"
-                            onclick="setQuickDate(0,this)">
-                             วันนี้
-                        </button>
-                    </div>
-
-                    <div class="col-6">
-                        <button type="button"
-                            class="quick-date-btn w-100"
-                            onclick="setQuickDate(1,this)">
-                             พรุ่งนี้
-                        </button>
-                    </div>
-
-                </div>
-
-                <!-- date -->
-                <div class="mb-4">
-                    <label class="fw-semibold mb-2">
-                        วันที่รับสินค้า
-                    </label>
-
-                    <input type="date"
-                        id="customDate"
-                        class="form-control modern-input">
-                </div>
-
-                <!-- time -->
-                <div class="mb-4">
-
-                    <label class="fw-semibold mb-3">
-                        เวลา
-                    </label>
-
-                    <!-- input time -->
-                    <input type="time"
-                        id="customTime"
-                        class="form-control modern-input mb-3"
-                        min="08:00"
-                        max="18:00"
-                        step="1800">
-
-                    <!-- quick time -->
-                    <div class="time-grid">
-
-                        <button type="button"
-                            class="time-btn"
-                            onclick="setTime('08:30',this)">
-                            08:30
-                        </button>
-
-                        <button type="button"
-                            class="time-btn"
-                            onclick="setTime('10:00',this)">
-                            10:00
-                        </button>
-
-                        <button type="button"
-                            class="time-btn"
-                            onclick="setTime('13:00',this)">
-                            13:00
-                        </button>
-
-                        <button type="button"
-                            class="time-btn"
-                            onclick="setTime('15:00',this)">
-                            15:00
-                        </button>
-
-                        <button type="button"
-                            class="time-btn"
-                            onclick="setTime('17:00',this)">
-                            17:00
-                        </button>
-
-                        <button type="button"
-                            class="time-btn"
-                            onclick="setTime('18:00',this)">
-                            18:00
-                        </button>
-
-                    </div>
-                </div>
-
-                <!-- confirm -->
-                <button class="btn btn-success btn-confirm-date w-100"
-                    onclick="confirmDate()">
-
-                    <i class="fas fa-check-circle me-2"></i>
-                    ยืนยันวันรับสินค้า
-
-                </button>
-
+            <div class="pg-title">
+                <div class="pg-title-icon"><i class="fas fa-shopping-basket"></i></div>
+                ตะกร้าสินค้า
             </div>
-
         </div>
     </div>
-</div>
-    <!-- End of Modal -->
+
+    <div class="main-wrap">
+        <div class="container">
+            <form action="save_order.php" method="post" onsubmit="return submitOrder()">
+                <div class="row g-4 align-items-start">
+
+                    <!-- LEFT: CART -->
+                    <div class="col-lg-8">
+
+                        <div class="section-label">
+                            <i class="fas fa-leaf"></i>
+                            รายการสินค้า
+                        </div>
+
+                        <!-- Column headers (desktop) -->
+                        <div class="cart-col-header d-none d-lg-grid">
+                            <span>สินค้า</span>
+                            <span>ราคา/ชิ้น</span>
+                            <span>จำนวน</span>
+                            <span>รวม</span>
+                            <span></span>
+                        </div>
+
+                        <!-- Cart card -->
+                        <div class="cart-card">
+                            <div id="cartItems"></div>
+
+                            <!-- Empty state -->
+                            <div id="emptyCart" class="empty-state" style="display:none;">
+                                <div class="empty-icon"><i class="fas fa-shopping-basket"></i></div>
+                                <div class="empty-title">ตะกร้าว่างเปล่า</div>
+                                <p class="empty-sub">ยังไม่มีสินค้าที่เลือก ไปเลือกผลผลิตสดจากสวนกันเลย!</p>
+                                <a href="products.php" class="btn-shop-now">
+                                    <i class="fas fa-seedling"></i> เลือกซื้อสินค้า
+                                </a>
+                            </div>
+
+                            <!-- Cart footer -->
+                            <div class="cart-footer" id="cartFooter" style="display:none;">
+                                <button type="button" class="btn-clear" onclick="clearCart()">
+                                    <i class="fas fa-trash-alt"></i> ล้างตะกร้า
+                                </button>
+                                <div class="footer-total-wrap">
+                                    <div class="footer-total-label">ยอดรวมสินค้า</div>
+                                    <div class="footer-total-amount" id="footerTotal" style="color: red;">฿0.00</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- RIGHT: CHECKOUT -->
+                    <div class="col-lg-4">
+
+                        <div class="section-label">
+                            <i class="fas fa-receipt"></i>
+                            ชำระเงิน
+                        </div>
+
+                        <div class="checkout-panel">
+                            <div class="panel-head">
+                                <div class="panel-head-icon">
+                                    <i class="fas fa-receipt"></i>
+                                </div>
+                                <div class="panel-head-title">สรุปคำสั่งซื้อ</div>
+                            </div>
+
+                            <div class="panel-body">
+                                <input type="hidden" name="member_id" value="<?= $member_id ?>">
+
+                                <!-- SUMMARY -->
+                                <div class="summary-box">
+                                    <div class="summary-row">
+                                        <span>ยอดสินค้า</span>
+                                        <span id="subtotal">฿0.00</span>
+                                    </div>
+                                    <div class="summary-row">
+                                        <span>ค่าจัดส่ง</span>
+                                        <span id="shippingText">-</span>
+                                    </div>
+                                    <div class="summary-row total-row ">
+                                        <span>ยอดรวมทั้งหมด</span>
+                                        <span id="totalPrice" style="color: red;">฿0.00</span>
+                                    </div>
+                                </div>
+
+                                <!-- NAME -->
+                                <div class="mb-field">
+                                    <label class="form-label"><i class="fas fa-user" style="color:var(--sage);margin-right:6px"></i>ชื่อผู้สั่งซื้อ</label>
+                                    <input type="text" name="customer_name" class="form-control"
+                                        value="<?= htmlspecialchars($member_name) ?>"
+                                        placeholder="กรอกชื่อ-นามสกุล">
+                                </div>
+
+                                <!-- PHONE -->
+                                <div class="mb-field">
+                                    <label class="form-label"><i class="fas fa-phone" style="color:var(--sage);margin-right:6px"></i>เบอร์โทรศัพท์</label>
+                                    <input type="tel" name="customer_phone" class="form-control"
+                                        value="<?= htmlspecialchars($member_phone) ?>"
+                                        placeholder="เช่น 08X-XXX-XXXX">
+                                </div>
+
+                                <!-- RECEIVE TYPE -->
+                                <div class="mb-field">
+                                    <label class="form-label"><i class="fas fa-box" style="color:var(--sage);margin-right:6px"></i>วิธีรับสินค้า</label>
+                                    <div class="receive-grid">
+                                        <label class="receive-card active" onclick="selectReceiveType('pickup')">
+                                            <input type="radio" name="receive_type" value="pickup" checked>
+                                            <div class="receive-icon"><i class="fas fa-store"></i></div>
+                                            <div class="receive-text">
+                                                <strong>รับที่สวน</strong>
+                                                <small>รับเองที่สวนลุงเผือก</small>
+                                            </div>
+                                        </label>
+                                        <label class="receive-card" onclick="selectReceiveType('delivery')">
+                                            <input type="radio" name="receive_type" value="delivery">
+                                            <div class="receive-icon"><i class="fas fa-truck"></i></div>
+                                            <div class="receive-text">
+                                                <strong>จัดส่ง</strong>
+                                                <small>ขั้นต่ำ 500 บาท ส่งฟรี</small>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- ADDRESS / NOTE -->
+                                <div class="mb-field">
+                                    <label class="form-label" id="address_label">
+                                        <i class="fas fa-sticky-note" style="color:var(--sage);margin-right:6px"></i>หมายเหตุ
+                                    </label>
+                                    <textarea class="form-control" name="customer_address" id="customer_address"
+                                        placeholder="หมายเหตุเพิ่มเติม" rows="3"></textarea>
+                                </div>
+
+                                <!-- DATE -->
+                                <div class="mb-field">
+                                    <label class="form-label"><i class="fas fa-calendar-alt" style="color:var(--sage);margin-right:6px"></i>วันเวลารับสินค้า</label>
+                                    <button type="button" class="date-btn" onclick="openDateModal()">
+                                        <div class="date-btn-icon"><i class="fas fa-calendar-alt"></i></div>
+                                        <span id="triggerText">เลือกวันและเวลา</span>
+                                    </button>
+                                    <input type="hidden" id="receive_datetime" name="receive_datetime">
+                                </div>
+
+                                <!-- INFO ALERT -->
+                                <div class="info-alert">
+                                    <i class="fas fa-circle-exclamation" style="margin-top:2px;flex-shrink:0"></i>
+                                    <span>สินค้าอาจมีจำนวนจำกัด ทางสวนจะติดต่อกลับหากสินค้าไม่พอ</span>
+                                </div>
+
+                                <input type="hidden" name="cart_data" id="cartData">
+
+                                <!-- SUBMIT -->
+                                <button type="submit" class="btn-checkout" id="submitBtn" disabled>
+                                    <i class="fas fa-check-circle"></i> ยืนยันการสั่งซื้อ
+                                </button>
+
+                                <a href="products.php" class="btn-continue-link">
+                                    <i class="fas fa-arrow-left"></i> เลือกซื้อเพิ่ม
+                                </a>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DATE MODAL -->
+    <div class="modal fade" id="dateModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+
+                <div class="modal-head">
+                    <h5><i class="fas fa-calendar-check me-2"></i>เลือกวันรับสินค้า</h5>
+                    <button class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    <label class="modal-label">วันที่รับสินค้า</label>
+
+                    <div class="quick-date-grid">
+                        <button type="button" class="quick-btn" onclick="setQuickDate(0,this)">
+                            <label for="today">วันนี้</label>
+                        </button>
+                        <button type="button" class="quick-btn" onclick="setQuickDate(1,this)">
+                            <label for="tomorrow">พรุ่งนี้</label>
+                        </button>
+                    </div>
+
+                    <div style="margin-bottom:20px;">
+                        <input type="date" id="customDate" class="form-control" style="background:var(--cream);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;">
+                    </div>
+
+                    <label class="modal-label">ช่วงเวลา</label>
+                    <input type="time" id="customTime" class="form-control"
+                        style="background:var(--cream);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;"
+                        min="08:00" max="18:00" step="1800">
+
+                    <div class="time-grid">
+                        <button type="button" class="time-pill" onclick="setTime('08:30',this)">08:30</button>
+                        <button type="button" class="time-pill" onclick="setTime('10:00',this)">10:00</button>
+                        <button type="button" class="time-pill" onclick="setTime('13:00',this)">13:00</button>
+                        <button type="button" class="time-pill" onclick="setTime('15:00',this)">15:00</button>
+                        <button type="button" class="time-pill" onclick="setTime('17:00',this)">17:00</button>
+                        <button type="button" class="time-pill" onclick="setTime('18:00',this)">18:00</button>
+                    </div>
+
+                    <button class="btn-confirm" onclick="confirmDate()">
+                        <i class="fas fa-check-circle me-2"></i>ยืนยันวันรับสินค้า
+                    </button>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
     <?php include 'footer.php'; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
     <script>
         let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-        // Render cart items
+
+        // ฟอร์แมตราคา
+        function formatPrice(price) {
+            return '฿' + Number(price).toLocaleString('th-TH', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
         function renderCart() {
             const cartItems = document.getElementById("cartItems");
             const emptyCart = document.getElementById("emptyCart");
-            const cartSummary = document.getElementById("cartSummary");
-            const itemCount = document.getElementById("itemCount");
             const submitBtn = document.getElementById("submitBtn");
+            const cartFooter = document.getElementById("cartFooter");
+            const shippingText = document.getElementById("shippingText");
+
+            if (!Array.isArray(cart)) cart = [];
 
             if (cart.length === 0) {
                 cartItems.innerHTML = "";
                 emptyCart.style.display = "block";
-                cartSummary.style.display = "none";
                 submitBtn.disabled = true;
-                itemCount.textContent = "0";
+                cartFooter.style.display = "none";
+                document.getElementById("subtotal").textContent = "฿0.00";
+                document.getElementById("totalPrice").textContent = "฿0.00";
                 return;
             }
 
             emptyCart.style.display = "none";
-            cartSummary.style.display = "block";
             submitBtn.disabled = false;
-            itemCount.textContent = cart.length;
+            cartFooter.style.display = "flex";
 
             let total = 0;
             let html = "";
 
-            cart.forEach((item, index) => {
-                const itemTotal = item.price * item.quantity;
-                total += itemTotal;
+            const receiveType =
+                document.querySelector('input[name="receive_type"]:checked')?.value || 'pickup';
+
+            cart.forEach((item, idx) => {
+                item.quantity = parseInt(item.quantity) || 1;
+                item.price = parseFloat(item.price) || 0;
+                const sub = item.price * item.quantity;
+                total += sub;
 
                 html += `
-        <div class="cart-item">
-            <img src="${item.image}" alt="${item.name}" class="product-image">
-            
-            <div class="product-info">
-                <div class="product-name">${item.name}</div>
-                <div class="product-price">฿${parseFloat(item.price).toFixed(2)}</div>
-            </div>
-            
-            <div class="quantity-control">
-                <button type="button" class="qty-btn" onclick="decreaseQty(${index})">
-                    <i class="fas fa-minus"></i>
+                <div class="cart-item">
+                    <div class="item-product">
+                        <div class="item-img-wrap">
+                            <img src="${item.image || 'assets/no-image.png'}"
+                                class="item-img"
+                                onerror="this.src='assets/no-image.png'">
+                            ${item.quantity > 1 ? `<span class="item-badge">${item.quantity}</span>` : ''}
+                        </div>
+                        <div>
+                            <div class="item-name">${item.name || 'ไม่พบชื่อสินค้า'}</div>
+                            <span class="item-tag">แนะนำ</span>
+                        </div>
+                    </div>
+
+                   <div class="item-price">${formatPrice(item.price)}</div>
+
+              <div class="item-actions">
+
+                <div class="item-qty">
+                    <div class="qty-wrap">
+                        <button type="button" class="qty-btn" onclick="decreaseQty(${idx})">
+                            <i class="fas fa-minus"></i>
+                        </button>
+
+                        <input type="number" class="qty-num" value="${item.quantity}"
+                            min="1" onchange="updateQty(${idx}, this.value)">
+
+                        <button type="button" class="qty-btn" onclick="increaseQty(${idx})">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="item-total">${formatPrice(sub)}</div>
+
+                <button type="button" class="btn-remove" onclick="removeItem(${idx})">
+                    <i class="fas fa-trash"></i>
                 </button>
-                <input type="number" class="qty-input" value="${item.quantity}" 
-                       min="1" onchange="updateQty(${index}, this.value)">
-                <button type="button" class="qty-btn" onclick="increaseQty(${index})">
-                    <i class="fas fa-plus"></i>
-                </button>
+
             </div>
-            
-            <div class="item-total">฿${itemTotal.toFixed(2)}</div>
-            
-            <button type="button" class="btn-remove" onclick="removeItem(${index})">
-                <i class="fas fa-trash"></i> ลบ
-            </button>
-        </div>
-        `;
+                </div>`;
             });
 
             cartItems.innerHTML = html;
-            document.getElementById("subtotal").textContent = `฿${total.toFixed(2)}`;
-            document.getElementById("totalPrice").textContent = `฿${total.toFixed(2)}`;
+
+            if (receiveType === 'delivery') {
+                if (total >= 500) {
+                    shippingText.innerHTML = '<span class="free-tag">ฟรี</span>';
+                } else {
+                    shippingText.innerHTML = '<span style="color:red;">ขั้นต่ำ 500 บาท</span>';
+                }
+            } else {
+                shippingText.innerHTML = '<span style="color:var(--sage);">รับที่สวน</span>';
+            }
+            document.getElementById("subtotal").textContent = formatPrice(total);
+            document.getElementById("totalPrice").textContent = formatPrice(total);
+            document.getElementById("footerTotal").textContent = formatPrice(total);
         }
 
-        // Quantity controls
-        function increaseQty(index) {
-            cart[index].quantity++;
+        function clearCart() {
+            Swal.fire({
+                title: 'ล้างตะกร้า?',
+                text: 'ต้องการลบสินค้าทั้งหมดออกจากตะกร้า?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e05a38',
+                cancelButtonColor: '#888',
+                confirmButtonText: 'ลบทั้งหมด',
+                cancelButtonText: 'ยกเลิก'
+            }).then(r => {
+                if (r.isConfirmed) {
+                    cart = [];
+                    saveCart();
+                    renderCart();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ล้างตะกร้าแล้ว',
+                        timer: 1400,
+                        showConfirmButton: false
+                    });
+                }
+            });
+        }
+
+        function increaseQty(i) {
+            cart[i].quantity++;
             saveCart();
             renderCart();
         }
 
-        function decreaseQty(index) {
-            if (cart[index].quantity > 1) {
-                cart[index].quantity--;
+        function decreaseQty(i) {
+            if (cart[i].quantity > 1) {
+                cart[i].quantity--;
                 saveCart();
                 renderCart();
             }
         }
 
-        function updateQty(index, value) {
-            const qty = parseInt(value);
-            if (qty > 0) {
-                cart[index].quantity = qty;
+        function updateQty(i, v) {
+            const q = parseInt(v);
+            if (q > 0) {
+                cart[i].quantity = q;
                 saveCart();
                 renderCart();
             }
         }
 
-        function removeItem(index) {
+        function removeItem(i) {
             Swal.fire({
-                title: 'ยืนยันการลบ?',
-                text: 'คุณต้องการลบสินค้านี้ออกจากตะกร้า?',
-                icon: 'warning',
+                title: 'ลบสินค้า?',
+                text: 'ต้องการลบสินค้านี้ออกจากตะกร้า?',
+                icon: 'question',
                 showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
+                confirmButtonColor: '#e05a38',
+                cancelButtonColor: '#888',
                 confirmButtonText: 'ลบ',
                 cancelButtonText: 'ยกเลิก'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    cart.splice(index, 1);
+            }).then(r => {
+                if (r.isConfirmed) {
+                    cart.splice(i, 1);
                     saveCart();
                     renderCart();
-
                     Swal.fire({
                         icon: 'success',
                         title: 'ลบสินค้าแล้ว',
-                        timer: 1500,
+                        timer: 1400,
                         showConfirmButton: false
                     });
                 }
@@ -995,203 +1443,140 @@ unset($_SESSION['order_error']);
             localStorage.setItem("cart", JSON.stringify(cart));
         }
 
-        // Receive type selection
         function selectReceiveType(type) {
-            const cards = document.querySelectorAll('.receive-type-card');
-            cards.forEach(card => card.classList.remove('active'));
-
-            const selectedCard = document.querySelector(`#${type}`).closest('.receive-type-card');
-            selectedCard.classList.add('active');
-
-            document.querySelector(`#${type}`).checked = true;
-
+            document.querySelectorAll('.receive-card').forEach(c => c.classList.remove('active'));
+            const inp = document.querySelector(`input[value="${type}"]`);
+            inp.closest('.receive-card').classList.add('active');
+            inp.checked = true;
             toggleAddressField(type);
+            renderCart();
         }
 
         function toggleAddressField(type) {
-            const addressLabel = document.getElementById('address_label');
-            const addressInput = document.getElementById('customer_address');
-
+            const lbl = document.getElementById('address_label');
+            const ta = document.getElementById('customer_address');
             if (type === 'pickup') {
-                addressLabel.innerHTML = '<i class="fas fa-sticky-note"></i> หมายเหตุถึงแอดมิน (ถ้ามี)';
-                addressInput.placeholder = 'เช่น จะไปรับช่วงบ่าย 3 โมง';
-                addressInput.removeAttribute('required');
+                lbl.innerHTML = '<i class="fas fa-sticky-note" style="color:var(--sage);margin-right:6px"></i>หมายเหตุ';
+                ta.placeholder = 'หมายเหตุเพิ่มเติม เช่น จะไปรับช่วงบ่าย 3 โมง';
+                ta.removeAttribute('required');
             } else {
-                addressLabel.innerHTML = '<i class="fas fa-map-marker-alt"></i> รายละเอียดที่อยู่จัดส่ง';
-                addressInput.placeholder = 'กรอกที่อยู่สำหรับจัดส่ง';
-                addressInput.setAttribute('required', 'required');
+                lbl.innerHTML = '<i class="fas fa-map-marker-alt" style="color:var(--sage);margin-right:6px"></i>ที่อยู่จัดส่ง';
+                ta.placeholder = 'กรอกที่อยู่สำหรับจัดส่ง เช่น ซอย หมู่บ้านที่เจาะจงเพื่อการจัดส่งที่ถูกต้อง';
+                ta.setAttribute('required', 'required');
             }
         }
 
-        function setTime(time) {
-            selectedTime = time;
-
-            document.querySelectorAll('.time-btn').forEach(btn => {
-                btn.classList.remove('btn-dark');
-                btn.classList.add('btn-light');
-            });
-
-            event.target.classList.remove('btn-light');
-            event.target.classList.add('btn-dark');
-        }
-
-        // Submit order
         function submitOrder() {
-            const receiveDatetime = document.getElementById("receive_datetime").value.trim();
-            const receiveType = document.querySelector('input[name="receive_type"]:checked')?.value || '';
-            const customerName = document.querySelector('input[name="customer_name"]').value.trim();
-            const customerPhone = document.querySelector('input[name="customer_phone"]').value.trim();
-            const customerAddress = document.getElementById("customer_address").value.trim();
-            const cartTotal = cart.reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity)), 0);
+            const dt = document.getElementById("receive_datetime").value.trim();
+            const type = document.querySelector('input[name="receive_type"]:checked')?.value || '';
+            const name = document.querySelector('input[name="customer_name"]').value.trim();
+            const phone = document.querySelector('input[name="customer_phone"]').value.trim();
+            const address = document.getElementById("customer_address").value.trim();
+            const total = cart.reduce((s, i) => s + (Number(i.price) * Number(i.quantity)), 0);
 
             if (cart.length === 0) {
                 Swal.fire({
                     icon: 'error',
-                    title: 'ไม่มีสินค้าในตะกร้า',
-                    text: 'กรุณาเลือกสินค้าก่อนทำการสั่งซื้อ'
+                    title: 'ตะกร้าว่าง',
+                    text: 'กรุณาเลือกสินค้าก่อนสั่งซื้อ'
                 });
                 return false;
             }
-
-            if (!customerName || !customerPhone) {
+            if (!name || !phone) {
                 Swal.fire({
                     icon: 'error',
-                    title: 'กรุณากรอกข้อมูลให้ครบ',
-                    text: 'กรุณาระบุชื่อและเบอร์โทรศัพท์ก่อนสั่งซื้อ'
+                    title: 'ข้อมูลไม่ครบ',
+                    text: 'กรุณากรอกชื่อและเบอร์โทรศัพท์'
                 });
                 return false;
             }
-
-            if (!receiveDatetime) {
+            if (!dt) {
                 Swal.fire({
                     icon: 'error',
-                    title: 'ยังไม่ได้เลือกวันเวลา',
-                    text: 'กรุณาเลือกวันและเวลารับสินค้าก่อน'
+                    title: 'ยังไม่เลือกวัน-เวลา',
+                    text: 'กรุณาเลือกวันและเวลารับสินค้า'
                 });
                 return false;
             }
-
-            if (receiveType === 'delivery' && !customerAddress) {
+            if (type === 'delivery' && !address) {
                 Swal.fire({
                     icon: 'error',
-                    title: 'กรุณาระบุที่อยู่จัดส่ง',
-                    text: 'ระบบต้องมีที่อยู่เมื่อเลือกจัดส่งถึงบ้าน'
+                    title: 'ระบุที่อยู่',
+                    text: 'กรุณากรอกที่อยู่สำหรับจัดส่ง'
                 });
                 return false;
             }
-
-            if (receiveType === 'delivery' && cartTotal < 500) {
+            if (type === 'delivery' && total < 500) {
                 Swal.fire({
                     icon: 'error',
-                    title: 'ยอดสั่งซื้อไม่ถึงขั้นต่ำ',
-                    text: 'การจัดส่งถึงบ้านต้องมียอดสั่งซื้อขั้นต่ำ 500 บาท'
+                    title: 'ยอดไม่ถึงขั้นต่ำ',
+                    text: 'การจัดส่งต้องมียอดขั้นต่ำ 500 บาท'
                 });
                 return false;
             }
 
             document.getElementById("cartData").value = JSON.stringify(cart);
-
-            // Show loading
             document.getElementById("loadingOverlay").style.display = "flex";
             document.getElementById("submitBtn").disabled = true;
-
             return true;
         }
 
-        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             renderCart();
-
-            // Initialize receive type
             toggleAddressField('pickup');
 
             <?php if ($order_error !== ''): ?>
-            Swal.fire({
-                icon: 'error',
-                title: 'ไม่สามารถสั่งซื้อได้',
-                text: <?= json_encode($order_error, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>
-            });
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ไม่สามารถสั่งซื้อได้',
+                    text: <?= json_encode($order_error, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>
+                });
             <?php endif; ?>
         });
 
-      let selectedDate = "";
-let selectedTime = "";
+        let selectedDate = "",
+            selectedTime = "";
 
-function openDateModal() {
-    const modal = new bootstrap.Modal(
-        document.getElementById('dateModal')
-    );
+        function openDateModal() {
+            new bootstrap.Modal(document.getElementById('dateModal')).show();
+        }
 
-    modal.show();
-}
+        function setQuickDate(offset, el) {
+            const d = new Date();
+            d.setDate(d.getDate() + offset);
+            selectedDate = d.toISOString().split('T')[0];
+            document.getElementById('customDate').value = selectedDate;
+            document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+        }
 
-function setQuickDate(offset, el) {
+        function setTime(t, el) {
+            selectedTime = t;
+            document.getElementById('customTime').value = t;
+            document.querySelectorAll('.time-pill').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+        }
 
-    const d = new Date();
+        function confirmDate() {
+            const cd = document.getElementById("customDate").value;
+            const ct = document.getElementById("customTime").value;
+            if (cd) selectedDate = cd;
+            if (ct) selectedTime = ct;
 
-    d.setDate(d.getDate() + offset);
+            if (!selectedDate || !selectedTime) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'กรุณาเลือกวัน-เวลา',
+                    text: 'โปรดระบุวันที่และเวลารับสินค้า'
+                });
+                return;
+            }
 
-    selectedDate = d.toISOString().split('T')[0];
-
-    document.getElementById('customDate').value = selectedDate;
-
-    document.querySelectorAll('.quick-date-btn')
-        .forEach(btn => btn.classList.remove('active'));
-
-    el.classList.add('active');
-}
-
-function setTime(time, el) {
-
-    selectedTime = time;
-
-    document.getElementById('customTime').value = time;
-
-    document.querySelectorAll('.time-btn')
-        .forEach(btn => btn.classList.remove('active'));
-
-    el.classList.add('active');
-}
-
-function confirmDate() {
-
-    const customDate =
-        document.getElementById("customDate").value;
-
-    const customTime =
-        document.getElementById("customTime").value;
-
-    if (customDate)
-        selectedDate = customDate;
-
-    if (customTime)
-        selectedTime = customTime;
-
-    if (!selectedDate || !selectedTime) {
-
-        Swal.fire({
-            icon: 'warning',
-            title: 'กรุณาเลือกวันเวลา',
-            text: 'โปรดเลือกวันและเวลารับสินค้า'
-        });
-
-        return;
-    }
-
-    const full =
-        selectedDate + " " + selectedTime;
-
-    document.getElementById("receive_datetime").value = full;
-
-    document.getElementById("triggerText").innerHTML =
-        `📅 ${selectedDate} เวลา ${selectedTime} น.`;
-
-    bootstrap.Modal.getInstance(
-        document.getElementById('dateModal')
-    ).hide();
-}
+            document.getElementById("receive_datetime").value = `${selectedDate} ${selectedTime}`;
+            document.getElementById("triggerText").textContent = `${selectedDate}  เวลา ${selectedTime} น.`;
+            bootstrap.Modal.getInstance(document.getElementById('dateModal')).hide();
+        }
     </script>
-
 </body>
 
 </html>

@@ -40,12 +40,12 @@ if (isset($_SESSION['member_id'])) {
 
     <style>
         :root {
-            --primary-color: #25a2b6;
-            --secondary-color: #44e3ff;
+            --primary-color: #016A70;
+            --secondary-color: #2ad3bc;
             --text-color: #686767;
             --bg-color: #f5f5f5;
             --red: #ff4d4f;
-            --green: #7ad04f;
+            --เขียว: #05d135;
             --yellow: #ffcc00;
         }
 
@@ -73,7 +73,7 @@ if (isset($_SESSION['member_id'])) {
         .hero-banner {
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             margin: 0 0 20px 0;
-            padding: 40px 0;
+            padding: 5px 0;
             position: relative;
             overflow: hidden;
         }
@@ -103,14 +103,104 @@ if (isset($_SESSION['member_id'])) {
         .hero-content {
             position: relative;
             z-index: 2;
+
         }
 
-        .hero-title {
-            font-size: 2.2rem;
-            font-weight: 800;
-            color: white;
-            margin-bottom: 10px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.hero-title {
+    font-size: 3rem;
+    font-weight: 900;
+    margin-top: 1rem;
+    line-height: 1.15;
+    letter-spacing: -1px;
+
+    margin-bottom: 12px;
+
+    position: relative;
+    z-index: 2;
+
+    color: #ffffff;
+
+    text-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.25),
+        0 6px 18px rgba(0, 0, 0, 0.35),
+        0 0 20px rgba(255, 255, 255, 0.25);
+
+    animation: glowText 3s ease-in-out infinite;
+}
+
+/* Shine Effect */
+.hero-title::after {
+    content: '';
+    position: absolute;
+
+    top: 0;
+    left: -120%;
+
+    width: 60%;
+    height: 100%;
+
+    background: linear-gradient(
+        120deg,
+        transparent,
+        rgba(255,255,255,.5),
+        transparent
+    );
+
+    transform: skewX(-20deg);
+
+    animation: shine 4s infinite;
+}
+
+/* Glow Animation */
+@keyframes glowText {
+    0% {
+        text-shadow:
+            0 2px 4px rgba(0,0,0,.25),
+            0 6px 18px rgba(0,0,0,.35),
+            0 0 10px rgba(255,255,255,.15);
+    }
+
+    50% {
+        text-shadow:
+            0 2px 6px rgba(0,0,0,.3),
+            0 8px 22px rgba(0,0,0,.45),
+            0 0 25px rgba(255,255,255,.4);
+    }
+
+    100% {
+        text-shadow:
+            0 2px 4px rgba(0,0,0,.25),
+            0 6px 18px rgba(0,0,0,.35),
+            0 0 10px rgba(255,255,255,.15);
+    }
+}
+
+/* Shine Move */
+@keyframes shine {
+    0% {
+        left: -120%;
+    }
+
+    100% {
+        left: 130%;
+    }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+
+    .hero-title {
+        font-size: 2rem;
+    }
+
+}
+
+        @media (max-width: 768px) {
+
+            .hero-title {
+                font-size: 1.8rem;
+            }
+
         }
 
         .hero-subtitle {
@@ -225,7 +315,7 @@ if (isset($_SESSION['member_id'])) {
             position: absolute;
             top: 10px;
             left: 10px;
-            background: var(--green);
+            background-color: var(--เขียว);
             color: white;
             padding: 4px 10px;
             border-radius: 20px;
@@ -274,17 +364,17 @@ if (isset($_SESSION['member_id'])) {
             line-height: 1.5;
 
             display: -webkit-box;
-              line-clamp: 2;
+            line-clamp: 2;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
 
             overflow: hidden;
             transition: all .3s ease;
-            
+
         }
 
         .product-description-shopee.expanded {
-            -webkit-line-clamp: unset;
+            line-clamp: unset;
             overflow: visible;
         }
 
@@ -419,7 +509,7 @@ if (isset($_SESSION['member_id'])) {
         /* Floating Cart - Shopee Style */
         .cart-floating {
             position: fixed;
-            bottom: 95px;
+            bottom: 170px;
             right: 20px;
             width: 60px;
             height: 60px;
@@ -461,7 +551,7 @@ if (isset($_SESSION['member_id'])) {
 
         .status-floating {
             position: fixed;
-            bottom: 170px;
+            bottom: 95px;
             right: 20px;
             width: 60px;
             height: 60px;
@@ -514,7 +604,7 @@ if (isset($_SESSION['member_id'])) {
             font-size: 1.2rem;
         }
 
-        /* Responsive */
+        /* ---------------------------------Responsive --------------------------- */
         @media (max-width: 768px) {
             .hero-title {
                 font-size: 1.5rem;
@@ -532,7 +622,11 @@ if (isset($_SESSION['member_id'])) {
             }
 
             .status-floating {
-                bottom: 140px;
+                bottom: 95px;
+            }
+
+            .cart-floating {
+                bottom: 155px;
             }
         }
 
@@ -571,6 +665,67 @@ if (isset($_SESSION['member_id'])) {
                 font-size: 0.8rem;
             }
         }
+
+
+
+        /* Shopee Banner Slider */
+        .banner-slider {
+            /* border-radius: 20px; */
+            overflow: hidden;
+        }
+
+        .banner-image {
+            width: 100%;
+            height: 350px;
+            object-fit: cover;
+        }
+
+        .banner-overlay {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+
+            padding: 40px 20px 20px;
+
+            background: linear-gradient(to top,
+                    rgba(0, 0, 0, .6),
+                    rgba(0, 0, 0, 0));
+
+            color: white;
+        }
+
+        .banner-overlay h2 {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .banner-overlay p {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .side-banner {
+            width: 100%;
+            height: calc(175px - 6px);
+            object-fit: cover;
+            /* border-radius: 10px; */
+        }
+
+        @media (max-width: 768px) {
+
+            .banner-image {
+                height: 220px;
+            }
+
+            .side-banner {
+                height: 120px;
+            }
+
+            .banner-overlay h2 {
+                font-size: 1.2rem;
+            }
+        }
     </style>
 </head>
 
@@ -581,11 +736,141 @@ if (isset($_SESSION['member_id'])) {
 
     <!-- Hero Banner Shopee Style -->
     <div class="hero-banner">
+
         <div class="container">
             <div class="hero-content text-center">
                 <h1 class="hero-title">ร้านค้าสวนลุงเผือก</h1>
                 <p class="hero-subtitle"></p>
             </div>
+        </div>
+
+
+        <?php
+
+        $banner_sql = "
+SELECT * FROM products
+WHERE status = 'active'
+AND product_image IS NOT NULL
+AND product_image != ''
+ORDER BY product_id DESC
+";
+        $banner_result = $conn->query($banner_sql);
+        ?>
+        <!-- Shopee Banner Slider -->
+        <div class="container mb-4">
+
+            <div class="row g-3">
+
+                <!-- Main Slider -->
+                <div class="col-lg-8">
+
+                    <div id="productBanner"
+                        class="carousel slide banner-slider"
+                        data-bs-ride="carousel"
+                        data-bs-interval="3000"
+                        data-bs-pause="false"
+                        data-bs-wrap="true">
+
+                        <!-- indicators -->
+                        <div class="carousel-indicators">
+
+                            <?php
+                            $i = 0;
+
+                            while ($row = $banner_result->fetch_assoc()):
+                            ?>
+
+                                <button type="button"
+                                    data-bs-target="#productBanner"
+                                    data-bs-slide-to="<?= $i ?>"
+                                    class="<?= $i == 0 ? 'active' : '' ?>">
+                                </button>
+
+                            <?php
+                                $i++;
+                            endwhile;
+
+                            $banner_result->data_seek(0);
+                            ?>
+
+                        </div>
+
+                        <!-- slides -->
+                        <div class="carousel-inner ">
+
+                            <?php
+                            $active = true;
+
+                            while ($banner = $banner_result->fetch_assoc()):
+
+                                $image = "../admin/uploads/products/" . $banner['product_image'];
+                            ?>
+
+                                <div class="carousel-item <?= $active ? 'active' : '' ?>">
+
+                                    <img src="<?= htmlspecialchars($image) ?>"
+                                        class="d-block w-100 banner-image"
+                                        alt="<?= htmlspecialchars($banner['product_name']) ?>">
+
+                                    <!-- overlay -->
+                                    <div class="banner-overlay">
+
+                                        <h2>
+                                            <?= htmlspecialchars($banner['product_name']) ?>
+                                        </h2>
+
+                                        <p>
+                                            ฿<?= number_format($banner['price']) ?>
+                                            / <?= htmlspecialchars($banner['unit']) ?>
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+                            <?php
+                                $active = false;
+                            endwhile;
+                            ?>
+
+                        </div>
+                        <button class="carousel-control-prev"
+                            type="button"
+                            data-bs-target="#productBanner"
+                            data-bs-slide="prev">
+
+                            <span class="carousel-control-prev-icon"></span>
+                        </button>
+
+                        <button class="carousel-control-next"
+                            type="button"
+                            data-bs-target="#productBanner"
+                            data-bs-slide="next">
+
+                            <span class="carousel-control-next-icon"></span>
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <!-- Main Side Banners -->
+                <div class="col-lg-4">
+
+                    <div class="d-flex flex-column gap-3 h-100">
+
+                        <img src="./image/poster/poster500Free.png"
+                            class="side-banner">
+
+                        <img src="./image/poster/posterproduct.png "
+                            class="side-banner">
+
+                    </div>
+
+                </div>
+
+            </div>
+
         </div>
     </div>
 
@@ -621,6 +906,8 @@ if (isset($_SESSION['member_id'])) {
                 </button>
             </div>
         </div>
+
+
 
         <!-- Product Grid -->
 
@@ -664,9 +951,9 @@ if (isset($_SESSION['member_id'])) {
                         <div class="product-card">
                             <div class="product-image-wrapper">
                                 <?php if ($p['seasonal'] == 1): ?>
-                                    <span class="badge-seasonal">
+                                    <!-- <span class="badge-seasonal">
                                         <i class="fas fa-star"></i> ตามฤดูกาล
-                                    </span>
+                                    </span> -->
                                 <?php endif; ?>
                                 <span class="badge-stock">
                                     <i class="fas fa-check-circle"></i> พร้อมส่ง

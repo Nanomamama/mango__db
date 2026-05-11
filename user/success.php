@@ -1,23 +1,66 @@
 <?php
+session_start();
 require_once __DIR__ . '/../db/db.php';
+
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 if (!isset($_GET['code'])) {
     header("Location: products.php");
     exit;
 }
 
-$code = $_GET['code'];
+$code = trim((string) $_GET['code']);
+
+if ($code === '' || !preg_match('/^ORD\d{6}[A-F0-9]{4}$/', $code)) {
+    header("Location: products.php");
+    exit;
+}
+
+$sessionMemberId = isset($_SESSION['member_id']) ? (int) $_SESSION['member_id'] : null;
+$guestOrderCodes = $_SESSION['guest_order_codes'] ?? [];
+
+if (!is_array($guestOrderCodes)) {
+    $guestOrderCodes = [];
+}
 
 $stmt = $conn->prepare("
-    SELECT * FROM orders 
+    SELECT 
+        order_id,
+        order_code,
+        member_id,
+        customer_name,
+        customer_phone,
+        customer_address,
+        receive_type,
+        receive_datetime,
+        order_status
+    FROM orders
     WHERE order_code = ?
 ");
 $stmt->bind_param("s", $code);
 $stmt->execute();
 $order = $stmt->get_result()->fetch_assoc();
+$stmt->close();
 
 if (!$order) {
-    echo "ไม่พบรายการสั่งซื้อ";
+    header("Location: products.php");
+    exit;
+}
+
+$orderMemberId = isset($order['member_id']) ? (int) $order['member_id'] : 0;
+$canView = false;
+
+if ($orderMemberId > 0) {
+    $canView = $sessionMemberId !== null && $sessionMemberId === $orderMemberId;
+} else {
+    $canView = isset($guestOrderCodes[$code]);
+}
+
+if (!$canView) {
+    http_response_code(403);
+    echo "คุณไม่มีสิทธิ์เข้าถึงคำสั่งซื้อนี้";
     exit;
 }
 
@@ -34,6 +77,7 @@ $item = $conn->prepare("
 $item->bind_param("i", $order['order_id']);
 $item->execute();
 $items = $item->get_result();
+$item->close();
 
 // Map status to Thai text
 $statusMap = [
@@ -43,17 +87,14 @@ $statusMap = [
     'completed' => 'เสร็จสมบูรณ์'
 ];
 $statusText = $statusMap[$order['order_status']] ?? $order['order_status'];
+
+function baht(int|float|string $num): string
+{
+    return '฿' . number_format((float)$num);
+}
 ?>
 
 <!DOCTYPE html>
-<?php
-$msg = "สวัสดีครับ\n";
-$msg .= "ผมสั่งซื้อสินค้าแล้ว\n";
-$msg .= "เลขคำสั่งซื้อ: " . $order['order_code'];
-
-$line_link = "https://line.me/R/ti/p/@755pzlcs?text=" . urlencode($msg);
-
-?>
 <html lang="th">
 
 <head>
@@ -64,6 +105,8 @@ $line_link = "https://line.me/R/ti/p/@755pzlcs?text=" . urlencode($msg);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
         :root {
+            --sage: #016A70;
+            --sage-light: #2ad3bc;
             --white-primary: #ffffff;
             --white-secondary: #f8f9fa;
             --white-tertiary: #f1f3f5;
@@ -130,34 +173,47 @@ $line_link = "https://line.me/R/ti/p/@755pzlcs?text=" . urlencode($msg);
 
         /* Card Styles */
         .success-card {
-            background: var(--white-primary);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-md);
-            overflow: hidden;
-            border: 1px solid var(--gray-light);
-            height: fit-content;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+
+            box-shadow:
+                0 10px 30px rgba(0, 0, 0, 0.05),
+                0 2px 8px rgba(0, 0, 0, 0.03);
+
+            backdrop-filter: blur(14px);
+
+            transition: all .3s ease;
             padding: 1rem;
         }
 
+        .success-card:hover {
+            transform: translateY(-4px);
+            box-shadow:
+                0 18px 40px rgba(0, 0, 0, 0.08),
+                0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
         .card-header {
-            background: linear-gradient(#c5ffae, #61ee29);
+            background: linear-gradient(135deg, var(--sage) 0%, var(--sage-light) 100%);
             color: white;
             padding: 2rem;
             text-align: center;
             position: relative;
-
+            border-radius: 1rem;
 
         }
 
         /* Order Header Section */
         .order-header-section {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
         }
 
         .success-icon {
             font-size: 3.5rem;
             margin-bottom: 1rem;
             animation: bounceIn 1s ease;
+            color: var(--white-primary);
         }
 
         @keyframes bounceIn {
@@ -184,17 +240,18 @@ $line_link = "https://line.me/R/ti/p/@755pzlcs?text=" . urlencode($msg);
             font-size: 1.75rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
+            color: var(--white-primary);
         }
 
         .success-subtitle {
-            font-size: 1rem;
-            opacity: 0.9;
+            font-size: 1.2rem;
+            /* opacity: 0.9; */
             margin-bottom: 1.5rem;
+            color: var(--white-primary);
         }
 
         .order-code-badge {
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid white;
+            background: var(--white-secondary);
             border-radius: 50px;
             padding: 0.75rem 1.5rem;
             font-size: 1.25rem;
@@ -206,14 +263,15 @@ $line_link = "https://line.me/R/ti/p/@755pzlcs?text=" . urlencode($msg);
         }
 
         .status-badge {
-            display: inline-flex;
+            display: inline-block;
             align-items: center;
             gap: 0.5rem;
             padding: 0.75rem 1.5rem;
             border-radius: 50px;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 1.25rem;
             margin-top: 1rem;
+            backdrop-filter: blur(10px);
         }
 
         .status-pending {
@@ -253,7 +311,7 @@ $line_link = "https://line.me/R/ti/p/@755pzlcs?text=" . urlencode($msg);
         .section-icon {
             width: 36px;
             height: 36px;
-            background: var(--);
+            background: var(--green);
             color: white;
             border-radius: 50%;
             display: flex;
@@ -299,6 +357,16 @@ $line_link = "https://line.me/R/ti/p/@755pzlcs?text=" . urlencode($msg);
         }
 
         /* Order Items */
+
+        .item-image {
+            width: 72px;
+            height: 72px;
+            object-fit: cover;
+            border-radius: 18px;
+            margin-right: 1rem;
+            border: 1px solid #eee;
+        }
+
         .order-items-list {
             max-height: 400px;
             overflow-y: auto;
@@ -421,7 +489,7 @@ $line_link = "https://line.me/R/ti/p/@755pzlcs?text=" . urlencode($msg);
             justify-content: center;
             gap: 0.5rem;
             padding: 0.75rem 1.5rem;
-            border-radius: var(--green);
+            border-radius: 25px;
             font-weight: 600;
             text-decoration: none;
             transition: all 0.3s ease;
@@ -650,6 +718,7 @@ $line_link = "https://line.me/R/ti/p/@755pzlcs?text=" . urlencode($msg);
                     <i class="fas fa-info-circle"></i>
                     สถานะ: <?= $statusText ?>
                 </div>
+
             </div>
         </div>
 
@@ -726,12 +795,21 @@ $line_link = "https://line.me/R/ti/p/@755pzlcs?text=" . urlencode($msg);
                                         <div class="item-details">
                                             <div class="item-name"><?= htmlspecialchars($i['product_name']) ?></div>
                                             <div class="item-meta">
-                                                <span>ราคา: ฿<?= number_format($i['price'], 2) ?></span>
+                                                <span>ราคา: ฿<?= baht($i['price']) ?></span>
                                                 <span>จำนวน: <?= $i['quantity'] ?></span>
                                                 <span>หน่วย: <?= htmlspecialchars($i['unit'] ?? '') ?></span>
                                             </div>
+                                            <div class="item-image">
+                                                <?php
+                                                $img = !empty($i['product_image'])
+                                                    ? "../admin/uploads/products/" . $i['product_image']
+                                                    : "../assets/no-image.png";
+                                                ?>
+
+                                                <img src="<?= $img ?>" class="item-image">
+                                            </div>
                                         </div>
-                                        <div class="item-total">฿<?= number_format($sum, 2) ?></div>
+                                        <div class="item-total">฿<?= baht($sum) ?></div>
                                     </div>
                                 <?php
                                 endwhile;
@@ -765,7 +843,7 @@ $line_link = "https://line.me/R/ti/p/@755pzlcs?text=" . urlencode($msg);
 
                         <div class="summary-row">
                             <span class="summary-label">ยอดรวมสินค้า</span>
-                            <span class="summary-value">฿<?= number_format($total, 2) ?></span>
+                            <span class="summary-value">฿<?= baht($total) ?></span>
                         </div>
 
                         <div class="summary-row">
@@ -775,7 +853,7 @@ $line_link = "https://line.me/R/ti/p/@755pzlcs?text=" . urlencode($msg);
 
                         <div class="summary-row total-row">
                             <span class="summary-label"><strong>รวมทั้งสิ้น</strong></span>
-                            <span class="summary-value final-total">฿<?= number_format($total, 2) ?></span>
+                            <span class="summary-value final-total">฿<?= baht($total) ?></span>
                         </div>
 
                         <div class="payment-info mt-3 p-3 bg-light rounded">
@@ -816,6 +894,7 @@ $line_link = "https://line.me/R/ti/p/@755pzlcs?text=" . urlencode($msg);
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
         <script>
             // Clear cart from localStorage
             localStorage.removeItem("cart");

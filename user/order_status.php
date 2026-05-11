@@ -2,11 +2,20 @@
 session_start();
 require_once __DIR__ . '/../db/db.php';
 
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
+
 $member_id = $_SESSION['member_id'] ?? null;
 $orders = [];
 $search_performed = false;
 $error = '';
 $success = '';
+$guestOrderCodes = $_SESSION['guest_order_codes'] ?? [];
+
+if (!is_array($guestOrderCodes)) {
+    $guestOrderCodes = [];
+}
 
 // ถ้าสมาชิกเข้าสู่ระบบ
 if ($member_id) {
@@ -21,40 +30,34 @@ if ($member_id) {
     $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
-// ถ้ามีการค้นหาโดยเบอร์โทร
-if (!empty($_POST['q'])) {
+// ผู้ใช้ทั่วไปเห็นได้เฉพาะออเดอร์ที่สร้างจาก session นี้เท่านั้น
+if (!$member_id) {
     $search_performed = true;
-    $q = trim($_POST['q']);
 
-    // ถ้าเป็นตัวเลขล้วน → มองว่าเป็นเบอร์
-    if (preg_match('/^[0-9]+$/', $q)) {
-        $sql = "SELECT * FROM orders 
-                WHERE customer_phone LIKE ?
-                AND order_status != 'completed'
-                ORDER BY order_date DESC";
-        $stmt = $conn->prepare($sql);
-        $like = "%$q%";
-        $stmt->bind_param("s", $like);
-    }
-    // ถ้ามีตัวอักษร → มองว่าเป็นชื่อ
-    else {
-        $sql = "SELECT * FROM orders 
-                WHERE customer_name LIKE ?
-                AND order_status != 'completed'
-                ORDER BY order_date DESC";
-        $stmt = $conn->prepare($sql);
-        $like = "%$q%";
-        $stmt->bind_param("s", $like);
-    }
+    if (!empty($guestOrderCodes)) {
+        arsort($guestOrderCodes);
+        $guestOrderCodes = array_slice(array_keys($guestOrderCodes), 0, 20);
+        $placeholders = implode(',', array_fill(0, count($guestOrderCodes), '?'));
+        $types = str_repeat('s', count($guestOrderCodes));
 
-    $stmt->execute();
-    $result = $stmt->get_result();
+        $stmt = $conn->prepare("
+            SELECT * FROM orders
+            WHERE order_code IN ($placeholders)
+            AND member_id IS NULL
+            AND order_status != 'completed'
+            ORDER BY order_date DESC
+        ");
+        $stmt->bind_param($types, ...$guestOrderCodes);
+        $stmt->execute();
+        $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-    if ($result->num_rows > 0) {
-        $orders = $result->fetch_all(MYSQLI_ASSOC);
-        $success = "พบคำสั่งซื้อ " . count($orders) . " รายการ";
+        if (!empty($orders)) {
+            $success = "พบคำสั่งซื้อ " . count($orders) . " รายการ";
+        } else {
+            $error = "ไม่พบคำสั่งซื้อในประวัติการใช้งานนี้";
+        }
     } else {
-        $error = "ไม่พบคำสั่งซื้อ";
+        $error = "ยังไม่มีคำสั่งซื้อในประวัติการใช้งานนี้";
     }
 }
 
@@ -920,30 +923,25 @@ if (!empty($_POST['q'])) {
             <p class="page-subtitle">ตรวจสอบสถานะและรายละเอียดคำสั่งซื้อของคุณ</p>
         </div>
 
-        <!-- Search Form (for non-members) -->
+        <!-- Guest Session Info -->
         <?php if (!$member_id): ?>
             <div class="search-section">
-                <form method="post" class="mb-0">
+                <div class="mb-0">
                     <label class="form-label">
-                        ค้นหาด้วยเบอร์โทร 
+                        ประวัติคำสั่งซื้อของอุปกรณ์นี้
                     </label>
                     <div class="input-group">
                         <span class="input-group-text">
-                            <i class="bi bi-search"></i>
+                            <i class="bi bi-shield-lock"></i>
                         </span>
                        <input type="text" 
        id="q"
-       name="q"
        class="form-control"
-       placeholder="เช่น 0812345678 หรือ สมชาย"
-
-                            value="<?= $_POST['q'] ?? '' ?>">
+       value="แสดงเฉพาะคำสั่งซื้อที่สร้างจากอุปกรณ์หรือเบราว์เซอร์นี้"
+       readonly>
                     </div>
 
-                    <button type="submit" class="search-btn mt-3">
-                        ค้นหาสถานะ
-                    </button>
-                </form>
+                </div>
 
 
             </div>
@@ -1090,24 +1088,23 @@ if (!empty($_POST['q'])) {
                 </div>
                 <h2 class="empty-title">ไม่พบคำสั่งซื้อ</h2>
                 <p class="empty-description">
-                    ไม่พบคำสั่งซื้อจากเบอร์โทรศัพท์นี้
-                    กรุณาตรวจสอบเบอร์โทรศัพท์และลองใหม่อีกครั้ง
+                    ไม่พบคำสั่งซื้อในประวัติการใช้งานของอุปกรณ์หรือเบราว์เซอร์นี้
                 </p>
-                <a href="javascript:history.back()" class="empty-action">
+                <a href="products.php" class="empty-action">
                     <i class="bi bi-arrow-left"></i>
-                    กลับไปค้นหาใหม่
+                    กลับไปสั่งซื้อสินค้า
                 </a>
             </div>
 
-        <?php elseif (!$member_id && !isset($_POST['q'])): ?>
+        <?php elseif (!$member_id && !$search_performed): ?>
             <!-- Empty State for Initial View -->
             <div class="empty-state">
                 <div class="empty-icon">
                     <i class="bi bi-clipboard-check"></i>
                 </div>
-                <h2 class="empty-title">ยังไม่มีการค้นหา</h2>
+                <h2 class="empty-title">ยังไม่มีคำสั่งซื้อ</h2>
                 <p class="empty-description">
-                    กรอกเบอร์โทรศัพท์ด้านบนเพื่อตรวจสอบสถานะคำสั่งซื้อของคุณ
+                    ระบบจะแสดงเฉพาะคำสั่งซื้อที่สร้างจากอุปกรณ์หรือเบราว์เซอร์นี้เท่านั้น
                 </p>
             </div>
         <?php endif; ?>
@@ -1115,29 +1112,6 @@ if (!empty($_POST['q'])) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Phone input formatting
-       const phoneInput = document.getElementById('q');
-
-        if (phoneInput) {
-            phoneInput.addEventListener('input', function(e) {
-                let value = e.target.value.replace(/\D/g, '');
-                // อนุญาตให้กรอกแค่ตัวเลขเท่านั้น
-                e.target.value = value;
-            });
-        }
-
-        // Add loading state to search button
-        const searchForm = document.querySelector('form');
-        if (searchForm) {
-            searchForm.addEventListener('submit', function() {
-                const submitBtn = this.querySelector('button[type="submit"]');
-                if (submitBtn) {
-                    submitBtn.innerHTML = '<span class="loading-spinner"></span> กำลังค้นหา...';
-                    submitBtn.disabled = true;
-                }
-            });
-        }
-
         // Add animation to order cards
         document.addEventListener('DOMContentLoaded', function() {
             const cards = document.querySelectorAll('.order-card');

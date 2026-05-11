@@ -12,12 +12,18 @@ function redirect_with_error(string $message): void
 function generate_order_code(mysqli $conn): string
 {
     do {
-        $orderCode = 'ORD' . date('YmdHis') . strtoupper(bin2hex(random_bytes(3)));
+        // สร้างรหัสคำสั่งซื้อที่ไม่ซ้ำกัน โดยใช้วันที่และตัวอักษรสุ่ม
+        $random = strtoupper(bin2hex(random_bytes(2))); // 4 ตัว
+        $orderCode = 'ORD' . date('ymd') . $random;
+
         $stmt = $conn->prepare('SELECT order_id FROM orders WHERE order_code = ? LIMIT 1');
         $stmt->bind_param('s', $orderCode);
         $stmt->execute();
+
         $exists = $stmt->get_result()->num_rows > 0;
+
         $stmt->close();
+
     } while ($exists);
 
     return $orderCode;
@@ -28,7 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$memberId = isset($_POST['member_id']) && $_POST['member_id'] !== '' ? (int) $_POST['member_id'] : null;
+$sessionMemberId = isset($_SESSION['member_id']) ? (int) $_SESSION['member_id'] : null;
+$memberId = $sessionMemberId ?: null;
 $customerName = trim($_POST['customer_name'] ?? '');
 $customerPhone = trim($_POST['customer_phone'] ?? '');
 $customerAddress = trim($_POST['customer_address'] ?? '');
@@ -190,6 +197,17 @@ try {
 } catch (Throwable $e) {
     $conn->rollback();
     redirect_with_error('ไม่สามารถบันทึกคำสั่งซื้อได้ กรุณาลองใหม่อีกครั้ง');
+}
+
+if (!isset($_SESSION['guest_order_codes']) || !is_array($_SESSION['guest_order_codes'])) {
+    $_SESSION['guest_order_codes'] = [];
+}
+
+$_SESSION['guest_order_codes'][$orderCode] = time();
+
+if (count($_SESSION['guest_order_codes']) > 20) {
+    asort($_SESSION['guest_order_codes']);
+    $_SESSION['guest_order_codes'] = array_slice($_SESSION['guest_order_codes'], -20, null, true);
 }
 
 $receiveMap = [
