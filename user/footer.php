@@ -18,6 +18,16 @@
     <link href="//houkandbank.com/cdn/shop/t/1/assets/component-list-payment.css?v=69253961410771838501739943631" rel="stylesheet" type="text/css" media="all" />
     <link href="//houkandbank.com/cdn/shop/t/1/assets/component-list-social.css?v=35792976012981934991739943631" rel="stylesheet" type="text/css" media="all" />
     <style data-shopify>
+      :root {
+        --location-primary: #0d6b63;
+        --location-primary-deep: #064e4a;
+        --location-accent: #f5b971;
+        --location-surface: rgba(255, 255, 255, 0.82);
+        --location-border: rgba(13, 107, 99, 0.14);
+        --location-text: #17312e;
+        --location-muted: #5f7672;
+      }
+
       * {
         margin: 0;
         padding: 0;
@@ -26,7 +36,7 @@
 
       body {
         font-family: "Prompt", sans-serif;
-        background-color: #f8f9fc;
+        background-color: #ffffff;
         min-height: 100vh;
         display: flex;
         flex-direction: column;
@@ -40,8 +50,7 @@
 
       .footer {
         text-align: center;
-        background: #f8f9fc;
-        /* border-top: 1px solid #eaeaea; */
+        background: #ffffff;
         position: relative;
         overflow: hidden;
         padding-top: 2rem;
@@ -123,7 +132,7 @@
 
       <div class="footer__bottom">
         <p>
-        <a>© 2025, Nuengdiaw & Sukanda</a>
+          <a>© 2025, Nuengdiaw & Sukanda</a>
           <a href="#">นโยบายความเป็นส่วนตัว</a> ·
           <a href="#">นโยบายการคืนเงิน</a> ·
           <a href="#">นโยบายการจัดส่ง</a> ·
@@ -179,7 +188,7 @@
       }
 
       .wave-item-sections--16959639289946__ss_wave_2_txMHjA svg {
-        color: #121212;
+        color: var(--location-primary);
         display: block;
         width: 100%;
         height: auto;
@@ -278,4 +287,5 @@
     </style>
   </div>
 </body>
+
 </html>

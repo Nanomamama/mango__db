@@ -122,6 +122,37 @@ function format_booking_status_class($status)
     }
 }
 
+function find_hero_video_source()
+{
+    $locations = [
+        ['dir' => __DIR__ . '/../video', 'url' => '../video'],
+        ['dir' => __DIR__ . '/video', 'url' => 'video'],
+        ['dir' => __DIR__ . '/../user/video', 'url' => '../user/video'],
+        ['dir' => __DIR__ . '/uploads', 'url' => 'uploads'],
+        ['dir' => __DIR__ . '/../uploads', 'url' => '../uploads'],
+    ];
+
+    $fileNames = ['background-video2.mp4', 'background-video.mp4'];
+
+    foreach ($locations as $location) {
+        foreach ($fileNames as $fileName) {
+            $path = $location['dir'] . DIRECTORY_SEPARATOR . $fileName;
+            if (file_exists($path)) {
+                return $location['url'] . '/' . $fileName;
+            }
+        }
+    }
+
+    foreach ($locations as $location) {
+        $files = glob($location['dir'] . '/*.mp4');
+        if (!empty($files)) {
+            return $location['url'] . '/' . basename($files[0]);
+        }
+    }
+
+    return null;
+}
+
 function truncate_text($text, $length = 120)
 {
     $text = trim((string) $text);
@@ -139,19 +170,27 @@ function truncate_text($text, $length = 120)
         ? substr($text, 0, $length) . '...'
         : $text;
 }
+
+$heroVideoSrc = find_hero_video_source();
 ?>
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>หน้าแรกผู้ใช้</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/user/image/logo-3.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/user/image/logo-3.png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <title>ระบบจองคิวเยี่ยมชมศูนย์การเรียนรู้ เศรษฐกิจพอเพียง สวนลุงเผือก</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         :root {
             --forest: #123b2d;
             --forest-deep: #0b261d;
+            --green: #016A70;
             --moss: #1f6b52;
             --leaf: #71c59a;
             --cream: #f7f1e8;
@@ -172,15 +211,16 @@ function truncate_text($text, $length = 120)
 
         body {
             margin: 0;
-            color: var(--forest-deep);
-            background:
-                radial-gradient(circle at top left, rgba(113, 197, 154, 0.18), transparent 26%),
-                radial-gradient(circle at top right, rgba(196, 111, 74, 0.12), transparent 28%),
-                linear-gradient(180deg, #f9f6f0 0%, #f4efe5 52%, #f8f5ef 100%);
+            color: var(--leaf);
+            background: #ffffff;
             font-family: "Prompt", sans-serif;
         }
 
-        h1, h2, h3, h4, h5 {
+        h1,
+        h2,
+        h3,
+        h4,
+        h5 {
             font-family: "Kanit", sans-serif;
             letter-spacing: -0.02em;
         }
@@ -228,39 +268,54 @@ function truncate_text($text, $length = 120)
             display: grid;
             grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
             gap: 3rem;
-            align-items: end;
+            align-items: center;
+            min-height: inherit;
         }
 
         .hero-copy {
-            max-width: 660px;
+            grid-column: 1 / -1;
+            justify-self: center;
+            align-self: center;
             color: var(--white);
+            text-align: center;
         }
 
-        .hero-kicker {
+        .location-kicker {
             display: inline-flex;
             align-items: center;
-            gap: 0.6rem;
-            padding: 0.55rem 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            gap: 10px;
+            padding: 10px 16px;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(10px);
+            margin-bottom: 18px;
             font-size: 0.95rem;
-            margin-bottom: 1.25rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            color: var(--green);
+            background: rgb(255, 255, 255);
+            border: 1px solid rgba(13, 107, 99, 0.12);
+        }
+
+        .location-kicker::before {
+            content: "";
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--location-primary), var(--location-accent));
+            box-shadow: 0 0 0 6px rgba(13, 107, 99, 0.09);
         }
 
         .hero-title {
             margin: 0;
-            font-size: clamp(2.7rem, 6vw, 5.4rem);
+            font-size: clamp(2.0rem, 6vw, 4.5rem);
             line-height: 0.96;
-            font-weight: 700;
+            font-weight: 500;
             text-wrap: balance;
         }
 
         .hero-description {
             max-width: 560px;
-            margin: 1.25rem 0 0;
-            font-size: 1.08rem;
+            margin: 1.25rem auto 0;
+            font-size: 1.0rem;
             line-height: 1.75;
             color: rgba(255, 255, 255, 0.84);
         }
@@ -269,6 +324,7 @@ function truncate_text($text, $length = 120)
             display: flex;
             gap: 0.9rem;
             flex-wrap: wrap;
+            justify-content: center;
             margin-top: 1.8rem;
         }
 
@@ -286,7 +342,7 @@ function truncate_text($text, $length = 120)
 
         .hero-btn-primary {
             color: var(--forest-deep);
-            background: var(--cream);
+            background: var(--green);
         }
 
         .hero-btn-secondary {
@@ -300,95 +356,11 @@ function truncate_text($text, $length = 120)
             transform: translateY(-2px);
         }
 
-        .hero-side {
-            align-self: end;
-            color: var(--white);
-            display: grid;
-            gap: 1.35rem;
-        }
-
-        .hero-side-note {
-            padding: 1.2rem 0 0;
-            border-top: 1px solid rgba(255, 255, 255, 0.16);
-        }
-
-        .hero-side-note span {
-            display: block;
-            font-size: 0.85rem;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.58);
-            margin-bottom: 0.45rem;
-        }
-
-        .hero-side-note strong {
-            display: block;
-            font-size: 1.08rem;
-            font-weight: 500;
-            line-height: 1.6;
-            color: rgba(255, 255, 255, 0.92);
-        }
-
-        .summary-ribbon {
-            width: min(1240px, calc(100% - 32px));
-            margin: -2.2rem auto 0;
-            position: relative;
-            z-index: 3;
-            background: rgba(255, 250, 245, 0.88);
-            border: 1px solid rgba(18, 59, 45, 0.08);
-            border-radius: 30px;
-            backdrop-filter: blur(12px);
-            box-shadow: var(--shadow-soft);
-        }
-
         .main-content-surface {
             background: #ffffff;
             position: relative;
             margin-top: -1px;
             padding-bottom: 1px;
-        }
-
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-        }
-
-        .summary-item {
-            padding: 1.5rem 1.75rem;
-            position: relative;
-        }
-
-        .summary-item + .summary-item::before {
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 22%;
-            width: 1px;
-            height: 56%;
-            background: rgba(18, 59, 45, 0.08);
-        }
-
-        .summary-label {
-            display: block;
-            font-size: 0.92rem;
-            color: var(--stone);
-            margin-bottom: 0.4rem;
-        }
-
-        .summary-value {
-            display: block;
-            font-family: "Kanit", sans-serif;
-            font-size: clamp(1.8rem, 3vw, 2.45rem);
-            line-height: 1;
-            font-weight: 700;
-            color: var(--forest);
-        }
-
-        .summary-text {
-            margin-top: 0.55rem;
-            color: #6b766d;
-            font-size: 0.98rem;
-            line-height: 1.6;
         }
 
         .section-wrap {
@@ -476,7 +448,7 @@ function truncate_text($text, $length = 120)
             line-height: 1.75;
         }
 
-        .service-points li + li {
+        .service-points li+li {
             margin-top: 0.45rem;
         }
 
@@ -517,12 +489,17 @@ function truncate_text($text, $length = 120)
             border-radius: var(--radius-lg);
             overflow: hidden;
             box-shadow: var(--shadow-card);
+            background:
+                radial-gradient(circle at top right, var(--green), transparent 32%),
+                linear-gradient(135deg, var(--green) 0%, var(--moss) 100%);
+            color: var(--white);
+            padding: 2rem;
         }
 
         .bookings-shell {
             background:
-                radial-gradient(circle at top right, rgba(113, 197, 154, 0.18), transparent 32%),
-                linear-gradient(135deg, #13392c 0%, #0d261d 100%);
+                radial-gradient(circle at top right, var(--green), transparent 32%),
+                linear-gradient(135deg, var(--green) 0%, var(--moss) 100%);
             color: var(--white);
             padding: 2rem;
         }
@@ -636,6 +613,11 @@ function truncate_text($text, $length = 120)
             border: 1px solid rgba(18, 59, 45, 0.08);
         }
 
+        .courses-shell .shell-head h2,
+        .products-shell .shell-head h2 {
+            color: #000000;
+        }
+
         .courses-shell .shell-head p,
         .products-shell .shell-head p {
             color: #667268;
@@ -735,7 +717,7 @@ function truncate_text($text, $length = 120)
         }
 
         .products-shell {
-            background: linear-gradient(180deg, #f6efe3 0%, #fbf8f1 100%);
+            background: #ffffff;
             padding: 2rem;
             border: 1px solid rgba(18, 59, 45, 0.08);
         }
@@ -747,6 +729,7 @@ function truncate_text($text, $length = 120)
         }
 
         .product-panel {
+            position: relative;
             background: rgba(255, 255, 255, 0.74);
             border-radius: 24px;
             overflow: hidden;
@@ -767,24 +750,42 @@ function truncate_text($text, $length = 120)
             transition: transform 0.7s ease;
         }
 
+        .product-panel::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(9, 23, 18, 0.04) 25%, rgba(9, 23, 18, 0.84) 100%);
+            opacity: 0;
+            transition: opacity 0.35s ease;
+            pointer-events: none;
+        }
+
         .product-panel:hover .product-media img {
             transform: scale(1.06);
         }
 
         .product-content {
-            padding: 1.25rem;
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+            padding: 1.2rem;
+            color: var(--white);
+            transform: translateY(calc(100% - 4.5rem));
+            transition: transform 0.35s ease;
         }
 
         .product-title {
             margin: 0 0 0.45rem;
             font-size: 1.3rem;
-            color: var(--forest-deep);
+            color: var(--white);
         }
 
         .product-desc {
             min-height: 3.2em;
             margin: 0 0 0.9rem;
-            color: #667469;
+            color: rgba(255, 255, 255, 0.86);
             line-height: 1.6;
         }
 
@@ -799,7 +800,7 @@ function truncate_text($text, $length = 120)
             font-family: "Kanit", sans-serif;
             font-size: 1.45rem;
             line-height: 1;
-            color: var(--clay);
+            color: #ffd8a0;
             font-weight: 700;
         }
 
@@ -807,8 +808,16 @@ function truncate_text($text, $length = 120)
         .product-sales {
             display: block;
             font-size: 0.9rem;
-            color: #6f796f;
+            color: rgba(255, 255, 255, 0.82);
             margin-top: 0.3rem;
+        }
+
+        .product-panel:hover::after {
+            opacity: 1;
+        }
+
+        .product-panel:hover .product-content {
+            transform: translateY(0);
         }
 
         .final-banner {
@@ -821,8 +830,8 @@ function truncate_text($text, $length = 120)
             padding: 2rem 2.1rem;
             border-radius: 30px;
             background:
-                radial-gradient(circle at left center, rgba(113, 197, 154, 0.2), transparent 35%),
-                linear-gradient(120deg, #143d2f 0%, #1a5844 100%);
+                radial-gradient(circle at top right, var(--green), transparent 32%),
+                linear-gradient(135deg, var(--green) 0%, var(--moss) 100%);
             color: var(--white);
             display: flex;
             justify-content: space-between;
@@ -863,10 +872,21 @@ function truncate_text($text, $length = 120)
             animation: revealUp 0.85s ease forwards;
         }
 
-        .reveal.delay-1 { animation-delay: 0.12s; }
-        .reveal.delay-2 { animation-delay: 0.22s; }
-        .reveal.delay-3 { animation-delay: 0.32s; }
-        .reveal.delay-4 { animation-delay: 0.42s; }
+        .reveal.delay-1 {
+            animation-delay: 0.12s;
+        }
+
+        .reveal.delay-2 {
+            animation-delay: 0.22s;
+        }
+
+        .reveal.delay-3 {
+            animation-delay: 0.32s;
+        }
+
+        .reveal.delay-4 {
+            animation-delay: 0.42s;
+        }
 
         @keyframes revealUp {
             to {
@@ -876,19 +896,23 @@ function truncate_text($text, $length = 120)
         }
 
         @media (max-width: 1100px) {
+
             .hero-grid,
             .section-intro,
             .course-grid {
                 grid-template-columns: 1fr;
             }
 
-            .services-layout,
-            .booking-grid,
-            .product-grid {
-                grid-template-columns: repeat(2, 1fr);
+            .hero-grid {
+                grid-template-columns: 1fr;
             }
 
-            .hero-side {
+            .services-layout,
+            .booking-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .product-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
 
@@ -906,6 +930,8 @@ function truncate_text($text, $length = 120)
                 width: calc(100% - 24px);
                 padding: 2.5rem 0 2rem;
                 gap: 2rem;
+                grid-template-columns: 1fr;
+                min-height: auto;
             }
 
             .hero-title {
@@ -916,30 +942,6 @@ function truncate_text($text, $length = 120)
                 font-size: 1rem;
             }
 
-            .hero-side {
-                grid-template-columns: 1fr;
-            }
-
-            .summary-ribbon {
-                width: calc(100% - 24px);
-                margin-top: -1.2rem;
-            }
-
-            .summary-grid,
-            .services-layout,
-            .booking-grid,
-            .product-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .summary-item + .summary-item::before {
-                display: none;
-            }
-
-            .summary-item + .summary-item {
-                border-top: 1px solid rgba(18, 59, 45, 0.08);
-            }
-
             .section-wrap,
             .final-banner-inner {
                 width: calc(100% - 24px);
@@ -947,6 +949,18 @@ function truncate_text($text, $length = 120)
 
             .services-block {
                 padding-top: 4.75rem;
+            }
+
+            .services-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .booking-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .product-grid {
+                grid-template-columns: 1fr;
             }
 
             .bookings-shell,
@@ -961,8 +975,20 @@ function truncate_text($text, $length = 120)
                 align-items: flex-start;
             }
         }
+
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .hero-grid {
+                grid-template-columns: minmax(0, 1fr);
+                padding: 3.5rem 0 2.75rem;
+            }
+
+            .hero-copy {
+                grid-column: auto;
+            }
+        }
     </style>
 </head>
+
 <body>
     <?php include __DIR__ . '/navbar.php'; ?>
     <?php include __DIR__ . '/fb_chat_button.php'; ?>
@@ -970,106 +996,70 @@ function truncate_text($text, $length = 120)
     <div class="page-shell">
         <section class="hero-shell">
             <div class="hero-media">
-                <video class="hero-video" autoplay muted loop playsinline>
-                    <source src="/video/background-video2.mp4" type="video/mp4">
-                </video>
+                <?php if (!empty($heroVideoSrc)): ?>
+                    <video class="hero-video" autoplay muted loop playsinline preload="auto">
+                        <source src="<?= htmlspecialchars($heroVideoSrc, ENT_QUOTES, 'UTF-8') ?>" type="video/mp4">
+                    </video>
+                <?php endif; ?>
                 <div class="hero-overlay"></div>
             </div>
 
             <div class="hero-grid">
                 <div class="hero-copy reveal">
-                    <div class="hero-kicker">ศูนย์การเรียนรู้เศรษฐกิจพอเพียง • สวนลุงเผือก</div>
-                    <h1 class="hero-title">จองคิว เรียนรู้ และเลือกซื้อสินค้า จากสวนได้ในหน้าเดียว</h1>
+                    <span class="location-kicker">พอเพียง ก็เพียงพอ แบ่งปัน</span>
+                    <h2 class="hero-title">ระบบจองคิวเยี่ยมชมศูนย์การเรียนรู้ <br>เศรษฐกิจพอเพียง <br>สวนลุงเผือก</h2>
                     <p class="hero-description">
-                        หน้าแรกใหม่ออกแบบให้เห็นภาพรวมของระบบทั้งหมดชัดขึ้น ทั้งการจองคิวเข้าชม กิจกรรมอบรม และสินค้าของสวน
-                        พร้อมดึงข้อมูลจริงบางส่วนมาแสดงให้ผู้ใช้งานตัดสินใจต่อได้ทันที
+                        เว็บไซต์ศูนย์การเรียนรู้เศรษฐกิจพอเพียงและเปิดให้เข้าศึกษาดูงาน <br>
+                        สวนลุงเผือก บ.บุฮม อ.เชียงคาน จ.เลย
                     </p>
-                    <div class="hero-actions">
-                        <a href="../user/bookings.php" class="hero-btn hero-btn-primary">จองคิวเข้าชม</a>
-                        <a href="../user/products.php" class="hero-btn hero-btn-secondary">เลือกซื้อสินค้า</a>
-                    </div>
-                </div>
-
-                <div class="hero-side reveal delay-2">
-                    <div class="hero-side-note">
-                        <span>Location</span>
-                        <strong>สวนลุงเผือก บ.บุฮม อ.เชียงคาน จ.เลย</strong>
-                    </div>
-                    <div class="hero-side-note">
-                        <span>What You Can Do</span>
-                        <strong>ดูคิวล่าสุด เลือกกิจกรรมอบรม และดูสินค้าแนะนำได้แยกเป็นคนละส่วนชัดเจน</strong>
-                    </div>
                 </div>
             </div>
         </section>
 
         <div class="main-content-surface">
-            <section class="summary-ribbon reveal delay-3">
-                <div class="summary-grid">
-                    <div class="summary-item">
-                        <span class="summary-label">คำขอจองทั้งหมด</span>
-                        <span class="summary-value"><?= number_format($booking_summary['total']) ?></span>
-                        <p class="summary-text">รวมรายการในระบบที่ใช้สำหรับนัดหมายเข้าชมศูนย์การเรียนรู้</p>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">รายการรอตรวจสอบ</span>
-                        <span class="summary-value"><?= number_format($booking_summary['pending']) ?></span>
-                        <p class="summary-text">สถานะคิวที่ยังอยู่ระหว่างรอการยืนยันหรือรอชำระเงิน</p>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">คิวที่ยืนยันแล้ว</span>
-                        <span class="summary-value"><?= number_format($booking_summary['confirmed']) ?></span>
-                        <p class="summary-text">รายการที่ผ่านการยืนยันพร้อมใช้งานในระบบแล้ว</p>
-                    </div>
-                </div>
-            </section>
-
             <section class="services-block">
                 <div class="section-wrap">
                     <div class="section-intro reveal">
                         <div>
-                            <span class="eyebrow">บริการหลักของเว็บไซต์</span>
-                            <h2 class="section-title">ทุกอย่างถูกจัดให้อ่านง่ายขึ้น และแยกเป็นหมวดของใครของมัน</h2>
+                            <span class="eyebrow">Explore Our Services</span>
+                            <h2 class="section-title">เปิดประสบการณ์เรียนรู้วิถีธรรมชาติ</h2>
                         </div>
                         <p class="section-lead">
-                            หน้าแรกนี้ไม่ได้เป็นแค่ทางผ่าน แต่เป็นจุดเริ่มที่ช่วยให้ผู้ใช้เห็นทันทีว่าแต่ละระบบทำอะไรได้
-                            และควรเข้าไปต่อที่ส่วนไหน
+                            ครบจบในที่เดียว ไม่ว่าจะเป็นการวางแผนเข้าชม การเรียนรู้ทักษะใหม่ๆ หรือเลือกซื้อผลผลิตจากความตั้งใจ
+                            เราออกแบบทุกฟังก์ชันเพื่อให้คุณเข้าถึงบริการของเราได้อย่างง่ายดายและรวดเร็วที่สุด
                         </p>
                     </div>
 
                     <div class="services-layout">
                         <article class="service-column reveal delay-1">
                             <span class="service-index">01 / Booking</span>
-                            <h3>จองคิวเข้าชม</h3>
+                            <h3>สัมผัสบรรยากาศจริง</h3>
                             <p>เลือกวัน เวลา และจำนวนผู้เข้าชม พร้อมดูสถานะการจองในระบบได้ต่อเนื่อง</p>
                             <ul class="service-points">
-                                <li>รองรับการคำนวณยอดใช้จ่ายและยอดมัดจำ</li>
-                                <li>มีสถานะคิวให้อ่านง่ายทั้งรอตรวจสอบและยืนยันแล้ว</li>
-                                <li>เชื่อมไปยังหน้าจองคิวจริงได้ทันที</li>
+                                <li>เช็กคิวได้แบบ Real-time เลือกวันและเวลาที่สะดวกได้ทันที</li>
+                                <li>โปร่งใส ชัดเจน ระบบคำนวณมัดจำแม่นยำ พร้อมสถานะที่ตรวจสอบได้ตลอด 24 ชม.</li>
                             </ul>
                             <a class="section-link" href="../user/bookings.php">ไปหน้าจองคิว</a>
                         </article>
 
                         <article class="service-column reveal delay-2">
                             <span class="service-index">02 / Activity</span>
-                            <h3>กิจกรรมอบรม</h3>
+                            <h3>ร่วมสร้างประสบการณ์</h3>
                             <p>ดูกิจกรรมล่าสุดของสวนจากภาพและคำอธิบายแบบย่อ ก่อนเข้าไปอ่านรายละเอียดเต็ม</p>
                             <ul class="service-points">
-                                <li>เน้นภาพเป็นตัวเล่าเรื่องเพื่อให้น่าสนใจขึ้น</li>
-                                <li>แยกส่วนกิจกรรมล่าสุดออกจากสินค้าและการจองชัดเจน</li>
-                                <li>กดเข้ารายละเอียดของกิจกรรมแต่ละรายการได้เลย</li>
+                                <li>บันทึกทุกความทรงจำ ถ่ายทอดผ่านภาพถ่ายและเรื่องราวที่น่าประทับใจ</li>
+                                <li>อัปเดตกิจกรรมใหม่ก่อนใคร เข้าถึงรายละเอียดตารางอบรมได้ในคลิกเดียว</li>
                             </ul>
                             <a class="section-link" href="../user/course.php">ดูกิจกรรมทั้งหมด</a>
                         </article>
 
                         <article class="service-column reveal delay-3">
                             <span class="service-index">03 / Shop</span>
-                            <h3>สั่งซื้อสินค้า</h3>
+                            <h3>คัดสรรจากสวนถึงมือคุณ</h3>
                             <p>รวมสินค้าเด่นพร้อมราคา หน่วยขาย และจำนวนที่ขายแล้ว เพื่อช่วยตัดสินใจได้เร็วขึ้น</p>
                             <ul class="service-points">
-                                <li>แสดงสินค้าแนะนำบางส่วนแยกเป็นหมวดเฉพาะ</li>
-                                <li>เห็นราคาและหน่วยขายได้ตั้งแต่หน้าแรก</li>
-                                <li>พาไปยังหน้าร้านค้าโดยตรงเมื่อพร้อมสั่งซื้อ</li>
+                                <li>สินค้าคุณภาพระดับพรีเมียม คัดเฉพาะไอเทมเด็ด พร้อมดีลพิเศษหน้าเว็บไซต์</li>
+                                <li>ช้อปง่าย สบายใจ แสดงราคาและยอดขายจริง ช่วยให้คุณตัดสินใจได้ไม่ผิดพลาด</li>
                             </ul>
                             <a class="section-link" href="../user/products.php">ไปหน้าสินค้า</a>
                         </article>
@@ -1082,8 +1072,8 @@ function truncate_text($text, $length = 120)
                     <div class="data-shell bookings-shell reveal">
                         <div class="shell-head">
                             <div>
-                                <h2>1 รายการจองล่าสุด</h2>
-                                <p>ส่วนนี้แยกเฉพาะคิวเข้าชม เพื่อให้ผู้ใช้เห็นความเคลื่อนไหวล่าสุดของการจองโดยไม่ปะปนกับข้อมูลหมวดอื่น</p>
+                                <h2>รายการจองล่าสุด</h2>
+                                <p>คิวที่จองล่าสุด เพื่อให้ผู้ใช้เห็นความเคลื่อนไหวล่าสุดของการจอง</p>
                             </div>
                             <a href="../user/bookings.php" class="shell-link">ดูหน้าจองคิวทั้งหมด</a>
                         </div>
@@ -1118,7 +1108,7 @@ function truncate_text($text, $length = 120)
                     <div class="data-shell courses-shell reveal">
                         <div class="shell-head">
                             <div>
-                                <h2>2 กิจกรรมอบรมล่าสุด</h2>
+                                <h2>กิจกรรมอบรมล่าสุด</h2>
                                 <p>หมวดกิจกรรมถูกออกแบบให้เน้นภาพและบรรยากาศมากขึ้น เพื่อให้ผู้ใช้เห็นเนื้อหาล่าสุดของสวนแบบชัดและน่าสนใจ</p>
                             </div>
                             <a href="../user/course.php" class="shell-link">ดูกิจกรรมทั้งหมด</a>
@@ -1177,7 +1167,7 @@ function truncate_text($text, $length = 120)
                     <div class="data-shell products-shell reveal">
                         <div class="shell-head">
                             <div>
-                                <h2>3 สินค้าแนะนำบางส่วน</h2>
+                                <h2>สินค้าแนะนำบางส่วน</h2>
                                 <p>หมวดสินค้าถูกแยกออกมาเป็นพื้นที่เฉพาะของร้าน เพื่อให้ผู้ใช้มองเห็นของเด่น ราคา และยอดขายได้แบบสแกนง่าย</p>
                             </div>
                             <a href="../user/products.php" class="shell-link">ดูสินค้าทั้งหมด</a>
@@ -1220,7 +1210,7 @@ function truncate_text($text, $length = 120)
                 <div class="final-banner-inner reveal">
                     <div>
                         <h3>พร้อมเริ่มใช้งานส่วนไหนก่อน</h3>
-                        <p>ไม่ว่าจะจองคิวเพื่อเข้าศึกษาดูงาน เลือกดูกิจกรรมอบรม หรือเลือกซื้อสินค้าของสวน ตอนนี้ทุกอย่างถูกจัดหน้าให้ชัดและแยกหมวดเรียบร้อยแล้ว</p>
+                        <p>ไม่ว่าจะจองคิวเพื่อเข้าศึกษาดูงาน เลือกดูกิจกรรมอบรม หรือเลือกซื้อสินค้าของสวน ตอนนี้ทุกอย่างพร้อมใช้งานเรียบร้อยแล้ว</p>
                     </div>
                     <a href="../user/bookings.php">เริ่มจองคิวตอนนี้</a>
                 </div>
@@ -1234,7 +1224,7 @@ function truncate_text($text, $length = 120)
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
             const loginError = urlParams.get('login_error');
 
@@ -1249,4 +1239,5 @@ function truncate_text($text, $length = 120)
         });
     </script>
 </body>
+
 </html>
