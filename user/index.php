@@ -179,11 +179,12 @@ $heroVideoSrc = find_hero_video_source();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="apple-touch-icon" sizes="180x180" href="/user/image/logo-3.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/user/image/logo-3.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/mango/logo/logo_01.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/mango/logo/logo_01.png">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ffffff">
-    <title>ระบบจองคิวเยี่ยมชมศูนย์การเรียนรู้ เศรษฐกิจพอเพียง สวนลุงเผือก</title>
+    <title>สวนลุงเผือก</title>
+    
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
