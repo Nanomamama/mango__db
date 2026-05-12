@@ -159,39 +159,15 @@ try {
 		$res['stored_error'] = $e->getMessage();
 	}
 
-	// Dispatch email sending asynchronously by notifying sendEmail.php with booking_code only.
-	// sendEmail.php will load booking from DB and attach local file path — avoids uploading file and blocking the request.
+	// Send booking emails directly in-process so production hosting does not depend on self-HTTP callbacks.
 	try {
-		$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-		$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-		$base = rtrim(dirname($_SERVER['PHP_SELF']), '\/');
-		$sendUrl = $protocol . '://' . $host . $base . '/sendEmail.php';
-
-		// Fire-and-forget POST using a short socket write (do not wait for response)
-		$asyncPost = function($url, $params){
-			$parts = parse_url($url);
-			$scheme = $parts['scheme'] ?? 'http';
-			$host = $parts['host'] ?? 'localhost';
-			$port = $parts['port'] ?? ($scheme === 'https' ? 443 : 80);
-			$path = ($parts['path'] ?? '/') . (isset($parts['query']) ? '?'.$parts['query'] : '');
-
-			$body = http_build_query($params);
-			$headers = "POST {$path} HTTP/1.1\r\n";
-			$headers .= "Host: {$host}\r\n";
-			$headers .= "Content-Type: application/x-www-form-urlencoded\r\n";
-			$headers .= "Content-Length: " . strlen($body) . "\r\n";
-			$headers .= "Connection: Close\r\n\r\n";
-
-			$fp = @fsockopen(($scheme === 'https' ? 'ssl://' : '') . $host, $port, $errno, $errstr, 2);
-			if (!$fp) return false;
-			fwrite($fp, $headers . $body);
-			fclose($fp);
-			return true;
-		};
-
-		$dispatched = $asyncPost($sendUrl, ['booking_code'=>$booking_code, 'async'=>1]);
-		$res['sendEmail_dispatched'] = $dispatched ? 1 : 0;
-
+		require_once __DIR__ . '/sendEmail.php';
+		$emailResult = sendBookingEmails(['booking_code' => $booking_code, 'async' => 1]);
+		$res['sendEmail_dispatched'] = !empty($emailResult) && in_array($emailResult['status'] ?? '', ['success', 'partial'], true) ? 1 : 0;
+		$res['sendEmail_status'] = $emailResult['status'] ?? 'unknown';
+		if (isset($emailResult['response'])) {
+			$res['sendEmail_response'] = $emailResult['response'];
+		}
 	} catch (Exception $e) {
 		$res['sendEmail_exception'] = $e->getMessage();
 	}

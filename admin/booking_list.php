@@ -20,6 +20,26 @@
     $admin_name = $_SESSION['admin_name'] ?? 'Admin';
     $admin_email = $_SESSION['admin_email'] ?? '';
 
+    function app_base_url()
+    {
+        $isHttps = (
+            (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+            (isset($_SERVER['SERVER_PORT']) && (string)$_SERVER['SERVER_PORT'] === '443') ||
+            (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+        );
+        $scheme = $isHttps ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost';
+        $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+        $basePath = str_replace('\\', '/', dirname(dirname($scriptName)));
+        $basePath = rtrim($basePath, '/');
+
+        if ($basePath === '.' || $basePath === DIRECTORY_SEPARATOR) {
+            $basePath = '';
+        }
+
+        return $scheme . '://' . $host . $basePath;
+    }
+
     // จัดการการอัปเดตสถานะการจอง
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'], $_POST['csrf_token'])) {
         // ตรวจ CSRF
@@ -67,7 +87,7 @@
                         $mail->SMTPSecure = "ssl";
                         $mail->CharSet    = 'UTF-8';
 
-                        $mail->setFrom('nanoone342@gmail.com', 'สวนแห่งการเรียนรู้');
+                        $mail->setFrom('nanoone342@gmail.com', 'สวนลุงเผือก');
                         $mail->addAddress($booking['guest_email'], $booking['guest_name']);
                         $mail->addEmbeddedImage($qr_file['tmp_name'], 'qrcode_deposit', 'qrcode.jpg');
 
@@ -89,7 +109,7 @@
                         // Create the direct link to open the upload modal
                         $booking_id_for_link = $id;
                         $visitor_count_for_link = $booking['visitor_count'] ?? 1;
-                        $upload_link = "http://localhost:8000/user/bookings.php?action=upload_slip&booking_id={$booking_id_for_link}&visitor_count={$visitor_count_for_link}";
+                        $upload_link = app_base_url() . "/user/bookings.php?action=upload_slip&booking_id={$booking_id_for_link}&visitor_count={$visitor_count_for_link}";
                         $mail->Body = "
                             <div style='background-color: #f4f7f6; padding: 40px 10px; font-family: \"Sarabun\", \"Kanit\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;'>
                                 <div style='max-width: 600px; margin: 0 auto; background: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #e1e8ed;'>
@@ -143,10 +163,11 @@
                                     <p style='text-align: center; color: #555; font-size: 15px; line-height: 1.6;'>
                                         ท่านสามารถกดปุ่มด้านล่างเพื่อไปยังหน้าการจอง และทำการแนบสลิปของท่าน
                                     </p>
-                                    <div style='text-align: center; margin: 25px 0;'><a href='{$upload_link}' style='background-color: #016A70; color: #ffffff; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>แนบสลิปการโอนเงิน</a></div>
+                                    <div style='text-align: center; margin: 25px 0;'><a href='{$upload_link}' style='background-color: #016A70; 
+                                    color: #ffffff; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>แนบสลิปการโอนเงิน</a></div>
                                     <p style='text-align: center; color: #888888; font-size: 13px; line-height: 1.5;'>
                                         ขอขอบคุณที่ไว้วางใจให้เราดูแล<br>
-                                        <strong>สวนแห่งการเรียนรู้</strong>
+                                        <strong>สวนลุงเผือก</strong>
                                     </p>
                                 </div>
                             </div>";
@@ -218,7 +239,7 @@
                         $userMail->SMTPSecure = "ssl";
                         $userMail->CharSet    = 'UTF-8';
 
-                        $userMail->setFrom('nanoone342@gmail.com', 'สวนแห่งการเรียนรู้');
+                        $userMail->setFrom('nanoone342@gmail.com', 'สวนลุงเผือก');
                         $userMail->addAddress($booking['guest_email'], $booking['guest_name']);
 
                         $userMail->isHTML(true);
@@ -324,7 +345,7 @@
 
                                             <div style='margin-top: 40px; text-align: center; color: #888; font-size: 14px;'>
                                                 <p style='margin: 0;'>ขอแสดงความนับถือ</p>
-                                                <p style='margin-top: 5px; color: #333; font-weight: 500;'>ฝ่ายบริการลูกค้า สวนแห่งการเรียนรู้</p>
+                                                <p style='margin-top: 5px; color: #333; font-weight: 500;'>ฝ่ายบริการลูกค้า สวนลุงเผือก</p>
                                                 <hr style='border: 0; border-top: 1px solid #eee; margin: 25px 0;'>
                                                 <p style='font-size: 12px;'>หากท่านมีข้อสงสัยประการใด สามารถติดต่อสอบถามเพิ่มเติมได้ที่เบอร์โทรศัพท์ 065-107-8576 <br> หรือตอบกลับอีเมลฉบับนี้</p>
                                             </div>
@@ -372,7 +393,7 @@
                         $cancelMail->SMTPSecure = "ssl";
                         $cancelMail->CharSet    = 'UTF-8';
 
-                        $cancelMail->setFrom('nanoone342@gmail.com', 'สวนแห่งการเรียนรู้');
+                        $cancelMail->setFrom('nanoone342@gmail.com', 'สวนลุงเผือก');
                         $cancelMail->addAddress($booking['guest_email'], $booking['guest_name']);
 
                         $cancelMail->isHTML(true);
@@ -390,7 +411,7 @@
 
                                             <p style='color: #333; font-size: 16px;'>เรียน คุณ " . htmlspecialchars($booking['guest_name']) . ",</p>
                                             
-                                            <p style='color: #333; font-size: 16px; text-indent: 2em;'>ทางสวนแห่งการเรียนรู้มีความเสียใจที่ต้องแจ้งให้ท่านทราบว่า รายการจองของท่านสำหรับวันที่ <strong>" . $thai_date . "</strong>) ได้ถูกยกเลิกแล้ว</p>
+                                            <p style='color: #333; font-size: 16px; text-indent: 2em;'>ทางสวนลุงเผือกมีความเสียใจที่ต้องแจ้งให้ท่านทราบว่า รายการจองของท่านสำหรับวันที่ <strong>" . $thai_date . "</strong>) ได้ถูกยกเลิกแล้ว</p>
                                             
                                             <div style='margin: 30px 0; padding: 20px; background-color: #fffbe6; border-left: 4px solid #f59e0b; border-radius: 4px;'>
                                                 <h4 style='margin-top: 0; color: #d35400; font-size: 16px;'>เหตุผลในการยกเลิก:</h4> 
@@ -402,7 +423,7 @@
                                             
                                             <div style='margin-top: 40px; text-align: center; color: #888; font-size: 14px;'>
                                                 <p style='margin: 0;'>ขอแสดงความนับถือ</p>
-                                                <p style='margin-top: 5px; color: #333; font-weight: 500;'>ฝ่ายบริการลูกค้า สวนแห่งการเรียนรู้</p>
+                                                <p style='margin-top: 5px; color: #333; font-weight: 500;'>ฝ่ายบริการลูกค้า สวนลุงเผือก</p>
                                             </div>
                                         </div>
                                     </div>
