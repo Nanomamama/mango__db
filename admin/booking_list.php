@@ -1,96 +1,116 @@
 <?php
-    require_once 'auth.php';
-    require_once __DIR__ . '/../db/db.php';
+require_once 'auth.php';
+require_once __DIR__ . '/../db/db.php';
 
-    use PHPMailer\PHPMailer\PHPMailer;
-    use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
-    // The path is relative from the 'admin' directory to the 'user' directory
-    require_once '../user/PHPMailer/PHPMailer.php';
-    require_once '../user/PHPMailer/SMTP.php';
-    require_once '../user/PHPMailer/Exception.php';
+// The path is relative from the 'admin' directory to the 'user' directory
+require_once '../user/PHPMailer/PHPMailer.php';
+require_once '../user/PHPMailer/SMTP.php';
+require_once '../user/PHPMailer/Exception.php';
 
-    // CSRF token generation
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+// CSRF token generation
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrf_token = $_SESSION['csrf_token'];
+
+// ดึงชื่อ admin จาก session
+$admin_name = $_SESSION['admin_name'] ?? 'Admin';
+$admin_email = $_SESSION['admin_email'] ?? '';
+
+function app_base_url()
+{
+    $isHttps = (
+        (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+        (isset($_SERVER['SERVER_PORT']) && (string)$_SERVER['SERVER_PORT'] === '443') ||
+        (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+    );
+    $scheme = $isHttps ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost';
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+    $basePath = str_replace('\\', '/', dirname(dirname($scriptName)));
+    $basePath = rtrim($basePath, '/');
+
+    if ($basePath === '.' || $basePath === DIRECTORY_SEPARATOR) {
+        $basePath = '';
     }
-    $csrf_token = $_SESSION['csrf_token'];
 
-    // ดึงชื่อ admin จาก session
-    $admin_name = $_SESSION['admin_name'] ?? 'Admin';
-    $admin_email = $_SESSION['admin_email'] ?? '';
+    return $scheme . '://' . $host . $basePath;
+}
 
-    // จัดการการอัปเดตสถานะการจอง
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'], $_POST['csrf_token'])) {
-        // ตรวจ CSRF
-        if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-            header('Content-Type: application/json');
-            http_response_code(403); // Forbidden
-            echo json_encode(['success' => false, 'message' => 'Invalid CSRF token.']);
-            exit;
-        }
+// จัดการการอัปเดตสถานะการจอง
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'], $_POST['csrf_token'])) {
+    // ตรวจ CSRF
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        header('Content-Type: application/json');
+        http_response_code(403); // Forbidden
+        echo json_encode(['success' => false, 'message' => 'Invalid CSRF token.']);
+        exit;
+    }
 
-        $action = $_POST['action'];
+    $action = $_POST['action'];
 
-        if ($action === 'send_qr') {
-            $id = (int) $_POST['id'];
-            $qr_file = $_FILES['qr_code_file'] ?? null;
-            $response = ['success' => false, 'message' => 'ข้อมูลไม่ถูกต้อง'];
+    if ($action === 'send_qr') {
+        $id = (int) $_POST['id'];
+        $qr_file = $_FILES['qr_code_file'] ?? null;
+        $response = ['success' => false, 'message' => 'ข้อมูลไม่ถูกต้อง'];
 
-            if ($id > 0 && $qr_file && $qr_file['error'] === UPLOAD_ERR_OK) {
-                $stmt_details = $conn->prepare("SELECT guest_name, guest_email, booking_code, deposit_amount, visitor_count FROM bookings WHERE bookings_id = ? AND status = 'pending'");
-                $stmt_details->bind_param("i", $id);
-                $stmt_details->execute();
-                $booking = $stmt_details->get_result()->fetch_assoc();
-                $stmt_details->close();
+        if ($id > 0 && $qr_file && $qr_file['error'] === UPLOAD_ERR_OK) {
+            $stmt_details = $conn->prepare("SELECT guest_name, guest_email, booking_code, deposit_amount, visitor_count FROM bookings WHERE bookings_id = ? AND status = 'pending'");
+            $stmt_details->bind_param("i", $id);
+            $stmt_details->execute();
+            $booking = $stmt_details->get_result()->fetch_assoc();
+            $stmt_details->close();
 
-                if ($booking && !empty($booking['guest_email'])) {
-                    try {
-                        $mail = new PHPMailer(true);
-                        // Enable SMTP debug output to PHP error log for troubleshooting
-                        $mail->SMTPDebug = 2;
-                        $mail->Debugoutput = 'error_log';
-                        $mail->isSMTP();
-                        // Relax SSL checks for environments with missing CA bundle (helpful for debugging)
-                        $mail->SMTPOptions = [
-                            'ssl' => [
-                                'verify_peer' => false,
-                                'verify_peer_name' => false,
-                                'allow_self_signed' => true
-                            ]
-                        ];
-                        $mail->Host       = "smtp.gmail.com";
-                        $mail->SMTPAuth   = true;
-                        $mail->Username   = "nanoone342@gmail.com";
-                        $mail->Password   = "yaud bhqb pibw lipz"; // App Password
-                        $mail->Port       = 465;
-                        $mail->SMTPSecure = "ssl";
-                        $mail->CharSet    = 'UTF-8';
+            if ($booking && !empty($booking['guest_email'])) {
+                try {
+                    $mail = new PHPMailer(true);
+                    // Enable SMTP debug output to PHP error log for troubleshooting
+                    $mail->SMTPDebug = 2;
+                    $mail->Debugoutput = 'error_log';
+                    $mail->isSMTP();
+                    // Relax SSL checks for environments with missing CA bundle (helpful for debugging)
+                    $mail->SMTPOptions = [
+                        'ssl' => [
+                            'verify_peer' => false,
+                            'verify_peer_name' => false,
+                            'allow_self_signed' => true
+                        ]
+                    ];
+                    $mail->Host       = "smtp.gmail.com";
+                    $mail->SMTPAuth   = true;
+                    $mail->Username   = "nanoone342@gmail.com";
+                    $mail->Password   = "yaud bhqb pibw lipz"; // App Password
+                    $mail->Port       = 465;
+                    $mail->SMTPSecure = "ssl";
+                    $mail->CharSet    = 'UTF-8';
 
-                        $mail->setFrom('nanoone342@gmail.com', 'สวนแห่งการเรียนรู้');
-                        $mail->addAddress($booking['guest_email'], $booking['guest_name']);
-                        $mail->addEmbeddedImage($qr_file['tmp_name'], 'qrcode_deposit', 'qrcode.jpg');
+                    $mail->setFrom('nanoone342@gmail.com', 'สวนลุงเผือก');
+                    $mail->addAddress($booking['guest_email'], $booking['guest_name']);
+                    $mail->addEmbeddedImage($qr_file['tmp_name'], 'qrcode_deposit', 'qrcode.jpg');
 
-                        $mail->isHTML(true);
-                        $mail->Subject = "ชำระเงินมัดจำสำหรับการจอง";
+                    $mail->isHTML(true);
+                    $mail->Subject = "ชำระเงินมัดจำสำหรับการจอง";
 
-                        // --- คำนวณค่าใช้จ่ายใหม่ (รวมค่าสถานที่) ---
-                        $visitor_count = (int)($booking['visitor_count'] ?? 1);
-                        $price_per_person = 150;
-                        $instructor_fee = 1800;
-                        $venue_fee = 3000;
-                        $deposit_rate = 0.3;
+                    // --- คำนวณค่าใช้จ่ายใหม่ (รวมค่าสถานที่) ---
+                    $visitor_count = (int)($booking['visitor_count'] ?? 1);
+                    $price_per_person = 150;
+                    $instructor_fee = 1800;
+                    $venue_fee = 3000;
+                    $deposit_rate = 0.3;
 
-                        $entrance_fee = $visitor_count * $price_per_person;
-                        $total_amount = $entrance_fee + $instructor_fee + $venue_fee;
-                        $deposit_amount_calculated = round($total_amount * $deposit_rate);
-                        $deposit_formatted = number_format($deposit_amount_calculated, 2);
+                    $entrance_fee = $visitor_count * $price_per_person;
+                    $total_amount = $entrance_fee + $instructor_fee + $venue_fee;
+                    $deposit_amount_calculated = round($total_amount * $deposit_rate);
+                    $deposit_formatted = number_format($deposit_amount_calculated, 2);
 
-                        // Create the direct link to open the upload modal
-                        $booking_id_for_link = $id;
-                        $visitor_count_for_link = $booking['visitor_count'] ?? 1;
-                        $upload_link = "http://localhost:8000/user/bookings.php?action=upload_slip&booking_id={$booking_id_for_link}&visitor_count={$visitor_count_for_link}";
-                        $mail->Body = "
+                    // Create the direct link to open the upload modal
+                    $booking_id_for_link = $id;
+                    $visitor_count_for_link = $booking['visitor_count'] ?? 1;
+                    $upload_link = app_base_url() . "/user/bookings.php?action=upload_slip&booking_id={$booking_id_for_link}&visitor_count={$visitor_count_for_link}";
+                    $mail->Body = "
                             <div style='background-color: #f4f7f6; padding: 40px 10px; font-family: \"Sarabun\", \"Kanit\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;'>
                                 <div style='max-width: 600px; margin: 0 auto; background: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #e1e8ed;'>
                                     
@@ -143,108 +163,109 @@
                                     <p style='text-align: center; color: #555; font-size: 15px; line-height: 1.6;'>
                                         ท่านสามารถกดปุ่มด้านล่างเพื่อไปยังหน้าการจอง และทำการแนบสลิปของท่าน
                                     </p>
-                                    <div style='text-align: center; margin: 25px 0;'><a href='{$upload_link}' style='background-color: #016A70; color: #ffffff; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>แนบสลิปการโอนเงิน</a></div>
+                                    <div style='text-align: center; margin: 25px 0;'><a href='{$upload_link}' style='background-color: #016A70; 
+                                    color: #ffffff; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>แนบสลิปการโอนเงิน</a></div>
                                     <p style='text-align: center; color: #888888; font-size: 13px; line-height: 1.5;'>
                                         ขอขอบคุณที่ไว้วางใจให้เราดูแล<br>
-                                        <strong>สวนแห่งการเรียนรู้</strong>
+                                        <strong>สวนลุงเผือก</strong>
                                     </p>
                                 </div>
                             </div>";
 
-                        if ($mail->send()) {
-                            // Update status to 'awaiting_payment' after sending QR
-                            $stmt_update = $conn->prepare("UPDATE bookings SET status = 'awaiting_payment', updated_at = NOW() WHERE bookings_id = ?");
-                            if ($stmt_update) {
-                                $stmt_update->bind_param("i", $id);
-                                $stmt_update->execute();
-                                $stmt_update->close();
-                            }
-
-                            $response = ['success' => true, 'message' => 'ส่งอีเมลพร้อม QR Code สำเร็จ'];
-                        } else {
-                            $response = ['success' => false, 'message' => 'ไม่สามารถส่งอีเมลได้: ' . $mail->ErrorInfo];
+                    if ($mail->send()) {
+                        // Update status to 'awaiting_payment' after sending QR
+                        $stmt_update = $conn->prepare("UPDATE bookings SET status = 'awaiting_payment', updated_at = NOW() WHERE bookings_id = ?");
+                        if ($stmt_update) {
+                            $stmt_update->bind_param("i", $id);
+                            $stmt_update->execute();
+                            $stmt_update->close();
                         }
-                    } catch (Exception $e) {
-                        $response = ['success' => false, 'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()];
-                        error_log("QR Mailer Error for booking ID $id: " . $e->getMessage());
+
+                        $response = ['success' => true, 'message' => 'ส่งอีเมลพร้อม QR Code สำเร็จ'];
+                    } else {
+                        $response = ['success' => false, 'message' => 'ไม่สามารถส่งอีเมลได้: ' . $mail->ErrorInfo];
                     }
-                } else {
-                    $response = ['success' => false, 'message' => 'ไม่พบข้อมูลการจอง หรือไม่มีอีเมลลูกค้า'];
+                } catch (Exception $e) {
+                    $response = ['success' => false, 'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()];
+                    error_log("QR Mailer Error for booking ID $id: " . $e->getMessage());
                 }
             } else {
-                $response = ['success' => false, 'message' => 'กรุณาแนบไฟล์ QR Code'];
+                $response = ['success' => false, 'message' => 'ไม่พบข้อมูลการจอง หรือไม่มีอีเมลลูกค้า'];
             }
-            header('Content-Type: application/json');
-            echo json_encode($response);
-            exit;
+        } else {
+            $response = ['success' => false, 'message' => 'กรุณาแนบไฟล์ QR Code'];
         }
+        header('Content-Type: application/json');
+        echo json_encode($response);
+        exit;
+    }
 
-        $id = (int) $_POST['id'];
-        $success = false;
-        $rejection_reason = $_POST['reason'] ?? null;
+    $id = (int) $_POST['id'];
+    $success = false;
+    $rejection_reason = $_POST['reason'] ?? null;
 
-        if ($action === 'confirm') {
-            $stmt = $conn->prepare("UPDATE bookings SET status='confirmed', updated_at=NOW() WHERE bookings_id=?");
-            $stmt->bind_param("i", $id);
-            $success = $stmt->execute();
+    if ($action === 'confirm') {
+        $stmt = $conn->prepare("UPDATE bookings SET status='confirmed', updated_at=NOW() WHERE bookings_id=?");
+        $stmt->bind_param("i", $id);
+        $success = $stmt->execute();
 
-            if ($success) {
-                // ดึงข้อมูลการจองเพื่อส่งอีเมล
-                $stmt_details = $conn->prepare("SELECT guest_name, guest_email, booking_code, booking_date, booking_time, visitor_count, booking_type, lunch_request, price_total, deposit_amount, balance_amount FROM bookings WHERE bookings_id = ?");
-                $stmt_details->bind_param("i", $id);
-                $stmt_details->execute();
-                $booking = $stmt_details->get_result()->fetch_assoc();
-                $stmt_details->close();
+        if ($success) {
+            // ดึงข้อมูลการจองเพื่อส่งอีเมล
+            $stmt_details = $conn->prepare("SELECT guest_name, guest_email, booking_code, booking_date, booking_time, visitor_count, booking_type, lunch_request, price_total, deposit_amount, balance_amount FROM bookings WHERE bookings_id = ?");
+            $stmt_details->bind_param("i", $id);
+            $stmt_details->execute();
+            $booking = $stmt_details->get_result()->fetch_assoc();
+            $stmt_details->close();
 
-                if ($booking && !empty($booking['guest_email'])) {
-                    try {
-                        $userMail = new PHPMailer(true);
-                        // Enable SMTP debug output to PHP error log for troubleshooting
-                        $userMail->SMTPDebug = 2;
-                        $userMail->Debugoutput = 'error_log';
-                        $userMail->isSMTP();
-                        $userMail->SMTPOptions = [
-                            'ssl' => [
-                                'verify_peer' => false,
-                                'verify_peer_name' => false,
-                                'allow_self_signed' => true
-                            ]
-                        ];
-                        $userMail->Host       = "smtp.gmail.com";
-                        $userMail->SMTPAuth   = true;
-                        $userMail->Username   = "nanoone342@gmail.com";
-                        $userMail->Password   = "yaud bhqb pibw lipz"; // App Password
-                        $userMail->Port       = 465;
-                        $userMail->SMTPSecure = "ssl";
-                        $userMail->CharSet    = 'UTF-8';
+            if ($booking && !empty($booking['guest_email'])) {
+                try {
+                    $userMail = new PHPMailer(true);
+                    // Enable SMTP debug output to PHP error log for troubleshooting
+                    $userMail->SMTPDebug = 2;
+                    $userMail->Debugoutput = 'error_log';
+                    $userMail->isSMTP();
+                    $userMail->SMTPOptions = [
+                        'ssl' => [
+                            'verify_peer' => false,
+                            'verify_peer_name' => false,
+                            'allow_self_signed' => true
+                        ]
+                    ];
+                    $userMail->Host       = "smtp.gmail.com";
+                    $userMail->SMTPAuth   = true;
+                    $userMail->Username   = "nanoone342@gmail.com";
+                    $userMail->Password   = "yaud bhqb pibw lipz"; // App Password
+                    $userMail->Port       = 465;
+                    $userMail->SMTPSecure = "ssl";
+                    $userMail->CharSet    = 'UTF-8';
 
-                        $userMail->setFrom('nanoone342@gmail.com', 'สวนแห่งการเรียนรู้');
-                        $userMail->addAddress($booking['guest_email'], $booking['guest_name']);
+                    $userMail->setFrom('nanoone342@gmail.com', 'สวนลุงเผือก');
+                    $userMail->addAddress($booking['guest_email'], $booking['guest_name']);
 
-                        $userMail->isHTML(true);
-                        $userMail->Subject = "หนังสือยืนยันการจองเข้าชมสวน (Booking Confirmation) - รหัส: " . $booking['booking_code'];
+                    $userMail->isHTML(true);
+                    $userMail->Subject = "หนังสือยืนยันการจองเข้าชมสวน (Booking Confirmation) - รหัส: " . $booking['booking_code'];
 
-                        $thai_date = date('d/m/', strtotime($booking['booking_date'])) . (date('Y', strtotime($booking['booking_date'])) + 543);
-                        $booking_time_formatted = date('H:i', strtotime($booking['booking_time']));
-                        $booking_type_thai = $booking['booking_type'] === 'organization' ? 'หน่วยงาน/องค์กร' : 'บุคคลทั่วไป';
-                        $lunch_request_text = $booking['lunch_request'] == 1 ? '✅ ต้องการ' : '❌ ไม่ต้องการ';
+                    $thai_date = date('d/m/', strtotime($booking['booking_date'])) . (date('Y', strtotime($booking['booking_date'])) + 543);
+                    $booking_time_formatted = date('H:i', strtotime($booking['booking_time']));
+                    $booking_type_thai = $booking['booking_type'] === 'organization' ? 'หน่วยงาน/องค์กร' : 'บุคคลทั่วไป';
+                    $lunch_request_text = $booking['lunch_request'] == 1 ? '✅ ต้องการ' : '❌ ไม่ต้องการ';
 
-                        // --- คำนวณค่าใช้จ่ายใหม่เพื่อความถูกต้อง (รวมค่าสถานที่) ---
-                        $visitor_count = (int)($booking['visitor_count'] ?? 1);
-                        $price_per_person = 150;
-                        $instructor_fee = 1800;
-                        $venue_fee = 3000;
-                        $entrance_fee = $visitor_count * $price_per_person;
-                        $total_amount_recalculated = $entrance_fee + $instructor_fee + $venue_fee;
-                        $deposit_amount_paid = (float)$booking['deposit_amount'];
-                        $balance_recalculated = $total_amount_recalculated - $deposit_amount_paid;
+                    // --- คำนวณค่าใช้จ่ายใหม่เพื่อความถูกต้อง (รวมค่าสถานที่) ---
+                    $visitor_count = (int)($booking['visitor_count'] ?? 1);
+                    $price_per_person = 150;
+                    $instructor_fee = 1800;
+                    $venue_fee = 3000;
+                    $entrance_fee = $visitor_count * $price_per_person;
+                    $total_amount_recalculated = $entrance_fee + $instructor_fee + $venue_fee;
+                    $deposit_amount_paid = (float)$booking['deposit_amount'];
+                    $balance_recalculated = $total_amount_recalculated - $deposit_amount_paid;
 
-                        $price_total_formatted = number_format($total_amount_recalculated, 2);
-                        $deposit_formatted = number_format($deposit_amount_paid, 2);
-                        $balance_formatted = number_format($balance_recalculated, 2);
+                    $price_total_formatted = number_format($total_amount_recalculated, 2);
+                    $deposit_formatted = number_format($deposit_amount_paid, 2);
+                    $balance_formatted = number_format($balance_recalculated, 2);
 
 
-                        $userMail->Body = "
+                    $userMail->Body = "
                                     <div style='font-family: \"Sarabun\", \"Kanit\", sans-serif; padding: 20px; background-color: #f4f7f6; line-height: 1.7;'>
                                         <div style='max-width: 650px; margin: auto; background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); border-top: 5px solid #016A70;'>
                                             
@@ -324,62 +345,62 @@
 
                                             <div style='margin-top: 40px; text-align: center; color: #888; font-size: 14px;'>
                                                 <p style='margin: 0;'>ขอแสดงความนับถือ</p>
-                                                <p style='margin-top: 5px; color: #333; font-weight: 500;'>ฝ่ายบริการลูกค้า สวนแห่งการเรียนรู้</p>
+                                                <p style='margin-top: 5px; color: #333; font-weight: 500;'>ฝ่ายบริการลูกค้า สวนลุงเผือก</p>
                                                 <hr style='border: 0; border-top: 1px solid #eee; margin: 25px 0;'>
                                                 <p style='font-size: 12px;'>หากท่านมีข้อสงสัยประการใด สามารถติดต่อสอบถามเพิ่มเติมได้ที่เบอร์โทรศัพท์ 065-107-8576 <br> หรือตอบกลับอีเมลฉบับนี้</p>
                                             </div>
                                         </div>
                                     </div>
                                 ";
-                        $userMail->send();
-                    } catch (Exception $e) {
-                        error_log("Confirmation Mailer Error for booking ID $id: " . $e->getMessage());
-                    }
+                    $userMail->send();
+                } catch (Exception $e) {
+                    error_log("Confirmation Mailer Error for booking ID $id: " . $e->getMessage());
                 }
             }
-        } elseif ($action === 'cancel') {
-            $stmt = $conn->prepare("UPDATE bookings SET status='cancelled', updated_at=NOW() WHERE bookings_id=?");
-            $stmt->bind_param("i", $id);
-            $success = $stmt->execute();
+        }
+    } elseif ($action === 'cancel') {
+        $stmt = $conn->prepare("UPDATE bookings SET status='cancelled', updated_at=NOW() WHERE bookings_id=?");
+        $stmt->bind_param("i", $id);
+        $success = $stmt->execute();
 
-            if ($success) {
-                // ดึงข้อมูลการจองเพื่อส่งอีเมลแจ้งยกเลิก
-                $stmt_details = $conn->prepare("SELECT guest_name, guest_email, booking_code, booking_date FROM bookings WHERE bookings_id = ?");
-                $stmt_details->bind_param("i", $id);
-                $stmt_details->execute();
-                $booking = $stmt_details->get_result()->fetch_assoc();
-                $stmt_details->close();
+        if ($success) {
+            // ดึงข้อมูลการจองเพื่อส่งอีเมลแจ้งยกเลิก
+            $stmt_details = $conn->prepare("SELECT guest_name, guest_email, booking_code, booking_date FROM bookings WHERE bookings_id = ?");
+            $stmt_details->bind_param("i", $id);
+            $stmt_details->execute();
+            $booking = $stmt_details->get_result()->fetch_assoc();
+            $stmt_details->close();
 
-                if ($booking && !empty($booking['guest_email'])) {
-                    try {
-                        $cancelMail = new PHPMailer(true);
-                        // Enable SMTP debug output to PHP error log for troubleshooting
-                        $cancelMail->SMTPDebug = 2;
-                        $cancelMail->Debugoutput = 'error_log';
-                        $cancelMail->isSMTP();
-                        $cancelMail->SMTPOptions = [
-                            'ssl' => [
-                                'verify_peer' => false,
-                                'verify_peer_name' => false,
-                                'allow_self_signed' => true
-                            ]
-                        ];
-                        $cancelMail->Host       = "smtp.gmail.com";
-                        $cancelMail->SMTPAuth   = true;
-                        $cancelMail->Username   = "nanoone342@gmail.com";
-                        $cancelMail->Password   = "yaud bhqb pibw lipz"; // App Password
-                        $cancelMail->Port       = 465;
-                        $cancelMail->SMTPSecure = "ssl";
-                        $cancelMail->CharSet    = 'UTF-8';
+            if ($booking && !empty($booking['guest_email'])) {
+                try {
+                    $cancelMail = new PHPMailer(true);
+                    // Enable SMTP debug output to PHP error log for troubleshooting
+                    $cancelMail->SMTPDebug = 2;
+                    $cancelMail->Debugoutput = 'error_log';
+                    $cancelMail->isSMTP();
+                    $cancelMail->SMTPOptions = [
+                        'ssl' => [
+                            'verify_peer' => false,
+                            'verify_peer_name' => false,
+                            'allow_self_signed' => true
+                        ]
+                    ];
+                    $cancelMail->Host       = "smtp.gmail.com";
+                    $cancelMail->SMTPAuth   = true;
+                    $cancelMail->Username   = "nanoone342@gmail.com";
+                    $cancelMail->Password   = "yaud bhqb pibw lipz"; // App Password
+                    $cancelMail->Port       = 465;
+                    $cancelMail->SMTPSecure = "ssl";
+                    $cancelMail->CharSet    = 'UTF-8';
 
-                        $cancelMail->setFrom('nanoone342@gmail.com', 'สวนแห่งการเรียนรู้');
-                        $cancelMail->addAddress($booking['guest_email'], $booking['guest_name']);
+                    $cancelMail->setFrom('nanoone342@gmail.com', 'สวนลุงเผือก');
+                    $cancelMail->addAddress($booking['guest_email'], $booking['guest_name']);
 
-                        $cancelMail->isHTML(true);
-                        $cancelMail->Subject = "แจ้งยกเลิกการจอง";
-                        $thai_date = date('d/m/', strtotime($booking['booking_date'])) . (date('Y', strtotime($booking['booking_date'])) + 543);
+                    $cancelMail->isHTML(true);
+                    $cancelMail->Subject = "แจ้งยกเลิกการจอง";
+                    $thai_date = date('d/m/', strtotime($booking['booking_date'])) . (date('Y', strtotime($booking['booking_date'])) + 543);
 
-                        $cancelMail->Body = "
+                    $cancelMail->Body = "
                                     <div style='font-family: \"Sarabun\", \"Kanit\", sans-serif; padding: 20px; background-color: #f4f7f6; line-height: 1.7;'>
                                         <div style='max-width: 650px; margin: auto; background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); border-top: 5px solid #e74a3b;'>
                                             
@@ -390,7 +411,7 @@
 
                                             <p style='color: #333; font-size: 16px;'>เรียน คุณ " . htmlspecialchars($booking['guest_name']) . ",</p>
                                             
-                                            <p style='color: #333; font-size: 16px; text-indent: 2em;'>ทางสวนแห่งการเรียนรู้มีความเสียใจที่ต้องแจ้งให้ท่านทราบว่า รายการจองของท่านสำหรับวันที่ <strong>" . $thai_date . "</strong>) ได้ถูกยกเลิกแล้ว</p>
+                                            <p style='color: #333; font-size: 16px; text-indent: 2em;'>ทางสวนลุงเผือกมีความเสียใจที่ต้องแจ้งให้ท่านทราบว่า รายการจองของท่านสำหรับวันที่ <strong>" . $thai_date . "</strong>) ได้ถูกยกเลิกแล้ว</p>
                                             
                                             <div style='margin: 30px 0; padding: 20px; background-color: #fffbe6; border-left: 4px solid #f59e0b; border-radius: 4px;'>
                                                 <h4 style='margin-top: 0; color: #d35400; font-size: 16px;'>เหตุผลในการยกเลิก:</h4> 
@@ -402,71 +423,75 @@
                                             
                                             <div style='margin-top: 40px; text-align: center; color: #888; font-size: 14px;'>
                                                 <p style='margin: 0;'>ขอแสดงความนับถือ</p>
-                                                <p style='margin-top: 5px; color: #333; font-weight: 500;'>ฝ่ายบริการลูกค้า สวนแห่งการเรียนรู้</p>
+                                                <p style='margin-top: 5px; color: #333; font-weight: 500;'>ฝ่ายบริการลูกค้า สวนลุงเผือก</p>
                                             </div>
                                         </div>
                                     </div>
                                 ";
 
-                        $cancelMail->send();
-                    } catch (Exception $e) {
-                        error_log("Cancellation Mailer Error for booking ID $id: " . $e->getMessage());
-                    }
+                    $cancelMail->send();
+                } catch (Exception $e) {
+                    error_log("Cancellation Mailer Error for booking ID $id: " . $e->getMessage());
                 }
             }
-        } elseif ($action === 'delete') {
-            $stmt = $conn->prepare("DELETE FROM bookings WHERE bookings_id=?");
-            $stmt->bind_param("i", $id);
-            $success = $stmt->execute();
         }
-
-        header('Content-Type: application/json');
-        echo json_encode(['success' => $success, 'action' => $action, 'id' => $id]);
-        exit;
+    } elseif ($action === 'delete') {
+        $stmt = $conn->prepare("DELETE FROM bookings WHERE bookings_id=?");
+        $stmt->bind_param("i", $id);
+        $success = $stmt->execute();
     }
 
-    // ดึงข้อมูลการจองทั้งหมด
-    $result = $conn->query("SELECT * FROM bookings ORDER BY bookings_id DESC");
-    $bookings = [];
-    while ($row = $result->fetch_assoc()) {
-        $bookings[] = $row;
-    }
+    header('Content-Type: application/json');
+    echo json_encode(['success' => $success, 'action' => $action, 'id' => $id]);
+    exit;
+}
 
-    // นับจำนวนสถานะต่างๆ สำหรับ Stats Card
-    $stats = [
-        'pending' => 0,
-        'awaiting_payment' => 0,
-        'awaiting_slip_check' => 0,
-        'confirmed' => 0,
-        'cancelled' => 0,
-        'total' => count($bookings)
-    ];
-    foreach ($bookings as $b) {
-        // Check for awaiting slip check first
-        if (($b['status'] === 'pending' || $b['status'] === 'awaiting_payment') && !empty($b['payment_slip'])) {
-            $stats['awaiting_slip_check']++;
-        } elseif ($b['status'] === 'pending') {
-            $stats['pending']++;
-        } elseif ($b['status'] === 'awaiting_payment') {
-            $stats['awaiting_payment']++;
-        } elseif ($b['status'] === 'confirmed') {
-            $stats['confirmed']++;
-        } elseif ($b['status'] === 'cancelled') {
-            $stats['cancelled']++;
-        }
+// ดึงข้อมูลการจองทั้งหมด
+$result = $conn->query("SELECT * FROM bookings ORDER BY bookings_id DESC");
+$bookings = [];
+while ($row = $result->fetch_assoc()) {
+    $bookings[] = $row;
+}
+
+// นับจำนวนสถานะต่างๆ สำหรับ Stats Card
+$stats = [
+    'pending' => 0,
+    'awaiting_payment' => 0,
+    'awaiting_slip_check' => 0,
+    'confirmed' => 0,
+    'cancelled' => 0,
+    'total' => count($bookings)
+];
+foreach ($bookings as $b) {
+    // Check for awaiting slip check first
+    if (($b['status'] === 'pending' || $b['status'] === 'awaiting_payment') && !empty($b['payment_slip'])) {
+        $stats['awaiting_slip_check']++;
+    } elseif ($b['status'] === 'pending') {
+        $stats['pending']++;
+    } elseif ($b['status'] === 'awaiting_payment') {
+        $stats['awaiting_payment']++;
+    } elseif ($b['status'] === 'confirmed') {
+        $stats['confirmed']++;
+    } elseif ($b['status'] === 'cancelled') {
+        $stats['cancelled']++;
     }
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>จัดการการจอง - ระบบ Admin</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <style>
+<style>
+        * {
+            box-sizing: border-box;
+        }
+
         :root {
             --primary: #4361ee;
             --secondary: #3f37c9;
@@ -483,6 +508,61 @@
             background: linear-gradient(135deg, #f5f7fa 0%, #e4e7f1 100%);
             color: #333;
             min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Responsive Sidebar */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                position: fixed;
+                z-index: 1050;
+                width: 280px !important;
+                height: 100vh;
+                overflow-y: auto;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+
+            .sidebar-toggle-btn {
+                display: block !important;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .sidebar-toggle-btn {
+                display: none;
+            }
+
+            .sidebar {
+                transform: translateX(0) !important;
+            }
+        }
+
+        .sidebar-toggle-btn {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1060;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+
+        .main-content {
+            transition: margin-left 0.3s ease;
+            width: 100%;
         }
 
         .dashboard-header {
@@ -491,7 +571,19 @@
             padding: 1rem;
             box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
             border-radius: 50px;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 576px) {
+            .dashboard-header {
+                border-radius: 20px;
+                padding: 0.75rem;
+                margin-bottom: 1rem;
+            }
+
+            .dashboard-title {
+                font-size: 1.25rem;
+            }
         }
 
         .admin-profile {
@@ -503,12 +595,29 @@
             border-radius: 50px;
         }
 
+        @media (max-width: 576px) {
+            .admin-profile {
+                padding: 0.3rem 0.8rem;
+            }
+
+            .admin-profile span {
+                font-size: 0.85rem;
+            }
+        }
+
         .admin-profile img {
             width: 36px;
             height: 36px;
             border-radius: 50%;
             margin-right: 10px;
             border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        @media (max-width: 576px) {
+            .admin-profile img {
+                width: 28px;
+                height: 28px;
+            }
         }
 
         .booking-card {
@@ -520,6 +629,9 @@
             margin-bottom: 1.5rem;
             border: none;
             position: relative;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
         }
 
         .booking-card:hover {
@@ -544,6 +656,18 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        @media (max-width: 576px) {
+            .booking-card-header {
+                padding: 0.75rem 1rem;
+            }
+
+            .booking-card .p-4 {
+                padding: 1rem !important;
+            }
         }
 
         .status-badge {
@@ -551,6 +675,14 @@
             border-radius: 50px;
             font-weight: 500;
             font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 576px) {
+            .status-badge {
+                font-size: 0.75rem;
+                padding: 0.25rem 0.6rem;
+            }
         }
 
         .status-pending {
@@ -581,8 +713,20 @@
         .info-label {
             font-weight: 500;
             color: #6c757d;
-            min-width: 120px;
+            min-width: 90px;
             display: inline-block;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 576px) {
+            .info-label {
+                min-width: 70px;
+                font-size: 0.85rem;
+            }
+
+            .info-value {
+                font-size: 0.85rem;
+            }
         }
 
         .info-value {
@@ -592,13 +736,25 @@
 
         .action-btn {
             border-radius: 50px;
-            padding: 0.5rem 1.2rem;
+            padding: 0.5rem 1rem;
             font-weight: 500;
             transition: all 0.3s ease;
             border: none;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             display: inline-flex;
             align-items: center;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 576px) {
+            .action-btn {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.75rem;
+            }
+
+            .action-btn i {
+                font-size: 0.75rem;
+            }
         }
 
         .btn-confirm {
@@ -635,10 +791,29 @@
             background: white;
             border-radius: 16px;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
-            padding: 1.5rem;
+            padding: 1.25rem;
             text-align: center;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
             border: none;
+            height: 100%;
+        }
+
+        @media (max-width: 576px) {
+            .stats-card {
+                padding: 0.75rem;
+            }
+
+            .stats-value {
+                font-size: 1.25rem !important;
+            }
+
+            .stats-icon {
+                font-size: 1.5rem !important;
+            }
+
+            .stats-card .text-muted {
+                font-size: 0.75rem;
+            }
         }
 
         .stats-icon {
@@ -647,7 +822,7 @@
         }
 
         .stats-value {
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: 700;
         }
 
@@ -657,7 +832,160 @@
             border-radius: 8px;
         }
 
-        /* Loading Overlay and Spinner Styles */
+        @media (max-width: 576px) {
+            .slip-image-container {
+                height: 120px;
+            }
+        }
+
+        /* Filter Buttons - Responsive */
+        .filter-btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+            .filter-btn-group {
+                gap: 0.5rem;
+            }
+
+            .filter-btn-group .btn {
+                font-size: 0.8rem;
+                padding: 0.4rem 0.8rem;
+                white-space: nowrap;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .filter-btn-group .btn {
+                font-size: 0.7rem;
+                padding: 0.35rem 0.6rem;
+            }
+
+            .filter-btn-group .btn i {
+                font-size: 0.7rem;
+            }
+
+            .filter-btn-group .badge {
+                font-size: 0.65rem;
+            }
+        }
+
+        /* Responsive Grid */
+        @media (max-width: 1200px) {
+            .booking-item-col {
+                flex: 0 0 50%;
+                max-width: 50%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .booking-item-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+        }
+
+        /* Modal Responsive */
+        @media (max-width: 576px) {
+            .modal-dialog {
+                margin: 0.5rem;
+            }
+
+            .modal-body {
+                padding: 1rem !important;
+            }
+
+            .modal-header h5 {
+                font-size: 1rem;
+            }
+        }
+
+        /* Form Responsive */
+        @media (max-width: 576px) {
+            .input-group {
+                flex-direction: column;
+            }
+
+            .input-group-text {
+                border-radius: 8px 8px 0 0 !important;
+            }
+
+            .form-control-lg {
+                border-radius: 0 0 8px 8px !important;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* File Upload Area Responsive */
+        .file-upload-area-modern {
+            border: 2px dashed #dee2e6;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            background-color: #f8fafc;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        @media (max-width: 576px) {
+            .file-upload-area-modern {
+                padding: 1rem;
+            }
+
+            .file-upload-icon {
+                font-size: 2rem !important;
+            }
+
+            .file-upload-area-modern div {
+                font-size: 0.85rem;
+            }
+        }
+
+        .file-upload-area-modern:hover,
+        .file-upload-area-modern.dragover {
+            border-color: var(--primary);
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+
+        .file-upload-icon {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .qr-preview-wrapper {
+            position: relative;
+            display: inline-block;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0.5rem;
+            background-color: #f8fafc;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        @media (max-width: 576px) {
+            .qr-preview-wrapper {
+                max-width: 100%;
+            }
+        }
+
+        .qr-remove-btn {
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Loading Overlay */
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -674,84 +1002,40 @@
         }
 
         .loading-overlay.active {
-            /* display: flex; */
-            opacity: 1;
-            visibility: visible;
-            margin-left: 0 !important;
-            /* Override layout margin */
-
+            display: flex;
         }
 
-        .spinner-container {
-            position: relative;
-            width: 80px;
-            height: 80px;
-            margin-bottom: 20px;
-        }
-
-        .spinner {
-            width: 70px;
-            height: 70px;
-            border: 6px solid #e0e0e0;
-            border-top: 6px solid var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        .spinner-inner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid transparent;
-            border-top: 4px solid var(--secondary);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite reverse;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        .spinner-icon {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 24px;
-            color: var(--primary);
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: translate(-50%, -50%) rotate(0deg);
+        /* Responsive Typography */
+        @media (max-width: 576px) {
+            h2 {
+                font-size: 1.25rem;
             }
 
-            100% {
-                transform: translate(-50%, -50%) rotate(360deg);
+            .text-muted {
+                font-size: 0.75rem;
             }
         }
 
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 0.6;
-            }
-
-            50% {
-                opacity: 1;
+        /* Container padding adjustment */
+        @media (max-width: 768px) {
+            .p-4 {
+                padding: 1rem !important;
             }
         }
 
+        /* Success Checkmark Animation */
         .success-checkmark {
             width: 80px;
             height: 80px;
             margin: 0 auto;
             margin-bottom: 20px;
+        }
+
+        @media (max-width: 576px) {
+            .success-checkmark {
+                width: 60px;
+                height: 60px;
+            }
         }
 
         .success-checkmark .check-icon {
@@ -763,29 +1047,11 @@
             border: 4px solid var(--success);
         }
 
-        .success-checkmark .check-icon::before {
-            top: 3px;
-            left: -2px;
-            width: 30px;
-            transform-origin: 100% 50%;
-            border-radius: 100px 0 0 100px;
-        }
-
-        .success-checkmark .check-icon::after {
-            top: 0;
-            left: 30px;
-            width: 60px;
-            transform-origin: 0 50%;
-            border-radius: 0 100px 100px 0;
-            animation: rotate-circle 4.25s ease-in;
-        }
-
-        .success-checkmark .check-icon .icon-line {
-            height: 5px;
-            background-color: var(--success);
-            border-radius: 2px;
-            position: absolute;
-            z-index: 10;
+        @media (max-width: 576px) {
+            .success-checkmark .check-icon {
+                width: 60px;
+                height: 60px;
+            }
         }
 
         .success-checkmark .check-icon .icon-line.line-tip {
@@ -802,45 +1068,6 @@
             width: 47px;
             transform: rotate(-45deg);
             animation: icon-line-long 0.75s;
-        }
-
-        .success-checkmark .check-icon .icon-circle {
-            top: -4px;
-            left: -4px;
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            position: absolute;
-            box-sizing: content-box;
-            border: 4px solid rgba(46, 204, 113, 0.2);
-        }
-
-        .success-checkmark .check-icon .icon-fix {
-            top: 8px;
-            width: 5px;
-            left: 26px;
-            height: 85px;
-            position: absolute;
-            transform: rotate(-45deg);
-            background-color: white;
-        }
-
-        @keyframes rotate-circle {
-            0% {
-                transform: rotate(-45deg);
-            }
-
-            5% {
-                transform: rotate(-45deg);
-            }
-
-            12% {
-                transform: rotate(-405deg);
-            }
-
-            100% {
-                transform: rotate(-405deg);
-            }
         }
 
         @keyframes icon-line-tip {
@@ -901,301 +1128,254 @@
             }
         }
 
-        .filter-btn-group .btn {
-            font-weight: 500;
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
         }
 
-        .filter-btn-group .btn.active {
-            background-color: var(--primary);
-            color: white;
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
         }
 
-        .filter-btn .badge {
-            font-size: 0.8em;
-            padding: 0.3em 0.65em;
-            position: relative;
-            top: -1px;
-            font-weight: 600;
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
         }
 
-        /* Styles for modern file upload */
-        .file-upload-area-modern {
-            border: 2px dashed #dee2e6;
-            border-radius: 12px;
-            padding: 2.5rem;
-            text-align: center;
-            background-color: #f8fafc;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .file-upload-area-modern:hover,
-        .file-upload-area-modern.dragover {
-            border-color: var(--primary);
-            background-color: rgba(67, 97, 238, 0.05);
-        }
-
-        .file-upload-icon {
-            font-size: 3rem;
-            color: var(--primary);
-            margin-bottom: 1rem;
-        }
-
-        .qr-preview-wrapper {
-            position: relative;
-            display: inline-block;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 0.5rem;
-            background-color: #f8fafc;
-            width: 100%;
-            max-width: 300px;
-        }
-
-        .qr-remove-btn {
-            position: absolute;
-            top: -12px;
-            right: -12px;
-            width: 28px;
-            height: 28px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary);
         }
     </style>
 </head>
 
 <body>
+    <!-- Sidebar Toggle Button for Mobile -->
+    <button class="sidebar-toggle-btn" onclick="toggleSidebar()">
+        <i class="bi bi-list fs-4"></i>
+    </button>
+
     <?php include 'sidebar.php'; ?>
-    <div class="p-4" style="margin-left: 250px; flex: 1;">
-        <!-- Header -->
-        <header class="dashboard-header pb-4 mb-4">
-            <div class="container">
-                <div class="d-flex justify-content-between align-items-center flex-wrap">
-                    <div>
-                        <h2 class="dashboard-title mb-0">จัดการรายการจอง</h2>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-2 mt-md-0">
-                        <div class="admin-profile">
-                            <img src="https://ui-avatars.com/api/?name=<?= urlencode($admin_name) ?>&background=random&color=fff" alt="Admin">
-                            <span><?= htmlspecialchars($admin_name) ?></span>
+
+    <div class="main-content" style="margin-left: 250px; flex: 1; width: calc(100% - 250px);">
+        <div class="p-3 p-md-4">
+            <!-- Header -->
+            <header class="dashboard-header pb-3 pb-md-4 mb-3 mb-md-4">
+                <div class="container-fluid">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <div>
+                            <h2 class="dashboard-title mb-0">จัดการรายการจอง</h2>
+                        </div>
+                        <div class="d-flex align-items-center gap-3 mt-2 mt-md-0">
+                            <div class="admin-profile">
+                                <img src="https://ui-avatars.com/api/?name=<?= urlencode($admin_name) ?>&background=random&color=fff" alt="Admin">
+                                <span><?= htmlspecialchars($admin_name) ?></span>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </header>
+            </header>
 
-        <!-- Stats -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <div class="stats-icon text-primary"><i class="bi bi-list-ul"></i></div>
-                    <div class="stats-value"><?= $stats['total'] ?></div>
-                    <div class="text-muted">ทั้งหมด</div>
+            <!-- Stats -->
+            <div class="row g-2 g-md-3 mb-3 mb-md-4">
+                <div class="col-6 col-sm-3">
+                    <div class="stats-card">
+                        <div class="stats-icon text-primary"><i class="bi bi-list-ul"></i></div>
+                        <div class="stats-value"><?= $stats['total'] ?></div>
+                        <div class="text-muted">ทั้งหมด</div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-3">
+                    <div class="stats-card">
+                        <div class="stats-icon text-warning"><i class="bi bi-clock-history"></i></div>
+                        <div class="stats-value"><?= $stats['pending'] + $stats['awaiting_payment'] + $stats['awaiting_slip_check'] ?></div>
+                        <div class="text-muted">รอยืนยัน</div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-3">
+                    <div class="stats-card">
+                        <div class="stats-icon text-success"><i class="bi bi-check-circle"></i></div>
+                        <div class="stats-value"><?= $stats['confirmed'] ?></div>
+                        <div class="text-muted">ยืนยันแล้ว</div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-3">
+                    <div class="stats-card">
+                        <div class="stats-icon text-danger"><i class="bi bi-x-circle"></i></div>
+                        <div class="stats-value"><?= $stats['cancelled'] ?></div>
+                        <div class="text-muted">ยกเลิกแล้ว</div>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <div class="stats-icon text-warning"><i class="bi bi-clock-history"></i></div>
-                    <div class="stats-value"><?= $stats['pending'] + $stats['awaiting_payment'] + $stats['awaiting_slip_check'] ?></div>
-                    <div class="text-muted">รอยืนยัน</div>
+
+            <!-- Filter Buttons -->
+            <div class="mb-3 mb-md-4 text-center py-2 py-md-3 bg-white rounded-3 shadow-sm">
+                <div class="filter-btn-group" role="group">
+                    <button type="button" class="btn btn-light filter-btn active" data-filter="all">
+                        <i class="bi bi-collection me-1"></i> ทั้งหมด
+                        <span class="badge rounded-pill bg-secondary ms-1"><?= $stats['total'] ?></span>
+                    </button>
+                    <button type="button" class="btn btn-light filter-btn" data-filter="pending">
+                        <i class="bi bi-hourglass-split me-1"></i> รอยืนยัน
+                        <?php if ($stats['pending'] > 0): ?>
+                            <span class="badge rounded-pill bg-warning text-dark ms-1"><?= $stats['pending'] ?></span>
+                        <?php endif; ?>
+                    </button>
+                    <button type="button" class="btn btn-light filter-btn" data-filter="awaiting_payment" title="แสดงรายการที่ส่ง QR Code ให้ลูกค้าแล้ว">
+                        <i class="bi bi-qr-code me-1"></i> ส่ง QR แล้ว
+                        <?php if ($stats['awaiting_payment'] > 0): ?>
+                            <span class="badge rounded-pill ms-1" style="background-color: #fd7e14; color: white;"><?= $stats['awaiting_payment'] ?></span>
+                        <?php endif; ?>
+                    </button>
+                    <button type="button" class="btn btn-light filter-btn" data-filter="รอตรวจสอบสลิป">
+                        <i class="bi bi-receipt me-1"></i> รอสลิป
+                        <?php if ($stats['awaiting_slip_check'] > 0): ?>
+                            <span class="badge rounded-pill bg-primary ms-1"><?= $stats['awaiting_slip_check'] ?></span>
+                        <?php endif; ?>
+                    </button>
+                    <button type="button" class="btn btn-light filter-btn" data-filter="confirmed">
+                        <i class="bi bi-check2-circle me-1"></i> ยืนยันแล้ว
+                        <?php if ($stats['confirmed'] > 0): ?>
+                            <span class="badge rounded-pill bg-success ms-1"><?= $stats['confirmed'] ?></span>
+                        <?php endif; ?>
+                    </button>
+                    <button type="button" class="btn btn-light filter-btn" data-filter="cancelled">
+                        <i class="bi bi-x-circle me-1"></i> ยกเลิกแล้ว
+                        <?php if ($stats['cancelled'] > 0): ?>
+                            <span class="badge rounded-pill bg-danger ms-1"><?= $stats['cancelled'] ?></span>
+                        <?php endif; ?>
+                    </button>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <div class="stats-icon text-success"><i class="bi bi-check-circle"></i></div>
-                    <div class="stats-value"><?= $stats['confirmed'] ?></div>
-                    <div class="text-muted">ยืนยันแล้ว</div>
+
+            <!-- Search Input -->
+            <div class="mb-3 mb-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+                    <input type="text" id="searchInput" class="form-control form-control-lg border-start-0" placeholder="ค้นหาด้วยชื่อ หรือรหัสอ้างอิง...">
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <div class="stats-icon text-danger"><i class="bi bi-x-circle"></i></div>
-                    <div class="stats-value"><?= $stats['cancelled'] ?></div>
-                    <div class="text-muted">ยกเลิกแล้ว</div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Filter Buttons -->
-        <div class="mb-4 text-center py-3 bg-white rounded-3 shadow-sm">
-            <div class="btn-group filter-btn-group py-3 bg-white rounded-3 " role="group">
-                <button type="button" class="btn btn-light filter-btn active" data-filter="all">
-                    <i class="bi bi-collection me-1"></i> ทั้งหมด
-                    <span class="badge rounded-pill bg-secondary ms-1"><?= $stats['total'] ?></span>
-                </button>
-                <button type="button" class="btn btn-light filter-btn" data-filter="pending">
-                    <i class="bi bi-hourglass-split me-1"></i> รอยืนยัน
-                    <?php if ($stats['pending'] > 0): ?>
-                        <span class="badge rounded-pill bg-warning text-dark ms-1"><?= $stats['pending'] ?></span>
-                    <?php endif; ?>
-                </button>
-                <button type="button" class="btn btn-light filter-btn" data-filter="awaiting_payment" title="แสดงรายการที่ส่ง QR Code ให้ลูกค้าแล้ว">
-                    <i class="bi bi-qr-code me-1"></i> ส่ง QR แล้ว
-                    <?php if ($stats['awaiting_payment'] > 0): ?>
-                        <span class="badge rounded-pill ms-1" style="background-color: #fd7e14; color: white;"><?= $stats['awaiting_payment'] ?></span>
-                    <?php endif; ?>
-                </button>
-                <button type="button" class="btn btn-light filter-btn" data-filter="รอตรวจสอบสลิป">
-                    <i class="bi bi-receipt me-1"></i> รอตรวจสอบสลิป
-                    <?php if ($stats['awaiting_slip_check'] > 0): ?>
-                        <span class="badge rounded-pill bg-primary ms-1"><?= $stats['awaiting_slip_check'] ?></span>
-                    <?php endif; ?>
-                </button>
-                <button type="button" class="btn btn-light filter-btn" data-filter="confirmed">
-                    <i class="bi bi-check2-circle me-1"></i> ยืนยันแล้ว
-                    <?php if ($stats['confirmed'] > 0): ?>
-                        <span class="badge rounded-pill bg-success ms-1"><?= $stats['confirmed'] ?></span>
-                    <?php endif; ?>
-                </button>
-                <button type="button" class="btn btn-light filter-btn" data-filter="cancelled">
-                    <i class="bi bi-x-circle me-1"></i> ยกเลิกแล้ว
-                    <?php if ($stats['cancelled'] > 0): ?>
-                        <span class="badge rounded-pill bg-danger ms-1"><?= $stats['cancelled'] ?></span>
-                    <?php endif; ?>
-                </button>
-            </div>
-        </div>
+            <!-- Booking List -->
+            <div class="row g-3" id="bookingList">
+                <?php if (empty($bookings)): ?>
+                    <div class="col-12 text-center py-5">
+                        <i class="bi bi-inbox fs-1 text-muted"></i>
+                        <p class="mt-3 text-muted">ไม่พบข้อมูลการจอง</p>
+                    </div>
+                <?php else: ?>
+                    <div class="col-12 text-center py-5 d-none" id="noResultsMessage">
+                        <i class="bi bi-search fs-1 text-muted"></i>
+                        <p class="mt-3 text-muted">ไม่พบรายการที่ตรงกับการค้นหา</p>
+                    </div>
+                    <?php foreach ($bookings as $booking): ?>
+                        <div class="col-md-6 col-lg-4 booking-item-col">
+                            <div class="booking-card">
+                                <div class="booking-card-header">
+                                    <span class="fw-bold text-primary booking-code">#<?= htmlspecialchars($booking['booking_code']) ?></span>
+                                    <?php
+                                    $isAwaitingSlipCheck = (($booking['status'] == 'pending' || $booking['status'] == 'awaiting_payment') && !empty($booking['payment_slip']));
 
-        <!-- Search Input -->
-        <div class="mb-4">
-            <div class="input-group">
-                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
-                <input type="text" id="searchInput" class="form-control form-control-lg border-start-0" placeholder="ค้นหาด้วยชื่อลูกค้า หรือรหัสอ้างอิง...">
-            </div>
-        </div>
+                                    $display_status_text = '';
+                                    $display_status_class = $booking['status'];
+                                    $display_status_icon = 'bi-question-circle';
 
-        <!-- Booking List -->
-        <div class="row" id="bookingList">
-            <?php if (empty($bookings)): ?>
-                <div class="col-12 text-center py-5">
-                    <i class="bi bi-inbox fs-1 text-muted"></i>
-                    <p class="mt-3 text-muted">ไม่พบข้อมูลการจอง</p>
-                </div>
-            <?php else: ?>
-                <div class="col-12 text-center py-5 d-none" id="noResultsMessage">
-                    <i class="bi bi-search fs-1 text-muted"></i>
-                    <p class="mt-3 text-muted">ไม่พบรายการที่ตรงกับการค้นหา</p>
-                </div>
-                <?php foreach ($bookings as $booking): ?>
-                    <div class="col-md-6 col-lg-4 booking-item-col">
-                        <div class="booking-card">
-                            <div class="booking-card-header">
-                                <span class="fw-bold text-primary booking-code">#<?= htmlspecialchars($booking['booking_code']) ?></span>
-                                <?php
-                                $isAwaitingSlipCheck = (($booking['status'] == 'pending' || $booking['status'] == 'awaiting_payment') && !empty($booking['payment_slip']));
-
-                                $display_status_text = '';
-                                $display_status_class = $booking['status'];
-                                $display_status_icon = 'bi-question-circle';
-
-                                if ($isAwaitingSlipCheck) {
-                                    $display_status_text = 'รอตรวจสอบสลิป';
-                                    $display_status_class = 'รอตรวจสอบสลิป';
-                                    $display_status_icon = 'bi-receipt';
-                                } elseif ($booking['status'] == 'pending') {
-                                    $display_status_text = 'รอยืนยัน';
-                                    $display_status_icon = 'bi-hourglass-split';
-                                } elseif ($booking['status'] == 'awaiting_payment') { // Admin sent QR code
-                                    $display_status_text = 'ส่ง QR แล้ว';
-                                    $display_status_icon = 'bi-qr-code';
-                                } elseif ($booking['status'] == 'confirmed') {
-                                    $display_status_text = 'ยืนยันแล้ว';
-                                    $display_status_icon = 'bi-check-circle-fill';
-                                } elseif ($booking['status'] == 'cancelled') {
-                                    $display_status_text = 'ยกเลิกแล้ว';
-                                    $display_status_icon = 'bi-x-circle-fill';
-                                } else {
-                                    $display_status_text = htmlspecialchars($booking['status']);
-                                }
-                                ?>
-                                <span class="status-badge status-<?= $display_status_class ?>">
-                                    <i class="bi <?= $display_status_icon ?> me-1"></i> <?= $display_status_text ?>
-                                </span>
-                            </div>
-                            <div class="p-4">
-                                <div class="mb-2">
-                                    <span class="info-label"><i class="bi bi-person me-2"></i>ลูกค้า:</span>
-                                    <span class="info-value guest-name"><?= htmlspecialchars($booking['guest_name']) ?></span>
+                                    if ($isAwaitingSlipCheck) {
+                                        $display_status_text = 'รอตรวจสอบสลิป';
+                                        $display_status_class = 'รอตรวจสอบสลิป';
+                                        $display_status_icon = 'bi-receipt';
+                                    } elseif ($booking['status'] == 'pending') {
+                                        $display_status_text = 'รอยืนยัน';
+                                        $display_status_icon = 'bi-hourglass-split';
+                                    } elseif ($booking['status'] == 'awaiting_payment') {
+                                        $display_status_text = 'ส่ง QR แล้ว';
+                                        $display_status_icon = 'bi-qr-code';
+                                    } elseif ($booking['status'] == 'confirmed') {
+                                        $display_status_text = 'ยืนยันแล้ว';
+                                        $display_status_icon = 'bi-check-circle-fill';
+                                    } elseif ($booking['status'] == 'cancelled') {
+                                        $display_status_text = 'ยกเลิกแล้ว';
+                                        $display_status_icon = 'bi-x-circle-fill';
+                                    } else {
+                                        $display_status_text = htmlspecialchars($booking['status']);
+                                    }
+                                    ?>
+                                    <span class="status-badge status-<?= $display_status_class ?>">
+                                        <i class="bi <?= $display_status_icon ?> me-1"></i> <?= $display_status_text ?>
+                                    </span>
                                 </div>
-                                <div class="mb-2">
-                                    <span class="info-label"><i class="bi bi-calendar-event me-2"></i>วันที่:</span>
-                                    <span class="info-value"><?= date('d/m/Y', strtotime($booking['booking_date'])) ?></span>
-                                </div>
-                                <div class="mb-2">
-                                    <span class="info-label"><i class="bi bi-clock me-2"></i>เวลา:</span>
-                                    <span class="info-value"><?= date('H:i', strtotime($booking['booking_time'])) ?> น.</span>
-                                </div>
-                                <div class="mb-2">
-                                    <span class="info-label"><i class="bi bi-people me-2"></i>จำนวน:</span>
-                                    <span class="info-value"><?= $booking['visitor_count'] ?> ท่าน</span>
-                                </div>
-                                <div class="mb-3">
-                                    <span class="info-label"><i class="bi bi-currency-dollar me-2"></i>ยอดรวม:</span>
-                                    <span class="info-value fw-bold text-dark">฿<?= number_format($booking['price_total'], 2) ?></span>
-                                </div>
+                                <div class="p-4">
+                                    <div class="mb-2">
+                                        <span class="info-label"><i class="bi bi-person me-2"></i>ลูกค้า:</span>
+                                        <span class="info-value guest-name"><?= htmlspecialchars($booking['guest_name']) ?></span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="info-label"><i class="bi bi-calendar-event me-2"></i>วันที่:</span>
+                                        <span class="info-value"><?= date('d/m/Y', strtotime($booking['booking_date'])) ?></span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="info-label"><i class="bi bi-clock me-2"></i>เวลา:</span>
+                                        <span class="info-value"><?= date('H:i', strtotime($booking['booking_time'])) ?> น.</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="info-label"><i class="bi bi-people me-2"></i>จำนวน:</span>
+                                        <span class="info-value"><?= $booking['visitor_count'] ?> ท่าน</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <span class="info-label"><i class="bi bi-currency-dollar me-2"></i>ยอดรวม:</span>
+                                        <span class="info-value fw-bold text-dark">฿<?= number_format($booking['price_total'], 2) ?></span>
+                                    </div>
 
-                                <?php if ($booking['booking_type'] === 'organization' && !empty($booking['attachment_path'])): ?>
-                                    <!-- <div class="mb-3">
-                                    <span class="info-label"><i class="bi bi-file-earmark-text me-2"></i>เอกสารแนบ:</span>
-                                    <a href="../user/<?= htmlspecialchars($booking['attachment_path']) ?>" target="_blank" class="btn btn-outline-secondary btn-sm">
-                                        <i class="bi bi-box-arrow-up-right me-1"></i> เปิดดูเอกสาร
-                                    </a>
-                                </div> -->
-                                <?php endif; ?>
-
-                                <div class="mb-3">
-                                    <span class="info-label d-block mb-2"><i class="bi bi-receipt me-2"></i>สลิปชำระเงิน:</span>
-                                    <?php if (!empty($booking['payment_slip'])): ?>
-                                        <a href="../user/Paymentslip-Gardenreservation/<?= htmlspecialchars($booking['payment_slip']) ?>" target="_blank">
-                                            <img src="../user/Paymentslip-Gardenreservation/<?= htmlspecialchars($booking['payment_slip']) ?>" class="img-fluid rounded" style="width: 100%; height: 150px; object-fit: cover;" alt="Payment Slip">
-                                        </a>
-                                    <?php else: ?>
-                                        <div class="slip-image-container d-flex align-items-center justify-content-center text-muted">
-                                            <div class="text-center">
-                                                <i class="bi bi-image fs-3"></i><br>ยังไม่มีสลิป
+                                    <div class="mb-3">
+                                        <span class="info-label d-block mb-2"><i class="bi bi-receipt me-2"></i>สลิป:</span>
+                                        <?php if (!empty($booking['payment_slip'])): ?>
+                                            <a href="../user/Paymentslip-Gardenreservation/<?= htmlspecialchars($booking['payment_slip']) ?>" target="_blank">
+                                                <img src="../user/Paymentslip-Gardenreservation/<?= htmlspecialchars($booking['payment_slip']) ?>" class="img-fluid rounded" style="width: 100%; height: 150px; object-fit: cover;" alt="Payment Slip">
+                                            </a>
+                                        <?php else: ?>
+                                            <div class="slip-image-container d-flex align-items-center justify-content-center text-muted">
+                                                <div class="text-center">
+                                                    <i class="bi bi-image fs-3"></i><br>ไม่มีสลิป
+                                                </div>
                                             </div>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
+                                        <?php endif; ?>
+                                    </div>
 
-                                <hr class="my-3 opacity-50">
+                                    <hr class="my-3 opacity-50">
 
-                                <div class="d-flex gap-2 justify-content-end">
-                                    <?php if ($booking['status'] == 'pending' && !$isAwaitingSlipCheck): // Status is pending, no slip uploaded yet 
-                                    ?>
-                                        <button class="action-btn btn-info" onclick="showQrCodeModal(<?= $booking['bookings_id'] ?>, '<?= htmlspecialchars(json_encode($booking), ENT_QUOTES, 'UTF-8') ?>')">
-                                            <i class="bi bi-qr-code me-1"></i> ส่ง QR
+                                    <div class="d-flex gap-2 justify-content-end flex-wrap">
+                                        <?php if ($booking['status'] == 'pending' && !$isAwaitingSlipCheck): ?>
+                                            <button class="action-btn btn-info" onclick="showQrCodeModal(<?= $booking['bookings_id'] ?>, '<?= htmlspecialchars(json_encode($booking), ENT_QUOTES, 'UTF-8') ?>')">
+                                                <i class="bi bi-qr-code me-1"></i> ส่ง QR
+                                            </button>
+                                        <?php endif; ?>
+
+                                        <?php if ($isAwaitingSlipCheck): ?>
+                                            <button class="action-btn btn-confirm" onclick="showConfirmationModal(<?= $booking['bookings_id'] ?>, 'confirm', 'ยืนยันการจองนี้ใช่หรือไม่?')">
+                                                <i class="bi bi-check2-circle me-1"></i> ยืนยัน
+                                            </button>
+                                        <?php endif; ?>
+
+                                        <?php if ($booking['status'] != 'confirmed' && $booking['status'] != 'cancelled'): ?>
+                                            <button class="action-btn btn-cancel" onclick="showConfirmationModal(<?= $booking['bookings_id'] ?>, 'cancel', 'ต้องการยกเลิกการจองนี้ใช่หรือไม่?')">
+                                                <i class="bi bi-x-lg me-1"></i> ยกเลิก
+                                            </button>
+                                        <?php endif; ?>
+                                        <button class="btn btn-light rounded-pill px-3" onclick="viewDetails(<?= htmlspecialchars(json_encode($booking)) ?>)">
+                                            <i class="bi bi-eye"></i>
                                         </button>
-                                    <?php endif; ?>
-
-                                    <?php if ($isAwaitingSlipCheck): // Status is pending, slip is uploaded 
-                                    ?>
-                                        <button class="action-btn btn-confirm" onclick="showConfirmationModal(<?= $booking['bookings_id'] ?>, 'confirm', 'ยืนยันการจองนี้ใช่หรือไม่?')">
-                                            <i class="bi bi-check2-circle me-1"></i> ยืนยัน
-                                        </button>
-                                    <?php endif; ?>
-
-                                    <?php if ($booking['status'] != 'confirmed' && $booking['status'] != 'cancelled'): // Can cancel if not confirmed or already cancelled 
-                                    ?>
-                                        <button class="action-btn btn-cancel" onclick="showConfirmationModal(<?= $booking['bookings_id'] ?>, 'cancel', 'ต้องการยกเลิกการจองนี้ใช่หรือไม่?')">
-                                            <i class="bi bi-x-lg me-1"></i> ยกเลิก
-                                        </button>
-                                    <?php endif; ?>
-                                    <button class="btn btn-light rounded-pill px-3" onclick="viewDetails(<?= htmlspecialchars(json_encode($booking)) ?>)">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
 
-    <!-- Modal สำหรับดูรายละเอียด -->
+    <!-- Modals (same as before) -->
     <div class="modal fade" id="detailModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
@@ -1203,24 +1383,19 @@
                     <h5 class="modal-title fw-bold">รายละเอียดการจอง</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div id="modalBody" class="modal-body p-4">
-                    <!-- ข้อมูลจะถูกใส่ด้วย JS -->
-                </div>
+                <div id="modalBody" class="modal-body p-4"></div>
             </div>
         </div>
     </div>
 
-    <!-- Modal for Action Confirmation -->
-    <div class="modal fade" id="actionConfirmModal" tabindex="-1" aria-labelledby="actionConfirmModalLabel" aria-hidden="true">
+    <div class="modal fade" id="actionConfirmModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-4 border-0 shadow">
                 <div class="modal-header border-0">
                     <h5 class="modal-title" id="actionConfirmModalLabel">ยืนยันการดำเนินการ</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body py-4" id="actionConfirmModalBody">
-                    <!-- Confirmation message will be injected here -->
-                </div>
+                <div class="modal-body py-4" id="actionConfirmModalBody"></div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
                     <button type="button" class="btn btn-primary" id="confirmActionButton">ยืนยัน</button>
@@ -1229,13 +1404,12 @@
         </div>
     </div>
 
-    <!-- Modal for Cancellation Reason -->
-    <div class="modal fade" id="cancelReasonModal" tabindex="-1" aria-labelledby="cancelReasonModalLabel" aria-hidden="true">
+    <div class="modal fade" id="cancelReasonModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-4 border-0 shadow">
                 <div class="modal-header border-0">
                     <h5 class="modal-title" id="cancelReasonModalLabel">ระบุเหตุผลการยกเลิก</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <textarea id="cancellationReason" class="form-control" rows="4" placeholder="กรุณาระบุเหตุผล..."></textarea>
@@ -1248,34 +1422,28 @@
         </div>
     </div>
 
-    <!-- Modal for QR Code Upload -->
-    <div class="modal fade" id="qrCodeModal" tabindex="-1" aria-labelledby="qrCodeModalLabel" aria-hidden="true">
+    <div class="modal fade" id="qrCodeModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-4 border-0 shadow">
                 <div class="modal-header border-0 bg-primary text-white">
                     <h5 class="modal-title" id="qrCodeModalLabel"><i class="bi bi-qr-code me-2"></i>ส่ง QR Code สำหรับชำระเงิน</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="alert alert-light border-primary border-2 border-start">
                         <p class="mb-1"><strong>การจอง:</strong> <span id="qrBookingCode" class="fw-bold"></span></p>
                         <p class="mb-0"><strong>ยอดชำระมัดจำ:</strong> <span id="qrDepositAmount" class="fw-bold text-danger"></span> บาท</p>
                     </div>
-
                     <form id="qrCodeForm" class="mt-3">
                         <input type="hidden" name="id" id="qrBookingId">
                         <input type="hidden" name="action" value="send_qr">
                         <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
-
-                        <!-- Modern File Upload Area -->
                         <div id="qrUploadArea" class="file-upload-area-modern">
                             <div class="file-upload-icon"><i class="bi bi-cloud-arrow-up-fill"></i></div>
                             <div>ลากไฟล์ QR Code มาวาง หรือคลิกเพื่อเลือก</div>
                             <div class="text-muted small">รองรับ: JPG, PNG, GIF (ไม่เกิน 2MB)</div>
                             <input class="d-none" type="file" id="qrCodeFile" name="qr_code_file" accept="image/png, image/jpeg, image/gif" required>
                         </div>
-
-                        <!-- Preview Container -->
                         <div id="qrPreviewContainer" class="text-center d-none">
                             <div class="qr-preview-wrapper">
                                 <img id="qrPreview" src="#" alt="QR Code Preview" class="img-fluid rounded" style="max-height: 250px; object-fit: contain;">
@@ -1289,7 +1457,7 @@
                     <button type="button" class="btn btn-primary" id="sendQrButton">
                         <span class="send-qr-text"><i class="bi bi-send me-2"></i>ส่งอีเมล</span>
                         <span class="send-qr-loading d-none">
-                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
                             กำลังส่ง...
                         </span>
                     </button>
@@ -1298,13 +1466,12 @@
         </div>
     </div>
 
-    <!-- Modal for Status/Error -->
-    <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
+    <div class="modal fade" id="statusModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-4 border-0 shadow">
                 <div class="modal-header border-0" id="statusModalHeader">
                     <h5 class="modal-title" id="statusModalLabel"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body py-4 text-center">
                     <div id="statusModalIcon" class="mb-3"></div>
@@ -1319,6 +1486,32 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Toggle sidebar for mobile
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('show');
+        }
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.querySelector('.sidebar-toggle-btn');
+
+            if (window.innerWidth <= 768) {
+                if (!sidebar.contains(event.target) && !toggleBtn.contains(event.target) && sidebar.classList.contains('show')) {
+                    sidebar.classList.remove('show');
+                }
+            }
+        });
+
+        // Handle window resize - reset sidebar state
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                const sidebar = document.querySelector('.sidebar');
+                sidebar.classList.remove('show');
+            }
+        });
+
         // Initialize Bootstrap Modals
         const confirmModalEl = document.getElementById('actionConfirmModal');
         const confirmModal = new bootstrap.Modal(confirmModalEl);
@@ -1330,7 +1523,6 @@
         const qrCodeModalEl = document.getElementById('qrCodeModal');
         const qrCodeModal = new bootstrap.Modal(qrCodeModalEl);
 
-        // Function to handle booking actions (confirm/cancel)
         function handleBookingAction(id, action, reason = null) {
             const formData = new FormData();
             formData.append('id', id);
@@ -1352,10 +1544,7 @@
                 })
                 .then(data => {
                     if (data.success) {
-                        // Show success modal with checkmark animation
                         showStatusModal('สำเร็จ', 'ดำเนินการเรียบร้อยแล้ว', true, true);
-
-                        // When success modal is closed, reload page
                         statusModalEl.addEventListener('hidden.bs.modal', () => {
                             location.reload();
                         }, {
@@ -1370,7 +1559,6 @@
                 });
         }
 
-        // Function to show confirmation modal
         function showConfirmationModal(id, action, message) {
             const modalBody = document.getElementById('actionConfirmModalBody');
             const modalLabel = document.getElementById('actionConfirmModalLabel');
@@ -1380,21 +1568,18 @@
                 modalLabel.textContent = 'ยืนยันการจอง';
                 confirmActionButton.className = 'btn btn-success';
 
-                // Set onclick for confirm button
                 confirmActionButton.onclick = () => {
                     confirmModal.hide();
                     handleBookingAction(id, action);
                 };
-
                 confirmModal.show();
             } else if (action === 'cancel') {
-                // Show cancellation reason modal instead
                 const cancelReasonModalEl = document.getElementById('cancelReasonModal');
                 const cancelReasonModal = new bootstrap.Modal(cancelReasonModalEl);
                 const reasonTextarea = document.getElementById('cancellationReason');
                 const confirmCancelBtn = document.getElementById('confirmCancelButton');
 
-                reasonTextarea.value = ''; // Clear previous reason
+                reasonTextarea.value = '';
 
                 confirmCancelBtn.onclick = () => {
                     const reason = reasonTextarea.value.trim();
@@ -1406,12 +1591,10 @@
                     cancelReasonModal.hide();
                     handleBookingAction(id, 'cancel', reason);
                 };
-
                 cancelReasonModal.show();
             }
         }
 
-        // Function to show status modal (success/error)
         function showStatusModal(title, message, isSuccess = true, showCheckmark = false) {
             const modalLabel = document.getElementById('statusModalLabel');
             const modalMessage = document.getElementById('statusModalMessage');
@@ -1421,37 +1604,27 @@
 
             modalLabel.textContent = title;
             modalMessage.textContent = message;
-
-            // Clear previous icon
             modalIcon.innerHTML = '';
-            // Default state for OK button
-            modalOkButton.style.display = 'block';
 
             if (isSuccess === 'loading') {
                 modalHeader.classList.remove('bg-danger', 'text-white');
                 modalHeader.classList.add('bg-light');
-                modalIcon.innerHTML = `
-                <div class="spinner-border text-primary" role="status" style="width: 4rem; height: 4rem;">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            `;
-                modalOkButton.style.display = 'none'; // Hide OK button while loading
+                modalIcon.innerHTML = `<div class="spinner-border text-primary" role="status" style="width: 4rem; height: 4rem;"><span class="visually-hidden">Loading...</span></div>`;
+                modalOkButton.style.display = 'none';
             } else if (isSuccess) {
                 modalHeader.classList.remove('bg-danger', 'text-white');
                 modalHeader.classList.add('bg-light');
-
                 if (showCheckmark) {
-                    // Show checkmark animation for success
                     modalIcon.innerHTML = `
-                    <div class="success-checkmark">
-                        <div class="check-icon">
-                            <span class="icon-line line-tip"></span>
-                            <span class="icon-line line-long"></span>
-                            <div class="icon-circle"></div>
-                            <div class="icon-fix"></div>
+                        <div class="success-checkmark">
+                            <div class="check-icon">
+                                <span class="icon-line line-tip"></span>
+                                <span class="icon-line line-long"></span>
+                                <div class="icon-circle"></div>
+                                <div class="icon-fix"></div>
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
                     modalOkButton.className = 'btn btn-success px-5';
                 } else {
                     modalIcon.innerHTML = '<i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>';
@@ -1463,12 +1636,10 @@
                 modalIcon.innerHTML = '<i class="bi bi-x-circle-fill text-danger" style="font-size: 4rem;"></i>';
                 modalOkButton.className = 'btn btn-danger px-5';
             }
-
-            // Show modal
             statusModal.show();
         }
 
-        // --- QR Code Modal Logic ---
+        // QR Code Modal Logic
         const qrUploadArea = document.getElementById('qrUploadArea');
         const qrFileInput = document.getElementById('qrCodeFile');
         const qrPreviewContainer = document.getElementById('qrPreviewContainer');
@@ -1476,44 +1647,45 @@
         const removeQrBtn = document.getElementById('removeQrBtn');
         const sendQrButton = document.getElementById('sendQrButton');
 
-        // Trigger file input on click
-        qrUploadArea.addEventListener('click', () => qrFileInput.click());
+        if (qrUploadArea) {
+            qrUploadArea.addEventListener('click', () => qrFileInput.click());
+            qrUploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                qrUploadArea.classList.add('dragover');
+            });
+            qrUploadArea.addEventListener('dragleave', () => {
+                qrUploadArea.classList.remove('dragover');
+            });
+            qrUploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                qrUploadArea.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    qrFileInput.files = e.dataTransfer.files;
+                    handleQrFile(qrFileInput.files[0]);
+                }
+            });
+        }
 
-        // Drag and drop events
-        qrUploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            qrUploadArea.classList.add('dragover');
-        });
-        qrUploadArea.addEventListener('dragleave', () => {
-            qrUploadArea.classList.remove('dragover');
-        });
-        qrUploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            qrUploadArea.classList.remove('dragover');
-            if (e.dataTransfer.files.length) {
-                qrFileInput.files = e.dataTransfer.files;
-                handleQrFile(qrFileInput.files[0]);
-            }
-        });
+        if (qrFileInput) {
+            qrFileInput.addEventListener('change', () => {
+                if (qrFileInput.files.length) {
+                    handleQrFile(qrFileInput.files[0]);
+                }
+            });
+        }
 
-        // Handle file selection from input
-        qrFileInput.addEventListener('change', () => {
-            if (qrFileInput.files.length) {
-                handleQrFile(qrFileInput.files[0]);
-            }
-        });
-
-        // Remove image button
-        removeQrBtn.addEventListener('click', () => {
-            qrFileInput.value = ''; // Clear the file input
-            qrPreviewContainer.classList.add('d-none');
-            qrUploadArea.classList.remove('d-none');
-            qrPreview.src = '#';
-        });
+        if (removeQrBtn) {
+            removeQrBtn.addEventListener('click', () => {
+                qrFileInput.value = '';
+                qrPreviewContainer.classList.add('d-none');
+                qrUploadArea.classList.remove('d-none');
+                qrPreview.src = '#';
+            });
+        }
 
         function handleQrFile(file) {
             if (file && file.type.startsWith('image/')) {
-                if (file.size > 2 * 1024 * 1024) { // 2MB limit
+                if (file.size > 2 * 1024 * 1024) {
                     alert('ไฟล์มีขนาดใหญ่เกิน 2MB');
                     qrFileInput.value = '';
                     return;
@@ -1531,7 +1703,6 @@
             }
         }
 
-        // Override the old showQrCodeModal function
         function showQrCodeModal(id, bookingJson) {
             const booking = JSON.parse(bookingJson);
             document.getElementById('qrBookingId').value = id;
@@ -1540,68 +1711,55 @@
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             });
-
-            // Reset form and preview
             const qrForm = document.getElementById('qrCodeForm');
-            qrForm.reset();
-            removeQrBtn.click(); // Use the remove button's logic to reset UI
-
+            if (qrForm) qrForm.reset();
+            if (removeQrBtn) removeQrBtn.click();
             qrCodeModal.show();
         }
 
-        // Update the send button logic
-        sendQrButton.addEventListener('click', function() {
-            const form = document.getElementById('qrCodeForm');
-            const fileInput = document.getElementById('qrCodeFile');
+        if (sendQrButton) {
+            sendQrButton.addEventListener('click', function() {
+                const form = document.getElementById('qrCodeForm');
+                const fileInput = document.getElementById('qrCodeFile');
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    alert('กรุณาเลือกไฟล์ QR Code');
+                    return;
+                }
+                const formData = new FormData(form);
+                qrCodeModal.hide();
+                const btnText = this.querySelector('.send-qr-text');
+                const btnLoading = this.querySelector('.send-qr-loading');
+                this.disabled = true;
+                btnText.classList.add('d-none');
+                btnLoading.classList.remove('d-none');
+                fetch('booking_list.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showStatusModal('สำเร็จ', 'ส่งอีเมลพร้อม QR Code เรียบร้อยแล้ว', true, true);
+                            statusModalEl.addEventListener('hidden.bs.modal', () => {
+                                window.location.reload();
+                            }, {
+                                once: true
+                            });
+                        } else {
+                            showStatusModal('เกิดข้อผิดพลาด', data.message || 'ไม่สามารถส่งอีเมลได้', false);
+                        }
+                    })
+                    .catch(error => {
+                        showStatusModal('เกิดข้อผิดพลาด', 'การเชื่อมต่อล้มเหลว: ' + error.message, false);
+                    })
+                    .finally(() => {
+                        this.disabled = false;
+                        btnText.classList.remove('d-none');
+                        btnLoading.classList.add('d-none');
+                    });
+            });
+        }
 
-            if (!fileInput.files || fileInput.files.length === 0) {
-                alert('กรุณาเลือกไฟล์ QR Code');
-                return;
-            }
-
-            const formData = new FormData(form);
-            qrCodeModal.hide();
-
-            // Show loading state
-            const btnText = this.querySelector('.send-qr-text');
-            const btnLoading = this.querySelector('.send-qr-loading');
-            this.disabled = true;
-            btnText.classList.add('d-none');
-            btnLoading.classList.remove('d-none');
-
-            fetch('booking_list.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showStatusModal('สำเร็จ', 'ส่งอีเมลพร้อม QR Code เรียบร้อยแล้ว', true, true);
-                        statusModalEl.addEventListener('hidden.bs.modal', () => {
-                            // Instead of full reload, just change the status on the card
-                            // and re-apply filters. This is a better UX.
-                            // For simplicity now, we'll just reload.
-                            // A more advanced version would update the DOM directly.
-                            window.location.reload();
-                        }, {
-                            once: true
-                        });
-                    } else {
-                        showStatusModal('เกิดข้อผิดพลาด', data.message || 'ไม่สามารถส่งอีเมลได้', false);
-                    }
-                })
-                .catch(error => {
-                    showStatusModal('เกิดข้อผิดพลาด', 'การเชื่อมต่อล้มเหลว: ' + error.message, false);
-                })
-                .finally(() => {
-                    // Reset button state
-                    this.disabled = false;
-                    btnText.classList.remove('d-none');
-                    btnLoading.classList.add('d-none');
-                });
-        });
-
-        // Helper function to translate booking types
         function translateBookingType(type) {
             const types = {
                 'private': 'บุคคลทั่วไป',
@@ -1610,59 +1768,51 @@
             return types[type] || type;
         }
 
-        // Helper function to translate status
         function translateStatus(status) {
             const statuses = {
                 'pending': 'รอยืนยัน',
                 'awaiting_payment': 'ส่ง QR Code แล้ว',
                 'confirmed': 'ยืนยันแล้ว',
-                'cancelled': 'ยกเลิกแล้ว',
+                'cancelled': 'ยกเลิกแล้ว'
             };
             return statuses[status] || status;
         }
 
-        // Function to view booking details in modal
         function viewDetails(data) {
             const modalBody = document.getElementById('modalBody');
             const bookingTypeThai = translateBookingType(data.booking_type);
-
             let statusThai = translateStatus(data.status);
             if ((data.status === 'pending' || data.status === 'awaiting_payment') && data.payment_slip) {
                 statusThai = 'รอตรวจสอบสลิป';
             }
-
             modalBody.innerHTML = `
-            <div class="text-center mb-4">
-                <div class="display-6 fw-bold text-primary">#${data.booking_code}</div>
-                <div class="text-muted">สถานะ: ${statusThai}</div>
-            </div>
-            <div class="row g-3">
-                <div class="col-6"><small class="text-muted d-block">ชื่อลูกค้า</small> <strong>${data.guest_name}</strong></div>
-                <div class="col-6"><small class="text-muted d-block">เบอร์โทรศัพท์</small> <strong>${data.guest_phone}</strong></div>
-                <div class="col-6"><small class="text-muted d-block">อีเมล</small> <strong>${data.guest_email || '-'}</strong></div>
-                <div class="col-6"><small class="text-muted d-block">ประเภทการจอง</small> <strong>${bookingTypeThai}</strong></div>
-                <div class="col-12"><hr></div>
-                <div class="col-6"><small class="text-muted d-block">ยอดรวม</small> <strong class="text-dark">฿${parseFloat(data.price_total).toLocaleString()}</strong></div>
-                <div class="col-6"><small class="text-muted d-block">เงินมัดจำ</small> <strong class="text-success">฿${parseFloat(data.deposit_amount).toLocaleString()}</strong></div>
-                <div class="col-6"><small class="text-muted d-block">เงินคงเหลือ</small> <strong class="text-danger">฿${parseFloat(data.balance_amount).toLocaleString()}</strong></div>
-                <div class="col-12"><small class="text-muted d-block">หลักฐานการชำระเงิน</small> 
-                    ${data.payment_slip ? `<a href="../user/Paymentslip-Gardenreservation/${data.payment_slip}" target="_blank" class="btn btn-sm btn-outline-primary mt-1 w-100">ดูสลิป</a>` : '<span class="text-danger">ยังไม่มีสลิป</span>'}
+                <div class="text-center mb-4">
+                    <div class="display-6 fw-bold text-primary">#${data.booking_code}</div>
+                    <div class="text-muted">สถานะ: ${statusThai}</div>
                 </div>
-                ${data.booking_type === 'organization' && data.attachment_path ? `<div class="col-12"><small class="text-muted d-block">เอกสารองค์กร</small><a href="../user/${data.attachment_path}" target="_blank" class="btn btn-sm btn-outline-secondary mt-1 w-100">เปิดดูเอกสาร</a></div>` : ''}
-            </div>
-        `;
+                <div class="row g-3">
+                    <div class="col-12 col-sm-6"><small class="text-muted d-block">ชื่อลูกค้า</small> <strong>${data.guest_name}</strong></div>
+                    <div class="col-12 col-sm-6"><small class="text-muted d-block">เบอร์โทรศัพท์</small> <strong>${data.guest_phone}</strong></div>
+                    <div class="col-12 col-sm-6"><small class="text-muted d-block">อีเมล</small> <strong>${data.guest_email || '-'}</strong></div>
+                    <div class="col-12 col-sm-6"><small class="text-muted d-block">ประเภทการจอง</small> <strong>${bookingTypeThai}</strong></div>
+                    <div class="col-12"><hr></div>
+                    <div class="col-6"><small class="text-muted d-block">ยอดรวม</small> <strong class="text-dark">฿${parseFloat(data.price_total).toLocaleString()}</strong></div>
+                    <div class="col-6"><small class="text-muted d-block">เงินมัดจำ</small> <strong class="text-success">฿${parseFloat(data.deposit_amount).toLocaleString()}</strong></div>
+                    <div class="col-6"><small class="text-muted d-block">เงินคงเหลือ</small> <strong class="text-danger">฿${parseFloat(data.balance_amount).toLocaleString()}</strong></div>
+                    <div class="col-12"><small class="text-muted d-block">หลักฐานการชำระเงิน</small> 
+                        ${data.payment_slip ? `<a href="../user/Paymentslip-Gardenreservation/${data.payment_slip}" target="_blank" class="btn btn-sm btn-outline-primary mt-1 w-100">ดูสลิป</a>` : '<span class="text-danger">ยังไม่มีสลิป</span>'}
+                    </div>
+                    ${data.booking_type === 'organization' && data.attachment_path ? `<div class="col-12"><small class="text-muted d-block">เอกสารองค์กร</small><a href="../user/${data.attachment_path}" target="_blank" class="btn btn-sm btn-outline-secondary mt-1 w-100">เปิดดูเอกสาร</a></div>` : ''}
+                </div>
+            `;
             detailModal.show();
         }
 
-        // Also update the onclick for cancel button to use confirmation modal
+        // Search and filter functionality
         document.addEventListener('DOMContentLoaded', function() {
-            // Find all cancel buttons and update their onclick to use confirmation modal
-            // This part is no longer needed as the HTML is directly updated.
-
-            // Real-time search and filter functionality
             const searchInput = document.getElementById('searchInput');
             const bookingList = document.getElementById('bookingList');
-            const bookingItems = bookingList.querySelectorAll('.booking-item-col');
+            const bookingItems = bookingList ? bookingList.querySelectorAll('.booking-item-col') : [];
             const noResultsMessage = document.getElementById('noResultsMessage');
             const filterButtons = document.querySelectorAll('.filter-btn');
             let currentFilter = 'all';
@@ -1670,25 +1820,20 @@
             function applyFilters() {
                 const searchTerm = searchInput.value.toLowerCase().trim();
                 let visibleCount = 0;
-
                 bookingItems.forEach(item => {
-                    // Status filter check
                     const statusBadge = item.querySelector('.status-badge');
                     let statusMatch = false;
                     if (currentFilter === 'all') {
                         statusMatch = true;
                     } else {
-                        // The class is like 'status-pending', 'status-รอตรวจสอบสลิป'
-                        if (statusBadge.classList.contains('status-' + currentFilter)) {
+                        if (statusBadge && statusBadge.classList.contains('status-' + currentFilter)) {
                             statusMatch = true;
                         }
                     }
-
-                    // Search term check
-                    const guestName = item.querySelector('.guest-name').textContent.toLowerCase();
-                    const bookingCode = item.querySelector('.booking-code').textContent.toLowerCase().replace('#', '');
-                    const searchMatch = guestName.includes(searchTerm) || bookingCode.includes(searchTerm);
-
+                    const guestName = item.querySelector('.guest-name');
+                    const bookingCode = item.querySelector('.booking-code');
+                    const searchMatch = (guestName && guestName.textContent.toLowerCase().includes(searchTerm)) ||
+                        (bookingCode && bookingCode.textContent.toLowerCase().replace('#', '').includes(searchTerm));
                     if (statusMatch && searchMatch) {
                         item.classList.remove('d-none');
                         visibleCount++;
@@ -1696,16 +1841,16 @@
                         item.classList.add('d-none');
                     }
                 });
-
-                if (visibleCount === 0) {
+                if (visibleCount === 0 && bookingItems.length > 0) {
                     noResultsMessage.classList.remove('d-none');
-                } else {
+                } else if (noResultsMessage) {
                     noResultsMessage.classList.add('d-none');
                 }
             }
 
-            searchInput.addEventListener('input', applyFilters);
-
+            if (searchInput) {
+                searchInput.addEventListener('input', applyFilters);
+            }
             filterButtons.forEach(button => {
                 button.addEventListener('click', function() {
                     filterButtons.forEach(btn => btn.classList.remove('active'));
@@ -1714,11 +1859,8 @@
                     applyFilters();
                 });
             });
-
-            // Handle filter from URL on page load
             const urlParams = new URLSearchParams(window.location.search);
             const filterParam = urlParams.get('filter');
-
             if (filterParam) {
                 const targetButton = document.querySelector(`.filter-btn[data-filter="${filterParam}"]`);
                 if (targetButton) {
@@ -1731,7 +1873,5 @@
         });
     </script>
 </body>
-
-</html>
 
 </html>
