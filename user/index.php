@@ -132,7 +132,7 @@ function find_hero_video_source()
         ['dir' => __DIR__ . '/../uploads', 'url' => '../uploads'],
     ];
 
-    $fileNames = ['background-video2.mp4', 'background-video.mp4'];
+    $fileNames = ['background-video20.mp4', 'background-video.mp4'];
 
     foreach ($locations as $location) {
         foreach ($fileNames as $fileName) {
@@ -179,12 +179,11 @@ $heroVideoSrc = find_hero_video_source();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="apple-touch-icon" sizes="180x180" href="/mango/logo/logo_01.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/mango/logo/logo_01.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="../logo/logo_01.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../logo/logo_01.png">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ffffff">
     <title>สวนลุงเผือก</title>
-    
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -988,8 +987,8 @@ $heroVideoSrc = find_hero_video_source();
             }
         }
     </style>
+    <meta name="google-site-verification" content="bmoWqmU29MxuV-8wzCGKFQ2yEeQHp9BzaSisH2OYMpI" />
 </head>
-
 <body>
     <?php include __DIR__ . '/navbar.php'; ?>
     <?php include __DIR__ . '/fb_chat_button.php'; ?>
