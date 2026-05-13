@@ -569,69 +569,50 @@ $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
     </div>
     <br>
 
-    <!-- สถิติออเดอร์ ------------------------------------------------------------------------------------------------>
-    <div class="stat-amount">
-        <h2>สถิติออเดอร์ทั้งหมด</h2>
-    </div>
-    <div class="row mb-4">
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <div class="stat-card">
-                <div class="stat-icon icon-all">
-                    <i class="fa-solid fa-clipboard-check"></i>
-                </div>
-                <div class="stat-number"><?= number_format($stats['total_completed'] ?? 0) ?></div>
-                <div class="stat-title">ขายไปทั้งหมด/ออเดอร์</div>
+   <!-- สถิติ -->
+<div class="row mb-4">
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="stat-icon icon-all">
+                <i class="fa-solid fa-clipboard-check"></i>
             </div>
-        </div>
-
-
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <div class="stat-card">
-                <div class="stat-icon icon-revenue">
-                    <i class="fas fa-money-bill-wave"></i>
-                </div>
-                <div class="stat-number">
-                    <?= number_format($overallRevenueStats['revenue'] ?? 0, 2) ?>
-                </div>
-                <div class="stat-title">ยอดรวม (บาท)</div>
-            </div>
+            <div class="stat-number"><?= number_format($stats['total_completed'] ?? 0) ?></div>
+            <div class="stat-title">ขายไปทั้งหมด/ออเดอร์</div>
         </div>
     </div>
 
-    <!------------------------------------------------------end stats order- --------------------------------------------------------- -->
-
-    <!-- สถิติ วันของนี้ - ------------------------------------------------------------------------------------------>
-
-    <div class="stat-today">
-        <h2>สถิติออเดอร์วันนี้</h2>
-    </div>
-    <div class="row mb-4">
-
-
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <div class="stat-card">
-                <div class="stat-icon icon-completed">
-                    <i class="fa-solid fa-check-double"></i>
-                </div>
-                <div class="stat-number"><?= number_format($todayStats['completed_count'] ?? 0) ?></div>
-                <div class="stat-title">เสร็จสิ้นแล้ว</div>
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="stat-icon icon-revenue">
+                <i class="fas fa-money-bill-wave"></i>
             </div>
+            <div class="stat-number"><?= number_format($overallRevenueStats['revenue'] ?? 0, 2) ?></div>
+            <div class="stat-title">ยอดรวมทั้งหมด (บาท)</div>
         </div>
+    </div>
+    
+    <!-- ----------------------------------- -->
 
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <div class="stat-card">
-                <div class="stat-icon icon-revenue">
-                    <i class="fas fa-money-bill-wave"></i>
-                </div>
-                <div class="stat-number">
-                    <?= number_format($todayStats['revenue'] ?? 0, 2) ?>
-                </div>
-                <div class="stat-title">ยอดรวม (บาท)</div>
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="stat-icon icon-completed">
+                <i class="fa-solid fa-check-double"></i>
             </div>
+            <div class="stat-number"><?= number_format($todayStats['completed_count'] ?? 0) ?></div>
+            <div class="stat-title">เสร็จสิ้นวันนี้</div>
         </div>
     </div>
 
-    <!-- สถิติ วันของนี้ - ------------------------------------------------------------------------------------------>
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="stat-icon icon-revenue">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="stat-number"><?= number_format($todayStats['revenue'] ?? 0, 2) ?></div>
+            <div class="stat-title">ยอดรวมวันนี้ (บาท)</div>
+        </div>
+    </div>
+</div>
 
 
     <!-- ฟิลเตอร์สถานะ -->

@@ -1,82 +1,95 @@
 <?php
-session_start();
 require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
 
-// รับข้อมูลจากฟอร์ม
-$course_name = htmlspecialchars($_POST['course_name'], ENT_QUOTES, 'UTF-8');
-$course_description = htmlspecialchars($_POST['course_description'], ENT_QUOTES, 'UTF-8');
-
-// ตรวจสอบความยาวข้อมูล
-if (strlen($course_name) > 255 || strlen($course_description) > 1000) {
-    // Redirect with an error message for better UX
-    $_SESSION['error'] = "ข้อมูลชื่อหลักสูตรหรือคำอธิบายยาวเกินไป";
-    header("Location: edit_courses.php");
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: edit_courses.php?error=invalid_request');
     exit;
 }
 
-// กำหนดโฟลเดอร์สำหรับเก็บรูปภาพ
-$target_dir = __DIR__ . '/../uploads/';
-if (!is_dir($target_dir)) {
-    mkdir($target_dir, 0755, true);
+$course_name = trim($_POST['course_name'] ?? '');
+$course_description = trim($_POST['course_description'] ?? '');
+
+if ($course_name === '' || $course_description === '') {
+    header('Location: edit_courses.php?error=' . urlencode('กรุณากรอกชื่อกิจกรรมและคำอธิบาย'));
+    exit;
 }
-$allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-/**
- * Handles file upload, validation, and renaming.
- *
- * @param string $file_key The key in the $_FILES array.
- * @param string $target_dir The destination directory.
- * @param array $allowed_types Allowed MIME types.
- * @return string|null The new filename on success, or null on failure/no file.
- */
-function handle_upload($file_key, $target_dir, $allowed_types) {
-    // ตรวจสอบว่ามีไฟล์ถูกส่งมาและไม่มีข้อผิดพลาด
-    if (isset($_FILES[$file_key]) && $_FILES[$file_key]['error'] === UPLOAD_ERR_OK) {
-        $file = $_FILES[$file_key];
-        
-        // ตรวจสอบประเภทไฟล์
-        if (!in_array($file['type'], $allowed_types)) {
-            $_SESSION['error'] = "ประเภทไฟล์ไม่ถูกต้องสำหรับ {$file_key} (รองรับเฉพาะ JPG, PNG, GIF)";
-            header("Location: edit_courses.php");
-            exit;
-        }
 
-        // สร้างชื่อไฟล์ใหม่ที่ไม่ซ้ำกันเพื่อป้องกันการเขียนทับ
-        $new_filename = uniqid() . "_" . basename($file['name']);
-        $target_path = $target_dir . $new_filename;
+if (mb_strlen($course_name, 'UTF-8') > 255) {
+    header('Location: edit_courses.php?error=' . urlencode('ชื่อกิจกรรมยาวเกินไป'));
+    exit;
+}
 
-        // ย้ายไฟล์ไปยังโฟลเดอร์เป้าหมาย
-        if (move_uploaded_file($file['tmp_name'], $target_path)) {
-            return $new_filename; // คืนค่าชื่อไฟล์ใหม่
-        } else {
-            $_SESSION['error'] = "ไม่สามารถอัปโหลดไฟล์ {$file_key} ได้";
-            header("Location: edit_courses.php");
-            exit;
-        }
+$target_dir = realpath(__DIR__ . '/../uploads');
+if ($target_dir === false) {
+    $upload_root = __DIR__ . '/../uploads';
+    if (!mkdir($upload_root, 0755, true) && !is_dir($upload_root)) {
+        header('Location: edit_courses.php?error=' . urlencode('ไม่สามารถสร้างโฟลเดอร์อัปโหลดได้'));
+        exit;
     }
-    // ถ้าไม่มีไฟล์ส่งมา หรือมีข้อผิดพลาด ให้คืนค่า null
-    return null;
+    $target_dir = realpath($upload_root);
 }
 
-// เรียกใช้ฟังก์ชันสำหรับแต่ละไฟล์
-$image1 = handle_upload('image1', $target_dir, $allowed_types);
-$image2 = handle_upload('image2', $target_dir, $allowed_types);
-$image3 = handle_upload('image3', $target_dir, $allowed_types);
+$allowed_types = [
+    'image/jpeg' => 'jpg',
+    'image/png' => 'png',
+    'image/gif' => 'gif',
+    'image/webp' => 'webp',
+];
 
-// บันทึกข้อมูลลงฐานข้อมูล
-$stmt = $conn->prepare("INSERT INTO courses (course_name, course_description, image1, image2, image3) VALUES (?, ?, ?, ?, ?)");
-$stmt->bind_param("sssss", $course_name, $course_description, $image1, $image2, $image3);
+function upload_course_image(string $file_key, string $target_dir, array $allowed_types): ?string
+{
+    if (!isset($_FILES[$file_key]) || $_FILES[$file_key]['error'] === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+
+    if ($_FILES[$file_key]['error'] !== UPLOAD_ERR_OK) {
+        throw new RuntimeException("อัปโหลดรูป {$file_key} ไม่สำเร็จ");
+    }
+
+    if (!is_uploaded_file($_FILES[$file_key]['tmp_name'])) {
+        throw new RuntimeException("ไฟล์ {$file_key} ไม่ถูกต้อง");
+    }
+
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime_type = $finfo->file($_FILES[$file_key]['tmp_name']);
+    if (!isset($allowed_types[$mime_type])) {
+        throw new RuntimeException("ไฟล์ {$file_key} ต้องเป็น JPG, PNG, GIF หรือ WEBP");
+    }
+
+    $new_filename = uniqid('course_', true) . '.' . $allowed_types[$mime_type];
+    $target_path = $target_dir . DIRECTORY_SEPARATOR . $new_filename;
+
+    if (!move_uploaded_file($_FILES[$file_key]['tmp_name'], $target_path)) {
+        throw new RuntimeException("ไม่สามารถบันทึกรูป {$file_key} ได้");
+    }
+
+    return $new_filename;
+}
+
+try {
+    $image1 = upload_course_image('image1', $target_dir, $allowed_types);
+    $image2 = upload_course_image('image2', $target_dir, $allowed_types);
+    $image3 = upload_course_image('image3', $target_dir, $allowed_types);
+} catch (RuntimeException $e) {
+    header('Location: edit_courses.php?error=' . urlencode($e->getMessage()));
+    exit;
+}
+
+$stmt = $conn->prepare('INSERT INTO courses (course_name, course_description, image1, image2, image3) VALUES (?, ?, ?, ?, ?)');
+if (!$stmt) {
+    header('Location: edit_courses.php?error=' . urlencode($conn->error));
+    exit;
+}
+
+$stmt->bind_param('sssss', $course_name, $course_description, $image1, $image2, $image3);
 
 if ($stmt->execute()) {
-    // Redirect with a success message
-    header("Location: edit_courses.php?success=add");
-    exit();
+    header('Location: edit_courses.php?success=add');
 } else {
-    // Redirect with a specific error
-    header("Location: edit_courses.php?error=" . urlencode($stmt->error));
-    exit();
+    header('Location: edit_courses.php?error=' . urlencode($stmt->error));
 }
 
 $stmt->close();
 $conn->close();
-?>
+exit;

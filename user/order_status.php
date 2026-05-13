@@ -17,7 +17,6 @@ if (!is_array($guestOrderCodes)) {
     $guestOrderCodes = [];
 }
 
-// ถ้าสมาชิกเข้าสู่ระบบ
 if ($member_id) {
     $stmt = $conn->prepare("
         SELECT * FROM orders 
@@ -30,7 +29,6 @@ if ($member_id) {
     $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
-// ผู้ใช้ทั่วไปเห็นได้เฉพาะออเดอร์ที่สร้างจาก session นี้เท่านั้น
 if (!$member_id) {
     $search_performed = true;
 
@@ -60,90 +58,572 @@ if (!$member_id) {
         $error = "ยังไม่มีคำสั่งซื้อในประวัติการใช้งานนี้";
     }
 }
-
 ?>
 <!DOCTYPE html>
 <html lang="th">
 
 <head>
     <meta charset="UTF-8">
-    <title>ติดตามสถานะคำสั่งซื้อ</title>
+    <title>ติดตามสถานะคำสั่งซื้อ – สวนลุงเผือก</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
-        /* CSS เดิมทั้งหมด */
-        :root {
-            --white: #ffffff;
-            --white-soft: #fafafa;
-            --white-mute: #f5f5f5;
-            --gray-light: #e5e5e5;
-            --gray-soft: #d4d4d4;
-            --gray: #a3a3a3;
-            --gray-dark: #525252;
-            --black: #171717;
-            --blue-light: #3b82f6;
-            --blue: #2563eb;
-            --green-light: #10b981;
-            --green: #059669;
-            --red-light: #ef4444;
-            --red: #dc2626;
-            --yellow-light: #f59e0b;
-            --yellow: #d97706;
-            --indigo-light: #6366f1;
-            --indigo: #4f46e5;
-            --border-radius: 12px;
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
-            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.01);
+        /* ── Reset ─────────────────────────────────────────────── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
-        * {
-            box-sizing: border-box;
+        :root {
+            --primary: #016A70;
+            --primary-mid: #019a9f;
+            --secondary: #2ad3bc;
+            --pale: #e1f5f4;
+            --pale2: #f0fbfb;
+            --border: #c8e8e8;
+            --border-mid: #8ecfcf;
+            --white: #ffffff;
+            --bg: #f2fafa;
+            --text: #1a2e2f;
+            --text-mid: #3d5f60;
+            --text-muted: #6b8f90;
+            --red: #b91c1c;
+            --red-pale: #fee2e2;
+            --green: #0f7a50;
+            --green-pale: #dcfce7;
+            --yellow: #92400e;
+            --yellow-pale: #fef3c7;
+            --blue: #1e40af;
+            --blue-pale: #dbeafe;
+            --pending: #ffe419;
+            --approved: #21bf73;
+            --rejected: #ff3251;
+            --completed: #60a5fa;
+            --radius: 14px;
+            --radius-sm: 8px;
+            --shadow: 0 2px 14px rgba(1, 106, 112, .07);
+            --shadow-lg: 0 6px 28px rgba(1, 106, 112, .12);
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif;
-            background-color: var(--white-soft);
-            color: var(--black);
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
+            font-family: 'Sarabun', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 15px;
+            line-height: 1.65;
             -webkit-font-smoothing: antialiased;
         }
 
-        .page-container {
-            max-width: 1000px;
+        /* ── Page ──────────────────────────────────────────────── */
+        .page-wrap {
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 24px 16px;
+            padding: 1.5rem 1rem 3rem;
         }
 
-        /* เพิ่ม alert styles */
-        .alert-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            max-width: 400px;
-        }
-
-        .alert-custom {
+        /* ── Back button ───────────────────────────────────────── */
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+            padding: .55rem 1.1rem;
             background: var(--white);
-            border: 1px solid;
-            border-radius: var(--border-radius);
-            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            color: var(--text-mid);
+            text-decoration: none;
+            font-size: .875rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            transition: .2s;
+            box-shadow: var(--shadow);
+        }
+
+        .back-btn:hover {
+            background: var(--pale);
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        /* ── Hero banner ───────────────────────────────────────── */
+        .hero {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 55%, var(--secondary) 100%);
+            border-radius: 20px;
+            padding: 2.25rem 2rem;
+            color: #fff;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .hero::before,
+        .hero::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .06);
+            pointer-events: none;
+        }
+
+        .hero::before {
+            width: 260px;
+            height: 260px;
+            top: -110px;
+            right: -70px;
+        }
+
+        .hero::after {
+            width: 180px;
+            height: 180px;
+            bottom: -80px;
+            left: -50px;
+        }
+
+        .hero-icon {
+            width: 64px;
+            height: 64px;
+            background: rgba(255, 255, 255, .2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto .9rem;
+            font-size: 1.75rem;
+            backdrop-filter: blur(6px);
+        }
+
+        .hero h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: .3rem;
+        }
+
+        .hero p {
+            font-size: .95rem;
+            opacity: .88;
+            margin: 0;
+        }
+
+        /* ── Guest info bar ────────────────────────────────────── */
+        .info-bar {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            font-size: .875rem;
+            color: var(--text-muted);
+            box-shadow: var(--shadow);
+        }
+
+        .info-bar i {
+            color: var(--primary);
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        /* ── Count row ─────────────────────────────────────────── */
+        .count-row {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            margin-bottom: 1rem;
+            font-size: .875rem;
+            color: var(--text-muted);
+        }
+
+        .count-pill {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: .2rem .8rem;
+            font-weight: 700;
+            color: var(--primary);
+            font-size: .875rem;
+        }
+
+        /* ── Grid ──────────────────────────────────────────────── */
+        .orders-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 1.25rem;
+        }
+
+        @media (max-width: 720px) {
+            .orders-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ───────────────── ORDER CARD NEW UI ───────────────── */
+
+        .orders-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(390px, 1fr));
+            gap: 1.35rem;
+        }
+
+        @media(max-width:768px) {
+            .orders-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .order-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(1, 106, 112, .08);
+            transition: .28s ease;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            animation: fadeUp .45s ease both;
+        }
+
+        .order-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 14px 38px rgba(1, 106, 112, .14);
+        }
+
+        /* STATUS LINE */
+
+        .status-line {
+            height: 35px;
+            width: 100%;
+        }
+
+        .line-pending {
+            background: var(--pending);
+
+        }
+
+        .line-approved {
+            background: var(--approved);
+        }
+
+        .line-rejected {
+            background: var(--rejected);
+        }
+
+        .line-completed {
+            background: var(--completed);
+        }
+
+        /* TOP */
+
+        .card-top {
+            padding: 1.2rem 1.2rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            border-bottom: 1px solid #edf7f7;
+        }
+
+        .left-top {
+            min-width: 0;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+            padding: .45rem .95rem;
+            border-radius: 999px;
+            font-size: .76rem;
+            font-weight: 700;
+            margin-bottom: .8rem;
+        }
+
+        .badge-pending {
+            background: var(--yellow-pale);
+            color: var(--yellow);
+        }
+
+        .badge-approved {
+            background: var(--green-pale);
+            color: var(--green);
+        }
+
+        .badge-rejected {
+            background: var(--red-pale);
+            color: var(--red);
+        }
+
+        .badge-completed {
+            background: var(--blue-pale);
+            color: var(--blue);
+        }
+
+        .order-code {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: .2rem;
+            word-break: break-word;
+        }
+
+        .order-date {
+            font-size: .82rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: .45rem;
+        }
+
+        .total-box {
+            background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+            color: #fff;
+            border-radius: 18px;
+            padding: .9rem 1rem;
+            min-width: 120px;
+            text-align: center;
+            flex-shrink: 0;
+            box-shadow: 0 6px 20px rgba(1, 106, 112, .18);
+        }
+
+        .total-box span {
+            font-size: .72rem;
+            opacity: .85;
+            display: block;
+            margin-bottom: .2rem;
+        }
+
+        .total-box strong {
+            font-size: 1.45rem;
+            line-height: 1;
+            font-weight: 800;
+        }
+
+        /* CUSTOMER */
+
+        .customer-grid {
+            padding: 1rem 1.2rem;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: .8rem;
+            border-bottom: 1px solid #edf7f7;
+        }
+
+        .customer-item {
+            background: var(--pale2);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: .75rem;
+        }
+
+        .customer-label {
+            font-size: .72rem;
+            color: var(--text-muted);
+            margin-bottom: .35rem;
+        }
+
+        .customer-value {
+            font-size: .88rem;
+            font-weight: 700;
+            color: var(--text);
+            display: flex;
+            align-items: flex-start;
+            gap: .45rem;
+            line-height: 1.45;
+        }
+
+        /* PRODUCTS */
+
+        .products-wrap {
+            padding: 1rem 1.2rem 1.2rem;
+        }
+
+        .products-title {
+            display: flex;
+            align-items: center;
+            gap: .45rem;
+            color: var(--primary);
+            font-size: .82rem;
+            font-weight: 800;
+            margin-bottom: .9rem;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+        }
+
+        .products-list {
+            display: flex;
+            flex-direction: column;
+            gap: .75rem;
+        }
+
+        .product-card {
+            display: flex;
+            gap: .8rem;
+            padding: .7rem;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--pale2);
+            transition: .2s;
+        }
+
+        .product-card:hover {
+            border-color: var(--border-mid);
+            background: var(--pale);
+        }
+
+        .product-image,
+        .product-placeholder {
+            width: 62px;
+            height: 62px;
+            border-radius: 14px;
+            object-fit: cover;
+            background: var(--pale);
+            border: 1px solid var(--border);
+            flex-shrink: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+
+        .product-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .product-name {
+            font-size: .9rem;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1.4;
+            margin-bottom: .45rem;
+
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .product-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .4rem;
+        }
+
+        .product-chip {
+            background: #fff;
+            border: 1px solid var(--border);
+            color: var(--primary);
+            border-radius: 999px;
+            padding: .2rem .55rem;
+            font-size: .72rem;
+            font-weight: 700;
+        }
+
+        /* NOTE */
+
+        .admin-note {
+            margin: 0 1.2rem 1.1rem;
+            background: #fff1f2;
+            border: 1px solid #fda4af;
+            border-left: 4px solid #e11d48;
+            border-radius: 14px;
+            padding: .75rem .9rem;
+            display: flex;
+            gap: .6rem;
+            color: #9f1239;
+            font-size: .82rem;
+            line-height: 1.5;
+        }
+
+        /* FOOTER */
+
+        .card-footer {
+            margin-top: auto;
+            padding: 1rem 1.2rem 1.2rem;
+            border-top: 1px solid #edf7f7;
+        }
+
+        .btn-detail {
+            width: 100%;
+            height: 48px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+            color: #fff;
+            text-decoration: none;
+            font-size: .9rem;
+            font-weight: 700;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+
+            transition: .2s;
+        }
+
+        .btn-detail:hover {
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(1, 106, 112, .2);
+        }
+
+        /* MOBILE */
+
+        @media(max-width:640px) {
+
+            .card-top {
+                flex-direction: column;
+            }
+
+            .total-box {
+                width: 100%;
+            }
+
+            .customer-grid {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+        /* ── Toast alerts ──────────────────────────────────────── */
+        .toast-wrap {
+            position: fixed;
+            top: 1.2rem;
+            right: 1.2rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: .6rem;
+            max-width: 360px;
+        }
+
+        .toast-item {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: .9rem 1rem;
             box-shadow: var(--shadow-lg);
             display: flex;
             align-items: flex-start;
-            gap: 12px;
-            animation: slideIn 0.3s ease;
-            margin-bottom: 10px;
+            gap: .7rem;
+            animation: slideIn .3s ease;
         }
 
         @keyframes slideIn {
             from {
-                transform: translateX(100%);
+                transform: translateX(110%);
                 opacity: 0;
             }
 
@@ -153,1008 +633,617 @@ if (!$member_id) {
             }
         }
 
-        .alert-error {
-            border-color: var(--red-light);
-            background: rgba(239, 68, 68, 0.05);
+        .toast-error {
+            border-left: 3px solid var(--red);
         }
 
-        .alert-success {
-            border-color: var(--green-light);
-            background: rgba(16, 185, 129, 0.05);
+        .toast-success {
+            border-left: 3px solid var(--green);
         }
 
-        .alert-icon {
-            font-size: 20px;
-            margin-top: 2px;
-        }
-
-        .alert-error .alert-icon {
-            color: var(--red);
-        }
-
-        .alert-success .alert-icon {
-            color: var(--green);
-        }
-
-        .alert-content {
-            flex: 1;
-        }
-
-        .alert-title {
-            font-weight: 600;
-            margin-bottom: 4px;
-            font-size: 15px;
-        }
-
-        .alert-message {
-            font-size: 14px;
-            color: var(--gray-dark);
-        }
-
-        .alert-close {
-            background: none;
-            border: none;
-            color: var(--gray);
-            cursor: pointer;
-            font-size: 18px;
-            padding: 0;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            transition: all 0.2s ease;
-        }
-
-        .alert-close:hover {
-            background: var(--white-mute);
-            color: var(--black);
-        }
-
-        /* ส่วนอื่นๆ เหมือนเดิม... */
-        .back-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            background: var(--white);
-            border: 1px solid var(--gray-light);
-            border-radius: 8px;
-            color: var(--gray-dark);
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 14px;
-            transition: all 0.2s ease;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .back-btn:hover {
-            background: var(--white-mute);
-            border-color: var(--gray-soft);
-            transform: translateY(-1px);
-            box-shadow: var(--shadow);
-            color: var(--black);
-        }
-
-        .main-header {
-            background: var(--white);
-            border-radius: var(--border-radius);
-            padding: 32px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--gray-light);
-            text-align: center;
-            margin-bottom: 24px;
-        }
-
-        .header-icon {
-            width: 64px;
-            height: 64px;
-            background: linear-gradient(135deg, var(--indigo-light), var(--indigo));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            color: white;
-            font-size: 28px;
-        }
-
-        .page-title {
-            font-size: 28px;
-            font-weight: 600;
-            color: var(--black);
-            margin-bottom: 8px;
-        }
-
-        .page-subtitle {
-            font-size: 16px;
-            color: var(--gray-dark);
-            margin-bottom: 0;
-        }
-
-        /* Search Form */
-        .search-section {
-            background: var(--white);
-            border-radius: var(--border-radius);
-            padding: 24px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--gray-light);
-            margin-bottom: 32px;
-        }
-
-        .form-label {
-            font-weight: 500;
-            color: var(--black);
-            margin-bottom: 8px;
-            display: block;
-        }
-
-        .input-group {
-            position: relative;
-        }
-
-        .input-group-text {
-            background: var(--white);
-            border: 1px solid var(--gray-light);
-            border-right: none;
-            padding: 0 16px;
-        }
-
-        .form-control {
-            height: 48px;
-            border: 1px solid var(--gray-light);
-            border-left: none;
-            background: var(--white);
-            color: var(--black);
-            font-size: 16px;
-            transition: all 0.2s ease;
-        }
-
-        .form-control:focus {
-            border-color: var(--indigo);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
-
-        .search-btn {
-            background: var(--indigo);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 500;
-            font-size: 16px;
-            transition: all 0.2s ease;
-            width: 100%;
-            margin-top: 16px;
-            cursor: pointer;
-        }
-
-        .search-btn:hover {
-            background: var(--indigo-light);
-            transform: translateY(-1px);
-            box-shadow: var(--shadow);
-        }
-
-        /* Orders Grid */
-        .orders-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 24px;
-            margin-bottom: 32px;
-        }
-
-        @media (max-width: 768px) {
-            .orders-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Order Card */
-        .order-card {
-            background: var(--white);
-            border-radius: var(--border-radius);
-            border: 1px solid var(--gray-light);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .order-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .card-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--gray-light);
-            position: relative;
-        }
-
-        .status-indicator {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-        }
-
-        .status-pending .status-indicator {
-            background: linear-gradient(90deg, var(--yellow-light), var(--yellow));
-        }
-
-        .status-approved .status-indicator {
-            background: linear-gradient(90deg, var(--green-light), var(--green));
-        }
-
-        .status-rejected .status-indicator {
-            background: linear-gradient(90deg, var(--red-light), var(--red));
-        }
-
-        .status-completed .status-indicator {
-            background: linear-gradient(90deg, var(--blue-light), var(--blue));
-        }
-
-        .card-title-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 12px;
-        }
-
-        .order-code {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--black);
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .status-pending .status-badge {
-            background: rgba(245, 158, 11, 0.1);
-            color: var(--yellow);
-            border: 1px solid rgba(245, 158, 11, 0.2);
-        }
-
-        .status-approved .status-badge {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--green);
-            border: 1px solid rgba(16, 185, 129, 0.2);
-        }
-
-        .status-rejected .status-badge {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--red);
-            border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-
-        .status-completed .status-badge {
-            background: rgba(59, 130, 246, 0.1);
-            color: var(--blue);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-        }
-
-        .order-date {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: var(--gray);
-        }
-
-        .card-content {
-            padding: 20px;
-        }
-
-        /* Customer Info */
-        .customer-info {
-            background: var(--white-mute);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-            border: 1px solid var(--gray-light);
-        }
-
-        .info-row {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 12px;
-        }
-
-        .info-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .info-icon {
-            width: 20px;
-            color: var(--gray);
-            margin-top: 2px;
+        .toast-ico {
+            font-size: 1.1rem;
+            margin-top: .1rem;
             flex-shrink: 0;
         }
 
-        .info-content {
-            margin-left: 12px;
+        .toast-error .toast-ico {
+            color: var(--red);
+        }
+
+        .toast-success .toast-ico {
+            color: var(--green);
+        }
+
+        .toast-msg {
+            font-size: .875rem;
+            color: var(--text-mid);
             flex: 1;
+            line-height: 1.5;
         }
 
-        .info-label {
-            font-size: 12px;
-            color: var(--gray);
-            margin-bottom: 2px;
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            flex-shrink: 0;
         }
 
-        .info-value {
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--black);
+        .toast-close:hover {
+            color: var(--text);
         }
 
-        /* Products Preview */
-        .products-preview {
-            margin-bottom: 16px;
-        }
-
-        .section-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--black);
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .products-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 12px;
-        }
-
+        /* ── Responsive ────────────────────────────────────────── */
         @media (max-width: 480px) {
-            .products-grid {
-                grid-template-columns: 1fr;
+            .hero {
+                padding: 1.75rem 1rem;
+            }
+
+            .hero h1 {
+                font-size: 1.3rem;
+            }
+
+            .cust-row {
+                flex-direction: column;
+                gap: .6rem;
+            }
+
+            .total-block {
+                width: 100%;
+            }
+
+            .page-wrap {
+                padding: 1rem .75rem 2rem;
             }
         }
 
-        .product-item {
-            background: var(--white);
-            border-radius: 8px;
-            border: 1px solid var(--gray-light);
-            padding: 12px;
-            transition: all 0.2s ease;
-        }
+        /* MORE ITEMS */
 
-        .product-item:hover {
-            border-color: var(--gray-soft);
-            transform: translateY(-2px);
-        }
-
-        .product-image {
-            width: 100%;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 6px;
-            margin-bottom: 8px;
-            background: var(--white-mute);
-        }
-
-        .product-name {
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--black);
-            margin-bottom: 4px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            line-height: 1.4;
-        }
-
-        .product-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 12px;
-            color: var(--gray);
-        }
-
-        /* Order Summary */
-        .order-summary {
-            background: var(--white-mute);
-            border-radius: 8px;
-            padding: 16px;
-            border: 1px solid var(--gray-light);
-            margin-bottom: 16px;
-        }
-
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-        }
-
-        .summary-row:first-child {
-            padding-top: 0;
-        }
-
-        .summary-row:last-child {
-            padding-bottom: 0;
-            border-top: 1px solid var(--gray-light);
-            padding-top: 12px;
-            margin-top: 8px;
-        }
-
-        .summary-label {
-            font-size: 14px;
-            color: var(--gray-dark);
-        }
-
-        .summary-value {
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--black);
-        }
-
-        .summary-total {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--black);
-        }
-
-        /* Admin Note */
-        .admin-note {
-            background: rgba(99, 102, 241, 0.05);
-            border-radius: 8px;
-            padding: 16px;
-            border-left: 3px solid var(--indigo);
-            margin-top: 16px;
-        }
-
-        .note-label {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--indigo);
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .note-content {
-            font-size: 13px;
-            color: var(--gray-dark);
-            line-height: 1.6;
-        }
-
-        /* Action Buttons */
-        .card-footer {
-            padding: 20px;
-            border-top: 1px solid var(--gray-light);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .detail-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: var(--white);
-            border: 1px solid var(--gray-light);
-            border-radius: 6px;
-            color: var(--gray-dark);
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-
-        .detail-btn:hover {
-            background: var(--white-mute);
-            border-color: var(--gray-soft);
-            color: var(--black);
-        }
-
-        .view-products-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: var(--indigo);
-            border: 1px solid var(--indigo);
-            border-radius: 6px;
-            color: white;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-
-        .view-products-btn:hover {
-            background: var(--indigo-light);
-            transform: translateY(-1px);
-            box-shadow: var(--shadow);
-            color: white;
-        }
-
-        /* Empty State */
-        .empty-state {
-            background: var(--white);
-            border-radius: var(--border-radius);
-            padding: 64px 32px;
-            text-align: center;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--gray-light);
-        }
-
-        .empty-icon {
-            font-size: 48px;
-            color: var(--gray);
-            margin-bottom: 20px;
-            opacity: 0.5;
-        }
-
-        .empty-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--black);
-            margin-bottom: 12px;
-        }
-
-        .empty-description {
-            font-size: 15px;
-            color: var(--gray-dark);
-            margin-bottom: 24px;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .empty-action {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 24px;
-            background: var(--white);
-            border: 1px solid var(--gray-light);
-            border-radius: 8px;
-            color: var(--gray-dark);
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-
-        .empty-action:hover {
-            background: var(--white-mute);
-            border-color: var(--gray-soft);
-            color: var(--black);
-        }
-
-        /* Orders Count */
-        .orders-count {
-            font-size: 14px;
-            color: var(--gray);
-            margin-bottom: 16px;
-        }
-
-        .count-badge {
-            display: inline-block;
-            background: var(--white);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: 500;
-            color: var(--gray-dark);
-            border: 1px solid var(--gray-light);
-        }
-
-        /* Loading Animation */
-        .loading-spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid var(--gray-light);
-            border-top-color: var(--indigo);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .ux-card {
-            font-size: 15px;
-            color: #111;
-        }
-
-        /* แถวบน */
-        .top-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 14px;
-        }
-
-        .customer-block {
-            font-size: 15px;
-            line-height: 1.6;
-        }
-
-        .customer-block i {
-            color: #555;
-            margin-right: 6px;
-        }
-
-        .customer-name {
+        .more-items {
+            margin-top: .75rem;
+            font-size: .8rem;
+            color: var(--primary);
             font-weight: 700;
-            font-size: 17px;
+
+            display: flex;
+            align-items: center;
+            gap: .45rem;
         }
 
-        .customer-phone,
-        .customer-receive {
-            color: #333;
+        /* MODAL */
+
+        .order-modal {
+            border: none;
+            border-radius: 24px;
+            overflow: hidden;
         }
 
-        /* ยอดรวม */
-        .total-block {
-            background: #000;
-            color: #fff;
-            padding: 10px 16px;
-            border-radius: 12px;
-            text-align: right;
-            min-width: 120px;
+        .modal-header {
+            padding: 1.3rem 1.4rem .8rem;
         }
 
-        .total-label {
-            font-size: 13px;
-            opacity: 0.8;
-        }
-
-        .total-price {
-            font-size: 22px;
+        .modal-order-code {
+            font-size: 1.15rem;
             font-weight: 800;
+            color: var(--text);
         }
 
-        /* สินค้า */
-        .products-list {
+        .modal-order-date {
+            font-size: .82rem;
+            color: var(--text-muted);
+            margin-top: .2rem;
+        }
+
+        .modal-body {
+            padding: 1rem 1.4rem 1.4rem;
+        }
+
+        .modal-products {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: .9rem;
         }
 
-        .product-row {
+        .modal-product-card {
             display: flex;
-            gap: 10px;
-            align-items: center;
+            gap: 1rem;
+
+            border: 1px solid var(--border);
+            background: var(--pale2);
+
+            border-radius: 18px;
+            padding: .9rem;
         }
 
-        .product-thumb {
-            width: 52px;
-            height: 52px;
+        .modal-product-image,
+        .modal-product-placeholder {
+            width: 82px;
+            height: 82px;
+            border-radius: 16px;
             object-fit: cover;
-            border-radius: 10px;
-            border: 1px solid #ddd;
+
+            background: var(--pale);
+
+            border: 1px solid var(--border);
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            color: var(--primary);
+
+            flex-shrink: 0;
         }
 
-        .product-info {
+        .modal-product-info {
             flex: 1;
+            min-width: 0;
         }
 
-        .product-name {
-            font-size: 15px;
-            font-weight: 600;
-            color: #111;
+        .modal-product-name {
+            font-size: .95rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: .45rem;
+            line-height: 1.45;
         }
 
-        .product-meta {
-            font-size: 14px;
-            color: #555;
+        .modal-product-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .65rem;
         }
 
-        /* note */
-        .admin-note.strong {
-            margin-top: 10px;
-            background: #ffe4e6;
-            color: #9f1239;
-            font-size: 14px;
-            padding: 10px 14px;
-            border-radius: 10px;
+        .modal-product-meta span {
+            background: #fff;
+            border: 1px solid var(--border);
+
+            border-radius: 999px;
+
+            padding: .3rem .7rem;
+
+            font-size: .78rem;
+            font-weight: 700;
+
+            color: var(--primary);
+        }
+
+        .modal-footer {
+            padding: 1rem 1.4rem 1.4rem;
+        }
+
+        .modal-total {
+            width: 100%;
+            text-align: left;
+
+            font-size: 1rem;
+            color: var(--text);
+        }
+
+        .modal-total strong {
+            font-size: 1.5rem;
+            color: var(--primary);
         }
     </style>
 </head>
 
 <body>
+
     <?php include __DIR__ . '/navbar.php'; ?>
     <?php include __DIR__ . '/fb_chat_button.php'; ?>
-    <!-- Alert Container -->
-    <div class="alert-container">
+
+    <!-- Toast alerts -->
+    <div class="toast-wrap">
         <?php if ($error): ?>
-            <div class="alert-custom alert-error" id="errorAlert">
-                <i class="bi bi-exclamation-circle alert-icon"></i>
-                <div class="alert-content">
-                    <div class="alert-title">เกิดข้อผิดพลาด</div>
-                    <div class="alert-message"><?= htmlspecialchars($error) ?></div>
-                </div>
-                <button class="alert-close" onclick="closeAlert('errorAlert')">&times;</button>
+            <div class="toast-item toast-error" id="toastErr">
+                <i class="fas fa-exclamation-circle toast-ico"></i>
+                <span class="toast-msg"><?= htmlspecialchars($error) ?></span>
+                <button class="toast-close" onclick="dismissToast('toastErr')">×</button>
             </div>
         <?php endif; ?>
-
         <?php if ($success): ?>
-            <div class="alert-custom alert-success" id="successAlert">
-                <i class="bi bi-check-circle alert-icon"></i>
-                <div class="alert-content">
-                    <div class="alert-title">สำเร็จ</div>
-                    <div class="alert-message"><?= htmlspecialchars($success) ?></div>
-                </div>
-                <button class="alert-close" onclick="closeAlert('successAlert')">&times;</button>
+            <div class="toast-item toast-success" id="toastOk">
+                <i class="fas fa-check-circle toast-ico"></i>
+                <span class="toast-msg"><?= htmlspecialchars($success) ?></span>
+                <button class="toast-close" onclick="dismissToast('toastOk')">×</button>
             </div>
         <?php endif; ?>
     </div>
 
-    <div class="page-container">
-        <!-- Back Button -->
-        <a href="./products.php" class="back-btn">
-            <i class="bi bi-arrow-left"></i>
-            กลับหน้าหลัก
+    <div class="page-wrap">
+
+        <!-- Back -->
+        <a href="products.php" class="back-btn">
+            <i class="fas fa-arrow-left"></i> กลับหน้าหลัก
         </a>
 
-        <!-- Main Header -->
-        <div class="main-header">
-            <div class="header-icon">
-                <i class="bi bi-search"></i>
-            </div>
-            <h1 class="page-title">ติดตามสถานะคำสั่งซื้อ</h1>
-            <p class="page-subtitle">ตรวจสอบสถานะและรายละเอียดคำสั่งซื้อของคุณ</p>
+        <!-- Hero -->
+        <div class="hero">
+            <div class="hero-icon"><i class="fas fa-search"></i></div>
+            <h1>ติดตามสถานะคำสั่งซื้อ</h1>
+            <p>ตรวจสอบสถานะและรายละเอียดคำสั่งซื้อของคุณ</p>
         </div>
 
-        <!-- Guest Session Info -->
+        <!-- Guest info bar -->
         <?php if (!$member_id): ?>
-            <div class="search-section">
-                <div class="mb-0">
-                    <label class="form-label">
-                        ประวัติคำสั่งซื้อของอุปกรณ์นี้
-                    </label>
-                    <div class="input-group">
-                        <span class="input-group-text">
-                            <i class="bi bi-shield-lock"></i>
-                        </span>
-                       <input type="text" 
-       id="q"
-       class="form-control"
-       value="แสดงเฉพาะคำสั่งซื้อที่สร้างจากอุปกรณ์หรือเบราว์เซอร์นี้"
-       readonly>
-                    </div>
-
-                </div>
-
-
+            <div class="info-bar">
+                <i class="fas fa-shield-alt"></i>
+                <span>แสดงเฉพาะคำสั่งซื้อที่สร้างจากอุปกรณ์หรือเบราว์เซอร์นี้เท่านั้น</span>
             </div>
         <?php endif; ?>
 
         <?php if (!empty($orders)): ?>
-            <!-- Orders Count -->
-            <div class="orders-count">
-                พบคำสั่งซื้อทั้งหมด <span class="count-badge"><?= count($orders) ?> รายการ</span>
+
+            <div class="count-row">
+                พบคำสั่งซื้อทั้งหมด
+                <span class="count-pill"><?= count($orders) ?> รายการ</span>
             </div>
 
-            <!-- Orders Grid -->
             <div class="orders-grid">
-                <?php foreach ($orders as $o): ?>
-                    <?php
-                    // ดึงรายการสินค้าสำหรับออเดอร์นี้
+                <?php foreach ($orders as $idx => $o):
+
                     $itemStmt = $conn->prepare("
-                        SELECT 
-                            oi.quantity,
-                            oi.price,
-                            p.product_name,
-                            p.product_image,
-                            p.unit
-                        FROM order_items oi
-                        JOIN products p ON oi.product_id = p.product_id
-                        WHERE oi.order_id = ?
-                        LIMIT 3
-                    ");
+                    SELECT oi.quantity, oi.price, p.product_name, p.product_image, p.unit
+                    FROM order_items oi
+                    JOIN products p ON oi.product_id = p.product_id
+                    WHERE oi.order_id = ?
+                
+                ");
                     $itemStmt->bind_param("i", $o['order_id']);
                     $itemStmt->execute();
-                    $items = $itemStmt->get_result();
+                    $itemRows = $itemStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+                    $totalItems = count($itemRows);
+                    $previewItems = array_slice($itemRows, 0, 3);
 
-                    // คำนวณยอดรวม
-                    $totalStmt = $conn->prepare("
-                        SELECT SUM(price * quantity) as total
-                        FROM order_items 
-                        WHERE order_id = ?
-                    ");
+                    $totalStmt = $conn->prepare("SELECT SUM(price * quantity) as total FROM order_items WHERE order_id = ?");
                     $totalStmt->bind_param("i", $o['order_id']);
                     $totalStmt->execute();
-                    $totalResult = $totalStmt->get_result()->fetch_assoc();
-                    $orderTotal = $totalResult['total'] ?? 0;
+                    $orderTotal = $totalStmt->get_result()->fetch_assoc()['total'] ?? 0;
 
-                    // แปลงสถานะ
-                    $statusText = match ($o['order_status']) {
-                        'pending' => 'รอยืนยัน',
-                        'approved' => 'ยืนยันแล้ว',
-                        'rejected' => 'ถูกปฏิเสธ',
+                    $statusLabel = match ($o['order_status']) {
+                        'pending'   => 'รอยืนยัน',
+                        'approved'  => 'ยืนยันแล้ว',
+                        'rejected'  => 'ถูกปฏิเสธ',
                         'completed' => 'เสร็จสมบูรณ์',
-                        default => $o['order_status']
+                        default     => $o['order_status']
                     };
-                    ?>
+                    $statusIcon = match ($o['order_status']) {
+                        'pending'   => 'fa-clock',
+                        'approved'  => 'fa-check-circle',
+                        'rejected'  => 'fa-times-circle',
+                        'completed' => 'fa-flag-checkered',
+                        default     => 'fa-circle'
+                    };
+                ?>
 
-                    <div class="order-card status-<?= $o['order_status'] ?>">
-                        <!-- Status Indicator -->
-                        <div class="status-indicator"></div>
+                    <!-- start order card -->
+                    <div class="order-card" style="animation-delay: <?= $idx * 70 ?>ms">
 
-                        <!-- Card Header -->
-                        <div class="card-header">
-                            <div class="card-title-row">
-                                <div class="order-code">#<?= htmlspecialchars($o['order_code']) ?></div>
-                                <span class="status-badge">
-                                    <i class="bi bi-circle-fill"></i>
-                                    <?= $statusText ?>
-                                </span>
+                        <!-- STATUS -->
+                        <div class="status-line line-<?= $o['order_status'] ?>"></div>
+
+                        <!-- TOP -->
+                        <div class="card-top">
+
+                            <div class="left-top">
+
+                                <div class="status-badge badge-<?= $o['order_status'] ?>">
+                                    <i class="fas <?= $statusIcon ?>"></i>
+                                    <?= $statusLabel ?>
+                                </div>
+
+                                <div class="order-code">
+                                    #<?= htmlspecialchars($o['order_code']) ?>
+                                </div>
+
+                                <div class="order-date">
+                                    <i class="fas fa-clock"></i>
+                                    <?= date('d/m/Y H:i', strtotime($o['order_date'])) ?>
+                                </div>
+
                             </div>
-                            <div class="order-date">
-                                <i class="bi bi-calendar3"></i>
-                                <?= date('d/m/Y H:i', strtotime($o['order_date'])) ?>
+
+                            <div class="total-box">
+                                <span>ยอดรวม</span>
+                                <strong>฿<?= number_format($orderTotal, 0) ?></strong>
                             </div>
+
                         </div>
 
-                        <div class="card-content ux-card">
+                        <!-- CUSTOMER -->
+                        <div class="customer-grid">
 
-                            <!-- แถวบน: ลูกค้า + ยอด -->
-                            <div class="top-row">
-                                <div class="customer-block">
-                                    <div class="customer-name">
-                                        <i class="bi bi-person"></i>
-                                        <?= htmlspecialchars($o['customer_name']) ?>
-                                    </div>
-                                    <div class="customer-phone">
-                                        <i class="bi bi-telephone"></i>
-                                        <?= htmlspecialchars($o['customer_phone']) ?>
-                                    </div>
-                                    <div class="customer-receive">
-                                        <i class="bi bi-truck"></i>
-                                        <?= $o['receive_type'] == 'pickup' ? 'รับที่สวน' : 'จัดส่งถึงบ้าน' ?>
-                                    </div>
-                                </div>
-
-                                <div class="total-block">
-                                    <div class="total-label">ยอดรวม</div>
-                                    <div class="total-price">฿<?= number_format($orderTotal, 0) ?></div>
+                            <div class="customer-item">
+                                <div class="customer-label">ลูกค้า</div>
+                                <div class="customer-value">
+                                    <i class="fas fa-user-circle"></i>
+                                    <?= htmlspecialchars($o['customer_name']) ?>
                                 </div>
                             </div>
 
-                            <!-- สินค้า -->
-                            <div class="products-preview">
-                                <div class="section-title">
-                                    <i class="bi bi-basket"></i> รายการสินค้า
+                            <div class="customer-item">
+                                <div class="customer-label">เบอร์โทร</div>
+                                <div class="customer-value">
+                                    <i class="fas fa-phone"></i>
+                                    <?= htmlspecialchars($o['customer_phone']) ?>
                                 </div>
+                            </div>
 
-                                <div class="products-list">
-                                    <?php while ($item = $items->fetch_assoc()): ?>
-                                        <div class="product-row">
-                                            <img
-                                                src="../admin/uploads/products/<?= htmlspecialchars($item['product_image']) ?>"
-                                                class="product-thumb">
-                                            <div class="product-info">
-                                                <div class="product-name">
-                                                    <?= htmlspecialchars($item['product_name']) ?>
-                                                </div>
-                                                <div class="product-meta">
-                                                    x<?= $item['quantity'] ?> <?= htmlspecialchars($item['unit'] ?? 'ชิ้น') ?>
-                                                    · ฿<?= number_format($item['price'], 0) ?>
-                                                </div>
+                            <div class="customer-item">
+                                <div class="customer-label">การรับสินค้า</div>
+                                <div class="customer-value">
+
+                                    <?php if ($o['receive_type'] === 'pickup'): ?>
+                                        <i class="fas fa-store"></i>
+                                        รับที่สวน
+                                    <?php else: ?>
+                                        <i class="fas fa-truck"></i>
+                                        จัดส่งถึงบ้าน
+                                    <?php endif; ?>
+
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- PRODUCTS -->
+                        <div class="products-wrap">
+
+                            <div class="products-title">
+                                <i class="fas fa-basket-shopping"></i>
+                                รายการสินค้า
+                            </div>
+
+                            <div class="products-list">
+
+                                <?php if ($totalItems > 3): ?>
+                                    <div class="more-items">
+                                        <i class="fas fa-box-open"></i>
+                                        และสินค้าอื่นอีก <?= $totalItems - 3 ?> รายการ
+                                    </div>
+                                <?php endif; ?>
+
+
+                                <?php foreach ($previewItems as $item):
+
+                                    $imgPath = !empty($item['product_image'])
+                                        ? "../admin/uploads/products/" . htmlspecialchars($item['product_image'])
+                                        : null;
+
+                                ?>
+
+                                    <div class="product-card">
+
+                                        <?php if ($imgPath): ?>
+
+                                            <img src="<?= $imgPath ?>"
+                                                class="product-image"
+                                                loading="lazy"
+                                                alt="<?= htmlspecialchars($item['product_name']) ?>"
+                                                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+
+                                            <div class="product-placeholder" style="display:none">
+                                                <i class="fas fa-seedling"></i>
                                             </div>
+
+                                        <?php else: ?>
+
+                                            <div class="product-placeholder">
+                                                <i class="fas fa-seedling"></i>
+                                            </div>
+
+                                        <?php endif; ?>
+
+                                        <div class="product-info">
+
+                                            <div class="product-name">
+                                                <?= htmlspecialchars($item['product_name']) ?>
+                                            </div>
+
+                                            <div class="product-meta">
+
+                                                <span class="product-chip">
+                                                    ×<?= (int)$item['quantity'] ?>
+                                                </span>
+
+                                                <span class="product-chip">
+                                                    <?= htmlspecialchars($item['unit'] ?? 'ชิ้น') ?>
+                                                </span>
+
+                                                <span class="product-chip">
+                                                    ฿<?= number_format($item['price'], 0) ?>
+                                                </span>
+
+                                            </div>
+
                                         </div>
-                                    <?php endwhile; ?>
-                                </div>
+
+                                    </div>
+
+                                <?php endforeach; ?>
+
                             </div>
 
-                            <!-- หมายเหตุ -->
-                            <?php if (!empty($o['admin_note'])): ?>
-                                <div class="admin-note strong">
-                                    <i class="bi bi-exclamation-circle"></i>
-                                    <?= htmlspecialchars($o['admin_note']) ?>
-                                </div>
-                            <?php endif; ?>
                         </div>
 
+                        <!-- NOTE -->
 
+                        <?php if (!empty($o['admin_note'])): ?>
+
+                            <div class="admin-note">
+                                <i class="fas fa-circle-exclamation"></i>
+                                <div><?= htmlspecialchars($o['admin_note']) ?></div>
+                            </div>
+
+                        <?php endif; ?>
+
+                        <!-- FOOTER -->
+                        <div class="card-footer">
+
+                            <button
+                                class="btn-detail"
+                                data-bs-toggle="modal"
+                                data-bs-target="#orderModal<?= $o['order_id'] ?>">
+
+                                <i class="fas fa-eye"></i>
+                                ดูสินค้าทั้งหมด
+
+                            </button>
+
+                        </div>
 
                     </div>
+                    <!-- end order card -->
+
+                    <!-- MODAL -->
+                    <div class="modal fade"
+                        id="orderModal<?= $o['order_id'] ?>"
+                        tabindex="-1"
+                        aria-hidden="true">
+
+                        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+
+                            <div class="modal-content order-modal">
+
+                                <!-- Header -->
+                                <div class="modal-header border-0">
+
+                                    <div>
+                                        <div class="modal-order-code">
+                                            #<?= htmlspecialchars($o['order_code']) ?>
+                                        </div>
+
+                                        <div class="modal-order-date">
+                                            <?= date('d/m/Y H:i', strtotime($o['order_date'])) ?>
+                                        </div>
+                                    </div>
+
+                                    <button type="button"
+                                        class="btn-close"
+                                        data-bs-dismiss="modal"></button>
+
+                                </div>
+
+                                <!-- Body -->
+                                <div class="modal-body">
+
+                                    <div class="modal-products">
+
+                                        <?php foreach ($itemRows as $item):
+
+                                            $imgPath = !empty($item['product_image'])
+                                                ? "../admin/uploads/products/" . htmlspecialchars($item['product_image'])
+                                                : null;
+
+                                        ?>
+
+                                            <div class="modal-product-card">
+
+                                                <?php if ($imgPath): ?>
+
+                                                    <img src="<?= $imgPath ?>"
+                                                        class="modal-product-image"
+                                                        alt="<?= htmlspecialchars($item['product_name']) ?>">
+
+                                                <?php else: ?>
+
+                                                    <div class="modal-product-placeholder">
+                                                        <i class="fas fa-seedling"></i>
+                                                    </div>
+
+                                                <?php endif; ?>
+
+                                                <div class="modal-product-info">
+
+                                                    <div class="modal-product-name">
+                                                        <?= htmlspecialchars($item['product_name']) ?>
+                                                    </div>
+
+                                                    <div class="modal-product-meta">
+
+                                                        <span>
+                                                            จำนวน:
+                                                            <?= (int)$item['quantity'] ?>
+                                                            <?= htmlspecialchars($item['unit'] ?? 'ชิ้น') ?>
+                                                        </span>
+
+                                                        <span>
+                                                            ราคา:
+                                                            ฿<?= number_format($item['price'], 0) ?>
+                                                        </span>
+
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+
+                                        <?php endforeach; ?>
+
+                                    </div>
+
+                                </div>
+
+                                <!-- Footer -->
+                                <div class="modal-footer border-0">
+
+                                    <div class="modal-total">
+                                        ยอดรวม:
+                                        <strong>
+                                            ฿<?= number_format($orderTotal, 0) ?>
+                                        </strong>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
                 <?php endforeach; ?>
             </div>
 
-        <?php elseif ($search_performed && empty($orders)): ?>
-            <!-- Empty State for Search -->
+        <?php elseif ($search_performed || !$member_id): ?>
             <div class="empty-state">
-                <div class="empty-icon">
-                    <i class="bi bi-search"></i>
-                </div>
-                <h2 class="empty-title">ไม่พบคำสั่งซื้อ</h2>
-                <p class="empty-description">
-                    ไม่พบคำสั่งซื้อในประวัติการใช้งานของอุปกรณ์หรือเบราว์เซอร์นี้
-                </p>
-                <a href="products.php" class="empty-action">
-                    <i class="bi bi-arrow-left"></i>
-                    กลับไปสั่งซื้อสินค้า
+                <div class="empty-icon"><i class="fas fa-clipboard-list"></i></div>
+                <h2>ไม่พบคำสั่งซื้อ</h2>
+                <p>ไม่พบคำสั่งซื้อในประวัติการใช้งานของอุปกรณ์หรือเบราว์เซอร์นี้</p>
+                <a href="products.php" class="btn-empty">
+                    <i class="fas fa-arrow-left"></i> กลับไปสั่งซื้อสินค้า
                 </a>
             </div>
-
-        <?php elseif (!$member_id && !$search_performed): ?>
-            <!-- Empty State for Initial View -->
-            <div class="empty-state">
-                <div class="empty-icon">
-                    <i class="bi bi-clipboard-check"></i>
-                </div>
-                <h2 class="empty-title">ยังไม่มีคำสั่งซื้อ</h2>
-                <p class="empty-description">
-                    ระบบจะแสดงเฉพาะคำสั่งซื้อที่สร้างจากอุปกรณ์หรือเบราว์เซอร์นี้เท่านั้น
-                </p>
-            </div>
         <?php endif; ?>
+
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Add animation to order cards
-        document.addEventListener('DOMContentLoaded', function() {
-            const cards = document.querySelectorAll('.order-card');
-            cards.forEach((card, index) => {
-                card.style.opacity = '0';
-                card.style.transform = 'translateY(20px)';
-
-                setTimeout(() => {
-                    card.style.transition = 'all 0.4s ease';
-                    card.style.opacity = '1';
-                    card.style.transform = 'translateY(0)';
-                }, index * 100);
-            });
-        });
-
-        // Close alert function
-        function closeAlert(alertId) {
-            const alert = document.getElementById(alertId);
-            if (alert) {
-                alert.style.transition = 'all 0.3s ease';
-                alert.style.transform = 'translateX(100%)';
-                alert.style.opacity = '0';
-
-                setTimeout(() => {
-                    alert.remove();
-                }, 300);
-            }
+        function dismissToast(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.style.transition = 'all .3s ease';
+            el.style.transform = 'translateX(110%)';
+            el.style.opacity = '0';
+            setTimeout(() => el.remove(), 320);
         }
 
-        // Auto close alerts after 5 seconds
+        // Auto-dismiss after 5s
         setTimeout(() => {
-            const alerts = document.querySelectorAll('.alert-custom');
-            alerts.forEach(alert => {
-                alert.style.transition = 'all 0.3s ease';
-                alert.style.transform = 'translateX(100%)';
-                alert.style.opacity = '0';
-
-                setTimeout(() => {
-                    alert.remove();
-                }, 300);
+            document.querySelectorAll('.toast-item').forEach(el => {
+                el.style.transition = 'all .3s ease';
+                el.style.transform = 'translateX(110%)';
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 320);
             });
         }, 5000);
     </script>
+
 </body>
 
 </html>

@@ -64,7 +64,6 @@ if (!$canView) {
     exit;
 }
 
-// ดึงรายการสินค้า
 $item = $conn->prepare("
     SELECT
         oi.*,
@@ -79,859 +78,848 @@ $item->execute();
 $items = $item->get_result();
 $item->close();
 
-// Map status to Thai text
 $statusMap = [
-    'pending' => 'รอยืนยัน',
-    'approved' => 'ยืนยันแล้ว',
-    'rejected' => 'ถูกปฏิเสธ',
-    'completed' => 'เสร็จสมบูรณ์'
+    'pending'   => ['label' => 'รอยืนยัน',      'icon' => 'fa-clock',        'class' => 'pending'],
+    'approved'  => ['label' => 'ยืนยันแล้ว',     'icon' => 'fa-check-circle', 'class' => 'approved'],
+    'rejected'  => ['label' => 'ถูกปฏิเสธ',      'icon' => 'fa-times-circle', 'class' => 'rejected'],
+    'completed' => ['label' => 'เสร็จสมบูรณ์',   'icon' => 'fa-flag-checkered', 'class' => 'completed'],
 ];
-$statusText = $statusMap[$order['order_status']] ?? $order['order_status'];
+$statusInfo = $statusMap[$order['order_status']] ?? ['label' => $order['order_status'], 'icon' => 'fa-info-circle', 'class' => 'pending'];
 
 function baht(int|float|string $num): string
 {
     return '฿' . number_format((float)$num);
 }
-?>
 
+// Pre-fetch items into array so we can use twice (count + display)
+$itemRows = [];
+$total    = 0;
+while ($r = $items->fetch_assoc()) {
+    $r['_sum'] = $r['price'] * $r['quantity'];
+    $total    += $r['_sum'];
+    $itemRows[] = $r;
+}
+?>
 <!DOCTYPE html>
 <html lang="th">
 
 <head>
     <meta charset="UTF-8">
-    <title>สั่งซื้อสำเร็จ - สวนลุงเผือก</title>
+    <title>สั่งซื้อสำเร็จ – สวนลุงเผือก</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
+        /* ── Reset & Base ─────────────────────────────────────── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
         :root {
             --sage: #016A70;
+            --sage-mid: #019a9f;
             --sage-light: #2ad3bc;
-            --white-primary: #ffffff;
-            --white-secondary: #f8f9fa;
-            --white-tertiary: #f1f3f5;
-            --gray-light: #e9ecef;
-            --gray-medium: #adb5bd;
-            --gray-dark: #495057;
-            --text-primary: #212529;
-            --text-secondary: #6c757d;
-            --success-light: #d1e7dd;
-            --success-dark: #0f5132;
-            --warning-light: #fff3cd;
-            --warning-dark: #664d03;
-            --info-light: #cff4fc;
-            --info-dark: #055160;
-            --primary-light: #cfe2ff;
-            --primary-dark: #052c65;
-            --accent-green: #198754;
-            --accent-blue: #0d6efd;
-            --accent-red: #dc3545;
-            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
-            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+            --sage-pale: #e1f5f4;
+            --sage-pale2: #f0fbfb;
+            --white: #ffffff;
+            --bg: #f2fafa;
+            --border: #c8e8e8;
+            --border-mid: #99d4d4;
+            --text: #1a2e2f;
+            --text-mid: #3d5f60;
+            --text-muted: #6b8f90;
+            --red: #c0392b;
+            --green-acc: #0f7a50;
             --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --green: #016A70;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --shadow: 0 2px 16px rgba(1, 106, 112, .08);
+            --shadow-lg: 0 6px 28px rgba(1, 106, 112, .12);
         }
 
         body {
-            background: linear-gradient(135deg, #f8f9fa, #f1f3f5);
+            font-family: 'Sarabun', sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: var(--text-primary);
-            padding: 1rem;
+            font-size: 15px;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
         }
 
-        .success-container {
+        /* ── Page wrapper ─────────────────────────────────────── */
+        .page-wrap {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 1rem;
+            padding: 1.5rem 1rem 3rem;
         }
 
-        /* Two Column Layout for Desktop */
-        .success-layout {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
-        }
-
-        @media (min-width: 992px) {
-            .success-layout {
-                grid-template-columns: 1fr 1fr;
-                gap: 2rem;
-            }
-
-            .order-header-section {
-                grid-column: 1 / -1;
-            }
-
-            .order-summary-section {
-                grid-row: span 2;
-            }
-        }
-
-        /* Card Styles */
-        .success-card {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-
-            box-shadow:
-                0 10px 30px rgba(0, 0, 0, 0.05),
-                0 2px 8px rgba(0, 0, 0, 0.03);
-
-            backdrop-filter: blur(14px);
-
-            transition: all .3s ease;
-            padding: 1rem;
-        }
-
-        .success-card:hover {
-            transform: translateY(-4px);
-            box-shadow:
-                0 18px 40px rgba(0, 0, 0, 0.08),
-                0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-
-        .card-header {
-            background: linear-gradient(135deg, var(--sage) 0%, var(--sage-light) 100%);
-            color: white;
-            padding: 2rem;
+        /* ── Banner ───────────────────────────────────────────── */
+        .banner {
+            background: linear-gradient(135deg, var(--sage) 0%, var(--sage-mid) 55%, var(--sage-light) 100%);
+            border-radius: var(--radius-lg);
+            padding: 2.25rem 1.5rem 2rem;
+            color: #fff;
             text-align: center;
+            margin-bottom: 1.5rem;
             position: relative;
-            border-radius: 1rem;
-
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
         }
 
-        /* Order Header Section */
-        .order-header-section {
-            margin-bottom: 1rem;
+        /* Decorative circles */
+        .banner::before,
+        .banner::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .06);
+            pointer-events: none;
         }
 
-        .success-icon {
-            font-size: 3.5rem;
-            margin-bottom: 1rem;
-            animation: bounceIn 1s ease;
-            color: var(--white-primary);
+        .banner::before {
+            width: 280px;
+            height: 280px;
+            top: -120px;
+            right: -80px;
         }
 
-        @keyframes bounceIn {
-            0% {
-                transform: scale(0.3);
+        .banner::after {
+            width: 200px;
+            height: 200px;
+            bottom: -90px;
+            left: -60px;
+        }
+
+        .banner-icon {
+            font-size: 3rem;
+            margin-bottom: .6rem;
+            animation: pop .6s cubic-bezier(.34, 1.56, .64, 1) both;
+        }
+
+        @keyframes pop {
+            from {
+                transform: scale(.3);
                 opacity: 0;
             }
 
-            50% {
-                transform: scale(1.05);
-            }
-
-            70% {
-                transform: scale(0.9);
-            }
-
-            100% {
+            to {
                 transform: scale(1);
                 opacity: 1;
             }
         }
 
-        .success-title {
-            font-size: 1.75rem;
+        .banner h1 {
+            font-size: 1.65rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
-            color: var(--white-primary);
+            margin-bottom: .25rem;
+            letter-spacing: .3px;
         }
 
-        .success-subtitle {
-            font-size: 1.2rem;
-            /* opacity: 0.9; */
-            margin-bottom: 1.5rem;
-            color: var(--white-primary);
+        .banner .subtitle {
+            font-size: .95rem;
+            opacity: .88;
+            margin-bottom: 1.4rem;
         }
 
-        .order-code-badge {
-            background: var(--white-secondary);
+        .code-pill {
+            display: inline-block;
+            background: rgba(255, 255, 255, .18);
+            border: none;
             border-radius: 50px;
-            padding: 0.75rem 1.5rem;
-            font-size: 1.25rem;
+            padding: .55rem 1.6rem;
+            font-size: 1.2rem;
             font-weight: 700;
-            letter-spacing: 1px;
-            margin: 1rem auto;
-            display: inline-block;
-            backdrop-filter: blur(10px);
+            letter-spacing: 2px;
+            backdrop-filter: blur(6px);
+            margin-bottom: 1rem;
+            word-break: break-all;
         }
 
-        .status-badge {
-            display: inline-block;
+        /* Status pill */
+        .status-pill {
+            display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
+            gap: .45rem;
+            padding: .45rem 1.2rem;
             border-radius: 50px;
             font-weight: 600;
-            font-size: 1.25rem;
-            margin-top: 1rem;
-            backdrop-filter: blur(10px);
+            font-size: .88rem;
         }
 
-        .status-pending {
-            background: #fdf90d;
-            color: #000000;
+        .status-pill.pending {
+            background: #fef9c3;
+            color: #713f12;
         }
 
-        .status-approved {
-            background: var(--success-light);
-            color: var(--success-dark);
+        .status-pill.approved {
+            background: #dcfce7;
+            color: #14532d;
         }
 
-        .status-completed {
-            background: var(--info-light);
-            color: var(--info-dark);
+        .status-pill.completed {
+            background: #dbeafe;
+            color: #1e3a5f;
         }
 
-        .status-rejected {
-            background: #f8d7da;
-            color: #b80012;
+        .status-pill.rejected {
+            background: #fee2e2;
+            color: #7f1d1d;
         }
 
-        /* Card Body */
-        .card-body {
-            padding: 1.5rem;
+        /* ── 2-column layout ──────────────────────────────────── */
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 1.25rem;
+            align-items: start;
         }
 
-        .section-header {
+        /* ── Cards ────────────────────────────────────────────── */
+        .card {
+            background: var(--white);
+            border: none;
+            /* border-radius: var(--radius-lg); */
+            box-shadow: none;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            box-shadow: none;
+        }
+
+        .card+.card {
+            margin-top: 1.25rem;
+        }
+
+        .card-head {
+            background: var(--sage-pale);
+            border-bottom: none;
+            padding: .8rem 1.2rem;
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            margin-bottom: 1.25rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 2px solid var(--gray-light);
+            gap: .7rem;
         }
 
-        .section-icon {
-            width: 36px;
-            height: 36px;
-            background: var(--green);
-            color: white;
+        .card-head-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--sage);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
+            color: #fff;
+            font-size: .8rem;
             flex-shrink: 0;
         }
 
-        .section-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--text-primary);
+        .card-head h2 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--sage);
             margin: 0;
         }
 
-        /* Customer Info */
+        .card-body {
+            padding: 1.25rem;
+        }
+
+        /* ── Info grid ────────────────────────────────────────── */
         .info-grid {
             display: grid;
-            gap: 0.75rem;
+            grid-template-columns: 1fr 1fr;
+            gap: .75rem;
         }
 
         .info-item {
-            padding: 0.75rem;
+            background: var(--sage-pale2);
+            border: none;
             border-radius: var(--radius-sm);
-            background: var(--white-secondary);
-            border-left: 3px solid var(--green);
+            padding: .7rem .95rem;
         }
 
-        .info-label {
-            font-size: 0.8rem;
-            color: black;
-            margin-bottom: 0.25rem;
+        .info-item .lbl {
+            font-size: .7rem;
             font-weight: 700;
-            font-size: 1rem;
-
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: var(--sage);
+            margin-bottom: .2rem;
         }
 
-        .info-value {
+        .info-item .val {
+            font-size: .93rem;
+            color: var(--text);
             font-weight: 500;
-            color: black;
-            line-height: 1.4;
-            font-size: 1rem;
+            line-height: 1.45;
         }
 
-        /* Order Items */
-
-        .item-image {
-            width: 72px;
-            height: 72px;
-            object-fit: cover;
-            border-radius: 18px;
-            margin-right: 1rem;
-            border: 1px solid #eee;
-        }
-
-        .order-items-list {
-            max-height: 400px;
+        /* ── Order items list ─────────────────────────────────── */
+        .items-list {
+            max-height: 380px;
             overflow-y: auto;
-            margin: 1rem 0;
-            padding-right: 0.5rem;
+            padding-right: 4px;
+        }
+
+        .items-list::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .items-list::-webkit-scrollbar-track {
+            background: var(--sage-pale2);
+            border-radius: 10px;
+        }
+
+        .items-list::-webkit-scrollbar-thumb {
+            background: var(--border-mid);
+            border-radius: 10px;
+        }
+
+        .items-list::-webkit-scrollbar-thumb:hover {
+            background: var(--sage);
         }
 
         .order-item {
-            display: flex;
+            display: grid;
+            grid-template-columns: 72px 1fr auto;
+            gap: .9rem;
             align-items: center;
-            padding: 1rem;
-            border-bottom: 1px solid var(--gray-light);
-            transition: background-color 0.2s ease;
+            padding: .9rem 0;
+            border-bottom: none;
+            animation: fadeUp .35s ease both;
         }
 
-        .order-item:hover {
-            background: var(--white-secondary);
-            border-radius: var(--radius-sm);
-        }
-
-        .item-details {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .item-name {
-            font-weight: 500;
-            color: var(--text-primary);
-            margin-bottom: 0.25rem;
-            font-size: 0.95rem;
-        }
-
-        .item-meta {
-            display: flex;
-            gap: 1rem;
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-        }
-
-        .item-total {
-            font-weight: 600;
-            color: var(--accent-red);
-            min-width: 80px;
-            text-align: right;
-        }
-
-        /* Order Summary */
-        .order-summary-card {
-            background: var(--white-primary);
-            border-radius: var(--radius-md);
-            padding: 1.5rem;
-            border: 1px solid var(--gray-light);
-        }
-
-        .summary-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid var(--gray-light);
-        }
-
-        .summary-row:last-child {
+        .order-item:last-child {
             border-bottom: none;
         }
 
-        .summary-label {
-            color: var(--text-primary);
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        .summary-value {
-            color: var(--text-primary);
-            font-weight: 500;
+        .item-img {
+            width: 72px;
+            height: 72px;
+            object-fit: cover;
+            border-radius: var(--radius-md);
+            border: none;
+            flex-shrink: 0;
         }
 
-        .total-row {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 2px solid var(--accent-green);
-        }
-
-        .final-total {
+        .item-img-placeholder {
+            width: 72px;
+            height: 72px;
+            border-radius: var(--radius-md);
+            background: var(--sage-pale);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--sage);
             font-size: 1.5rem;
-            color: var(--accent-red);
+            flex-shrink: 0;
+        }
+
+        .item-name {
+            font-weight: 600;
+            font-size: .92rem;
+            color: var(--text);
+            margin-bottom: .35rem;
+            line-height: 1.35;
+        }
+
+        .item-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .3rem;
+        }
+
+        .tag {
+            background: var(--sage-pale);
+            color: var(--sage);
+            font-size: .72rem;
+            font-weight: 600;
+            padding: .15rem .55rem;
+            border-radius: 20px;
+            border: none;
+        }
+
+        .item-price {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--red);
+            white-space: nowrap;
+            text-align: right;
+        }
+
+        .items-count {
+            text-align: right;
+            font-size: .78rem;
+            color: var(--text-muted);
+            margin-top: .65rem;
+            padding-top: .5rem;
+            border-top: none;
+        }
+
+        /* ── Summary ──────────────────────────────────────────── */
+        .sum-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: .65rem 0;
+            border-bottom: none;
+            font-size: .93rem;
+            gap: .5rem;
+        }
+
+        .sum-row:last-child {
+            border: none;
+        }
+
+        .sum-row .lbl-s {
+            color: var(--text-mid);
+        }
+
+        .sum-row .val-s {
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .sum-row.total-row {
+            padding-top: .9rem;
+            margin-top: .2rem;
+            border-top: none;
+            border-bottom: none;
+        }
+
+        .sum-row.total-row .lbl-s {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--text);
+        }
+
+        .sum-row.total-row .val-s {
+            font-weight: 700;
+            font-size: 1.35rem;
+            color: var(--red);
+        }
+
+        .free-ship {
+            color: var(--green-acc);
             font-weight: 700;
         }
 
-        .free-shipping {
-            color: var(--accent-green);
-            font-weight: 600;
+        .pay-note {
+            background: var(--sage-pale2);
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: .7rem .9rem;
+            margin-top: 1rem;
+            font-size: .8rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: .5rem;
+            align-items: flex-start;
+            line-height: 1.5;
         }
 
-        /* Action Buttons */
-        .action-buttons {
+        .pay-note i {
+            color: var(--sage);
+            margin-top: .1rem;
+            flex-shrink: 0;
+        }
+
+        /* ── Action buttons ───────────────────────────────────── */
+        .action-grid {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: 0.75rem;
-            margin-top: 2rem;
+            grid-template-columns: 1fr 1fr;
+            gap: .7rem;
         }
 
-        @media (min-width: 768px) {
-            .action-buttons {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-
-        .action-btn {
-            display: inline-flex;
+        .btn-act {
+            display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            border-radius: 25px;
-            font-weight: 600;
+            gap: .45rem;
+            padding: .72rem .5rem;
+            border-radius: 30px;
+            font-family: 'Sarabun', sans-serif;
+            font-size: .875rem;
+            font-weight: 700;
             text-decoration: none;
-            transition: all 0.3s ease;
-            text-align: center;
             border: none;
             cursor: pointer;
-            font-size: 0.95rem;
-        }
-
-        .btn-back {
-            background: var(--white-primary);
-            border: 2px solid var(--gray-light);
-            color: var(--text-primary);
-        }
-
-        .btn-back:hover {
-            background: var(--white-secondary);
-            border-color: var(--gray-medium);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-sm);
-        }
-
-        .btn-track {
-            background: var(--green);
-            color: white;
-            border: 2px solid var(--green);
-        }
-
-        .btn-track:hover {
-            background: #0bd7b5c9;
-            border-color: var(--green);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
-        }
-
-        .btn-print {
-            background: var(--accent-green);
-            color: white;
-            border: 2px solid var(--accent-green);
-        }
-
-        .btn-print:hover {
-            background: #157347;
-            border-color: #157347;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(25, 135, 84, 0.3);
-        }
-
-        /* Empty State for Items */
-        .empty-items {
+            transition: all .2s ease;
             text-align: center;
-            padding: 2rem;
-            color: var(--text-secondary);
+            white-space: nowrap;
         }
 
-        .empty-icon {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            color: var(--gray-medium);
+        .btn-outline {
+            background: var(--white);
+            border: none;
+            color: var(--text-mid);
         }
 
-        /* Responsive Design */
-        @media (max-width: 991px) {
-            .success-container {
-                padding: 0.5rem;
+        .btn-outline:hover {
+            background: var(--sage-pale2);
+            color: var(--sage);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: var(--sage);
+            color: #fff;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: var(--sage-mid);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(1, 106, 112, .3);
+        }
+
+        /* Sidebar sticky */
+        .sidebar {
+            position: sticky;
+            top: 1rem;
+        }
+
+        /* ── Responsive ───────────────────────────────────────── */
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
             }
 
-            .card-header {
-                padding: 1.5rem 1rem;
-
-            }
-
-            .success-title {
-                font-size: 1.5rem;
-            }
-
-            .success-icon {
-                font-size: 3rem;
-            }
-
-            .card-body {
-                padding: 1.25rem;
-            }
-
-            .order-code-badge {
-                font-size: 1.1rem;
-                padding: 0.5rem 1rem;
+            .sidebar {
+                position: static;
             }
         }
 
-        @media (max-width: 768px) {
-            .success-title {
+        @media (max-width: 640px) {
+            .banner {
+                padding: 1.75rem 1rem 1.5rem;
+            }
+
+            .banner h1 {
                 font-size: 1.35rem;
             }
 
-            .success-icon {
-                font-size: 2.5rem;
+            .code-pill {
+                font-size: 1rem;
+                padding: .45rem 1rem;
+                letter-spacing: 1px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .order-item {
+                grid-template-columns: 64px 1fr;
+                grid-template-rows: auto auto;
+            }
+
+            .item-img,
+            .item-img-placeholder {
+                width: 64px;
+                height: 64px;
+            }
+
+            .item-price {
+                grid-column: 2;
+                text-align: left;
+                font-size: .92rem;
+            }
+
+            .action-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-act {
+                padding: .78rem 1rem;
+                font-size: .9rem;
+            }
+
+            .sum-row.total-row .val-s {
+                font-size: 1.2rem;
             }
 
             .card-body {
                 padding: 1rem;
             }
 
-            .section-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.5rem;
-            }
-
-            .section-icon {
-                width: 32px;
-                height: 32px;
-            }
-
-            .action-buttons {
-                grid-template-columns: 1fr;
-            }
-
-            .item-meta {
-                flex-wrap: wrap;
-                gap: 0.5rem;
+            .page-wrap {
+                padding: 1rem .75rem 2.5rem;
             }
         }
 
-        @media (max-width: 576px) {
-            body {
-                padding: 0.5rem;
+        @media (max-width: 380px) {
+            .banner h1 {
+                font-size: 1.2rem;
             }
 
-            .success-container {
-                padding: 0;
+            .code-pill {
+                font-size: .85rem;
             }
 
-            .card-header {
-                padding: 1.25rem 0.75rem;
-            }
-
-            .order-code-badge {
-                font-size: 1rem;
-                padding: 0.4rem 0.8rem;
-            }
-
-            .status-badge {
-                padding: 0.5rem 1rem;
-                font-size: 0.85rem;
-            }
-
-            .final-total {
-                font-size: 1.25rem;
+            .banner-icon {
+                font-size: 2.4rem;
             }
         }
 
-        /* Scrollbar Styling */
-        .order-items-list::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .order-items-list::-webkit-scrollbar-track {
-            background: var(--white-secondary);
-            border-radius: 10px;
-        }
-
-        .order-items-list::-webkit-scrollbar-thumb {
-            background: var(--gray-medium);
-            border-radius: 10px;
-        }
-
-        .order-items-list::-webkit-scrollbar-thumb:hover {
-            background: var(--gray-dark);
-        }
-
-        /* Print Styles */
+        /* ── Print ────────────────────────────────────────────── */
         @media print {
             body {
-                background: white;
-                padding: 0;
+                background: #fff;
             }
 
-            .success-card {
+            .banner {
+                background: var(--sage) !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .card {
                 box-shadow: none;
-                border: 1px solid #ddd;
+                border: none;
             }
 
-            .action-buttons {
+            .action-grid,
+            .sidebar .card:last-child {
                 display: none;
             }
 
-            .order-items-list {
+            .sidebar {
+                position: static;
+            }
+
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .items-list {
                 max-height: none;
                 overflow: visible;
             }
-        }
 
-        .btn-line {
-            background: #06C755;
-            color: white;
-            border: 2px solid #06C755;
-        }
-
-        .btn-line:hover {
-            background: #05b34b;
-            border-color: #05b34b;
-            transform: translateY(-2px);
+            .page-wrap {
+                padding: 0;
+            }
         }
     </style>
 </head>
 
 <body>
+
     <?php include __DIR__ . '/navbar.php'; ?>
     <?php include __DIR__ . '/fb_chat_button.php'; ?>
-    <div class="success-container">
-        <!-- Order Header -->
-        <div class="success-card order-header-section">
-            <div class="card-header">
-                <div class="success-icon">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <h1 class="success-title">สั่งซื้อสำเร็จ!</h1>
-                <p class="success-subtitle">ขอบคุณสำหรับการสั่งซื้อสินค้ากับเรา</p>
 
-                <div class="order-code-badge">
-                    <?= htmlspecialchars($order['order_code']) ?>
-                </div>
+    <div class="page-wrap">
 
-                <div class="status-badge status-<?= $order['order_status'] ?>">
-                    <i class="fas fa-info-circle"></i>
-                    สถานะ: <?= $statusText ?>
-                </div>
-
-            </div>
+        <!-- ── Banner ── -->
+        <div class="banner">
+            <div class="banner-icon"><i class="fas fa-check-circle"></i></div>
+            <h1>สั่งซื้อสำเร็จ!</h1>
+            <p class="subtitle">ขอบคุณสำหรับการสั่งซื้อสินค้ากับสวนลุงเผือก</p>
+            <div class="code-pill"><?= htmlspecialchars($order['order_code']) ?></div><br>
+            <span class="status-pill <?= $statusInfo['class'] ?>">
+                <i class="fas <?= $statusInfo['icon'] ?>"></i>
+                สถานะ: <?= $statusInfo['label'] ?>
+            </span>
         </div>
 
-        <!-- Two Column Layout -->
-        <div class="success-layout">
-            <!-- Left Column: Customer Info & Order Items -->
-            <div class="left-column">
-                <!-- Customer Information -->
-                <div class="success-card mb-3">
-                    <div class="card-body">
-                        <div class="section-header">
-                            <div class="section-icon">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <h2 class="section-title">ข้อมูลผู้สั่งซื้อ</h2>
-                        </div>
+        <!-- ── Main layout ── -->
+        <div class="layout">
 
-                        <div class="info-grid">
-                            <div class="info-item">
-                                <div class="info-label">ชื่อ-นามสกุล</div>
-                                <div class="info-value"><?= htmlspecialchars($order['customer_name']) ?></div>
-                            </div>
+            <!-- ── Left column ── -->
+            <div>
 
-                            <div class="info-item">
-                                <div class="info-label">เบอร์โทรศัพท์</div>
-                                <div class="info-value"><?= htmlspecialchars($order['customer_phone']) ?></div>
-                            </div>
-
-                            <div class="info-item">
-                                <div class="info-label">ที่อยู่จัดส่ง</div>
-                                <div class="info-value"><?= nl2br(htmlspecialchars($order['customer_address'])) ?></div>
-                            </div>
-
-                            <div class="info-item">
-                                <div class="info-label">วิธีการรับสินค้า</div>
-                                <div class="info-value">
-                                    <?= $order['receive_type'] == 'pickup' ? 'รับที่สวน' : 'จัดส่งถึงบ้าน' ?>
-                                </div>
-                            </div>
-
-                            <?php if ($order['receive_datetime']): ?>
-                                <div class="info-item">
-                                    <div class="info-label">วันเวลาที่นัดรับ</div>
-                                    <div class="info-value">
-                                        <?= date('d/m/Y H:i', strtotime($order['receive_datetime'])) ?>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
-                        </div>
+                <!-- Order items -->
+                <div class="card">
+                    <div class="card-head">
+                        <div class="card-head-icon"><i class="fas fa-shopping-basket"></i></div>
+                        <h2>รายการสินค้า</h2>
                     </div>
-                </div>
-
-                <!-- Order Items -->
-                <div class="success-card">
                     <div class="card-body">
-                        <div class="section-header">
-                            <div class="section-icon">
-                                <i class="fas fa-shopping-basket"></i>
-                            </div>
-                            <h2 class="section-title">รายการสินค้า</h2>
-                        </div>
-
-                        <div class="order-items-list">
-                            <?php
-                            $total = 0;
-                            $itemCount = $items->num_rows;
-
-                            if ($itemCount > 0):
-                                while ($i = $items->fetch_assoc()):
-                                    $sum = $i['price'] * $i['quantity'];
-                                    $total += $sum;
-                            ?>
+                        <div class="items-list">
+                            <?php if (count($itemRows) > 0): ?>
+                                <?php foreach ($itemRows as $i): ?>
+                                    <?php
+                                    $imgPath = !empty($i['product_image'])
+                                        ? "../admin/uploads/products/" . htmlspecialchars($i['product_image'])
+                                        : null;
+                                    ?>
                                     <div class="order-item">
-                                        <div class="item-details">
-                                            <div class="item-name"><?= htmlspecialchars($i['product_name']) ?></div>
-                                            <div class="item-meta">
-                                                <span>ราคา: ฿<?= baht($i['price']) ?></span>
-                                                <span>จำนวน: <?= $i['quantity'] ?></span>
-                                                <span>หน่วย: <?= htmlspecialchars($i['unit'] ?? '') ?></span>
+                                        <?php if ($imgPath): ?>
+                                            <img src="<?= $imgPath ?>"
+                                                class="item-img"
+                                                alt="<?= htmlspecialchars($i['product_name']) ?>"
+                                                loading="lazy"
+                                                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                                            <div class="item-img-placeholder" style="display:none">
+                                                <i class="fas fa-seedling"></i>
                                             </div>
-                                            <div class="item-image">
-                                                <?php
-                                                $img = !empty($i['product_image'])
-                                                    ? "../admin/uploads/products/" . $i['product_image']
-                                                    : "../assets/no-image.png";
-                                                ?>
+                                        <?php else: ?>
+                                            <div class="item-img-placeholder">
+                                                <i class="fas fa-seedling"></i>
+                                            </div>
+                                        <?php endif; ?>
 
-                                                <img src="<?= $img ?>" class="item-image">
+                                        <div>
+                                            <div class="item-name"><?= htmlspecialchars($i['product_name']) ?></div>
+                                            <div class="item-tags">
+                                                <span class="tag">ราคา <?= baht($i['price']) ?></span>
+                                                <span class="tag">×<?= (int)$i['quantity'] ?></span>
+                                                <?php if (!empty($i['unit'])): ?>
+                                                    <span class="tag"><?= htmlspecialchars($i['unit']) ?></span>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
-                                        <div class="item-total">฿<?= baht($sum) ?></div>
+
+                                        <div class="item-price"><?= baht($i['_sum']) ?></div>
                                     </div>
-                                <?php
-                                endwhile;
-                            else:
-                                ?>
-                                <div class="empty-items">
-                                    <div class="empty-icon">
-                                        <i class="fas fa-box-open"></i>
-                                    </div>
-                                    <p>ไม่พบรายการสินค้า</p>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <div class="text-center py-4 text-muted">
+                                    <i class="fas fa-box-open fa-2x mb-2 d-block" style="color:var(--border-mid)"></i>
+                                    ไม่พบรายการสินค้า
                                 </div>
                             <?php endif; ?>
                         </div>
-
-                        <div class="item-count mt-2 text-end">
-                            <small class="text-muted">จำนวนรายการ: <?= $itemCount ?> รายการ</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right Column: Order Summary & Actions -->
-            <div class="right-column">
-                <!-- Order Summary -->
-                <div class="success-card order-summary-section">
-                    <div class="card-body">
-                        <h3 class="summary-title">
-                            <i class="fas fa-file-invoice"></i>
-                            สรุปยอดสั่งซื้อ
-                        </h3>
-
-                        <div class="summary-row">
-                            <span class="summary-label">ยอดรวมสินค้า</span>
-                            <span class="summary-value">฿<?= baht($total) ?></span>
-                        </div>
-
-                        <div class="summary-row">
-                            <span class="summary-label">ค่าจัดส่ง</span>
-                            <span class="summary-value free-shipping">ฟรี</span>
-                        </div>
-
-                        <div class="summary-row total-row">
-                            <span class="summary-label"><strong>รวมทั้งสิ้น</strong></span>
-                            <span class="summary-value final-total">฿<?= baht($total) ?></span>
-                        </div>
-
-                        <div class="payment-info mt-3 p-3 bg-light rounded">
-                            <small class="text-muted d-block mb-1">
-                                <i class="fas fa-info-circle"></i> วิธีการชำระเงิน
-                            </small>
-                            <small class="text-muted">
-                                โอนเงินผ่านธนาคาร หรือ ชำระเงินสดเมื่อได้รับสินค้า
-                            </small>
-                        </div>
+                        <div class="items-count">จำนวนรายการ: <?= count($itemRows) ?> รายการ</div>
                     </div>
                 </div>
 
-                <!-- Action Buttons -->
-                <div class="success-card mt-3">
+                <!-- Customer info -->
+                <div class="card">
+                    <div class="card-head">
+                        <div class="card-head-icon"><i class="fas fa-user"></i></div>
+                        <h2>ข้อมูลผู้สั่งซื้อ</h2>
+                    </div>
                     <div class="card-body">
-                        <div class="section-header">
-                            <div class="section-icon">
-                                <i class="fas fa-cog"></i>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="lbl">ชื่อ-นามสกุล</div>
+                                <div class="val"><?= htmlspecialchars($order['customer_name']) ?></div>
                             </div>
-                            <h2 class="section-title">ดำเนินการต่อ</h2>
+                            <div class="info-item">
+                                <div class="lbl">เบอร์โทรศัพท์</div>
+                                <div class="val"><?= htmlspecialchars($order['customer_phone']) ?></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="lbl">ที่อยู่จัดส่ง</div>
+                                <div class="val"><?= nl2br(htmlspecialchars($order['customer_address'])) ?></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="lbl">วิธีการรับสินค้า</div>
+                                <div class="val">
+                                    <?php if ($order['receive_type'] === 'pickup'): ?>
+                                        <i class="fas fa-map-marker-alt me-1" style="color:var(--sage)"></i>รับที่สวน
+                                    <?php else: ?>
+                                        <i class="fas fa-truck me-1" style="color:var(--sage)"></i>จัดส่งถึงบ้าน
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <?php if (!empty($order['receive_datetime']) && $order['receive_datetime'] !== '0000-00-00 00:00:00'): ?>
+                                <div class="info-item">
+                                    <div class="lbl">วันเวลาที่นัดรับ</div>
+                                    <div class="val">
+                                        <i class="fas fa-calendar-alt me-1" style="color:var(--sage)"></i>
+                                        <?= date('d/m/Y', strtotime($order['receive_datetime'])) ?>
+                                        เวลา <?= date('H:i', strtotime($order['receive_datetime'])) ?> น.
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /left column -->
+
+            <!-- ── Right column (sidebar) ── -->
+            <div class="sidebar">
+
+                <!-- Order summary -->
+                <div class="card">
+                    <div class="card-head">
+                        <div class="card-head-icon"><i class="fas fa-file-invoice"></i></div>
+                        <h2>สรุปยอดสั่งซื้อ</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="sum-row">
+                            <span class="lbl-s">ยอดรวมสินค้า (<?= count($itemRows) ?> รายการ)</span>
+                            <span class="val-s"><?= baht($total) ?></span>
                         </div>
 
-                        <div class="action-buttons">
-                            <a href="products.php" class="action-btn btn-back">
-                                <i class="fas fa-arrow-left"></i>
-                                ซื้อสินค้าเพิ่ม
-                            </a>
+                        <?php if ($order['receive_type'] !== 'pickup'): ?>
+                            <div class="sum-row">
+                                <span class="lbl-s">ค่าจัดส่ง</span>
+                                <span class="val-s free-ship"><i class="fas fa-gift me-1"></i>ฟรี</span>
+                            </div>
+                        <?php endif; ?>
 
-                            <a href="order_status.php" class="action-btn btn-track">
-                                <i class="fas fa-search"></i>
-                                ติดตามสถานะ
+                        <div class="sum-row total-row">
+                            <span class="lbl-s">รวมทั้งสิ้น</span>
+                            <span class="val-s"><?= baht($total) ?></span>
+                        </div>
+                        <div class="pay-note">
+                            <i class="fas fa-info-circle"></i>
+                            <span>โอนเงินผ่านธนาคาร หรือ ชำระเงินสด ณ วันนัดรับสินค้า</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="card">
+                    <div class="card-head">
+                        <div class="card-head-icon"><i class="fas fa-bolt"></i></div>
+                        <h2>ดำเนินการต่อ</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="action-grid">
+                            <a href="products.php" class="btn-act btn-outline">
+                                <i class="fas fa-arrow-left"></i> ซื้อสินค้าเพิ่ม
+                            </a>
+                            <a href="order_status.php" class="btn-act btn-primary">
+                                <i class="fas fa-search"></i> ติดตามสถานะ
                             </a>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+            </div><!-- /sidebar -->
 
-        <script>
-            // Clear cart from localStorage
-            localStorage.removeItem("cart");
+        </div><!-- /layout -->
 
-            // Update cart badge if function exists
-            if (typeof updateCartCount === "function") {
-                updateCartCount();
-            }
+    </div><!-- /page-wrap -->
 
-            // Print order function
-            function printOrder() {
-                window.print();
-            }
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Clear cart
+        localStorage.removeItem('cart');
+        if (typeof updateCartCount === 'function') updateCartCount();
 
-            // Add smooth scroll to order items if needed
-            document.addEventListener('DOMContentLoaded', function() {
-                const orderItems = document.querySelector('.order-items-list');
-                if (orderItems && orderItems.scrollHeight > 400) {
-                    orderItems.style.maxHeight = '400px';
-                }
-            });
+        // Stagger item animation
+        document.querySelectorAll('.order-item').forEach((el, i) => {
+            el.style.animationDelay = (i * 60) + 'ms';
+        });
+    </script>
 
-            // Add animation to summary card
-            document.addEventListener('DOMContentLoaded', function() {
-                const summaryCard = document.querySelector('.order-summary-section');
-                if (summaryCard) {
-                    summaryCard.style.opacity = '0';
-                    summaryCard.style.transform = 'translateY(20px)';
-
-                    setTimeout(() => {
-                        summaryCard.style.transition = 'all 0.5s ease';
-                        summaryCard.style.opacity = '1';
-                        summaryCard.style.transform = 'translateY(0)';
-                    }, 300);
-                }
-            });
-        </script>
 </body>
 
 </html>

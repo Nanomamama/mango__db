@@ -22,7 +22,7 @@ while ($row = $result->fetch_assoc()) {
 }
 
 // แปลงข้อมูล courses เป็น JSON สำหรับใช้ใน JavaScript
-$courses_json = json_encode($courses);
+$courses_json = json_encode($courses, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
 ?>
 
 <!DOCTYPE html>
@@ -433,7 +433,7 @@ $courses_json = json_encode($courses);
                             <h5 class="mb-0"><?= htmlspecialchars($course['course_name']) ?></h5>
                         </div>
                         <div class="course-card-body">
-                            <img src="<?= $course['image1'] ? '../uploads/' . $course['image1'] : 'https://via.placeholder.com/400x200?text=No+Image' ?>"
+                            <img src="<?= $course['image1'] ? '../uploads/' . htmlspecialchars($course['image1'], ENT_QUOTES, 'UTF-8') : 'https://via.placeholder.com/400x200?text=No+Image' ?>"
                                 class="course-image" alt="<?= htmlspecialchars($course['course_name']) ?>">
                             <p class="course-description"><?= htmlspecialchars($course['course_description']) ?></p>
                             <div class="d-flex flex-wrap gap-2">
@@ -629,6 +629,22 @@ $courses_json = json_encode($courses);
         const coursesData = <?= $courses_json ?>;
         const UPLOADS_PATH = '../uploads/';
 
+        function escapeHTML(value) {
+            return String(value ?? '').replace(/[&<>"']/g, function(char) {
+                return ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                })[char];
+            });
+        }
+
+        function escapeAttr(value) {
+            return escapeHTML(value).replace(/`/g, '&#096;');
+        }
+
         document.querySelectorAll('.view-course-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const course = JSON.parse(this.getAttribute('data-course'));
@@ -645,17 +661,17 @@ $courses_json = json_encode($courses);
                     {
                         key: 'image1',
                         label: 'รูปภาพ 1',
-                        format: value => value ? `<img src="${UPLOADS_PATH}${value}" class="modal-image" alt="Image 1">` : 'ไม่มีรูปภาพ'
+                        format: value => value ? `<img src="${UPLOADS_PATH}${escapeAttr(value)}" class="modal-image" alt="Image 1">` : 'ไม่มีรูปภาพ'
                     },
                     {
                         key: 'image2',
                         label: 'รูปภาพ 2',
-                        format: value => value ? `<img src="${UPLOADS_PATH}${value}" class="modal-image" alt="Image 2">` : 'ไม่มีรูปภาพ'
+                        format: value => value ? `<img src="${UPLOADS_PATH}${escapeAttr(value)}" class="modal-image" alt="Image 2">` : 'ไม่มีรูปภาพ'
                     },
                     {
                         key: 'image3',
                         label: 'รูปภาพ 3',
-                        format: value => value ? `<img src="${UPLOADS_PATH}${value}" class="modal-image" alt="Image 3">` : 'ไม่มีรูปภาพ'
+                        format: value => value ? `<img src="${UPLOADS_PATH}${escapeAttr(value)}" class="modal-image" alt="Image 3">` : 'ไม่มีรูปภาพ'
                     }
                 ];
 
@@ -665,7 +681,9 @@ $courses_json = json_encode($courses);
                         value = field.format(value);
                     } else if (field.key === 'description') {
                         // เพื่อให้แสดงผลเป็นบรรทัดใหม่
-                        value = value.replace(/\n/g, '<br>');
+                        value = escapeHTML(value).replace(/\n/g, '<br>');
+                    } else {
+                        value = escapeHTML(value);
                     }
 
 
@@ -773,6 +791,8 @@ $courses_json = json_encode($courses);
                     message = 'อัปเดตข้อมูลหลักสูตรสำเร็จ!';
                 } else if (success === 'add') {
                     message = 'เพิ่มหลักสูตรใหม่สำเร็จ!';
+                } else if (success === 'delete') {
+                    message = 'ลบกิจกรรมอบรมสำเร็จ!';
                 } else if (error) {
                     message = 'เกิดข้อผิดพลาด: ' + error;
                 } else {

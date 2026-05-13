@@ -3,95 +3,128 @@ require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: edit_courses.php");
+    header('Location: edit_courses.php?error=invalid_request');
     exit;
 }
 
-// รับข้อมูลจากฟอร์ม
 $courses_id = (int)($_POST['id'] ?? 0);
-$course_name = htmlspecialchars($_POST['course_name'], ENT_QUOTES, 'UTF-8');
-$course_description = htmlspecialchars($_POST['course_description'], ENT_QUOTES, 'UTF-8');
+$course_name = trim($_POST['course_name'] ?? '');
+$course_description = trim($_POST['course_description'] ?? '');
 
 if ($courses_id <= 0) {
-    die("Invalid course ID.");
+    header('Location: edit_courses.php?error=' . urlencode('รหัสกิจกรรมไม่ถูกต้อง'));
+    exit;
 }
 
-// ดึงข้อมูลรูปภาพปัจจุบัน
-$stmt_old = $conn->prepare("SELECT image1, image2, image3 FROM courses WHERE courses_id = ?");
-$stmt_old->bind_param("i", $courses_id);
+if ($course_name === '' || $course_description === '') {
+    header('Location: edit_courses.php?error=' . urlencode('กรุณากรอกชื่อกิจกรรมและคำอธิบาย'));
+    exit;
+}
+
+if (mb_strlen($course_name, 'UTF-8') > 255) {
+    header('Location: edit_courses.php?error=' . urlencode('ชื่อกิจกรรมยาวเกินไป'));
+    exit;
+}
+
+$stmt_old = $conn->prepare('SELECT image1, image2, image3 FROM courses WHERE courses_id = ?');
+if (!$stmt_old) {
+    header('Location: edit_courses.php?error=' . urlencode($conn->error));
+    exit;
+}
+
+$stmt_old->bind_param('i', $courses_id);
 $stmt_old->execute();
 $old_images = $stmt_old->get_result()->fetch_assoc();
 $stmt_old->close();
 
 if (!$old_images) {
-    die("Course not found.");
+    header('Location: edit_courses.php?error=' . urlencode('ไม่พบกิจกรรมที่ต้องการแก้ไข'));
+    exit;
 }
 
-$target_dir = "../uploads/";
-$allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-
-// ฟังก์ชันจัดการอัปโหลด
-function handle_upload($file_key, $current_image, $target_dir, $allowed_types) {
-    if (isset($_FILES[$file_key]) && $_FILES[$file_key]['error'] === UPLOAD_ERR_OK) {
-        $file = $_FILES[$file_key];
-        
-        // ตรวจสอบประเภทไฟล์
-        if (!in_array($file['type'], $allowed_types)) {
-            return ['error' => "Invalid file type for {$file_key}."];
-        }
-
-        // สร้างชื่อไฟล์ใหม่ที่ไม่ซ้ำกัน
-        $new_filename = uniqid() . "_" . basename($file['name']);
-        $target_path = $target_dir . $new_filename;
-
-        if (move_uploaded_file($file['tmp_name'], $target_path)) {
-            // ลบไฟล์เก่าถ้ามี
-            if ($current_image && file_exists($target_dir . $current_image)) {
-                @unlink($target_dir . $current_image);
-            }
-            return ['filename' => $new_filename];
-        } else {
-            return ['error' => "Failed to upload {$file_key}."];
-        }
+$target_dir = realpath(__DIR__ . '/../uploads');
+if ($target_dir === false) {
+    $upload_root = __DIR__ . '/../uploads';
+    if (!mkdir($upload_root, 0755, true) && !is_dir($upload_root)) {
+        header('Location: edit_courses.php?error=' . urlencode('ไม่สามารถสร้างโฟลเดอร์อัปโหลดได้'));
+        exit;
     }
-    // ไม่มีไฟล์ใหม่, ใช้ไฟล์เดิม
-    return ['filename' => $current_image];
+    $target_dir = realpath($upload_root);
 }
 
-$image_updates = [];
-$image_updates['image1'] = handle_upload('image1', $old_images['image1'], $target_dir, $allowed_types);
-$image_updates['image2'] = handle_upload('image2', $old_images['image2'], $target_dir, $allowed_types);
-$image_updates['image3'] = handle_upload('image3', $old_images['image3'], $target_dir, $allowed_types);
+$allowed_types = [
+    'image/jpeg' => 'jpg',
+    'image/png' => 'png',
+    'image/gif' => 'gif',
+    'image/webp' => 'webp',
+];
 
-// ตรวจสอบข้อผิดพลาดจากการอัปโหลด
-foreach ($image_updates as $key => $result) {
-    if (isset($result['error'])) {
-        // สามารถจัดการ error ที่นี่ได้ เช่น redirect กลับพร้อมข้อความ
-        die($result['error']);
+function delete_course_image_file(?string $filename, string $target_dir): void
+{
+    if (!$filename) {
+        return;
+    }
+
+    $path = realpath($target_dir . DIRECTORY_SEPARATOR . basename($filename));
+    if ($path !== false && strpos($path, $target_dir . DIRECTORY_SEPARATOR) === 0 && is_file($path)) {
+        @unlink($path);
     }
 }
 
-// สร้าง SQL query
-$sql = "UPDATE courses SET course_name = ?, course_description = ?, image1 = ?, image2 = ?, image3 = ? WHERE courses_id = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("sssssi", 
-    $course_name, 
-    $course_description, 
-    $image_updates['image1']['filename'],
-    $image_updates['image2']['filename'],
-    $image_updates['image3']['filename'],
-    $courses_id
-);
+function upload_course_image_or_keep(string $file_key, ?string $current_image, string $target_dir, array $allowed_types): ?string
+{
+    if (!isset($_FILES[$file_key]) || $_FILES[$file_key]['error'] === UPLOAD_ERR_NO_FILE) {
+        return $current_image;
+    }
+
+    if ($_FILES[$file_key]['error'] !== UPLOAD_ERR_OK) {
+        throw new RuntimeException("อัปโหลดรูป {$file_key} ไม่สำเร็จ");
+    }
+
+    if (!is_uploaded_file($_FILES[$file_key]['tmp_name'])) {
+        throw new RuntimeException("ไฟล์ {$file_key} ไม่ถูกต้อง");
+    }
+
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime_type = $finfo->file($_FILES[$file_key]['tmp_name']);
+    if (!isset($allowed_types[$mime_type])) {
+        throw new RuntimeException("ไฟล์ {$file_key} ต้องเป็น JPG, PNG, GIF หรือ WEBP");
+    }
+
+    $new_filename = uniqid('course_', true) . '.' . $allowed_types[$mime_type];
+    $target_path = $target_dir . DIRECTORY_SEPARATOR . $new_filename;
+
+    if (!move_uploaded_file($_FILES[$file_key]['tmp_name'], $target_path)) {
+        throw new RuntimeException("ไม่สามารถบันทึกรูป {$file_key} ได้");
+    }
+
+    delete_course_image_file($current_image, $target_dir);
+    return $new_filename;
+}
+
+try {
+    $image1 = upload_course_image_or_keep('image1', $old_images['image1'], $target_dir, $allowed_types);
+    $image2 = upload_course_image_or_keep('image2', $old_images['image2'], $target_dir, $allowed_types);
+    $image3 = upload_course_image_or_keep('image3', $old_images['image3'], $target_dir, $allowed_types);
+} catch (RuntimeException $e) {
+    header('Location: edit_courses.php?error=' . urlencode($e->getMessage()));
+    exit;
+}
+
+$stmt = $conn->prepare('UPDATE courses SET course_name = ?, course_description = ?, image1 = ?, image2 = ?, image3 = ? WHERE courses_id = ?');
+if (!$stmt) {
+    header('Location: edit_courses.php?error=' . urlencode($conn->error));
+    exit;
+}
+
+$stmt->bind_param('sssssi', $course_name, $course_description, $image1, $image2, $image3, $courses_id);
 
 if ($stmt->execute()) {
-    // Redirect with success message
-    header("Location: edit_courses.php?success=update");
+    header('Location: edit_courses.php?success=update');
 } else {
-    // Redirect with error message
-    header("Location: edit_courses.php?error=" . urlencode($stmt->error));
+    header('Location: edit_courses.php?error=' . urlencode($stmt->error));
 }
 
 $stmt->close();
 $conn->close();
-exit();
-?>
+exit;
