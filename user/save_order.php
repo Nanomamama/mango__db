@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $sessionMemberId = isset($_SESSION['member_id']) ? (int) $_SESSION['member_id'] : null;
 $memberId = $sessionMemberId ?: null;
 $customerName = trim($_POST['customer_name'] ?? '');
-$customerPhone = trim($_POST['customer_phone'] ?? '');
+$customerPhone = preg_replace('/[^0-9]/', '', trim($_POST['customer_phone'] ?? ''));
 $customerAddress = trim($_POST['customer_address'] ?? '');
 $receiveType = $_POST['receive_type'] ?? '';
 $receiveDatetimeRaw = trim($_POST['receive_datetime'] ?? '');

@@ -11,60 +11,86 @@ $orders = [];
 $search_performed = false;
 $error = '';
 $success = '';
-$guestOrderCodes = [];
 
-if (isset($_COOKIE['guest_orders'])) {
-    $guestOrderCodes = json_decode($_COOKIE['guest_orders'], true);
-}
-
-if (!is_array($guestOrderCodes)) {
-    $guestOrderCodes = [];
-}
-
+$keyword = trim($_GET['keyword'] ?? '');
+/* ── Member: ดึงออเดอร์ตัวเองทั้งหมด (ยกเว้น completed) ── */
 if ($member_id) {
     $stmt = $conn->prepare("
-       SELECT 
-    o.*,
-    COALESCE(SUM(oi.price * oi.quantity),0) AS order_total
-FROM orders o
-LEFT JOIN order_items oi ON o.order_id = oi.order_id
-WHERE o.member_id = ?
-AND o.order_status != 'completed'
-GROUP BY o.order_id
-ORDER BY o.order_date DESC
+        SELECT
+            o.*,
+            COALESCE(SUM(oi.price * oi.quantity), 0) AS order_total
+        FROM orders o
+        LEFT JOIN order_items oi ON o.order_id = oi.order_id
+        WHERE o.member_id = ?
+          AND o.order_status != 'completed'
+        GROUP BY o.order_id
+        ORDER BY o.order_date DESC
     ");
     $stmt->bind_param("i", $member_id);
     $stmt->execute();
     $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
-if (!$member_id) {
+/* ── Guest: ค้นหาด้วยเบอร์ หรือ ชื่อ (OR) ── */
+if (
+    !$member_id &&
+    isset($_GET['keyword']) &&
+    $keyword !== ''
+) {
     $search_performed = true;
 
-    if (!empty($guestOrderCodes)) {
-        arsort($guestOrderCodes);
-        $guestOrderCodes = array_slice(array_keys($guestOrderCodes), 0, 20);
-        $placeholders = implode(',', array_fill(0, count($guestOrderCodes), '?'));
-        $types = str_repeat('s', count($guestOrderCodes));
+    /* ทำความสะอาดเบอร์โทร */
+   $cleanPhone = preg_replace('/[^0-9]/', '', $keyword);
 
-        $stmt = $conn->prepare("
-            SELECT * FROM orders
-            WHERE order_code IN ($placeholders)
-            AND member_id IS NULL
-            AND order_status != 'completed'
-            ORDER BY order_date DESC
-        ");
-        $stmt->bind_param($types, ...$guestOrderCodes);
-        $stmt->execute();
-        $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $sql = "
+        SELECT
+            o.*,
+            COALESCE(SUM(oi.price * oi.quantity), 0) AS order_total
+        FROM orders o
+        LEFT JOIN order_items oi ON o.order_id = oi.order_id
+        WHERE 1
+    ";
 
-        if (!empty($orders)) {
-            $success = "พบคำสั่งซื้อ " . count($orders) . " รายการ";
-        } else {
-            $error = "ไม่พบคำสั่งซื้อในประวัติการใช้งานนี้";
-        }
+$params = [];
+$types = '';
+
+$keywordPhone = preg_replace('/[^0-9]/', '', $keyword);
+
+/* ถ้ามีตัวเลข => ค้นหาเบอร์ */
+if ($keywordPhone !== '') {
+
+    $sql .= " AND o.customer_phone LIKE ? ";
+    $params[] = "%{$keywordPhone}%";
+    $types .= 's';
+
+}
+
+/* ถ้ามีข้อความ => ค้นหาชื่อ */
+else {
+
+    $sql .= " AND o.customer_name LIKE ? ";
+    $params[] = "%{$keyword}%";
+    $types .= 's';
+
+}
+
+
+    $sql .= "
+        GROUP BY o.order_id
+        ORDER BY o.order_date DESC
+    ";
+
+    $stmt = $conn->prepare($sql);
+    if (!empty($types)) {
+        $stmt->bind_param($types, ...$params);
+    }
+    $stmt->execute();
+    $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+    if (!empty($orders)) {
+        $success = "พบคำสั่งซื้อ " . count($orders) . " รายการ";
     } else {
-        $error = "ยังไม่มีคำสั่งซื้อในประวัติการใช้งานนี้";
+        $error = "ไม่พบคำสั่งซื้อ";
     }
 }
 ?>
@@ -83,7 +109,6 @@ if (!$member_id) {
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        /* ── Reset ─────────────────────────────────────────────── */
         *,
         *::before,
         *::after {
@@ -132,14 +157,12 @@ if (!$member_id) {
             -webkit-font-smoothing: antialiased;
         }
 
-        /* ── Page ──────────────────────────────────────────────── */
         .page-wrap {
             max-width: 1200px;
             margin: 0 auto;
             padding: 1.5rem 1rem 3rem;
         }
 
-        /* ── Back button ───────────────────────────────────────── */
         .back-btn {
             display: inline-flex;
             align-items: center;
@@ -164,7 +187,6 @@ if (!$member_id) {
             transform: translateY(-1px);
         }
 
-        /* ── Hero banner ───────────────────────────────────────── */
         .hero {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 55%, var(--secondary) 100%);
             border-radius: 20px;
@@ -225,28 +247,107 @@ if (!$member_id) {
             margin: 0;
         }
 
-        /* ── Guest info bar ────────────────────────────────────── */
-        .info-bar {
-            background: var(--white);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 1rem 1.25rem;
-            margin-bottom: 1.5rem;
+        /* ── Search Box ── */
+        .search-box {
             display: flex;
             align-items: center;
-            gap: .75rem;
-            font-size: .875rem;
-            color: var(--text-muted);
-            box-shadow: var(--shadow);
+            gap: 12px;
+            background: #fff;
+            border-radius: 18px;
+            padding: 12px 14px;
+            border: 2px solid #e8f3f1;
+            box-shadow: 0 8px 20px rgba(1, 106, 112, 0.08);
+            transition: 0.3s ease;
+            max-width: 650px;
+            margin: 20px auto;
+        }
+
+        .search-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(1, 106, 112, 0.12);
+        }
+
+        .search-box:focus-within {
+            border-color: #2ad3bc;
+            box-shadow: 0 0 0 5px rgba(42, 211, 188, 0.15);
+        }
+
+        .search-icon {
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #016A70, #2ad3bc);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+
+        .search-fields {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .search-fields input {
+            width: 100%;
+            border: none;
+            outline: none;
+            font-size: 16px;
+            color: #333;
+            background: transparent;
+        }
+
+        .search-fields input::placeholder {
+            color: #9aa5b1;
+        }
+
+        .search-box button {
+            border: none;
+            outline: none;
+            background: linear-gradient(135deg, #016A70, #2ad3bc);
+            color: white;
+            padding: 12px 22px;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.25s ease;
+            white-space: nowrap;
+        }
+
+        .search-box button:hover {
+            transform: scale(1.04);
+            box-shadow: 0 8px 18px rgba(1, 106, 112, 0.25);
+        }
+
+        /* ── Info Bar ── */
+        .info-bar {
+            background: linear-gradient(135deg, rgba(1, 106, 112, 0.08), rgba(42, 211, 188, 0.12));
+            border: 1px solid rgba(42, 211, 188, 0.25);
+            color: #016A70;
+            padding: 14px 18px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 650px;
+            margin: 0 auto 18px;
+            font-size: 15px;
+            font-weight: 500;
         }
 
         .info-bar i {
-            color: var(--primary);
-            font-size: 1.1rem;
-            flex-shrink: 0;
+            font-size: 18px;
         }
 
-        /* ── Count row ─────────────────────────────────────────── */
+        /* ── Count row ── */
         .count-row {
             display: flex;
             align-items: center;
@@ -266,28 +367,14 @@ if (!$member_id) {
             font-size: .875rem;
         }
 
-        /* ── Grid ──────────────────────────────────────────────── */
-        .orders-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 1.25rem;
-        }
-
-        @media (max-width: 720px) {
-            .orders-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* ───────────────── ORDER CARD NEW UI ───────────────── */
-
+        /* ── Orders Grid ── */
         .orders-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(390px, 1fr));
             gap: 1.35rem;
         }
 
-        @media(max-width:768px) {
+        @media(max-width: 768px) {
             .orders-grid {
                 grid-template-columns: 1fr;
             }
@@ -306,36 +393,32 @@ if (!$member_id) {
             animation: fadeUp .45s ease both;
         }
 
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         .order-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 14px 38px rgba(1, 106, 112, .14);
         }
-
-        /* STATUS LINE */
 
         .status-line {
             height: 35px;
             width: 100%;
         }
 
-        .line-pending {
-            background: var(--pending);
-
-        }
-
-        .line-approved {
-            background: var(--approved);
-        }
-
-        .line-rejected {
-            background: var(--rejected);
-        }
-
-        .line-completed {
-            background: var(--completed);
-        }
-
-        /* TOP */
+        .line-pending   { background: var(--pending); }
+        .line-approved  { background: var(--approved); }
+        .line-rejected  { background: var(--rejected); }
+        .line-completed { background: var(--completed); }
 
         .card-top {
             padding: 1.2rem 1.2rem 1rem;
@@ -345,9 +428,7 @@ if (!$member_id) {
             border-bottom: 1px solid #edf7f7;
         }
 
-        .left-top {
-            min-width: 0;
-        }
+        .left-top { min-width: 0; }
 
         .status-badge {
             display: inline-flex;
@@ -360,25 +441,10 @@ if (!$member_id) {
             margin-bottom: .8rem;
         }
 
-        .badge-pending {
-            background: var(--yellow-pale);
-            color: var(--yellow);
-        }
-
-        .badge-approved {
-            background: var(--green-pale);
-            color: var(--green);
-        }
-
-        .badge-rejected {
-            background: var(--red-pale);
-            color: var(--red);
-        }
-
-        .badge-completed {
-            background: var(--blue-pale);
-            color: var(--blue);
-        }
+        .badge-pending   { background: var(--yellow-pale); color: var(--yellow); }
+        .badge-approved  { background: var(--green-pale);  color: var(--green); }
+        .badge-rejected  { background: var(--red-pale);    color: var(--red); }
+        .badge-completed { background: var(--blue-pale);   color: var(--blue); }
 
         .order-code {
             font-size: 1.05rem;
@@ -420,8 +486,6 @@ if (!$member_id) {
             font-weight: 800;
         }
 
-        /* CUSTOMER */
-
         .customer-grid {
             padding: 1rem 1.2rem;
             display: grid;
@@ -453,11 +517,7 @@ if (!$member_id) {
             line-height: 1.45;
         }
 
-        /* PRODUCTS */
-
-        .products-wrap {
-            padding: 1rem 1.2rem 1.2rem;
-        }
+        .products-wrap { padding: 1rem 1.2rem 1.2rem; }
 
         .products-title {
             display: flex;
@@ -501,17 +561,13 @@ if (!$member_id) {
             background: var(--pale);
             border: 1px solid var(--border);
             flex-shrink: 0;
-
             display: flex;
             align-items: center;
             justify-content: center;
             color: var(--primary);
         }
 
-        .product-info {
-            flex: 1;
-            min-width: 0;
-        }
+        .product-info { flex: 1; min-width: 0; }
 
         .product-name {
             font-size: .9rem;
@@ -519,18 +575,13 @@ if (!$member_id) {
             color: var(--text);
             line-height: 1.4;
             margin-bottom: .45rem;
-
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
 
-        .product-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: .4rem;
-        }
+        .product-meta { display: flex; flex-wrap: wrap; gap: .4rem; }
 
         .product-chip {
             background: #fff;
@@ -541,8 +592,6 @@ if (!$member_id) {
             font-size: .72rem;
             font-weight: 700;
         }
-
-        /* NOTE */
 
         .admin-note {
             margin: 0 1.2rem 1.1rem;
@@ -557,8 +606,6 @@ if (!$member_id) {
             font-size: .82rem;
             line-height: 1.5;
         }
-
-        /* FOOTER */
 
         .card-footer {
             margin-top: auto;
@@ -575,13 +622,13 @@ if (!$member_id) {
             text-decoration: none;
             font-size: .9rem;
             font-weight: 700;
-
             display: flex;
             align-items: center;
             justify-content: center;
             gap: .5rem;
-
             transition: .2s;
+            border: none;
+            cursor: pointer;
         }
 
         .btn-detail:hover {
@@ -590,25 +637,17 @@ if (!$member_id) {
             box-shadow: 0 10px 24px rgba(1, 106, 112, .2);
         }
 
-        /* MOBILE */
-
-        @media(max-width:640px) {
-
-            .card-top {
-                flex-direction: column;
-            }
-
-            .total-box {
-                width: 100%;
-            }
-
-            .customer-grid {
-                grid-template-columns: 1fr;
-            }
-
+        .more-items {
+            margin-top: .75rem;
+            font-size: .8rem;
+            color: var(--primary);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: .45rem;
         }
 
-        /* ── Toast alerts ──────────────────────────────────────── */
+        /* ── Toast ── */
         .toast-wrap {
             position: fixed;
             top: 1.2rem;
@@ -633,38 +672,16 @@ if (!$member_id) {
         }
 
         @keyframes slideIn {
-            from {
-                transform: translateX(110%);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
+            from { transform: translateX(110%); opacity: 0; }
+            to   { transform: translateX(0);    opacity: 1; }
         }
 
-        .toast-error {
-            border-left: 3px solid var(--red);
-        }
+        .toast-error   { border-left: 3px solid var(--red); }
+        .toast-success { border-left: 3px solid var(--green); }
 
-        .toast-success {
-            border-left: 3px solid var(--green);
-        }
-
-        .toast-ico {
-            font-size: 1.1rem;
-            margin-top: .1rem;
-            flex-shrink: 0;
-        }
-
-        .toast-error .toast-ico {
-            color: var(--red);
-        }
-
-        .toast-success .toast-ico {
-            color: var(--green);
-        }
+        .toast-ico { font-size: 1.1rem; margin-top: .1rem; flex-shrink: 0; }
+        .toast-error   .toast-ico { color: var(--red); }
+        .toast-success .toast-ico { color: var(--green); }
 
         .toast-msg {
             font-size: .875rem;
@@ -684,58 +701,12 @@ if (!$member_id) {
             flex-shrink: 0;
         }
 
-        .toast-close:hover {
-            color: var(--text);
-        }
+        .toast-close:hover { color: var(--text); }
 
-        /* ── Responsive ────────────────────────────────────────── */
-        @media (max-width: 480px) {
-            .hero {
-                padding: 1.75rem 1rem;
-            }
+        /* ── Modal ── */
+        .order-modal { border: none; border-radius: 24px; overflow: hidden; }
 
-            .hero h1 {
-                font-size: 1.3rem;
-            }
-
-            .cust-row {
-                flex-direction: column;
-                gap: .6rem;
-            }
-
-            .total-block {
-                width: 100%;
-            }
-
-            .page-wrap {
-                padding: 1rem .75rem 2rem;
-            }
-        }
-
-        /* MORE ITEMS */
-
-        .more-items {
-            margin-top: .75rem;
-            font-size: .8rem;
-            color: var(--primary);
-            font-weight: 700;
-
-            display: flex;
-            align-items: center;
-            gap: .45rem;
-        }
-
-        /* MODAL */
-
-        .order-modal {
-            border: none;
-            border-radius: 24px;
-            overflow: hidden;
-        }
-
-        .modal-header {
-            padding: 1.3rem 1.4rem .8rem;
-        }
+        .modal-header { padding: 1.3rem 1.4rem .8rem; }
 
         .modal-order-code {
             font-size: 1.15rem;
@@ -749,23 +720,15 @@ if (!$member_id) {
             margin-top: .2rem;
         }
 
-        .modal-body {
-            padding: 1rem 1.4rem 1.4rem;
-        }
+        .modal-body { padding: 1rem 1.4rem 1.4rem; }
 
-        .modal-products {
-            display: flex;
-            flex-direction: column;
-            gap: .9rem;
-        }
+        .modal-products { display: flex; flex-direction: column; gap: .9rem; }
 
         .modal-product-card {
             display: flex;
             gap: 1rem;
-
             border: 1px solid var(--border);
             background: var(--pale2);
-
             border-radius: 18px;
             padding: .9rem;
         }
@@ -776,24 +739,16 @@ if (!$member_id) {
             height: 82px;
             border-radius: 16px;
             object-fit: cover;
-
             background: var(--pale);
-
             border: 1px solid var(--border);
-
             display: flex;
             align-items: center;
             justify-content: center;
-
             color: var(--primary);
-
             flex-shrink: 0;
         }
 
-        .modal-product-info {
-            flex: 1;
-            min-width: 0;
-        }
+        .modal-product-info { flex: 1; min-width: 0; }
 
         .modal-product-name {
             font-size: .95rem;
@@ -803,115 +758,75 @@ if (!$member_id) {
             line-height: 1.45;
         }
 
-        .modal-product-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: .65rem;
-        }
+        .modal-product-meta { display: flex; flex-wrap: wrap; gap: .65rem; }
 
         .modal-product-meta span {
             background: #fff;
             border: 1px solid var(--border);
-
             border-radius: 999px;
-
             padding: .3rem .7rem;
-
             font-size: .78rem;
             font-weight: 700;
-
             color: var(--primary);
         }
 
-        .modal-footer {
-            padding: 1rem 1.4rem 1.4rem;
+        .modal-footer { padding: 1rem 1.4rem 1.4rem; }
+
+        .modal-total { width: 100%; text-align: left; font-size: 1rem; color: var(--text); }
+        .modal-total strong { font-size: 1.5rem; color: var(--primary); }
+
+        /* ── Empty state ── */
+        .empty-state {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 3rem 2rem;
+            text-align: center;
+            box-shadow: var(--shadow);
         }
 
-        .modal-total {
-            width: 100%;
-            text-align: left;
-
-            font-size: 1rem;
-            color: var(--text);
-        }
-
-        .modal-total strong {
-            font-size: 1.5rem;
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+            border-radius: 50%;
+            background: var(--pale);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
             color: var(--primary);
         }
 
-        .empty-state{
-    background:#fff;
-    border:1px solid var(--border);
-    border-radius:20px;
-    padding:3rem 2rem;
-    text-align:center;
-    box-shadow:var(--shadow);
-}
+        .btn-empty {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            margin-top: 1rem;
+            padding: .8rem 1.2rem;
+            border-radius: 14px;
+            background: var(--primary);
+            color: #fff;
+            text-decoration: none;
+            font-weight: 700;
+        }
 
-.empty-icon{
-    width:80px;
-    height:80px;
-    margin:0 auto 1rem;
-    border-radius:50%;
-    background:var(--pale);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:2rem;
-    color:var(--primary);
-}
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            .search-box    { flex-direction: column; align-items: stretch; }
+            .search-fields { width: 100%; }
+            .search-icon   { width: 100%; height: 52px; }
+            .search-box button { justify-content: center; }
+            .card-top      { flex-direction: column; }
+            .total-box     { width: 100%; }
+            .customer-grid { grid-template-columns: 1fr; }
+        }
 
-.btn-empty{
-    display:inline-flex;
-    align-items:center;
-    gap:.5rem;
-    margin-top:1rem;
-    padding:.8rem 1.2rem;
-    border-radius:14px;
-    background:var(--primary);
-    color:#fff;
-    text-decoration:none;
-    font-weight:700;
-}
-
-.search-box {
-    position: relative;
-    margin-bottom: 1.2rem;
-}
-
-.search-box i {
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-muted);
-    font-size: .9rem;
-}
-
-.search-box input {
-    width: 100%;
-    height: 52px;
-
-    border-radius: 16px;
-    border: 1px solid var(--border);
-
-    background: var(--white);
-
-    padding: 0 1rem 0 42px;
-
-    font-size: .95rem;
-    font-family: inherit;
-
-    transition: .2s;
-    box-shadow: var(--shadow);
-}
-
-.search-box input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(1, 106, 112, .08);
-}
+        @media (max-width: 480px) {
+            .hero    { padding: 1.75rem 1rem; }
+            .hero h1 { font-size: 1.3rem; }
+            .page-wrap { padding: 1rem .75rem 2rem; }
+        }
     </style>
 </head>
 
@@ -926,14 +841,14 @@ if (!$member_id) {
             <div class="toast-item toast-error" id="toastErr">
                 <i class="fas fa-exclamation-circle toast-ico"></i>
                 <span class="toast-msg"><?= htmlspecialchars($error) ?></span>
-                <button class="toast-close" onclick="dismissToast('toastErr')">×</button>
+                <button class="toast-close" onclick="this.closest('.toast-item').remove()">×</button>
             </div>
         <?php endif; ?>
         <?php if ($success): ?>
             <div class="toast-item toast-success" id="toastOk">
                 <i class="fas fa-check-circle toast-ico"></i>
                 <span class="toast-msg"><?= htmlspecialchars($success) ?></span>
-                <button class="toast-close" onclick="dismissToast('toastOk')">×</button>
+                <button class="toast-close" onclick="this.closest('.toast-item').remove()">×</button>
             </div>
         <?php endif; ?>
     </div>
@@ -952,24 +867,44 @@ if (!$member_id) {
             <p>ตรวจสอบสถานะและรายละเอียดคำสั่งซื้อของคุณ</p>
         </div>
 
-        <!-- Guest info bar -->
+        <!-- Info bar (guest only) -->
         <?php if (!$member_id): ?>
             <div class="info-bar">
                 <i class="fas fa-shield-alt"></i>
-                <span>แสดงเฉพาะคำสั่งซื้อที่สร้างจากอุปกรณ์หรือเบราว์เซอร์นี้เท่านั้น</span>
+                <span>ค้นหาคำสั่งซื้อด้วยเบอร์โทรศัพท์ หรือ ชื่อที่ใช้สั่งซื้อ</span>
             </div>
         <?php endif; ?>
 
-        <div class="search-box">
-    <i class="fas fa-search"></i>
+        <!-- Search Form -->
+         <?php if (!$member_id): ?>
+    <form method="GET" class="search-box">
 
-    <input
-        type="text"
-        id="orderSearch"
-        placeholder="ค้นหารหัสคำสั่งซื้อ ชื่อ หรือเบอร์โทร...">
-</div>
+    <div class="search-icon">
+        <i class="fas fa-search"></i>
+    </div>
 
-        <?php if (!empty($orders)): ?>
+    <div class="search-fields">
+
+        <input
+            type="text"
+            name="keyword"
+            placeholder="กรอกชื่อ หรือ เบอร์โทรศัพท์"
+            value="<?= htmlspecialchars($keyword ?? '') ?>">
+
+    </div>
+
+    <button type="submit">
+        <i class="fas fa-search"></i>
+        ค้นหา
+    </button>
+
+</form>
+<?php endif; ?>
+
+      <?php if (
+    ($member_id && !empty($orders))
+    || (!$member_id && $search_performed && !empty($orders))
+): ?>
 
             <div class="count-row">
                 พบคำสั่งซื้อทั้งหมด
@@ -977,25 +912,24 @@ if (!$member_id) {
             </div>
 
             <div class="orders-grid">
+
                 <?php foreach ($orders as $idx => $o):
 
+                    /* ── ดึงรายการสินค้าในออเดอร์ ── */
                     $itemStmt = $conn->prepare("
-                    SELECT oi.quantity, oi.price, p.product_name, p.product_image, p.unit
-                    FROM order_items oi
-                    JOIN products p ON oi.product_id = p.product_id
-                    WHERE oi.order_id = ?
-                
-                ");
+                        SELECT oi.quantity, oi.price, p.product_name, p.product_image, p.unit
+                        FROM order_items oi
+                        JOIN products p ON oi.product_id = p.product_id
+                        WHERE oi.order_id = ?
+                    ");
                     $itemStmt->bind_param("i", $o['order_id']);
                     $itemStmt->execute();
-                    $itemRows = $itemStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-                    $totalItems = count($itemRows);
+                    $itemRows    = $itemStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+                    $totalItems  = count($itemRows);
                     $previewItems = array_slice($itemRows, 0, 3);
 
-                    $totalStmt = $conn->prepare("SELECT SUM(price * quantity) as total FROM order_items WHERE order_id = ?");
-                    $totalStmt->bind_param("i", $o['order_id']);
-                    $totalStmt->execute();
-                    $orderTotal = $totalStmt->get_result()->fetch_assoc()['total'] ?? 0;
+                    /* ยอดรวม (ใช้จาก query หลักได้เลย แต่คำนวณซ้ำเผื่อกรณีพิเศษ) */
+                    $orderTotal = $o['order_total'] ?? 0;
 
                     $statusLabel = match ($o['order_status']) {
                         'pending'   => 'รอยืนยัน',
@@ -1013,47 +947,32 @@ if (!$member_id) {
                     };
                 ?>
 
-                    <!-- start order card -->
-                   <div class="order-card"
-    data-code="<?= strtolower($o['order_code']) ?>"
-    data-name="<?= strtolower($o['customer_name']) ?>"
-    data-phone="<?= strtolower($o['customer_phone']) ?>"
-    style="animation-delay: <?= $idx * 70 ?>ms">
+                    <!-- ORDER CARD -->
+                    <div class="order-card" style="animation-delay: <?= $idx * 70 ?>ms">
 
-                        <!-- STATUS -->
                         <div class="status-line line-<?= $o['order_status'] ?>"></div>
 
                         <!-- TOP -->
                         <div class="card-top">
-
                             <div class="left-top">
-
                                 <div class="status-badge badge-<?= $o['order_status'] ?>">
                                     <i class="fas <?= $statusIcon ?>"></i>
                                     <?= $statusLabel ?>
                                 </div>
-
-                                <div class="order-code">
-                                    #<?= htmlspecialchars($o['order_code']) ?>
-                                </div>
-
+                                <div class="order-code">#<?= htmlspecialchars($o['order_code']) ?></div>
                                 <div class="order-date">
                                     <i class="fas fa-clock"></i>
                                     <?= date('d/m/Y H:i', strtotime($o['order_date'])) ?>
                                 </div>
-
                             </div>
-
                             <div class="total-box">
                                 <span>ยอดรวม</span>
                                 <strong>฿<?= number_format($orderTotal, 0) ?></strong>
                             </div>
-
                         </div>
 
                         <!-- CUSTOMER -->
                         <div class="customer-grid">
-
                             <div class="customer-item">
                                 <div class="customer-label">ลูกค้า</div>
                                 <div class="customer-value">
@@ -1061,7 +980,6 @@ if (!$member_id) {
                                     <?= htmlspecialchars($o['customer_name']) ?>
                                 </div>
                             </div>
-
                             <div class="customer-item">
                                 <div class="customer-label">เบอร์โทร</div>
                                 <div class="customer-value">
@@ -1069,27 +987,20 @@ if (!$member_id) {
                                     <?= htmlspecialchars($o['customer_phone']) ?>
                                 </div>
                             </div>
-
                             <div class="customer-item">
                                 <div class="customer-label">การรับสินค้า</div>
                                 <div class="customer-value">
-
                                     <?php if ($o['receive_type'] === 'pickup'): ?>
-                                        <i class="fas fa-store"></i>
-                                        รับที่สวน
+                                        <i class="fas fa-store"></i> รับที่สวน
                                     <?php else: ?>
-                                        <i class="fas fa-truck"></i>
-                                        จัดส่งถึงบ้าน
+                                        <i class="fas fa-truck"></i> จัดส่งถึงบ้าน
                                     <?php endif; ?>
-
                                 </div>
                             </div>
-
                         </div>
 
-                        <!-- PRODUCTS -->
+                        <!-- PRODUCTS PREVIEW -->
                         <div class="products-wrap">
-
                             <div class="products-title">
                                 <i class="fas fa-basket-shopping"></i>
                                 รายการสินค้า
@@ -1104,97 +1015,64 @@ if (!$member_id) {
                                     </div>
                                 <?php endif; ?>
 
-
                                 <?php foreach ($previewItems as $item):
-
                                     $imgPath = !empty($item['product_image'])
                                         ? "../admin/uploads/products/" . htmlspecialchars($item['product_image'])
                                         : null;
-
                                 ?>
-
                                     <div class="product-card">
 
                                         <?php if ($imgPath): ?>
-
                                             <img src="<?= $imgPath ?>"
                                                 class="product-image"
                                                 loading="lazy"
                                                 alt="<?= htmlspecialchars($item['product_name']) ?>"
                                                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-
                                             <div class="product-placeholder" style="display:none">
                                                 <i class="fas fa-seedling"></i>
                                             </div>
-
                                         <?php else: ?>
-
                                             <div class="product-placeholder">
                                                 <i class="fas fa-seedling"></i>
                                             </div>
-
                                         <?php endif; ?>
 
                                         <div class="product-info">
-
-                                            <div class="product-name">
-                                                <?= htmlspecialchars($item['product_name']) ?>
-                                            </div>
-
+                                            <div class="product-name"><?= htmlspecialchars($item['product_name']) ?></div>
                                             <div class="product-meta">
-
-                                                <span class="product-chip">
-                                                    ×<?= (int)$item['quantity'] ?>
-                                                </span>
-
-                                                <span class="product-chip">
-                                                    <?= htmlspecialchars($item['unit'] ?? 'ชิ้น') ?>
-                                                </span>
-
-                                                <span class="product-chip">
-                                                    ฿<?= number_format($item['price'], 0) ?>
-                                                </span>
-
+                                                <span class="product-chip">×<?= (int)$item['quantity'] ?></span>
+                                                <span class="product-chip"><?= htmlspecialchars($item['unit'] ?? 'ชิ้น') ?></span>
+                                                <span class="product-chip">฿<?= number_format($item['price'], 0) ?></span>
                                             </div>
-
                                         </div>
 
                                     </div>
-
                                 <?php endforeach; ?>
 
                             </div>
-
                         </div>
 
-                        <!-- NOTE -->
-
+                        <!-- ADMIN NOTE -->
                         <?php if (!empty($o['admin_note'])): ?>
-
                             <div class="admin-note">
                                 <i class="fas fa-circle-exclamation"></i>
                                 <div><?= htmlspecialchars($o['admin_note']) ?></div>
                             </div>
-
                         <?php endif; ?>
 
                         <!-- FOOTER -->
                         <div class="card-footer">
-
                             <button
                                 class="btn-detail"
                                 data-bs-toggle="modal"
                                 data-bs-target="#orderModal<?= $o['order_id'] ?>">
-
                                 <i class="fas fa-eye"></i>
                                 ดูสินค้าทั้งหมด
-
                             </button>
-
                         </div>
 
                     </div>
-                    <!-- end order card -->
+                    <!-- END ORDER CARD -->
 
                     <!-- MODAL -->
                     <div class="modal fade"
@@ -1203,170 +1081,79 @@ if (!$member_id) {
                         aria-hidden="true">
 
                         <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
-
                             <div class="modal-content order-modal">
 
-                                <!-- Header -->
                                 <div class="modal-header border-0">
-
                                     <div>
-                                        <div class="modal-order-code">
-                                            #<?= htmlspecialchars($o['order_code']) ?>
-                                        </div>
-
-                                        <div class="modal-order-date">
-                                            <?= date('d/m/Y H:i', strtotime($o['order_date'])) ?>
-                                        </div>
+                                        <div class="modal-order-code">#<?= htmlspecialchars($o['order_code']) ?></div>
+                                        <div class="modal-order-date"><?= date('d/m/Y H:i', strtotime($o['order_date'])) ?></div>
                                     </div>
-
-                                    <button type="button"
-                                        class="btn-close"
-                                        data-bs-dismiss="modal"></button>
-
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
 
-                                <!-- Body -->
                                 <div class="modal-body">
-
                                     <div class="modal-products">
-
                                         <?php foreach ($itemRows as $item):
-
                                             $imgPath = !empty($item['product_image'])
                                                 ? "../admin/uploads/products/" . htmlspecialchars($item['product_image'])
                                                 : null;
-
                                         ?>
-
                                             <div class="modal-product-card">
 
                                                 <?php if ($imgPath): ?>
-
                                                     <img src="<?= $imgPath ?>"
                                                         class="modal-product-image"
                                                         alt="<?= htmlspecialchars($item['product_name']) ?>">
-
                                                 <?php else: ?>
-
                                                     <div class="modal-product-placeholder">
                                                         <i class="fas fa-seedling"></i>
                                                     </div>
-
                                                 <?php endif; ?>
 
                                                 <div class="modal-product-info">
-
-                                                    <div class="modal-product-name">
-                                                        <?= htmlspecialchars($item['product_name']) ?>
-                                                    </div>
-
+                                                    <div class="modal-product-name"><?= htmlspecialchars($item['product_name']) ?></div>
                                                     <div class="modal-product-meta">
-
-                                                        <span>
-                                                            จำนวน:
-                                                            <?= (int)$item['quantity'] ?>
-                                                            <?= htmlspecialchars($item['unit'] ?? 'ชิ้น') ?>
-                                                        </span>
-
-                                                        <span>
-                                                            ราคา:
-                                                            ฿<?= number_format($item['price'], 0) ?>
-                                                        </span>
-
+                                                        <span>จำนวน: <?= (int)$item['quantity'] ?> <?= htmlspecialchars($item['unit'] ?? 'ชิ้น') ?></span>
+                                                        <span>ราคา: ฿<?= number_format($item['price'], 0) ?></span>
                                                     </div>
-
                                                 </div>
 
                                             </div>
-
                                         <?php endforeach; ?>
-
                                     </div>
-
                                 </div>
 
-                                <!-- Footer -->
                                 <div class="modal-footer border-0">
-
                                     <div class="modal-total">
-                                        ยอดรวม:
-                                        <strong>
-                                            ฿<?= number_format($orderTotal, 0) ?>
-                                        </strong>
+                                        ยอดรวม: <strong>฿<?= number_format($orderTotal, 0) ?></strong>
                                     </div>
-
                                 </div>
 
                             </div>
-
                         </div>
-
                     </div>
+                    <!-- END MODAL -->
 
                 <?php endforeach; ?>
-            </div>
 
-        <?php elseif ($search_performed || !$member_id): ?>
+            </div><!-- .orders-grid -->
+
+        <?php elseif ($search_performed): ?>
             <div class="empty-state">
                 <div class="empty-icon"><i class="fas fa-clipboard-list"></i></div>
                 <h2>ไม่พบคำสั่งซื้อ</h2>
-                <p>ไม่พบคำสั่งซื้อในประวัติการใช้งานของอุปกรณ์หรือเบราว์เซอร์นี้</p>
+                <p>ไม่พบคำสั่งซื้อที่ตรงกับข้อมูลที่ค้นหา</p>
                 <a href="products.php" class="btn-empty">
                     <i class="fas fa-arrow-left"></i> กลับไปสั่งซื้อสินค้า
                 </a>
             </div>
         <?php endif; ?>
 
-    </div>
+    </div><!-- .page-wrap -->
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-
-        const searchInput = document.getElementById('orderSearch');
-
-if (searchInput) {
-
-    searchInput.addEventListener('input', function () {
-
-        const keyword = this.value.trim().toLowerCase();
-
-        const cards = document.querySelectorAll('.order-card');
-
-        let visibleCount = 0;
-
-        cards.forEach(card => {
-
-            const code = card.dataset.code || '';
-            const name = card.dataset.name || '';
-            const phone = card.dataset.phone || '';
-
-            const matched =
-                code.includes(keyword) ||
-                name.includes(keyword) ||
-                phone.includes(keyword);
-
-            if (matched) {
-                card.style.display = '';
-                visibleCount++;
-            } else {
-                card.style.display = 'none';
-            }
-
-        });
-
-    });
-
-}
-        function dismissToast(id) {
-            const el = document.getElementById(id);
-            if (!el) return;
-            el.style.transition = 'all .3s ease';
-            el.style.transform = 'translateX(110%)';
-            el.style.opacity = '0';
-            setTimeout(() => el.remove(), 320);
-        }
-
-        // Auto-dismiss after 5s
+        // Auto-dismiss toasts after 5s
         setTimeout(() => {
             document.querySelectorAll('.toast-item').forEach(el => {
                 el.style.transition = 'all .3s ease';
@@ -1375,10 +1162,7 @@ if (searchInput) {
                 setTimeout(() => el.remove(), 320);
             });
         }, 5000);
-
-
     </script>
 
 </body>
-
 </html>
