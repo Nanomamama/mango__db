@@ -11,7 +11,11 @@ $orders = [];
 $search_performed = false;
 $error = '';
 $success = '';
-$guestOrderCodes = $_SESSION['guest_order_codes'] ?? [];
+$guestOrderCodes = [];
+
+if (isset($_COOKIE['guest_orders'])) {
+    $guestOrderCodes = json_decode($_COOKIE['guest_orders'], true);
+}
 
 if (!is_array($guestOrderCodes)) {
     $guestOrderCodes = [];
@@ -19,10 +23,15 @@ if (!is_array($guestOrderCodes)) {
 
 if ($member_id) {
     $stmt = $conn->prepare("
-        SELECT * FROM orders 
-        WHERE member_id = ?
-        AND order_status != 'completed'
-        ORDER BY order_date DESC
+       SELECT 
+    o.*,
+    COALESCE(SUM(oi.price * oi.quantity),0) AS order_total
+FROM orders o
+LEFT JOIN order_items oi ON o.order_id = oi.order_id
+WHERE o.member_id = ?
+AND o.order_status != 'completed'
+GROUP BY o.order_id
+ORDER BY o.order_date DESC
     ");
     $stmt->bind_param("i", $member_id);
     $stmt->execute();
@@ -64,7 +73,9 @@ if (!$member_id) {
 
 <head>
     <meta charset="UTF-8">
-    <title>ติดตามสถานะคำสั่งซื้อ – สวนลุงเผือก</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="../logo/logo_01.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../logo/logo_01.png">
+    <title>สวนลุงเผือก</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -828,6 +839,79 @@ if (!$member_id) {
             font-size: 1.5rem;
             color: var(--primary);
         }
+
+        .empty-state{
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:3rem 2rem;
+    text-align:center;
+    box-shadow:var(--shadow);
+}
+
+.empty-icon{
+    width:80px;
+    height:80px;
+    margin:0 auto 1rem;
+    border-radius:50%;
+    background:var(--pale);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:2rem;
+    color:var(--primary);
+}
+
+.btn-empty{
+    display:inline-flex;
+    align-items:center;
+    gap:.5rem;
+    margin-top:1rem;
+    padding:.8rem 1.2rem;
+    border-radius:14px;
+    background:var(--primary);
+    color:#fff;
+    text-decoration:none;
+    font-weight:700;
+}
+
+.search-box {
+    position: relative;
+    margin-bottom: 1.2rem;
+}
+
+.search-box i {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: .9rem;
+}
+
+.search-box input {
+    width: 100%;
+    height: 52px;
+
+    border-radius: 16px;
+    border: 1px solid var(--border);
+
+    background: var(--white);
+
+    padding: 0 1rem 0 42px;
+
+    font-size: .95rem;
+    font-family: inherit;
+
+    transition: .2s;
+    box-shadow: var(--shadow);
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(1, 106, 112, .08);
+}
     </style>
 </head>
 
@@ -876,6 +960,15 @@ if (!$member_id) {
             </div>
         <?php endif; ?>
 
+        <div class="search-box">
+    <i class="fas fa-search"></i>
+
+    <input
+        type="text"
+        id="orderSearch"
+        placeholder="ค้นหารหัสคำสั่งซื้อ ชื่อ หรือเบอร์โทร...">
+</div>
+
         <?php if (!empty($orders)): ?>
 
             <div class="count-row">
@@ -921,7 +1014,11 @@ if (!$member_id) {
                 ?>
 
                     <!-- start order card -->
-                    <div class="order-card" style="animation-delay: <?= $idx * 70 ?>ms">
+                   <div class="order-card"
+    data-code="<?= strtolower($o['order_code']) ?>"
+    data-name="<?= strtolower($o['customer_name']) ?>"
+    data-phone="<?= strtolower($o['customer_phone']) ?>"
+    style="animation-delay: <?= $idx * 70 ?>ms">
 
                         <!-- STATUS -->
                         <div class="status-line line-<?= $o['order_status'] ?>"></div>
@@ -1224,6 +1321,42 @@ if (!$member_id) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+
+        const searchInput = document.getElementById('orderSearch');
+
+if (searchInput) {
+
+    searchInput.addEventListener('input', function () {
+
+        const keyword = this.value.trim().toLowerCase();
+
+        const cards = document.querySelectorAll('.order-card');
+
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+
+            const code = card.dataset.code || '';
+            const name = card.dataset.name || '';
+            const phone = card.dataset.phone || '';
+
+            const matched =
+                code.includes(keyword) ||
+                name.includes(keyword) ||
+                phone.includes(keyword);
+
+            if (matched) {
+                card.style.display = '';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+
+        });
+
+    });
+
+}
         function dismissToast(id) {
             const el = document.getElementById(id);
             if (!el) return;
@@ -1242,6 +1375,8 @@ if (!$member_id) {
                 setTimeout(() => el.remove(), 320);
             });
         }, 5000);
+
+
     </script>
 
 </body>

@@ -51,8 +51,10 @@ if (!empty($carousel_images)) {
 
 <head>
   <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="180x180" href="/mango/logo/logo_01.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/mango/logo/logo_01.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>กิจกรรมอบรม</title>
+  <title>สวนลุงเผือก</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">

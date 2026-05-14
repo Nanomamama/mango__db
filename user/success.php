@@ -19,10 +19,14 @@ if ($code === '' || !preg_match('/^ORD\d{6}[A-F0-9]{4}$/', $code)) {
 }
 
 $sessionMemberId = isset($_SESSION['member_id']) ? (int) $_SESSION['member_id'] : null;
-$guestOrderCodes = $_SESSION['guest_order_codes'] ?? [];
+$guestOrders = [];
 
-if (!is_array($guestOrderCodes)) {
-    $guestOrderCodes = [];
+if (isset($_COOKIE['guest_orders'])) {
+    $guestOrders = json_decode($_COOKIE['guest_orders'], true);
+}
+
+if (!is_array($guestOrders)) {
+    $guestOrders = [];
 }
 
 $stmt = $conn->prepare("
@@ -55,14 +59,12 @@ $canView = false;
 if ($orderMemberId > 0) {
     $canView = $sessionMemberId !== null && $sessionMemberId === $orderMemberId;
 } else {
-    $canView = isset($guestOrderCodes[$code]);
+    $canView = isset($guestOrders[$code]);
+}
+if (!$canView) {
+    die('คุณไม่มีสิทธิ์เข้าถึงคำสั่งซื้อนี้');
 }
 
-if (!$canView) {
-    http_response_code(403);
-    echo "คุณไม่มีสิทธิ์เข้าถึงคำสั่งซื้อนี้";
-    exit;
-}
 
 $item = $conn->prepare("
     SELECT
@@ -105,7 +107,9 @@ while ($r = $items->fetch_assoc()) {
 
 <head>
     <meta charset="UTF-8">
-    <title>สั่งซื้อสำเร็จ – สวนลุงเผือก</title>
+      <link rel="apple-touch-icon" sizes="180x180" href="../logo/logo_01.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../logo/logo_01.png">
+    <title>สวนลุงเผือก</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">

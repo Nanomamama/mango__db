@@ -132,7 +132,7 @@ function find_hero_video_source()
         ['dir' => __DIR__ . '/../uploads', 'url' => '../uploads'],
     ];
 
-    $fileNames = ['background-video20.mp4', 'background-video.mp4'];
+    $fileNames = ['background-video2.mp4', 'background-video.mp4'];
 
     foreach ($locations as $location) {
         foreach ($fileNames as $fileName) {

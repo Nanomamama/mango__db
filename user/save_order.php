@@ -199,16 +199,43 @@ try {
     redirect_with_error('ไม่สามารถบันทึกคำสั่งซื้อได้ กรุณาลองใหม่อีกครั้ง');
 }
 
-if (!isset($_SESSION['guest_order_codes']) || !is_array($_SESSION['guest_order_codes'])) {
-    $_SESSION['guest_order_codes'] = [];
+// ===============================
+// Guest order history (COOKIE)
+// ===============================
+
+$guestOrders = [];
+
+if (isset($_COOKIE['guest_orders'])) {
+    $guestOrders = json_decode($_COOKIE['guest_orders'], true);
 }
 
-$_SESSION['guest_order_codes'][$orderCode] = time();
-
-if (count($_SESSION['guest_order_codes']) > 20) {
-    asort($_SESSION['guest_order_codes']);
-    $_SESSION['guest_order_codes'] = array_slice($_SESSION['guest_order_codes'], -20, null, true);
+// กันข้อมูลเสีย
+if (!is_array($guestOrders)) {
+    $guestOrders = [];
 }
+
+// เพิ่ม order ใหม่
+$guestOrders[$orderCode] = time();
+
+// เก็บแค่ล่าสุด 20 รายการ
+if (count($guestOrders) > 20) {
+    asort($guestOrders);
+    $guestOrders = array_slice($guestOrders, -20, null, true);
+}
+
+// เก็บ cookie 30 วัน
+setcookie(
+    'guest_orders',
+    json_encode($guestOrders),
+    time() + (86400 * 30),
+    '/',
+    '',
+    isset($_SERVER['HTTPS']),
+    true
+);
+
+
+
 
 $receiveMap = [
     'pickup' => 'รับที่สวน',
