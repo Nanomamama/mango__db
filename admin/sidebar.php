@@ -101,7 +101,7 @@ function adminTableExists(mysqli $conn, string $table): bool
 // --------------------------------------------------
 function adminPageStart(string $title): void
 {
-    global $total_pending;
+    global $total_pending, $adminPageExtraHead;
 
     $currentPage = basename($_SERVER['PHP_SELF']);
 
@@ -126,6 +126,10 @@ function adminPageStart(string $title): void
 
         <!-- Google Font -->
         <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+        <?php if (!empty($adminPageExtraHead)) {
+            echo $adminPageExtraHead;
+        } ?>
 
         <style>
             :root {
@@ -1554,22 +1558,14 @@ function adminPageStart(string $title): void
                 return div.innerHTML;
             }
 
-            // Initialize เมื่อ页面โหลดเสร็จ
+            // Initialize เมื่อโหลดเสร็จ
             document.addEventListener('DOMContentLoaded', () => {
                 window.notificationManager = new NotificationManager();
 
-                // Auto-refresh หน้า booking_list.php เมื่อมีการจองใหม่ (optional)
+                // Update notification badge and list without reloading the page.
+                // The booking count and recent notifications are refreshed every 10 seconds by checkNewBookings().
                 if (window.location.pathname.includes('booking_list.php')) {
-                    let lastReload = localStorage.getItem('lastBookingReload') || 0;
-                    setInterval(() => {
-                        if (window.notificationManager && window.notificationManager.currentCount > 0) {
-                            const now = Date.now();
-                            if (now - lastReload > 30000) { // ไม่ refresh บ่อยเกินไป
-                                localStorage.setItem('lastBookingReload', now);
-                                location.reload();
-                            }
-                        }
-                    }, 10000);
+                    console.log('Booking list notifications are polling without page reload.');
                 }
             });
         </script>
