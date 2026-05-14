@@ -22,10 +22,14 @@ if ($user && password_verify($password, $user['password'])) {
     $_SESSION['admin_id'] = $user['id'];
     $_SESSION['admin_name'] = $user['username'];
     $_SESSION['admin_email'] = $user['email'];
-    header("Location: index.php");
+    $redirect = $_SESSION['redirect_after_login'] ?? '/mango/admin/index.php';
+
+    unset($_SESSION['redirect_after_login']);
+
+    header("Location: " . $redirect);
     exit;
+    
 } else {
     header("Location: admin_login.php?error=ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
     exit;
 }
-?>

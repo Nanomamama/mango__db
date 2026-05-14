@@ -1,17 +1,31 @@
 <?php
 require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
-$id = $_GET['id'] ?? 0;
 
-$stmt = $conn->prepare("SELECT * FROM orders WHERE order_id=?");
-$stmt->bind_param("i", $id);
+$code = $_GET['code'] ?? '';
+
+$stmt = $conn->prepare("
+    SELECT * FROM orders
+    WHERE order_code = ?
+    LIMIT 1
+");
+
+$stmt->bind_param("s", $code);
 $stmt->execute();
+
 $order = $stmt->get_result()->fetch_assoc();
 
-if (!$order) die("<div class='container mt-5 text-center'><h3>ไม่พบคำสั่งซื้อ</h3><a href='manage_orders.php' class='btn btn-primary'>กลับ</a></div>");
+if (!$order) {
+    die("<div class='container mt-5 text-center'>
+            <h3>ไม่พบคำสั่งซื้อ</h3>
+            <a href='manage_orders.php' class='btn btn-primary'>กลับ</a>
+        </div>");
+}
+
+$id = $order['order_id'];
 
 $item_stmt = $conn->prepare("SELECT oi.*, p.product_image FROM order_items oi LEFT JOIN products p ON oi.product_id = p.product_id WHERE oi.order_id=?");
-$item_stmt->bind_param("i", $id);
+$item_stmt->bind_param("i", $order['order_id']);
 $item_stmt->execute();
 $items = $item_stmt->get_result();
 
@@ -23,9 +37,9 @@ $statusMap = [
 ];
 $status = $statusMap[$order['order_status']] ?? ['text' => $order['order_status'], 'class' => 'bg-secondary text-white'];
 ?>
+
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

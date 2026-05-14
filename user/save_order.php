@@ -257,7 +257,7 @@ foreach ($normalizedItems as $item) {
 }
 
 $message .= "\nยอดรวม: " . number_format($totalAmount, 2) . " บาท";
-$message .= "\nตรวจสอบออเดอร์: http://khamaon.com/admin/order_detail.php?id=" . $orderId;
+$message .= "\nตรวจสอบออเดอร์: https://khamaon.com/mango/admin/order_detail.php?code=" . urlencode($orderCode);
 
 $lineNotifyFile = __DIR__ . '/../admin/line_notify.php';
 if (is_file($lineNotifyFile)) {
