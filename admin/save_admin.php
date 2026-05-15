@@ -1,53 +1,94 @@
 <?php
-// filepath: c:\xampp\htdocs\mango\admin\save_admin.php
-
+require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
-session_start();
-if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-    die("CSRF Token ไม่ถูกต้อง");
+
+if (($_SESSION['admin_role'] ?? 'sub') !== 'main') {
+    header("Location: index.php");
+    exit;
 }
 
+if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== ($_SESSION['csrf_token'] ?? '')) {
+    die("CSRF token is invalid");
+}
 
-// ตรวจสอบการเชื่อมต่อ
 if ($conn->connect_error) {
-    die("การเชื่อมต่อล้มเหลว: " . $conn->connect_error);
+    die("Connection failed: " . $conn->connect_error);
 }
 
-// รับข้อมูลจากฟอร์ม
-$username = htmlspecialchars($_POST['username'], ENT_QUOTES, 'UTF-8');
-$email = htmlspecialchars($_POST['email'], ENT_QUOTES, 'UTF-8');
-$password = $_POST['password'];
-$confirm_password = $_POST['confirm_password'];
+$adminId = isset($_POST['admin_id']) ? (int) $_POST['admin_id'] : 0;
+$username = trim($_POST['username'] ?? '');
+$email = trim($_POST['email'] ?? '');
+$password = $_POST['password'] ?? '';
+$confirmPassword = $_POST['confirm_password'] ?? '';
+$role = $_POST['role'] ?? 'sub';
 
-// ตรวจสอบรหัสผ่าน
-if ($password !== $confirm_password) {
-    die("รหัสผ่านไม่ตรงกัน");
+if (!in_array($role, ['main', 'sub'], true)) {
+    $role = 'sub';
 }
 
-// เข้ารหัสรหัสผ่าน
-$hashed_password = password_hash($password, PASSWORD_DEFAULT);
+$redirectBase = $adminId > 0 ? "add_admin.php?edit_id={$adminId}" : "add_admin.php";
+$redirectJoiner = strpos($redirectBase, '?') === false ? '?' : '&';
 
-// ตรวจสอบว่ามีผู้ใช้ที่มีชื่อผู้ใช้นี้อยู่แล้วหรือไม่
-$stmt = $conn->prepare("SELECT id FROM system_administrator WHERE username = ? OR email = ?");
-$stmt->bind_param("ss", $username, $email);
+if ($username === '' || $email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    header("Location: {$redirectBase}{$redirectJoiner}error=invalid");
+    exit;
+}
+
+if ($password !== '' && $password !== $confirmPassword) {
+    header("Location: {$redirectBase}{$redirectJoiner}error=password_mismatch");
+    exit;
+}
+
+if ($adminId <= 0 && $password === '') {
+    header("Location: add_admin.php?error=password_required");
+    exit;
+}
+
+$stmt = $conn->prepare("SELECT id FROM system_administrator WHERE (username = ? OR email = ?) AND id <> ?");
+$stmt->bind_param("ssi", $username, $email, $adminId);
 $stmt->execute();
 $stmt->store_result();
 
 if ($stmt->num_rows > 0) {
-    die("Username หรือ Email นี้มีอยู่ในระบบแล้ว");
+    $stmt->close();
+    header("Location: {$redirectBase}{$redirectJoiner}error=duplicate");
+    exit;
 }
+
 $stmt->close();
 
-// บันทึกข้อมูลลงในฐานข้อมูล
-$stmt = $conn->prepare("INSERT INTO system_administrator (username, email, password) VALUES (?, ?, ?)");
-$stmt->bind_param("sss", $username, $email, $hashed_password);
+if ($adminId > 0) {
+    if ($password !== '') {
+        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        $stmt = $conn->prepare("UPDATE system_administrator SET username = ?, email = ?, role = ?, password = ? WHERE id = ?");
+        $stmt->bind_param("ssssi", $username, $email, $role, $hashedPassword, $adminId);
+    } else {
+        $stmt = $conn->prepare("UPDATE system_administrator SET username = ?, email = ?, role = ? WHERE id = ?");
+        $stmt->bind_param("sssi", $username, $email, $role, $adminId);
+    }
 
-if ($stmt->execute()) {
-    header("Location: add_admin.php?success=1");
-    exit();
+    if ($stmt->execute()) {
+        if ($adminId === (int) ($_SESSION['admin_id'] ?? 0)) {
+            $_SESSION['admin_name'] = $username;
+            $_SESSION['admin_email'] = $email;
+            $_SESSION['admin_role'] = $role;
+        }
+
+        header("Location: add_admin.php?updated=1");
+        exit;
+    }
 } else {
-    echo "เกิดข้อผิดพลาด: " . $stmt->error;
+    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+    $stmt = $conn->prepare("INSERT INTO system_administrator (username, email, password, role) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("ssss", $username, $email, $hashedPassword, $role);
+
+    if ($stmt->execute()) {
+        header("Location: add_admin.php?success=1");
+        exit;
+    }
 }
+
+echo "Error: " . $stmt->error;
 
 $stmt->close();
 $conn->close();
