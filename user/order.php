@@ -2,6 +2,7 @@
 session_start();
 require_once __DIR__ . '/../db/db.php';
 
+
 $member_id = $_SESSION['member_id'] ?? null;
 $member_name = '';
 $member_phone = '';
@@ -373,11 +374,11 @@ unset($_SESSION['order_error']);
         }
 
         .btn-clear {
-            border: 1px solid #f0ddd5;
+            border: 1px solid #e10000;
             background: white;
             color: var(--red);
             padding: 10px 18px;
-            border-radius: var(--red);
+            border-radius: 10px;
             /* fon; */
             font-size: .88rem;
             font-weight: 600;
@@ -389,7 +390,7 @@ unset($_SESSION['order_error']);
         }
 
         .btn-clear:hover {
-            background: #e05a38;
+            background: #ff1919;
             color: white;
             border-color: #e05a38;
         }
@@ -1049,7 +1050,7 @@ unset($_SESSION['order_error']);
                     <div class="col-lg-8">
 
                         <div class="section-label">
-                            <i class="fas fa-leaf"></i>
+                           <i class="fa-solid fa-list"></i>
                             รายการสินค้า
                         </div>
 
@@ -1246,7 +1247,7 @@ unset($_SESSION['order_error']);
                         <button type="button" class="time-pill" onclick="setTime('13:00',this)">13:00</button>
                         <button type="button" class="time-pill" onclick="setTime('15:00',this)">15:00</button>
                         <button type="button" class="time-pill" onclick="setTime('17:00',this)">17:00</button>
-                        <button type="button" class="time-pill" onclick="setTime('18:00',this)">18:00</button>
+                        <button type="button" class="time-pill" onclick="setTime('17:30',this)">17:30</button>
                     </div>
 
                     <button class="btn-confirm" onclick="confirmDate()">
@@ -1262,7 +1263,14 @@ unset($_SESSION['order_error']);
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let cart = JSON.parse(localStorage.getItem("cart")) || [];
+        let cart = [];
+        let submittingAfterServerSync = false;
+
+        try {
+            cart = JSON.parse(localStorage.getItem("cart")) || [];
+        } catch (e) {
+            cart = [];
+        }
 
 
         // ฟอร์แมตราคา
@@ -1271,6 +1279,89 @@ unset($_SESSION['order_error']);
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             });
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            } [char]));
+        }
+
+        function safeImagePath(value) {
+            const image = String(value || '../assets/no-image.png');
+            if (/^(\.\.\/admin\/uploads\/products\/|assets\/|\.\/assets\/|\.\.\/assets\/)/.test(image)) {
+                return escapeHtml(image);
+            }
+            return '../assets/no-image.png';
+        }
+
+        function setCartLoading() {
+            const cartItems = document.getElementById("cartItems");
+            const emptyCart = document.getElementById("emptyCart");
+            const submitBtn = document.getElementById("submitBtn");
+            const cartFooter = document.getElementById("cartFooter");
+
+            emptyCart.style.display = "none";
+            cartFooter.style.display = "none";
+            submitBtn.disabled = true;
+            cartItems.innerHTML = '<div class="empty-state"><div class="empty-icon"><i class="fas fa-spinner fa-spin"></i></div><div class="empty-title">กำลังตรวจสอบราคา</div></div>';
+        }
+
+        async function syncCartWithServer(showAlert = false) {
+            if (!Array.isArray(cart)) cart = [];
+
+            if (cart.length === 0) {
+                saveCart();
+                renderCart();
+                return true;
+            }
+
+            const requestCart = cart.map(item => ({
+                product_id: parseInt(item.product_id, 10) || 0,
+                quantity: parseInt(item.quantity, 10) || 0
+            }));
+
+            setCartLoading();
+
+            try {
+                const response = await fetch('cart_prices.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        cart: requestCart
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.status !== 'success') {
+                    throw new Error(data.message || 'Unable to check product prices');
+                }
+
+                cart = Array.isArray(data.items) ? data.items : [];
+                saveCart();
+                renderCart();
+                return true;
+            } catch (error) {
+                renderCart();
+
+                if (showAlert) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'ตรวจสอบราคาไม่สำเร็จ',
+                        text: 'กรุณาลองใหม่อีกครั้งก่อนยืนยันคำสั่งซื้อ'
+                    });
+                }
+
+                return false;
+            }
         }
 
         function renderCart() {
@@ -1312,13 +1403,13 @@ unset($_SESSION['order_error']);
                 <div class="cart-item">
                     <div class="item-product">
                         <div class="item-img-wrap">
-                            <img src="${item.image || 'assets/no-image.png'}"
+                            <img src="${safeImagePath(item.image)}"
                                 class="item-img"
                                 onerror="this.src='assets/no-image.png'">
                             ${item.quantity > 1 ? `<span class="item-badge">${item.quantity}</span>` : ''}
                         </div>
                         <div>
-                            <div class="item-name">${item.name || 'ไม่พบชื่อสินค้า'}</div>
+                            <div class="item-name">${escapeHtml(item.name || 'ไม่พบชื่อสินค้า')}</div>
                             <span class="item-tag">แนะนำ</span>
                         </div>
                     </div>
@@ -1396,23 +1487,23 @@ unset($_SESSION['order_error']);
         function increaseQty(i) {
             cart[i].quantity++;
             saveCart();
-            renderCart();
+            syncCartWithServer(false);
         }
 
         function decreaseQty(i) {
             if (cart[i].quantity > 1) {
                 cart[i].quantity--;
                 saveCart();
-                renderCart();
+                syncCartWithServer(false);
             }
         }
 
         function updateQty(i, v) {
             const q = parseInt(v);
             if (q > 0) {
-                cart[i].quantity = q;
+                cart[i].quantity = Math.min(q, 99);
                 saveCart();
-                renderCart();
+                syncCartWithServer(false);
             }
         }
 
@@ -1451,7 +1542,7 @@ unset($_SESSION['order_error']);
             inp.closest('.receive-card').classList.add('active');
             inp.checked = true;
             toggleAddressField(type);
-            renderCart();
+            syncCartWithServer(false);
         }
 
         function toggleAddressField(type) {
@@ -1469,12 +1560,15 @@ unset($_SESSION['order_error']);
         }
 
         function submitOrder() {
+            if (submittingAfterServerSync) {
+                return true;
+            }
+
             const dt = document.getElementById("receive_datetime").value.trim();
             const type = document.querySelector('input[name="receive_type"]:checked')?.value || '';
             const name = document.querySelector('input[name="customer_name"]').value.trim();
             const phone = document.querySelector('input[name="customer_phone"]').value.trim();
             const address = document.getElementById("customer_address").value.trim();
-            const total = cart.reduce((s, i) => s + (Number(i.price) * Number(i.quantity)), 0);
 
             if (cart.length === 0) {
                 Swal.fire({
@@ -1508,24 +1602,45 @@ unset($_SESSION['order_error']);
                 });
                 return false;
             }
-            if (type === 'delivery' && total < 500) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'ยอดไม่ถึงขั้นต่ำ',
-                    text: 'การจัดส่งต้องมียอดขั้นต่ำ 500 บาท'
-                });
-                return false;
-            }
 
-            document.getElementById("cartData").value = JSON.stringify(cart);
             document.getElementById("loadingOverlay").style.display = "flex";
             document.getElementById("submitBtn").disabled = true;
-            return true;
+
+            syncCartWithServer(true).then((ok) => {
+                if (!ok) {
+                    document.getElementById("loadingOverlay").style.display = "none";
+                    document.getElementById("submitBtn").disabled = false;
+                    return;
+                }
+
+                const serverTotal = cart.reduce((s, i) => s + (Number(i.price) * Number(i.quantity)), 0);
+
+                if (type === 'delivery' && serverTotal < 500) {
+                    document.getElementById("loadingOverlay").style.display = "none";
+                    document.getElementById("submitBtn").disabled = false;
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'ยอดไม่ถึงขั้นต่ำ',
+                        text: 'การจัดส่งต้องมียอดขั้นต่ำ 500 บาท'
+                    });
+                    return;
+                }
+
+                document.getElementById("cartData").value = JSON.stringify(cart.map(item => ({
+                    product_id: parseInt(item.product_id, 10),
+                    quantity: parseInt(item.quantity, 10)
+                })));
+
+                submittingAfterServerSync = true;
+                document.querySelector('form[action="save_order.php"]').submit();
+            });
+
+            return false;
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            renderCart();
             toggleAddressField('pickup');
+            syncCartWithServer(true);
 
             <?php if ($order_error !== ''): ?>
                 Swal.fire({

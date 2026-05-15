@@ -147,7 +147,7 @@ while ($r = $items->fetch_assoc()) {
         }
 
         body {
-            font-family: 'Sarabun', sans-serif;
+            /* font-family: 'Sarabun', sans-serif; */
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
@@ -258,7 +258,7 @@ while ($r = $items->fetch_assoc()) {
         }
 
         .status-pill.pending {
-            background: #fef9c3;
+            background: #ffee32;
             color: #713f12;
         }
 
@@ -288,8 +288,8 @@ while ($r = $items->fetch_assoc()) {
         /* ── Cards ────────────────────────────────────────────── */
         .card {
             background: var(--white);
-            border: none;
-            /* border-radius: var(--radius-lg); */
+            /* border: none; */
+            border-radius: var(--radius-lg);
             box-shadow: none;
             overflow: hidden;
         }
@@ -303,6 +303,7 @@ while ($r = $items->fetch_assoc()) {
         }
 
         .card-head {
+            
             background: var(--sage-pale);
             border-bottom: none;
             padding: .8rem 1.2rem;
@@ -350,7 +351,7 @@ while ($r = $items->fetch_assoc()) {
         }
 
         .info-item .lbl {
-            font-size: .7rem;
+            font-size: 1rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: .5px;
@@ -359,7 +360,7 @@ while ($r = $items->fetch_assoc()) {
         }
 
         .info-item .val {
-            font-size: .93rem;
+            font-size: 1rem;
             color: var(--text);
             font-weight: 500;
             line-height: 1.45;
@@ -456,10 +457,10 @@ while ($r = $items->fetch_assoc()) {
         .tag {
             background: var(--sage-pale);
             color: var(--sage);
-            font-size: .72rem;
+            font-size: 1rem;
             font-weight: 600;
             padding: .15rem .55rem;
-            border-radius: 20px;
+            border-radius: 10px;
             border: none;
         }
 
@@ -562,8 +563,7 @@ while ($r = $items->fetch_assoc()) {
             gap: .45rem;
             padding: .72rem .5rem;
             border-radius: 30px;
-            font-family: 'Sarabun', sans-serif;
-            font-size: .875rem;
+            font-size: 1rem;
             font-weight: 700;
             text-decoration: none;
             border: none;
@@ -574,7 +574,7 @@ while ($r = $items->fetch_assoc()) {
         }
 
         .btn-outline {
-            background: var(--white);
+            background-color: #acfcff;
             border: none;
             color: var(--text-mid);
         }

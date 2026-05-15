@@ -2,6 +2,9 @@
 session_start();
 require_once __DIR__ . '/../db/db.php';
 
+const MAX_CART_ITEMS = 50;
+const MAX_ITEM_QUANTITY = 99;
+
 function redirect_with_error(string $message): void
 {
     $_SESSION['order_error'] = $message;
@@ -66,6 +69,10 @@ if (!is_array($cart) || empty($cart)) {
     redirect_with_error('ไม่พบรายการสินค้าในคำสั่งซื้อ');
 }
 
+if (count($cart) > MAX_CART_ITEMS) {
+    redirect_with_error('รายการสินค้าในตะกร้ามากเกินไป');
+}
+
 $requestedItems = [];
 foreach ($cart as $item) {
     $productId = isset($item['product_id']) ? (int) $item['product_id'] : 0;
@@ -79,6 +86,10 @@ foreach ($cart as $item) {
         $requestedItems[$productId] = 0;
     }
     $requestedItems[$productId] += $quantity;
+
+    if ($requestedItems[$productId] > MAX_ITEM_QUANTITY) {
+        redirect_with_error('จำนวนสินค้าในตะกร้ามากเกินไป');
+    }
 }
 
 $productIds = array_keys($requestedItems);

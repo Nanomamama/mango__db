@@ -212,7 +212,7 @@ if (!empty($carousel_images)) {
       z-index: 0;
     }
 
-   
+
     /* LEFT CONTENT */
 
     .hero-content {
@@ -1081,17 +1081,11 @@ if (!empty($carousel_images)) {
     /* Horizontal Scroll */
 
     .course-scroll {
-
       display: flex;
-
       gap: 18px;
-
       overflow-x: auto;
-
       padding-bottom: 10px;
-
       scroll-snap-type: x mandatory;
-
       -webkit-overflow-scrolling: touch;
     }
 
@@ -1108,10 +1102,36 @@ if (!empty($carousel_images)) {
     }
 
     .course-item {
-
       flex: 0 0 340px;
-
       scroll-snap-align: start;
+    }
+
+    @media (min-width: 992px) {
+      .course-scroll {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 24px;
+        overflow: visible;
+        padding-bottom: 0;
+        scroll-snap-type: none;
+        align-items: stretch;
+      }
+
+      .course-item {
+        flex: initial;
+        min-width: 0;
+        scroll-snap-align: none;
+      }
+
+      .course-card {
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+      }
+
+      .card-content {
+        flex: 1;
+      }
     }
 
     /* Responsive */
@@ -1228,11 +1248,13 @@ if (!empty($carousel_images)) {
       .hero-carousel .carousel-item {
 
         height: 320px;
-    
+
       }
-.carousel-item {
-  transition: transform 1s ease-in-out;
-}
+
+      .carousel-item {
+        transition: transform 1s ease-in-out;
+      }
+
       .course-card {
 
         border-radius: 20px;
@@ -1491,50 +1513,50 @@ if (!empty($carousel_images)) {
 
           <div class="hero-image-wrap">
 
-            
+
 
             <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
 
-  <div class="carousel-inner">
+              <div class="carousel-inner">
 
-    <?php if (!empty($carousel_images)): ?>
+                <?php if (!empty($carousel_images)): ?>
 
-      <?php foreach ($carousel_images as $index => $image): ?>
+                  <?php foreach ($carousel_images as $index => $image): ?>
 
-        <?php
-        $imgFile = $image['image1'] ?? '';
-        $imgPath = '../uploads/' . htmlspecialchars($imgFile, ENT_QUOTES, 'UTF-8');
+                    <?php
+                    $imgFile = $image['image1'] ?? '';
+                    $imgPath = '../uploads/' . htmlspecialchars($imgFile, ENT_QUOTES, 'UTF-8');
 
-        $realPath = __DIR__ . '/../uploads/' . $imgFile;
+                    $realPath = __DIR__ . '/../uploads/' . $imgFile;
 
-        if (!is_file($realPath)) {
-          continue;
-        }
-        ?>
+                    if (!is_file($realPath)) {
+                      continue;
+                    }
+                    ?>
 
-        <div class="carousel-item <?= $index === 0 ? 'active' : '' ?>">
+                    <div class="carousel-item <?= $index === 0 ? 'active' : '' ?>">
 
-          <img src="<?= $imgPath ?>"
-            class="hero-main-image d-block w-100"
-            alt="<?= htmlspecialchars($image['course_name']) ?>">
+                      <img src="<?= $imgPath ?>"
+                        class="hero-main-image d-block w-100"
+                        alt="<?= htmlspecialchars($image['course_name']) ?>">
 
-        </div>
+                    </div>
 
-      <?php endforeach; ?>
+                  <?php endforeach; ?>
 
-    <?php else: ?>
+                <?php else: ?>
 
-      <div class="carousel-item active">
-        <img src="../uploads/placeholder.jpg"
-          class="hero-main-image d-block w-100"
-          alt="ไม่มีรูปภาพ">
-      </div>
+                  <div class="carousel-item active">
+                    <img src="../uploads/placeholder.jpg"
+                      class="hero-main-image d-block w-100"
+                      alt="ไม่มีรูปภาพ">
+                  </div>
 
-    <?php endif; ?>
+                <?php endif; ?>
 
-  </div>
+              </div>
 
-</div>
+            </div>
 
             <!-- FLOATING CARD -->
 
@@ -1675,7 +1697,7 @@ if (!empty($carousel_images)) {
 
                   <div class="card-content flex-grow-1">
                     <h3 class="course-title"><?php echo $courseName; ?></h3>
-                   
+
 
                     <div class="card-meta">
                       <div class="meta-item">
