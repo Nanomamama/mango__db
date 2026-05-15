@@ -1,6 +1,7 @@
 <?php
 require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
+require_once 'sidebar.php';
 
 // ดึงชื่อ admin จาก session
 $admin_name = $_SESSION['admin_name'] ?? '';
@@ -19,16 +20,9 @@ $counts = $counts_result->fetch_assoc();
 $current_status = $_GET['status'] ?? 'all';
 $search_keyword = $_GET['search'] ?? '';
 
-?>
 
-<!DOCTYPE html>
-<html lang="th">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>จัดการสินค้า - ระบบหลังบ้าน</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+$adminPageExtraHead = <<<'HTML'
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -503,13 +497,258 @@ $search_keyword = $_GET['search'] ?? '';
             }
         }
     </style>
-</head>
 
-<body>
+<style>
+    body {
+        margin-left: 0 !important;
+        padding: 0 !important;
+        max-width: none !important;
+        overflow-x: hidden;
+    }
 
-<?php include 'sidebar.php'; ?>
+    .page-content {
+        width: 100%;
+        max-width: 100%;
+    }
 
-<div class="main-content">
+    .admin-local-page {
+        margin-left: 0 !important;
+        padding: 0 !important;
+        min-height: auto !important;
+        width: 100%;
+    }
+
+    .navbar,
+    .dashboard-header,
+    .header-card,
+    .filter-section,
+    .dashboard-card,
+    .card-form,
+    .table-container,
+    .course-card,
+    .modal-content {
+        max-width: 100%;
+    }
+
+    .card-header,
+    .dashboard-header .d-flex,
+    .header-card,
+    .action-row,
+    .course-card-header {
+        min-width: 0;
+    }
+
+    .filter-buttons,
+    .order-filter-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .btn-filter,
+    .filter-btn,
+    .btn-add-large,
+    .btn-add-course,
+    .btn-action,
+    .action-btn {
+        white-space: normal;
+        text-align: center;
+    }
+
+    .product-table th,
+    .product-table td {
+        white-space: nowrap;
+    }
+
+    .table-container {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .current-image-card,
+    .preview-container {
+        min-width: 0;
+    }
+
+    .current-image-details,
+    .preview-details,
+    .title-section,
+    .course-card-header h5,
+    .card-title {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 1024px) {
+        .page-content {
+            padding: 22px;
+        }
+
+        .order-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 768px) {
+        .page-content {
+            padding: 16px;
+        }
+
+        .navbar,
+        .dashboard-header,
+        .header-card,
+        .filter-section,
+        .dashboard-card,
+        .card-form {
+            border-radius: 16px !important;
+            padding: 18px !important;
+        }
+
+        .navbar .d-flex,
+        .card-header,
+        .dashboard-header .d-flex,
+        .header-card,
+        .action-row,
+        .course-card-header,
+        .d-flex.justify-content-between.align-items-center.mb-4 {
+            align-items: stretch !important;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .navbar h2,
+        .dashboard-title,
+        .title-section h1,
+        .page-title {
+            font-size: 1.45rem !important;
+            line-height: 1.3;
+        }
+
+        .stat-card,
+        .course-card-body {
+            padding: 16px;
+        }
+
+        .stat-number,
+        .stats-value {
+            font-size: 1.45rem;
+        }
+
+        .order-grid {
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+
+        .order-card .d-flex.justify-content-between.align-items-center {
+            align-items: flex-start !important;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn-filter,
+        .filter-btn,
+        .btn-add-large,
+        .btn-add-course,
+        .search-box button,
+        .btn-action,
+        .action-btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .search-box {
+            flex-direction: column;
+            max-width: none;
+        }
+
+        .search-box input,
+        .search-box button,
+        .form-control,
+        .form-select {
+            width: 100%;
+            min-width: 0;
+        }
+
+        .product-table {
+            min-width: 760px;
+        }
+
+        .current-image-card,
+        .preview-container {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+            gap: 1rem;
+        }
+
+        .current-image,
+        .preview-image {
+            width: min(100%, 180px);
+            height: 150px;
+            margin-inline: auto;
+        }
+
+        .section-title {
+            font-size: 1.35rem;
+            align-items: flex-start;
+        }
+
+        .modal-dialog {
+            margin: .75rem;
+        }
+
+        .modal-body {
+            padding: 1rem !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .page-content {
+            padding: 12px;
+        }
+
+        .navbar,
+        .dashboard-header,
+        .header-card,
+        .filter-section,
+        .dashboard-card,
+        .card-form {
+            padding: 14px !important;
+        }
+
+        .admin-card {
+            width: 100%;
+            border-radius: 18px;
+            padding: 10px 12px;
+        }
+
+        .admin-card img,
+        .admin-profile img {
+            width: 40px;
+            height: 40px;
+        }
+
+        .order-amount {
+            font-size: 1.25rem;
+        }
+
+        .status-badge,
+        .badge-count,
+        .seasonal-tag {
+            margin-left: 0;
+            margin-top: 6px;
+        }
+
+        .product-name {
+            white-space: normal;
+        }
+    }
+</style>
+
+HTML;
+adminPageStart('จัดการสินค้า');
+?>
+
+<div class="admin-local-page products-admin-page">
     <!-- HEADER -->
     <div class="header-card">
         <div class="title-section">
@@ -684,5 +923,5 @@ $search_keyword = $_GET['search'] ?? '';
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <?php $stmt->close(); ?>
-</body>
-</html>
+
+<?php adminPageEnd(); ?>
