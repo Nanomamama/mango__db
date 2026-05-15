@@ -7,6 +7,6 @@ if (!isset($_SESSION['admin_id'])) {
     $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'];
 
     // ไปหน้า login
-    header("Location: /mango/admin/admin_login.php");
+    header("Location: admin_login.php");
     exit;
 }

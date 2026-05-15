@@ -22,7 +22,11 @@ if ($user && password_verify($password, $user['password'])) {
     $_SESSION['admin_id'] = $user['id'];
     $_SESSION['admin_name'] = $user['username'];
     $_SESSION['admin_email'] = $user['email'];
-    $redirect = $_SESSION['redirect_after_login'] ?? '/mango/admin/index.php';
+    $redirect = $_SESSION['redirect_after_login'] ?? 'index.php';
+
+    if (str_starts_with($redirect, '/mango/admin/')) {
+        $redirect = substr($redirect, strlen('/mango/admin/'));
+    }
 
     unset($_SESSION['redirect_after_login']);
 
