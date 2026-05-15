@@ -1,0 +1,6 @@
+# ลบ trailing slash ออกจาก URL เช่น index.php/ → index.php
+RewriteEngine On
+
+# ถ้า URL ลงท้ายด้วย / และไม่ใช่ directory จริง ให้ตัด / ออก
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.+)/$ /$1 [R=301,L]

@@ -194,23 +194,23 @@
 
         <div class="offcanvas-body">
           <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
-            <li class="nav-item"><a class="nav-link" href="../user/index.php">หน้าแรก</a></li>
-             <li class="nav-item"><a class="nav-link" href="../user/bookings.php">จองคิวออนไลน์</a></li>
-              <li class="nav-item"><a class="nav-link" href="../user/course.php">กิจกรรมอบรม</a></li>
-            <li class="nav-item"><a class="nav-link" href="../user/products.php">สั่งซื้อสินค้า</a></li>
+            <li class="nav-item"><a class="nav-link" href="index.php">หน้าแรก</a></li>
+             <li class="nav-item"><a class="nav-link" href="bookings.php">จองคิวออนไลน์</a></li>
+              <li class="nav-item"><a class="nav-link" href="course.php">กิจกรรมอบรม</a></li>
+            <li class="nav-item"><a class="nav-link" href="products.php">สั่งซื้อสินค้า</a></li>
           
             <!-- <li class="nav-item"><a class="nav-link" href="#">ติดต่อเรา</a></li> -->
 
             <?php if (!isset($_SESSION['member_id'])): ?>
               <li class="nav-item mt-3 mt-xl-0">
-                <a href="../user/member_login.php" class="cta-btns">เข้าสู่ระบบ</a>
-                <a href="../user/register.php" class="cta-btn">สมัครสมาชิก</a>
+                <a href="member_login.php" class="cta-btns">เข้าสู่ระบบ</a>
+                <a href="register.php" class="cta-btn">สมัครสมาชิก</a>
               </li>
             <?php else: ?>
               <li class="nav-item mt-3 mt-xl-0">
-                <a href="../user/member_profile.php" class="profile-link">
+                <a href="member_profile.php" class="profile-link">
                   <div class="profile-img-wrapper">
-                    <img src="../user/image/profile.png" class="profile-img" alt="โปรไฟล์">
+                    <img src="image/profile.png" class="profile-img" alt="โปรไฟล์">
                   </div>
                   <span>โปรไฟล์</span>
                 </a>

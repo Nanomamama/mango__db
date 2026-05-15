@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /mango/
+Disallow: /mango/admin/
+Disallow: /mango/user/member_login.php
+Disallow: /mango/user/register.php
+Disallow: /mango/user/order_status.php
+
+Sitemap: https://khamaon.com/mango/user/sitemap.php

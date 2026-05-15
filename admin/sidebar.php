@@ -18,19 +18,7 @@ mysqli_report(MYSQLI_REPORT_OFF);
 // --------------------------------------------------
 if (!headers_sent()) {
 
-    header("
-        Content-Security-Policy:
-        default-src 'self';
-        script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com;
-        style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://unpkg.com;
-        font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;
-        img-src 'self' data: https:;
-        connect-src 'self';
-        frame-src 'self' https://www.youtube.com;
-        frame-ancestors 'self';
-        base-uri 'self';
-        form-action 'self'
-    ");
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self'; frame-src 'self' https://www.youtube.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'");
 
     header("X-Content-Type-Options: nosniff");
     header("X-Frame-Options: SAMEORIGIN");

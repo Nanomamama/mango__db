@@ -13,7 +13,7 @@ if (isset($_SESSION['member_id'])) {
             if ((int) $row_status['status'] === 0) {
                 session_unset();
                 session_destroy();
-                header('Location: index.php?login_error=disabled');
+                header('Location: https://khamaon.com/mango/user/index.php?login_error=disabled');
                 exit;
             }
         }
@@ -182,10 +182,84 @@ $heroVideoSrc = find_hero_video_source();
     <link rel="apple-touch-icon" sizes="180x180" href="../logo/logo_01.png">
     <link rel="icon" type="image/png" sizes="16x16" href="../logo/logo_01.png">
     <link rel="manifest" href="manifest.json">
+
+    <!-- SEO Core -->
+    <meta name="robots" content="index, follow">
+    <title>จองคิว สวนลุงเผือก | ศูนย์การเรียนรู้เศรษฐกิจพอเพียง เชียงคาน จ.เลย</title>
+    <meta name="description" content="จองคิวเยี่ยมชมสวนลุงเผือก ศูนย์การเรียนรู้เศรษฐกิจพอเพียง บ้านบุฮม อำเภอเชียงคาน จังหวัดเลย จองออนไลน์ง่าย ดูกิจกรรมอบรม และสั่งซื้อสินค้าจากสวน">
+    <meta name="keywords" content="สวนลุงเผือก, จองคิว, เชียงคาน, จังหวัดเลย, เศรษฐกิจพอเพียง, ศูนย์การเรียนรู้, กิจกรรมอบรม, ท่องเที่ยวเลย">
+    <link rel="canonical" href="https://khamaon.com/mango/user/index.php">
     <meta name="theme-color" content="#ffffff">
-    <title>สวนลุงเผือก</title>
+    <meta name="google-site-verification" content="bmoWqmU29MxuV-8wzCGKFQ2yEeQHp9BzaSisH2OYMpI" />
+
+    <!-- Open Graph (แสดงผลสวยเวลาแชร์ใน Facebook / Line) -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://khamaon.com/mango/user/index.php">
+    <meta property="og:title" content="จองคิว สวนลุงเผือก | ศูนย์การเรียนรู้เศรษฐกิจพอเพียง เชียงคาน จ.เลย">
+    <meta property="og:description" content="จองคิวเยี่ยมชมสวนลุงเผือก ศูนย์การเรียนรู้เศรษฐกิจพอเพียง อำเภอเชียงคาน จังหวัดเลย จองออนไลน์ง่าย ดูกิจกรรม และสั่งซื้อสินค้าจากสวน">
+    <meta property="og:image" content="https://khamaon.com/mango/user/image/logo-3.png">
+    <meta property="og:locale" content="th_TH">
+    <meta property="og:site_name" content="สวนลุงเผือก">
+
+    <!-- JSON-LD Schema: LocalBusiness (ช่วยให้ Google เข้าใจว่าเว็บนี้คือธุรกิจอะไร ที่ไหน) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": "สวนลุงเผือก",
+      "alternateName": "ศูนย์การเรียนรู้เศรษฐกิจพอเพียง สวนลุงเผือก",
+      "description": "ศูนย์การเรียนรู้เศรษฐกิจพอเพียง จองคิวเยี่ยมชม กิจกรรมอบรม และสั่งซื้อสินค้าจากสวน",
+      "url": "https://khamaon.com/mango/user/index.php",
+      "telephone": "062-197-0420",
+      "image": "https://khamaon.com/mango/user/image/logo-3.png",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "26/4 บ้านบุฮม",
+        "addressLocality": "เชียงคาน",
+        "addressRegion": "เลย",
+        "postalCode": "42110",
+        "addressCountry": "TH"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 17.93598673381639,
+        "longitude": 101.73779659421837
+      },
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+        "opens": "08:00",
+        "closes": "17:00"
+      },
+      "sameAs": [
+        "https://m.me/thrng.phl.phat.hn.chiy"
+      ]
+    }
+    </script>
+
+    <!-- JSON-LD Schema: VideoObject (ช่วยให้ Google index วิดีโอพื้นหลัง) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "VideoObject",
+      "name": "วิดีโอแนะนำสวนลุงเผือก",
+      "description": "วิดีโอพื้นหลังแนะนำศูนย์การเรียนรู้เศรษฐกิจพอเพียง สวนลุงเผือก อำเภอเชียงคาน จังหวัดเลย",
+      "thumbnailUrl": "https://khamaon.com/mango/logo/logo_01.png",
+      "contentUrl": "https://khamaon.com/mango/video/background-video2.mp4",
+      "uploadDate": "2025-01-01",
+      "publisher": {
+        "@type": "Organization",
+        "name": "สวนลุงเผือก",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://khamaon.com/mango/user/image/logo-3.png"
+        }
+      }
+    }
+    </script>
+
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"> 
     <style>
         :root {
             --forest: #123b2d;
@@ -987,8 +1061,9 @@ $heroVideoSrc = find_hero_video_source();
             }
         }
     </style>
-    <meta name="google-site-verification" content="bmoWqmU29MxuV-8wzCGKFQ2yEeQHp9BzaSisH2OYMpI" />
+
 </head>
+
 <body>
     <?php include __DIR__ . '/navbar.php'; ?>
     <?php include __DIR__ . '/fb_chat_button.php'; ?>
@@ -1238,6 +1313,7 @@ $heroVideoSrc = find_hero_video_source();
             }
         });
     </script>
+
 </body>
 
 </html>
