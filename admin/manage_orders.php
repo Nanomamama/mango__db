@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
 require_once 'sidebar.php';
@@ -974,7 +974,7 @@ adminPageStart('จัดการคำสั่งซื้อ');
     </div>
 
     <!-- ปุ่ม -->
-    <a href="order_detail.php?id=<?= $order['order_id'] ?>" class="btn-detail">
+    <a href="order_detail.php?code=<?= $order['order_code'] ?>" class="btn-detail">
         ดูรายละเอียด
     </a>
 
