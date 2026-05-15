@@ -40,7 +40,7 @@ if (
     $search_performed = true;
 
     /* ทำความสะอาดเบอร์โทร */
-   $cleanPhone = preg_replace('/[^0-9]/', '', $keyword);
+    $cleanPhone = preg_replace('/[^0-9]/', '', $keyword);
 
     $sql = "
         SELECT
@@ -51,28 +51,25 @@ if (
         WHERE 1
     ";
 
-$params = [];
-$types = '';
+    $params = [];
+    $types = '';
 
-$keywordPhone = preg_replace('/[^0-9]/', '', $keyword);
+    $keywordPhone = preg_replace('/[^0-9]/', '', $keyword);
 
-/* ถ้ามีตัวเลข => ค้นหาเบอร์ */
-if ($keywordPhone !== '') {
+    /* ถ้ามีตัวเลข => ค้นหาเบอร์ */
+    if ($keywordPhone !== '') {
 
-    $sql .= " AND o.customer_phone LIKE ? ";
-    $params[] = "%{$keywordPhone}%";
-    $types .= 's';
+        $sql .= " AND o.customer_phone LIKE ? ";
+        $params[] = "%{$keywordPhone}%";
+        $types .= 's';
+    }
 
-}
+    /* ถ้ามีข้อความ => ค้นหาชื่อ */ else {
 
-/* ถ้ามีข้อความ => ค้นหาชื่อ */
-else {
-
-    $sql .= " AND o.customer_name LIKE ? ";
-    $params[] = "%{$keyword}%";
-    $types .= 's';
-
-}
+        $sql .= " AND o.customer_name LIKE ? ";
+        $params[] = "%{$keyword}%";
+        $types .= 's';
+    }
 
 
     $sql .= "
@@ -415,10 +412,21 @@ else {
             width: 100%;
         }
 
-        .line-pending   { background: var(--pending); }
-        .line-approved  { background: var(--approved); }
-        .line-rejected  { background: var(--rejected); }
-        .line-completed { background: var(--completed); }
+        .line-pending {
+            background: var(--pending);
+        }
+
+        .line-approved {
+            background: var(--approved);
+        }
+
+        .line-rejected {
+            background: var(--rejected);
+        }
+
+        .line-completed {
+            background: var(--completed);
+        }
 
         .card-top {
             padding: 1.2rem 1.2rem 1rem;
@@ -428,7 +436,9 @@ else {
             border-bottom: 1px solid #edf7f7;
         }
 
-        .left-top { min-width: 0; }
+        .left-top {
+            min-width: 0;
+        }
 
         .status-badge {
             display: inline-flex;
@@ -441,10 +451,25 @@ else {
             margin-bottom: .8rem;
         }
 
-        .badge-pending   { background: var(--yellow-pale); color: var(--yellow); }
-        .badge-approved  { background: var(--green-pale);  color: var(--green); }
-        .badge-rejected  { background: var(--red-pale);    color: var(--red); }
-        .badge-completed { background: var(--blue-pale);   color: var(--blue); }
+        .badge-pending {
+            background: var(--yellow-pale);
+            color: var(--yellow);
+        }
+
+        .badge-approved {
+            background: var(--green-pale);
+            color: var(--green);
+        }
+
+        .badge-rejected {
+            background: var(--red-pale);
+            color: var(--red);
+        }
+
+        .badge-completed {
+            background: var(--blue-pale);
+            color: var(--blue);
+        }
 
         .order-code {
             font-size: 1.05rem;
@@ -517,7 +542,9 @@ else {
             line-height: 1.45;
         }
 
-        .products-wrap { padding: 1rem 1.2rem 1.2rem; }
+        .products-wrap {
+            padding: 1rem 1.2rem 1.2rem;
+        }
 
         .products-title {
             display: flex;
@@ -567,7 +594,10 @@ else {
             color: var(--primary);
         }
 
-        .product-info { flex: 1; min-width: 0; }
+        .product-info {
+            flex: 1;
+            min-width: 0;
+        }
 
         .product-name {
             font-size: .9rem;
@@ -581,7 +611,11 @@ else {
             overflow: hidden;
         }
 
-        .product-meta { display: flex; flex-wrap: wrap; gap: .4rem; }
+        .product-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .4rem;
+        }
 
         .product-chip {
             background: #fff;
@@ -672,16 +706,38 @@ else {
         }
 
         @keyframes slideIn {
-            from { transform: translateX(110%); opacity: 0; }
-            to   { transform: translateX(0);    opacity: 1; }
+            from {
+                transform: translateX(110%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
-        .toast-error   { border-left: 3px solid var(--red); }
-        .toast-success { border-left: 3px solid var(--green); }
+        .toast-error {
+            border-left: 3px solid var(--red);
+        }
 
-        .toast-ico { font-size: 1.1rem; margin-top: .1rem; flex-shrink: 0; }
-        .toast-error   .toast-ico { color: var(--red); }
-        .toast-success .toast-ico { color: var(--green); }
+        .toast-success {
+            border-left: 3px solid var(--green);
+        }
+
+        .toast-ico {
+            font-size: 1.1rem;
+            margin-top: .1rem;
+            flex-shrink: 0;
+        }
+
+        .toast-error .toast-ico {
+            color: var(--red);
+        }
+
+        .toast-success .toast-ico {
+            color: var(--green);
+        }
 
         .toast-msg {
             font-size: .875rem;
@@ -701,12 +757,20 @@ else {
             flex-shrink: 0;
         }
 
-        .toast-close:hover { color: var(--text); }
+        .toast-close:hover {
+            color: var(--text);
+        }
 
         /* ── Modal ── */
-        .order-modal { border: none; border-radius: 24px; overflow: hidden; }
+        .order-modal {
+            border: none;
+            border-radius: 24px;
+            overflow: hidden;
+        }
 
-        .modal-header { padding: 1.3rem 1.4rem .8rem; }
+        .modal-header {
+            padding: 1.3rem 1.4rem .8rem;
+        }
 
         .modal-order-code {
             font-size: 1.15rem;
@@ -720,9 +784,15 @@ else {
             margin-top: .2rem;
         }
 
-        .modal-body { padding: 1rem 1.4rem 1.4rem; }
+        .modal-body {
+            padding: 1rem 1.4rem 1.4rem;
+        }
 
-        .modal-products { display: flex; flex-direction: column; gap: .9rem; }
+        .modal-products {
+            display: flex;
+            flex-direction: column;
+            gap: .9rem;
+        }
 
         .modal-product-card {
             display: flex;
@@ -748,7 +818,10 @@ else {
             flex-shrink: 0;
         }
 
-        .modal-product-info { flex: 1; min-width: 0; }
+        .modal-product-info {
+            flex: 1;
+            min-width: 0;
+        }
 
         .modal-product-name {
             font-size: .95rem;
@@ -758,7 +831,11 @@ else {
             line-height: 1.45;
         }
 
-        .modal-product-meta { display: flex; flex-wrap: wrap; gap: .65rem; }
+        .modal-product-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .65rem;
+        }
 
         .modal-product-meta span {
             background: #fff;
@@ -770,10 +847,21 @@ else {
             color: var(--primary);
         }
 
-        .modal-footer { padding: 1rem 1.4rem 1.4rem; }
+        .modal-footer {
+            padding: 1rem 1.4rem 1.4rem;
+        }
 
-        .modal-total { width: 100%; text-align: left; font-size: 1rem; color: var(--text); }
-        .modal-total strong { font-size: 1.5rem; color: var(--primary); }
+        .modal-total {
+            width: 100%;
+            text-align: left;
+            font-size: 1rem;
+            color: var(--text);
+        }
+
+        .modal-total strong {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
 
         /* ── Empty state ── */
         .empty-state {
@@ -813,19 +901,49 @@ else {
 
         /* ── Responsive ── */
         @media (max-width: 640px) {
-            .search-box    { flex-direction: column; align-items: stretch; }
-            .search-fields { width: 100%; }
-            .search-icon   { width: 100%; height: 52px; }
-            .search-box button { justify-content: center; }
-            .card-top      { flex-direction: column; }
-            .total-box     { width: 100%; }
-            .customer-grid { grid-template-columns: 1fr; }
+            .search-box {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-fields {
+                width: 100%;
+            }
+
+            .search-icon {
+                width: 100%;
+                height: 52px;
+            }
+
+            .search-box button {
+                justify-content: center;
+            }
+
+            .card-top {
+                flex-direction: column;
+            }
+
+            .total-box {
+                width: 100%;
+            }
+
+            .customer-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         @media (max-width: 480px) {
-            .hero    { padding: 1.75rem 1rem; }
-            .hero h1 { font-size: 1.3rem; }
-            .page-wrap { padding: 1rem .75rem 2rem; }
+            .hero {
+                padding: 1.75rem 1rem;
+            }
+
+            .hero h1 {
+                font-size: 1.3rem;
+            }
+
+            .page-wrap {
+                padding: 1rem .75rem 2rem;
+            }
         }
     </style>
 </head>
@@ -876,35 +994,31 @@ else {
         <?php endif; ?>
 
         <!-- Search Form -->
-         <?php if (!$member_id): ?>
-    <form method="GET" class="search-box">
+        <?php if (!$member_id): ?>
+            <form method="GET" class="search-box">
 
-    <div class="search-icon">
-        <i class="fas fa-search"></i>
-    </div>
+                <div class="search-fields">
 
-    <div class="search-fields">
+                    <input
+                        type="text"
+                        name="keyword"
+                        placeholder="กรอกชื่อ หรือ เบอร์โทรศัพท์"
+                        value="<?= htmlspecialchars($keyword ?? '') ?>">
 
-        <input
-            type="text"
-            name="keyword"
-            placeholder="กรอกชื่อ หรือ เบอร์โทรศัพท์"
-            value="<?= htmlspecialchars($keyword ?? '') ?>">
+                </div>
 
-    </div>
+                <button type="submit">
+                    <i class="fas fa-search"></i>
+                    ค้นหา
+                </button>
 
-    <button type="submit">
-        <i class="fas fa-search"></i>
-        ค้นหา
-    </button>
+            </form>
+        <?php endif; ?>
 
-</form>
-<?php endif; ?>
-
-      <?php if (
-    ($member_id && !empty($orders))
-    || (!$member_id && $search_performed && !empty($orders))
-): ?>
+        <?php if (
+            ($member_id && !empty($orders))
+            || (!$member_id && $search_performed && !empty($orders))
+        ): ?>
 
             <div class="count-row">
                 พบคำสั่งซื้อทั้งหมด
@@ -1165,4 +1279,5 @@ else {
     </script>
 
 </body>
+
 </html>

@@ -1,6 +1,33 @@
 <?php
+ini_set('session.use_only_cookies', 1);
+ini_set('session.use_strict_mode', 1);
+
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'domain' => '',
+    'secure' => isset($_SERVER['HTTPS']),
+    'httponly' => true,
+    'samesite' => 'Lax'
+]);
 session_start();
+
+if (!isset($_SESSION['regenerated'])) {
+    session_regenerate_id(true);
+    $_SESSION['regenerated'] = true;
+}
+
 require_once __DIR__ . '/../db/db.php';
+// CSP Security Header
+header("X-Frame-Options: SAMEORIGIN");
+header("X-Content-Type-Options: nosniff");
+header("Referrer-Policy: strict-origin-when-cross-origin");
+header("Permissions-Policy: geolocation=(), microphone=()");
+
+if (!isset($conn) || $conn->connect_error) {
+    http_response_code(500);
+    exit('Database connection failed');
+}
 
 // ตรวจสอบสถานะผู้ใช้ที่เข้าสู่ระบบ
 if (isset($_SESSION['member_id'])) {
@@ -30,8 +57,8 @@ if (isset($_SESSION['member_id'])) {
 
 <head>
     <meta charset="UTF-8">
-     <link rel="apple-touch-icon" sizes="180x180" href="/mango/logo/logo_01.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/mango/logo/logo_01.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/mango/logo/logo_01.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/mango/logo/logo_01.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title> สวนลุงเผือก</title>
 
@@ -47,7 +74,7 @@ if (isset($_SESSION['member_id'])) {
             --text-color: #686767;
             --bg-color: #f5f5f5;
             --red: #ff4d4f;
-            --เขียว: #05d135;
+            --shiping: #05d135;
             --yellow: #ffcc00;
         }
 
@@ -108,94 +135,88 @@ if (isset($_SESSION['member_id'])) {
 
         }
 
-.hero-title {
-    font-size: 3rem;
-    font-weight: 900;
-    margin-top: 1rem;
-    line-height: 1.15;
-    letter-spacing: -1px;
+        .hero-title {
+            font-size: 3rem;
+            font-weight: 900;
+            margin-top: 1rem;
+            line-height: 1.15;
+            letter-spacing: -1px;
 
-    margin-bottom: 12px;
+            margin-bottom: 12px;
 
-    position: relative;
-    z-index: 2;
+            position: relative;
+            z-index: 2;
 
-    color: #ffffff;
+            color: #ffffff;
 
-    text-shadow:
-        0 2px 4px rgba(0, 0, 0, 0.25),
-        0 6px 18px rgba(0, 0, 0, 0.35),
-        0 0 20px rgba(255, 255, 255, 0.25);
+            
+            
+        }
 
-    animation: glowText 3s ease-in-out infinite;
-}
+        /* Shine Effect */
+        .hero-title::after {
+            content: '';
+            position: absolute;
 
-/* Shine Effect */
-.hero-title::after {
-    content: '';
-    position: absolute;
+            top: 0;
+            left: -120%;
 
-    top: 0;
-    left: -120%;
+            width: 60%;
+            height: 100%;
 
-    width: 60%;
-    height: 100%;
+            background: linear-gradient(120deg,
+                    transparent,
+                    rgba(255, 255, 255, .5),
+                    transparent);
 
-    background: linear-gradient(
-        120deg,
-        transparent,
-        rgba(255,255,255,.5),
-        transparent
-    );
+            transform: skewX(-20deg);
 
-    transform: skewX(-20deg);
+            animation: shine 4s infinite;
+        }
 
-    animation: shine 4s infinite;
-}
+        /* Glow Animation */
+        @keyframes glowText {
+            0% {
+                text-shadow:
+                    0 2px 4px rgba(0, 0, 0, .25),
+                    0 6px 18px rgba(0, 0, 0, .35),
+                    0 0 10px rgba(255, 255, 255, .15);
+            }
 
-/* Glow Animation */
-@keyframes glowText {
-    0% {
-        text-shadow:
-            0 2px 4px rgba(0,0,0,.25),
-            0 6px 18px rgba(0,0,0,.35),
-            0 0 10px rgba(255,255,255,.15);
-    }
+            50% {
+                text-shadow:
+                    0 2px 6px rgba(0, 0, 0, .3),
+                    0 8px 22px rgba(0, 0, 0, .45),
+                    0 0 25px rgba(255, 255, 255, .4);
+            }
 
-    50% {
-        text-shadow:
-            0 2px 6px rgba(0,0,0,.3),
-            0 8px 22px rgba(0,0,0,.45),
-            0 0 25px rgba(255,255,255,.4);
-    }
+            100% {
+                text-shadow:
+                    0 2px 4px rgba(0, 0, 0, .25),
+                    0 6px 18px rgba(0, 0, 0, .35),
+                    0 0 10px rgba(255, 255, 255, .15);
+            }
+        }
 
-    100% {
-        text-shadow:
-            0 2px 4px rgba(0,0,0,.25),
-            0 6px 18px rgba(0,0,0,.35),
-            0 0 10px rgba(255,255,255,.15);
-    }
-}
+        /* Shine Move */
+        @keyframes shine {
+            0% {
+                left: -120%;
+            }
 
-/* Shine Move */
-@keyframes shine {
-    0% {
-        left: -120%;
-    }
+            100% {
+                left: 130%;
+            }
+        }
 
-    100% {
-        left: 130%;
-    }
-}
+        /* Mobile */
+        @media (max-width: 768px) {
 
-/* Mobile */
-@media (max-width: 768px) {
+            .hero-title {
+                font-size: 2rem;
+            }
 
-    .hero-title {
-        font-size: 2rem;
-    }
-
-}
+        }
 
         @media (max-width: 768px) {
 
@@ -254,7 +275,7 @@ if (isset($_SESSION['member_id'])) {
             border-color: var(--primary-color);
             color: white;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+            box-shadow: 0 4px 12px rgba(53, 238, 255, 0.3);
         }
 
         /* Product Card - Shopee Style */
@@ -269,6 +290,7 @@ if (isset($_SESSION['member_id'])) {
             height: 100%;
             position: relative;
             cursor: pointer;
+            min-height: 520px;
         }
 
         .product-card:hover {
@@ -310,14 +332,14 @@ if (isset($_SESSION['member_id'])) {
             font-size: 0.7rem;
             font-weight: 600;
             z-index: 2;
-            box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+            box-shadow: 0 2px 8px rgba(53, 198, 255, 0.3);
         }
 
         .badge-stock {
             position: absolute;
             top: 10px;
             left: 10px;
-            background-color: var(--เขียว);
+            background-color: var(--shiping);
             color: white;
             padding: 4px 10px;
             border-radius: 20px;
@@ -346,6 +368,7 @@ if (isset($_SESSION['member_id'])) {
             overflow: hidden;
             line-height: 1.4;
             min-height: 2.8em;
+            max-height: 2.8em;
         }
 
         /* Product Description */
@@ -358,6 +381,7 @@ if (isset($_SESSION['member_id'])) {
 
         .product-description-wrapper {
             margin-bottom: 10px;
+            min-height: 3em;
         }
 
         .product-description-shopee {
@@ -372,6 +396,7 @@ if (isset($_SESSION['member_id'])) {
 
             overflow: hidden;
             transition: all .3s ease;
+            min-height: 3em;
 
         }
 
@@ -401,6 +426,7 @@ if (isset($_SESSION['member_id'])) {
             font-weight: 700;
             color: var(--red);
             margin-bottom: 4px;
+            min-width: 0;
         }
 
         .product-price small {
@@ -414,6 +440,8 @@ if (isset($_SESSION['member_id'])) {
             justify-content: space-between;
             align-items: center;
             gap: 10px;
+            min-height: 52px;
+            margin-top: auto;
         }
 
         .product-sold {
@@ -421,6 +449,7 @@ if (isset($_SESSION['member_id'])) {
             color: #999;
             white-space: nowrap;
             margin-bottom: 0;
+            flex-shrink: 0;
         }
 
         /* Quantity Control - Shopee Style */
@@ -432,6 +461,69 @@ if (isset($_SESSION['member_id'])) {
             margin-top: 8px;
             padding-top: 8px;
             border-top: 1px solid #f0f0f0;
+        }
+
+        .product-card:focus-visible {
+            outline: 3px solid rgba(1, 106, 112, 0.35);
+            outline-offset: 3px;
+        }
+
+        .modal-product-image {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            border-radius: 8px;
+            background: #f4f4f4;
+        }
+
+        .modal-product-title {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--text-color);
+            line-height: 1.35;
+            margin-bottom: 8px;
+        }
+
+        .modal-product-price {
+            color: var(--red);
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .modal-product-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .modal-product-meta span {
+            background: #eefafa;
+            color: var(--primary-color);
+            border-radius: 999px;
+            padding: 5px 12px;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .modal-product-description {
+            color: #666;
+            line-height: 1.65;
+            white-space: pre-line;
+            max-height: 220px;
+            overflow: auto;
+            padding-right: 4px;
+        }
+
+        .modal-quantity-control {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 10px;
+            background: #f6fafa;
+            border: 1px solid #e6eeee;
         }
 
         .qty-btn {
@@ -522,7 +614,7 @@ if (isset($_SESSION['member_id'])) {
             justify-content: center;
             color: white;
             font-size: 24px;
-            box-shadow: 0 4px 16px rgba(255, 107, 53, 0.4);
+            box-shadow: 0 4px 16px rgba(53, 242, 255, 0.4);
             z-index: 1000;
             transition: all 0.3s;
             text-decoration: none;
@@ -607,6 +699,31 @@ if (isset($_SESSION['member_id'])) {
         }
 
         /* ---------------------------------Responsive --------------------------- */
+        @media (max-width: 1199px) {
+            .product-card {
+                min-height: 500px;
+            }
+
+            .product-name {
+                font-size: 1.05rem;
+            }
+
+            .product-description-shopee {
+                font-size: 0.94rem;
+            }
+        }
+
+        @media (max-width: 991px) {
+            .product-card {
+                min-height: 480px;
+            }
+
+            .product-price,
+            .product-price small {
+                font-size: 1.08rem;
+            }
+        }
+
         @media (max-width: 768px) {
             .hero-title {
                 font-size: 1.5rem;
@@ -630,6 +747,40 @@ if (isset($_SESSION['member_id'])) {
             .cart-floating {
                 bottom: 155px;
             }
+
+            .product-card {
+                min-height: 455px;
+            }
+
+            .product-name {
+                font-size: 0.95rem;
+            }
+
+            .product-description-shopee {
+                font-size: 0.9rem;
+            }
+
+            .modal-product-title {
+                font-size: 1.2rem;
+            }
+
+            .modal-product-price {
+                font-size: 1.25rem;
+            }
+
+            .modal-product-description {
+                max-height: none;
+            }
+
+            .modal-quantity-control {
+                width: 100%;
+                justify-content: center;
+            }
+
+            #modalAddCartBtn {
+                width: 100%;
+                min-height: 44px;
+            }
         }
 
         @media (max-width: 576px) {
@@ -646,15 +797,48 @@ if (isset($_SESSION['member_id'])) {
             .product-name {
                 font-size: 0.8rem;
                 min-height: 2.5em;
+                max-height: 2.5em;
+            }
+
+            .product-description-wrapper,
+            .product-description-shopee {
+                min-height: 2.8em;
+            }
+
+            .product-description-shopee {
+                font-size: 0.78rem;
+                line-height: 1.4;
+            }
+
+            .product-card {
+                min-height: 395px;
+                border-radius: 10px;
             }
 
             .product-price {
-                font-size: 1rem;
+                font-size: 0.92rem;
+                line-height: 1.2;
+            }
+
+            .product-price small {
+                display: block;
+                font-size: 0.76rem;
+                margin-top: 2px;
+            }
+
+            .price-sold-row {
+                align-items: flex-start;
+                min-height: 54px;
+            }
+
+            .product-sold {
+                font-size: 0.68rem;
             }
 
             .btn-add-cart {
-                font-size: 0.75rem;
+                font-size: 0.72rem;
                 padding: 8px;
+                min-height: 38px;
             }
 
             .qty-btn {
@@ -665,6 +849,68 @@ if (isset($_SESSION['member_id'])) {
             .qty-input {
                 width: 40px;
                 font-size: 0.8rem;
+            }
+
+            .modal-dialog {
+                margin: 12px;
+            }
+
+            .modal-content {
+                max-height: calc(100vh - 24px);
+                border-radius: 12px;
+                overflow: hidden;
+            }
+
+            .modal-body {
+                padding: 0 16px 20px;
+                overflow-y: auto;
+            }
+
+            .modal-product-image {
+                max-height: 46vh;
+            }
+
+            .modal-product-meta span {
+                font-size: 0.74rem;
+                padding: 4px 9px;
+            }
+        }
+
+        @media (max-width: 390px) {
+            #product-list {
+                --bs-gutter-x: 8px;
+                --bs-gutter-y: 8px;
+            }
+
+            .product-card {
+                min-height: 370px;
+            }
+
+            .product-info {
+                padding: 8px;
+            }
+
+            .product-name {
+                font-size: 0.76rem;
+            }
+
+            .product-description-wrapper,
+            .product-description-shopee {
+                min-height: 2.6em;
+            }
+
+            .quantity-control {
+                gap: 4px;
+            }
+
+            .qty-btn {
+                width: 26px;
+                height: 26px;
+            }
+
+            .qty-input {
+                width: 36px;
+                padding: 4px;
             }
         }
 
@@ -727,6 +973,10 @@ if (isset($_SESSION['member_id'])) {
             .banner-overlay h2 {
                 font-size: 1.2rem;
             }
+
+             .hero-title{
+        animation:none;
+    }
         }
     </style>
 </head>
@@ -746,7 +996,6 @@ if (isset($_SESSION['member_id'])) {
             </div>
         </div>
 
-
         <?php
 
         $banner_sql = "
@@ -755,6 +1004,7 @@ WHERE status = 'active'
 AND product_image IS NOT NULL
 AND product_image != ''
 ORDER BY product_id DESC
+LIMIT 10
 ";
         $banner_result = $conn->query($banner_sql);
         ?>
@@ -774,6 +1024,7 @@ ORDER BY product_id DESC
                         data-bs-wrap="true">
 
                         <!-- indicators -->
+                         
                         <div class="carousel-indicators">
 
                             <?php
@@ -792,7 +1043,9 @@ ORDER BY product_id DESC
                                 $i++;
                             endwhile;
 
-                            $banner_result->data_seek(0);
+                            if ($banner_result && $banner_result->num_rows > 0) {
+                                $banner_result->data_seek(0);
+                            }
                             ?>
 
                         </div>
@@ -805,13 +1058,15 @@ ORDER BY product_id DESC
 
                             while ($banner = $banner_result->fetch_assoc()):
 
-                                $image = "../admin/uploads/products/" . $banner['product_image'];
+                                $bannerImage = basename((string) $banner['product_image']);
+                                $image = "../admin/uploads/products/" . $bannerImage;
                             ?>
 
                                 <div class="carousel-item <?= $active ? 'active' : '' ?>">
 
                                     <img src="<?= htmlspecialchars($image) ?>"
                                         class="d-block w-100 banner-image"
+                                        loading="lazy"
                                         alt="<?= htmlspecialchars($banner['product_name']) ?>">
 
                                     <!-- overlay -->
@@ -897,13 +1152,13 @@ ORDER BY product_id DESC
         <!-- Category Pills -->
         <div class="category-pills">
             <div class="container">
-                <button class="pill-btn active" onclick="filterProducts('all')">
+                <button class="pill-btn active" onclick="filterProducts(event,'all')">
                     <i class="fas fa-th-large"></i> ทั้งหมด
                 </button>
-                <button class="pill-btn" onclick="filterProducts('seasonal')">
+                <button class="pill-btn" onclick="filterProducts(event,'seasonal')">
                     <i class="fas fa-star"></i> ตามฤดูกาล
                 </button>
-                <button class="pill-btn" onclick="filterProducts('normal')">
+                <button class="pill-btn" onclick="filterProducts(event,'normal')">
                     <i class="fas fa-leaf"></i> สินค้าทั่วไป
                 </button>
             </div>
@@ -941,16 +1196,40 @@ ORDER BY product_id DESC
 
             ORDER BY p.product_id DESC ";
 
+            // เช็ก Query Error ก่อนใช้งาน
             $result = $conn->query($sql);
 
-            if ($result->num_rows > 0):
+            if (!$result) {
+                error_log($conn->error);
+                $result = false;
+            }
+
+            if ($result && $result->num_rows > 0):
                 while ($p = $result->fetch_assoc()):
-                    $image = $p['product_image'] ? "../admin/uploads/products/" . $p['product_image'] : "../assets/no-image.png";
+                    $productImage = basename((string) $p['product_image']);
+                    $image = $productImage
+                        ? "../admin/uploads/products/" . $productImage
+                        : "../assets/no-image.png";
+                    $productPayload = [
+                        'id' => (int) $p['product_id'],
+                        'name' => (string) $p['product_name'],
+                        'description' => (string) $p['product_description'],
+                        'category' => (string) ($p['category'] ?? ''),
+                        'price' => (float) $p['price'],
+                        'unit' => (string) $p['unit'],
+                        'image' => $image,
+                        'sold_count' => (int) $p['sold_count'],
+                        'seasonal' => (int) $p['seasonal'],
+                    ];
             ?>
                     <div class="col-6 col-sm-6 col-md-4 col-lg-3 product-item animate__animated animate__fadeInUp"
                         data-seasonal="<?= $p['seasonal'] ?>">
 
-                        <div class="product-card">
+                        <div class="product-card"
+                            role="button"
+                            tabindex="0"
+                            onclick='openProductModal(<?= json_encode($productPayload, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>)'
+                            onkeydown="handleProductCardKey(event, this)">
                             <div class="product-image-wrapper">
                                 <?php if ($p['seasonal'] == 1): ?>
                                     <!-- <span class="badge-seasonal">
@@ -980,13 +1259,6 @@ ORDER BY product_id DESC
 
                                     </div>
 
-                                    <?php if (mb_strlen($p['product_description']) > 80): ?>
-                                        <button class="read-more-btn"
-                                            onclick="toggleDescription(<?= $p['product_id'] ?>, this)">
-                                            อ่านเพิ่มเติม
-                                        </button>
-                                    <?php endif; ?>
-
                                 </div>
 
                                 <div class="price-sold-row">
@@ -1003,21 +1275,28 @@ ORDER BY product_id DESC
                                 </div>
 
                                 <div class="quantity-control">
-                                    <button class="qty-btn" onclick="changeQty(<?= $p['product_id'] ?>,-1)">
+                                    <button class="qty-btn" onclick="event.stopPropagation(); changeQty(<?= $p['product_id'] ?>,-1)">
                                         <i class="fas fa-minus"></i>
                                     </button>
                                     <input type="number"
                                         id="qty<?= $p['product_id'] ?>"
                                         class="qty-input"
                                         value="1"
-                                        min="1">
-                                    <button class="qty-btn" onclick="changeQty(<?= $p['product_id'] ?>,1)">
+                                        min="1"
+                                        max="99"
+                                        onclick="event.stopPropagation()">
+                                    <button class="qty-btn" onclick="event.stopPropagation(); changeQty(<?= $p['product_id'] ?>,1)">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                 </div>
 
                                 <button class="btn-add-cart"
-                                    onclick="addToCart(<?= $p['product_id'] ?>, '<?= htmlspecialchars($p['product_name']) ?>', <?= $p['price'] ?>, '<?= htmlspecialchars($image) ?>')">
+                                    onclick='event.stopPropagation(); addToCart(
+<?= (int)$p["product_id"] ?>,
+<?= json_encode($p["product_name"], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+<?= (float)$p["price"] ?>,
+<?= json_encode($image, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
+)'>
                                     <i class="fas fa-shopping-basket"></i> เพิ่มลงตะกร้า
                                 </button>
                             </div>
@@ -1051,6 +1330,51 @@ ORDER BY product_id DESC
         <span id="toastMessage">เพิ่มสินค้าลงตะกร้าเรียบร้อย!</span>
     </div>
 
+    <div class="modal fade" id="productDetailModal" tabindex="-1" aria-labelledby="productDetailTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title visually-hidden" id="productDetailTitle">รายละเอียดสินค้า</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-0">
+                    <div class="row g-4 align-items-start">
+                        <div class="col-md-5">
+                            <img src="../assets/no-image.png" alt="" class="modal-product-image" id="modalProductImage">
+                        </div>
+                        <div class="col-md-7">
+                            <div class="modal-product-title" id="modalProductName"></div>
+                            <div class="modal-product-price" id="modalProductPrice"></div>
+                            <div class="modal-product-meta">
+                                <span id="modalProductUnit"></span>
+                                <span id="modalProductCategory"></span>
+                                <span id="modalProductSold"></span>
+                                <span id="modalProductSeasonal"></span>
+                            </div>
+                            <div class="modal-product-description" id="modalProductDescription"></div>
+
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mt-4">
+                                <div class="modal-quantity-control">
+                                    <button type="button" class="qty-btn" onclick="changeModalQty(-1)">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <input type="number" id="modalQty" class="qty-input" value="1" min="1" max="99">
+                                    <button type="button" class="qty-btn" onclick="changeModalQty(1)">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+
+                                <button type="button" class="btn-add-cart flex-grow-1" id="modalAddCartBtn">
+                                    <i class="fas fa-shopping-basket"></i> เพิ่มลงตะกร้า
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <?php include 'footer.php'; ?>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -1079,13 +1403,75 @@ ORDER BY product_id DESC
             }, 3000);
         }
 
-        function addToCart(id, name, price, image) {
-            let qty = parseInt(document.getElementById('qty' + id).value);
-            let cart = JSON.parse(localStorage.getItem("cart")) || [];
+        let currentModalProduct = null;
+
+        function formatProductPrice(price) {
+            return '฿' + Number(price).toLocaleString('th-TH');
+        }
+
+        function handleProductCardKey(event, card) {
+            if (event.target.closest('button, input')) {
+                return;
+            }
+
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                card.click();
+            }
+        }
+
+        function openProductModal(product) {
+            currentModalProduct = product;
+
+            document.getElementById('modalProductImage').src = product.image || '../assets/no-image.png';
+            document.getElementById('modalProductImage').alt = product.name || '';
+            document.getElementById('modalProductName').textContent = product.name || '';
+            document.getElementById('modalProductPrice').textContent = `${formatProductPrice(product.price)} / ${product.unit || ''}`;
+            document.getElementById('modalProductUnit').textContent = product.unit ? `หน่วย: ${product.unit}` : 'หน่วย: -';
+            document.getElementById('modalProductCategory').textContent = product.category ? `หมวดหมู่: ${product.category}` : 'หมวดหมู่: -';
+            document.getElementById('modalProductSold').textContent = `ขายแล้ว ${Number(product.sold_count || 0).toLocaleString('th-TH')}`;
+            document.getElementById('modalProductSeasonal').textContent = Number(product.seasonal) === 1 ? 'ตามฤดูกาล' : 'สินค้าทั่วไป';
+            document.getElementById('modalProductDescription').textContent = product.description || 'ไม่มีรายละเอียดสินค้า';
+            document.getElementById('modalQty').value = 1;
+
+            const addBtn = document.getElementById('modalAddCartBtn');
+            addBtn.onclick = () => {
+                const qty = parseInt(document.getElementById('modalQty').value) || 1;
+                addToCart(product.id, product.name, product.price, product.image, qty);
+                const modal = bootstrap.Modal.getInstance(document.getElementById('productDetailModal'));
+                if (modal) modal.hide();
+            };
+
+            new bootstrap.Modal(document.getElementById('productDetailModal')).show();
+        }
+
+        function changeModalQty(delta) {
+            const input = document.getElementById('modalQty');
+            let val = parseInt(input.value) || 1;
+            val += delta;
+            val = Math.max(1, Math.min(99, val));
+            input.value = val;
+        }
+
+        function addToCart(id, name, price, image, quantity = null) {
+            const qtyInput = document.getElementById('qty' + id);
+            let qty = quantity !== null ? parseInt(quantity) : parseInt(qtyInput?.value);
+
+            if (isNaN(qty) || qty < 1) {
+                qty = 1;
+            }
+            qty = Math.max(1, Math.min(99, qty));
+            let cart = [];
+
+            try {
+                cart = JSON.parse(localStorage.getItem("cart")) || [];
+            } catch (e) {
+                cart = [];
+            }
             let found = cart.find(i => i.product_id === id);
 
             if (found) {
-                found.quantity += qty;
+                found.quantity = Math.min(99, (parseInt(found.quantity) || 0) + qty);
                 showToast(` เพิ่ม ${name} อีก ${qty} ชิ้น ลงตะกร้าแล้ว`);
             } else {
                 cart.push({
@@ -1103,14 +1489,27 @@ ORDER BY product_id DESC
             pulseCartButton();
 
             // Reset quantity
-            document.getElementById('qty' + id).value = 1;
+            if (qtyInput) {
+                qtyInput.value = 1;
+            }
         }
 
         function updateCartCount() {
-            let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+            let cart = [];
+
+            try {
+                cart = JSON.parse(localStorage.getItem("cart")) || [];
+            } catch (e) {
+                cart = [];
+            }
+
             let total = cart.reduce((sum, i) => sum + i.quantity, 0);
+
             document.getElementById("cartCount").innerText = total;
-            document.getElementById("cartButton").style.display = total > 0 ? "flex" : "none";
+
+            document.getElementById("cartButton").style.display =
+                total > 0 ? "flex" : "none";
         }
 
         function pulseCartButton() {
@@ -1119,7 +1518,7 @@ ORDER BY product_id DESC
             setTimeout(() => btn.style.transform = 'scale(1)', 200);
         }
 
-        function filterProducts(type) {
+        function filterProducts(event, type) {
             const items = document.querySelectorAll('.product-item');
             const buttons = document.querySelectorAll('.pill-btn');
 
