@@ -997,10 +997,6 @@ if (
         <?php if (!$member_id): ?>
             <form method="GET" class="search-box">
 
-                <div class="search-icon">
-                    <i class="fas fa-search"></i>
-                </div>
-
                 <div class="search-fields">
 
                     <input
