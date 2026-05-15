@@ -1,6 +1,7 @@
 <?php
 require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
+require_once 'sidebar.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -476,1146 +477,1086 @@ foreach ($bookings as $b) {
         $stats['cancelled']++;
     }
 }
+$adminPageExtraHead = <<<HTML
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+HTML;
+adminPageStart('จัดการรายการจอง');
 ?>
-<!DOCTYPE html>
-<html lang="th">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>จัดการการจอง - ระบบ Admin</title>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 <style>
-        * {
-            box-sizing: border-box;
-        }
+    * {
+        box-sizing: border-box;
+    }
 
-        :root {
-            --primary: #4361ee;
-            --secondary: #3f37c9;
-            --success: #2ecc71;
-            --info: #36b9cc;
-            --warning: #f6c23e;
-            --danger: #e74a3b;
-            --light: #f8f9fa;
-            --dark: #212529;
-        }
+    :root {
+        --green: #016A70;
+        --green-dark: #01545a;
+        --green-light: #0d8a92;
+        --green-soft: rgba(1, 106, 112, 0.08);
 
-        body {
-            font-family: 'Kanit', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4e7f1 100%);
-            color: #333;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
+        --white: #ffffff;
+        --bg: #f4f8f9;
+        --bg-soft: #f8fafc;
 
-        /* Responsive Sidebar */
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-                transition: transform 0.3s ease;
-                position: fixed;
-                z-index: 1050;
-                width: 280px !important;
-                height: 100vh;
-                overflow-y: auto;
-            }
+        --text: #0f172a;
+        --text-soft: #64748b;
 
-            .sidebar.show {
-                transform: translateX(0);
-            }
+        --border: #e2e8f0;
 
-            .main-content {
-                margin-left: 0 !important;
-                width: 100% !important;
-            }
+        --danger: #ef4444;
 
-            .sidebar-toggle-btn {
-                display: block !important;
-            }
-        }
+        --shadow-sm: 0 4px 12px rgba(15, 23, 42, 0.04);
+        --shadow-md: 0 12px 30px rgba(15, 23, 42, 0.08);
+        --shadow-lg: 0 20px 45px rgba(15, 23, 42, 0.10);
 
-        @media (min-width: 769px) {
-            .sidebar-toggle-btn {
-                display: none;
-            }
+        --radius-lg: 28px;
+        --radius-md: 20px;
+        --radius-sm: 14px;
+    }
 
-            .sidebar {
-                transform: translateX(0) !important;
-            }
-        }
+    .page-content.booking-list-page {
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbfb 100%);
+        color: var(--text);
+    }
 
-        .sidebar-toggle-btn {
-            position: fixed;
-            top: 15px;
-            left: 15px;
-            z-index: 1060;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 12px;
-            cursor: pointer;
-        }
+    .booking-list-shell {
+        width: 100%;
+    }
 
-        .main-content {
-            transition: margin-left 0.3s ease;
-            width: 100%;
-        }
+    .modern-sidebar .nav {
+        display: flex;
+        flex-direction: column;
+        flex-wrap: nowrap;
+        gap: 10px;
+        flex: 1;
+        padding-left: 0;
+        margin-bottom: 0;
+        list-style: none;
+    }
 
+    .modern-sidebar .nav-link {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 15px 18px;
+        border-radius: 18px;
+        color: var(--text-soft);
+        text-decoration: none;
+        font-size: 15px;
+        font-weight: 500;
+        transition: .25s ease;
+        overflow: hidden;
+    }
+
+    .modern-sidebar .nav-link.active {
+        background: var(--green);
+        color: var(--white);
+        box-shadow: 0 10px 24px rgba(1, 106, 112, .18);
+    }
+
+    .dashboard-header {
+        background: linear-gradient(120deg, var(--green), var(--green-dark));
+        color: white;
+        padding: 1rem;
+        box-shadow: 0 4px 12px rgba(1, 106, 112, 0.18);
+        border-radius: 50px;
+        margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 576px) {
         .dashboard-header {
-            background: linear-gradient(120deg, var(--primary), var(--secondary));
-            color: white;
-            padding: 1rem;
-            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
-            border-radius: 50px;
-            margin-bottom: 1.5rem;
+            border-radius: 20px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
         }
 
-        @media (max-width: 576px) {
-            .dashboard-header {
-                border-radius: 20px;
-                padding: 0.75rem;
-                margin-bottom: 1rem;
-            }
-
-            .dashboard-title {
-                font-size: 1.25rem;
-            }
+        .dashboard-title {
+            font-size: 1.25rem;
         }
+    }
 
+    .admin-profile {
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+    }
+
+    @media (max-width: 576px) {
         .admin-profile {
-            display: flex;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            padding: 0.5rem 1rem;
-            border-radius: 50px;
+            padding: 0.3rem 0.8rem;
         }
 
-        @media (max-width: 576px) {
-            .admin-profile {
-                padding: 0.3rem 0.8rem;
-            }
-
-            .admin-profile span {
-                font-size: 0.85rem;
-            }
-        }
-
-        .admin-profile img {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            margin-right: 10px;
-            border: 2px solid rgba(255, 255, 255, 0.5);
-        }
-
-        @media (max-width: 576px) {
-            .admin-profile img {
-                width: 28px;
-                height: 28px;
-            }
-        }
-
-        .booking-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-            overflow: hidden;
-            margin-bottom: 1.5rem;
-            border: none;
-            position: relative;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .booking-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        .booking-card::after {
-            content: "";
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-        }
-
-        .booking-card-header {
-            padding: 1rem 1.5rem;
-            background: linear-gradient(90deg, rgba(67, 97, 238, 0.05), transparent);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-
-        @media (max-width: 576px) {
-            .booking-card-header {
-                padding: 0.75rem 1rem;
-            }
-
-            .booking-card .p-4 {
-                padding: 1rem !important;
-            }
-        }
-
-        .status-badge {
-            padding: 0.35rem 0.8rem;
-            border-radius: 50px;
-            font-weight: 500;
+        .admin-profile span {
             font-size: 0.85rem;
-            white-space: nowrap;
+        }
+    }
+
+    .admin-profile img {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        margin-right: 10px;
+        border: 2px solid rgba(255, 255, 255, 0.5);
+    }
+
+    @media (max-width: 576px) {
+        .admin-profile img {
+            width: 28px;
+            height: 28px;
+        }
+    }
+
+    .booking-card {
+        background: var(--white);
+        border-radius: 16px;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.3s ease;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+        border: none;
+        position: relative;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .booking-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .booking-card::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, rgba(1, 106, 112, 0.18), rgba(13, 138, 146, 0.18));
+    }
+
+    .booking-card-header {
+        padding: 1rem 1.5rem;
+        background: linear-gradient(90deg, rgba(1, 106, 112, 0.05), transparent);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    @media (max-width: 576px) {
+        .booking-card-header {
+            padding: 0.75rem 1rem;
         }
 
-        @media (max-width: 576px) {
-            .status-badge {
-                font-size: 0.75rem;
-                padding: 0.25rem 0.6rem;
-            }
+        .booking-card .p-4 {
+            padding: 1rem !important;
         }
+    }
 
-        .status-pending {
-            background: rgba(246, 194, 62, 0.15);
-            color: #d39e00;
+    .status-badge {
+        padding: 0.35rem 0.8rem;
+        border-radius: 50px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 576px) {
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.6rem;
         }
+    }
 
-        .status-รอตรวจสอบสลิป {
-            background: rgba(54, 89, 226, 0.15);
-            color: #3659e2;
-        }
+    .status-pending {
+        background: rgba(245, 158, 11, 0.14);
+        color: #92400e;
+    }
 
-        .status-awaiting_payment {
-            background: rgba(253, 126, 20, 0.15);
-            color: #fd7e14;
-        }
+    .status-รอตรวจสอบสลิป {
+        background: rgba(59, 130, 246, 0.12);
+        color: #1d4ed8;
+    }
 
-        .status-confirmed {
-            background: rgba(46, 204, 113, 0.15);
-            color: #27ae60;
-        }
+    .status-awaiting_payment {
+        background: rgba(59, 130, 246, 0.12);
+        color: #1d4ed8;
+    }
 
-        .status-cancelled {
-            background: rgba(231, 76, 60, 0.15);
-            color: #c0392b;
-        }
+    .status-confirmed {
+        background: rgba(22, 163, 74, 0.12);
+        color: #166534;
+    }
 
+    .status-cancelled {
+        background: rgba(239, 68, 68, 0.12);
+        color: #991b1b;
+    }
+
+    .info-label {
+        font-weight: 500;
+        color: #6c757d;
+        min-width: 90px;
+        display: inline-block;
+        font-size: 0.9rem;
+    }
+
+    @media (max-width: 576px) {
         .info-label {
-            font-weight: 500;
-            color: #6c757d;
-            min-width: 90px;
-            display: inline-block;
-            font-size: 0.9rem;
-        }
-
-        @media (max-width: 576px) {
-            .info-label {
-                min-width: 70px;
-                font-size: 0.85rem;
-            }
-
-            .info-value {
-                font-size: 0.85rem;
-            }
+            min-width: 70px;
+            font-size: 0.85rem;
         }
 
         .info-value {
-            color: #2d3436;
-            font-weight: 400;
-        }
-
-        .action-btn {
-            border-radius: 50px;
-            padding: 0.5rem 1rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            border: none;
             font-size: 0.85rem;
-            display: inline-flex;
-            align-items: center;
-            white-space: nowrap;
+        }
+    }
+
+    .info-value {
+        color: #2d3436;
+        font-weight: 400;
+    }
+
+    .action-btn {
+        border-radius: 50px;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        border: none;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 576px) {
+        .action-btn {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.75rem;
         }
 
-        @media (max-width: 576px) {
-            .action-btn {
-                padding: 0.4rem 0.8rem;
-                font-size: 0.75rem;
-            }
-
-            .action-btn i {
-                font-size: 0.75rem;
-            }
+        .action-btn i {
+            font-size: 0.75rem;
         }
+    }
 
-        .btn-confirm {
-            background: rgba(46, 204, 113, 0.1);
-            color: #27ae60;
-        }
+    .btn-confirm {
+        background: rgba(46, 204, 113, 0.1);
+        color: #27ae60;
+    }
 
-        .btn-confirm:hover {
-            background: #27ae60;
-            color: white;
-        }
+    .btn-confirm:hover {
+        background: #27ae60;
+        color: white;
+    }
 
-        .btn-cancel {
-            background: rgba(231, 76, 60, 0.1);
-            color: #c0392b;
-        }
+    .btn-cancel {
+        background: rgba(231, 76, 60, 0.1);
+        color: #c0392b;
+    }
 
-        .btn-cancel:hover {
-            background: #c0392b;
-            color: white;
-        }
+    .btn-cancel:hover {
+        background: #c0392b;
+        color: white;
+    }
 
-        .btn-info {
-            background: rgba(54, 185, 204, 0.1);
-            color: #36b9cc;
-        }
+    .btn-info {
+        background: rgba(54, 185, 204, 0.1);
+        color: #36b9cc;
+    }
 
-        .btn-info:hover {
-            background: #36b9cc;
-            color: white;
-        }
+    .btn-info:hover {
+        background: #36b9cc;
+        color: white;
+    }
 
+    .stats-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+        padding: 1.25rem;
+        text-align: center;
+        margin-bottom: 1rem;
+        border: none;
+        height: 100%;
+    }
+
+    @media (max-width: 576px) {
         .stats-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
-            padding: 1.25rem;
-            text-align: center;
-            margin-bottom: 1rem;
-            border: none;
-            height: 100%;
-        }
-
-        @media (max-width: 576px) {
-            .stats-card {
-                padding: 0.75rem;
-            }
-
-            .stats-value {
-                font-size: 1.25rem !important;
-            }
-
-            .stats-icon {
-                font-size: 1.5rem !important;
-            }
-
-            .stats-card .text-muted {
-                font-size: 0.75rem;
-            }
-        }
-
-        .stats-icon {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
+            padding: 0.75rem;
         }
 
         .stats-value {
-            font-size: 1.5rem;
-            font-weight: 700;
+            font-size: 1.25rem !important;
         }
 
+        .stats-icon {
+            font-size: 1.5rem !important;
+        }
+
+        .stats-card .text-muted {
+            font-size: 0.75rem;
+        }
+    }
+
+    .stats-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .stats-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    .slip-image-container {
+        height: 150px;
+        background-color: #f0f2f5;
+        border-radius: 8px;
+    }
+
+    @media (max-width: 576px) {
         .slip-image-container {
-            height: 150px;
-            background-color: #f0f2f5;
-            border-radius: 8px;
+            height: 120px;
         }
+    }
 
-        @media (max-width: 576px) {
-            .slip-image-container {
-                height: 120px;
-            }
-        }
+    /* Filter Buttons - Responsive */
+    .filter-btn-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+    }
 
-        /* Filter Buttons - Responsive */
+    @media (max-width: 768px) {
         .filter-btn-group {
-            display: flex;
-            flex-wrap: wrap;
             gap: 0.5rem;
-            justify-content: center;
         }
 
-        @media (max-width: 768px) {
-            .filter-btn-group {
-                gap: 0.5rem;
-            }
+        .filter-btn-group .btn {
+            font-size: 0.8rem;
+            padding: 0.4rem 0.8rem;
+            white-space: nowrap;
+        }
+    }
 
-            .filter-btn-group .btn {
-                font-size: 0.8rem;
-                padding: 0.4rem 0.8rem;
-                white-space: nowrap;
-            }
+    @media (max-width: 576px) {
+        .filter-btn-group .btn {
+            font-size: 0.7rem;
+            padding: 0.35rem 0.6rem;
         }
 
-        @media (max-width: 576px) {
-            .filter-btn-group .btn {
-                font-size: 0.7rem;
-                padding: 0.35rem 0.6rem;
-            }
-
-            .filter-btn-group .btn i {
-                font-size: 0.7rem;
-            }
-
-            .filter-btn-group .badge {
-                font-size: 0.65rem;
-            }
+        .filter-btn-group .btn i {
+            font-size: 0.7rem;
         }
 
-        /* Responsive Grid */
-        @media (max-width: 1200px) {
-            .booking-item-col {
-                flex: 0 0 50%;
-                max-width: 50%;
-            }
+        .filter-btn-group .badge {
+            font-size: 0.65rem;
+        }
+    }
+
+    /* Responsive Grid */
+    @media (max-width: 1200px) {
+        .booking-item-col {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .booking-item-col {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+    }
+
+    /* Modal Responsive */
+    @media (max-width: 576px) {
+        .modal-dialog {
+            margin: 0.5rem;
         }
 
-        @media (max-width: 768px) {
-            .booking-item-col {
-                flex: 0 0 100%;
-                max-width: 100%;
-            }
+        .modal-body {
+            padding: 1rem !important;
         }
 
-        /* Modal Responsive */
-        @media (max-width: 576px) {
-            .modal-dialog {
-                margin: 0.5rem;
-            }
+        .modal-header h5 {
+            font-size: 1rem;
+        }
+    }
 
-            .modal-body {
-                padding: 1rem !important;
-            }
-
-            .modal-header h5 {
-                font-size: 1rem;
-            }
+    /* Form Responsive */
+    @media (max-width: 576px) {
+        .input-group {
+            flex-direction: column;
         }
 
-        /* Form Responsive */
-        @media (max-width: 576px) {
-            .input-group {
-                flex-direction: column;
-            }
-
-            .input-group-text {
-                border-radius: 8px 8px 0 0 !important;
-            }
-
-            .form-control-lg {
-                border-radius: 0 0 8px 8px !important;
-                font-size: 0.9rem;
-            }
+        .input-group-text {
+            border-radius: 8px 8px 0 0 !important;
         }
 
-        /* File Upload Area Responsive */
+        .form-control-lg {
+            border-radius: 0 0 8px 8px !important;
+            font-size: 0.9rem;
+        }
+    }
+
+    /* File Upload Area Responsive */
+    .file-upload-area-modern {
+        border: 2px dashed #dee2e6;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        background-color: #f8fafc;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    @media (max-width: 576px) {
         .file-upload-area-modern {
-            border: 2px dashed #dee2e6;
-            border-radius: 12px;
-            padding: 1.5rem;
-            text-align: center;
-            background-color: #f8fafc;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        @media (max-width: 576px) {
-            .file-upload-area-modern {
-                padding: 1rem;
-            }
-
-            .file-upload-icon {
-                font-size: 2rem !important;
-            }
-
-            .file-upload-area-modern div {
-                font-size: 0.85rem;
-            }
-        }
-
-        .file-upload-area-modern:hover,
-        .file-upload-area-modern.dragover {
-            border-color: var(--primary);
-            background-color: rgba(67, 97, 238, 0.05);
+            padding: 1rem;
         }
 
         .file-upload-icon {
-            font-size: 3rem;
-            color: var(--primary);
-            margin-bottom: 1rem;
+            font-size: 2rem !important;
         }
 
+        .file-upload-area-modern div {
+            font-size: 0.85rem;
+        }
+    }
+
+    .file-upload-area-modern:hover,
+    .file-upload-area-modern.dragover {
+        border-color: var(--primary);
+        background-color: rgba(67, 97, 238, 0.05);
+    }
+
+    .file-upload-icon {
+        font-size: 3rem;
+        color: var(--primary);
+        margin-bottom: 1rem;
+    }
+
+    .qr-preview-wrapper {
+        position: relative;
+        display: inline-block;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 0.5rem;
+        background-color: #f8fafc;
+        width: 100%;
+        max-width: 300px;
+    }
+
+    @media (max-width: 576px) {
         .qr-preview-wrapper {
-            position: relative;
-            display: inline-block;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 0.5rem;
-            background-color: #f8fafc;
-            width: 100%;
-            max-width: 300px;
+            max-width: 100%;
+        }
+    }
+
+    .qr-remove-btn {
+        position: absolute;
+        top: -12px;
+        right: -12px;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Loading Overlay */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.95);
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        backdrop-filter: blur(5px);
+    }
+
+    .loading-overlay.active {
+        display: flex;
+    }
+
+    /* Responsive Typography */
+    @media (max-width: 576px) {
+        h2 {
+            font-size: 1.25rem;
         }
 
-        @media (max-width: 576px) {
-            .qr-preview-wrapper {
-                max-width: 100%;
-            }
+        .text-muted {
+            font-size: 0.75rem;
         }
+    }
 
-        .qr-remove-btn {
-            position: absolute;
-            top: -12px;
-            right: -12px;
-            width: 28px;
-            height: 28px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    /* Container padding adjustment */
+    @media (max-width: 768px) {
+        .p-4 {
+            padding: 1rem !important;
         }
+    }
 
-        /* Loading Overlay */
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(255, 255, 255, 0.95);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            backdrop-filter: blur(5px);
-        }
+    /* Success Checkmark Animation */
+    .success-checkmark {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto;
+        margin-bottom: 20px;
+    }
 
-        .loading-overlay.active {
-            display: flex;
-        }
-
-        /* Responsive Typography */
-        @media (max-width: 576px) {
-            h2 {
-                font-size: 1.25rem;
-            }
-
-            .text-muted {
-                font-size: 0.75rem;
-            }
-        }
-
-        /* Container padding adjustment */
-        @media (max-width: 768px) {
-            .p-4 {
-                padding: 1rem !important;
-            }
-        }
-
-        /* Success Checkmark Animation */
+    @media (max-width: 576px) {
         .success-checkmark {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto;
-            margin-bottom: 20px;
+            width: 60px;
+            height: 60px;
         }
+    }
 
-        @media (max-width: 576px) {
-            .success-checkmark {
-                width: 60px;
-                height: 60px;
-            }
-        }
+    .success-checkmark .check-icon {
+        width: 80px;
+        height: 80px;
+        position: relative;
+        border-radius: 50%;
+        box-sizing: content-box;
+        border: 4px solid var(--success);
+    }
 
+    @media (max-width: 576px) {
         .success-checkmark .check-icon {
-            width: 80px;
-            height: 80px;
-            position: relative;
-            border-radius: 50%;
-            box-sizing: content-box;
-            border: 4px solid var(--success);
+            width: 60px;
+            height: 60px;
+        }
+    }
+
+    .success-checkmark .check-icon .icon-line.line-tip {
+        top: 46px;
+        left: 14px;
+        width: 25px;
+        transform: rotate(45deg);
+        animation: icon-line-tip 0.75s;
+    }
+
+    .success-checkmark .check-icon .icon-line.line-long {
+        top: 38px;
+        right: 8px;
+        width: 47px;
+        transform: rotate(-45deg);
+        animation: icon-line-long 0.75s;
+    }
+
+    @keyframes icon-line-tip {
+        0% {
+            width: 0;
+            left: 1px;
+            top: 19px;
         }
 
-        @media (max-width: 576px) {
-            .success-checkmark .check-icon {
-                width: 60px;
-                height: 60px;
-            }
+        54% {
+            width: 0;
+            left: 1px;
+            top: 19px;
         }
 
-        .success-checkmark .check-icon .icon-line.line-tip {
-            top: 46px;
-            left: 14px;
+        70% {
+            width: 50px;
+            left: -8px;
+            top: 37px;
+        }
+
+        84% {
+            width: 17px;
+            left: 21px;
+            top: 48px;
+        }
+
+        100% {
             width: 25px;
-            transform: rotate(45deg);
-            animation: icon-line-tip 0.75s;
+            left: 14px;
+            top: 45px;
+        }
+    }
+
+    @keyframes icon-line-long {
+        0% {
+            width: 0;
+            right: 46px;
+            top: 54px;
         }
 
-        .success-checkmark .check-icon .icon-line.line-long {
-            top: 38px;
-            right: 8px;
+        65% {
+            width: 0;
+            right: 46px;
+            top: 54px;
+        }
+
+        84% {
+            width: 55px;
+            right: 0px;
+            top: 35px;
+        }
+
+        100% {
             width: 47px;
-            transform: rotate(-45deg);
-            animation: icon-line-long 0.75s;
+            right: 8px;
+            top: 38px;
         }
+    }
 
-        @keyframes icon-line-tip {
-            0% {
-                width: 0;
-                left: 1px;
-                top: 19px;
-            }
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
 
-            54% {
-                width: 0;
-                left: 1px;
-                top: 19px;
-            }
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
 
-            70% {
-                width: 50px;
-                left: -8px;
-                top: 37px;
-            }
+    ::-webkit-scrollbar-thumb {
+        background: var(--primary);
+        border-radius: 10px;
+    }
 
-            84% {
-                width: 17px;
-                left: 21px;
-                top: 48px;
-            }
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--secondary);
+    }
+</style>
+<script>
+    document.querySelector('.page-content')?.classList.add('booking-list-page');
+</script>
 
-            100% {
-                width: 25px;
-                left: 14px;
-                top: 45px;
-            }
-        }
+<div class="booking-list-shell">
+    
 
-        @keyframes icon-line-long {
-            0% {
-                width: 0;
-                right: 46px;
-                top: 54px;
-            }
-
-            65% {
-                width: 0;
-                right: 46px;
-                top: 54px;
-            }
-
-            84% {
-                width: 55px;
-                right: 0px;
-                top: 35px;
-            }
-
-            100% {
-                width: 47px;
-                right: 8px;
-                top: 38px;
-            }
-        }
-
-        /* Scrollbar Styling */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary);
-            border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--secondary);
-        }
-    </style>
-</head>
-
-<body>
-    <!-- Sidebar Toggle Button for Mobile -->
-    <button class="sidebar-toggle-btn" onclick="toggleSidebar()">
-        <i class="bi bi-list fs-4"></i>
-    </button>
-
-    <?php include 'sidebar.php'; ?>
-
-    <div class="main-content" style="margin-left: 250px; flex: 1; width: calc(100% - 250px);">
-        <div class="p-3 p-md-4">
-            <!-- Header -->
-            <header class="dashboard-header pb-3 pb-md-4 mb-3 mb-md-4">
-                <div class="container-fluid">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap">
-                        <div>
-                            <h2 class="dashboard-title mb-0">จัดการรายการจอง</h2>
-                        </div>
-                        <div class="d-flex align-items-center gap-3 mt-2 mt-md-0">
-                            <div class="admin-profile">
-                                <img src="https://ui-avatars.com/api/?name=<?= urlencode($admin_name) ?>&background=random&color=fff" alt="Admin">
-                                <span><?= htmlspecialchars($admin_name) ?></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Stats -->
-            <div class="row g-2 g-md-3 mb-3 mb-md-4">
-                <div class="col-6 col-sm-3">
-                    <div class="stats-card">
-                        <div class="stats-icon text-primary"><i class="bi bi-list-ul"></i></div>
-                        <div class="stats-value"><?= $stats['total'] ?></div>
-                        <div class="text-muted">ทั้งหมด</div>
-                    </div>
-                </div>
-                <div class="col-6 col-sm-3">
-                    <div class="stats-card">
-                        <div class="stats-icon text-warning"><i class="bi bi-clock-history"></i></div>
-                        <div class="stats-value"><?= $stats['pending'] + $stats['awaiting_payment'] + $stats['awaiting_slip_check'] ?></div>
-                        <div class="text-muted">รอยืนยัน</div>
-                    </div>
-                </div>
-                <div class="col-6 col-sm-3">
-                    <div class="stats-card">
-                        <div class="stats-icon text-success"><i class="bi bi-check-circle"></i></div>
-                        <div class="stats-value"><?= $stats['confirmed'] ?></div>
-                        <div class="text-muted">ยืนยันแล้ว</div>
-                    </div>
-                </div>
-                <div class="col-6 col-sm-3">
-                    <div class="stats-card">
-                        <div class="stats-icon text-danger"><i class="bi bi-x-circle"></i></div>
-                        <div class="stats-value"><?= $stats['cancelled'] ?></div>
-                        <div class="text-muted">ยกเลิกแล้ว</div>
-                    </div>
-                </div>
+    <!-- Stats -->
+    <div class="row g-2 g-md-3 mb-3 mb-md-4">
+        <div class="col-6 col-sm-3">
+            <div class="stats-card">
+                <div class="stats-icon text-primary"><i class="bi bi-list-ul"></i></div>
+                <div class="stats-value"><?= $stats['total'] ?></div>
+                <div class="text-muted">ทั้งหมด</div>
             </div>
-
-            <!-- Filter Buttons -->
-            <div class="mb-3 mb-md-4 text-center py-2 py-md-3 bg-white rounded-3 shadow-sm">
-                <div class="filter-btn-group" role="group">
-                    <button type="button" class="btn btn-light filter-btn active" data-filter="all">
-                        <i class="bi bi-collection me-1"></i> ทั้งหมด
-                        <span class="badge rounded-pill bg-secondary ms-1"><?= $stats['total'] ?></span>
-                    </button>
-                    <button type="button" class="btn btn-light filter-btn" data-filter="pending">
-                        <i class="bi bi-hourglass-split me-1"></i> รอยืนยัน
-                        <?php if ($stats['pending'] > 0): ?>
-                            <span class="badge rounded-pill bg-warning text-dark ms-1"><?= $stats['pending'] ?></span>
-                        <?php endif; ?>
-                    </button>
-                    <button type="button" class="btn btn-light filter-btn" data-filter="awaiting_payment" title="แสดงรายการที่ส่ง QR Code ให้ลูกค้าแล้ว">
-                        <i class="bi bi-qr-code me-1"></i> ส่ง QR แล้ว
-                        <?php if ($stats['awaiting_payment'] > 0): ?>
-                            <span class="badge rounded-pill ms-1" style="background-color: #fd7e14; color: white;"><?= $stats['awaiting_payment'] ?></span>
-                        <?php endif; ?>
-                    </button>
-                    <button type="button" class="btn btn-light filter-btn" data-filter="รอตรวจสอบสลิป">
-                        <i class="bi bi-receipt me-1"></i> รอสลิป
-                        <?php if ($stats['awaiting_slip_check'] > 0): ?>
-                            <span class="badge rounded-pill bg-primary ms-1"><?= $stats['awaiting_slip_check'] ?></span>
-                        <?php endif; ?>
-                    </button>
-                    <button type="button" class="btn btn-light filter-btn" data-filter="confirmed">
-                        <i class="bi bi-check2-circle me-1"></i> ยืนยันแล้ว
-                        <?php if ($stats['confirmed'] > 0): ?>
-                            <span class="badge rounded-pill bg-success ms-1"><?= $stats['confirmed'] ?></span>
-                        <?php endif; ?>
-                    </button>
-                    <button type="button" class="btn btn-light filter-btn" data-filter="cancelled">
-                        <i class="bi bi-x-circle me-1"></i> ยกเลิกแล้ว
-                        <?php if ($stats['cancelled'] > 0): ?>
-                            <span class="badge rounded-pill bg-danger ms-1"><?= $stats['cancelled'] ?></span>
-                        <?php endif; ?>
-                    </button>
-                </div>
+        </div>
+        <div class="col-6 col-sm-3">
+            <div class="stats-card">
+                <div class="stats-icon text-warning"><i class="bi bi-clock-history"></i></div>
+                <div class="stats-value"><?= $stats['pending'] + $stats['awaiting_payment'] + $stats['awaiting_slip_check'] ?></div>
+                <div class="text-muted">รอยืนยัน</div>
             </div>
-
-            <!-- Search Input -->
-            <div class="mb-3 mb-md-4">
-                <div class="input-group">
-                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
-                    <input type="text" id="searchInput" class="form-control form-control-lg border-start-0" placeholder="ค้นหาด้วยชื่อ หรือรหัสอ้างอิง...">
-                </div>
+        </div>
+        <div class="col-6 col-sm-3">
+            <div class="stats-card">
+                <div class="stats-icon text-success"><i class="bi bi-check-circle"></i></div>
+                <div class="stats-value"><?= $stats['confirmed'] ?></div>
+                <div class="text-muted">ยืนยันแล้ว</div>
             </div>
+        </div>
+        <div class="col-6 col-sm-3">
+            <div class="stats-card">
+                <div class="stats-icon text-danger"><i class="bi bi-x-circle"></i></div>
+                <div class="stats-value"><?= $stats['cancelled'] ?></div>
+                <div class="text-muted">ยกเลิกแล้ว</div>
+            </div>
+        </div>
+    </div>
 
-            <!-- Booking List -->
-            <div class="row g-3" id="bookingList">
-                <?php if (empty($bookings)): ?>
-                    <div class="col-12 text-center py-5">
-                        <i class="bi bi-inbox fs-1 text-muted"></i>
-                        <p class="mt-3 text-muted">ไม่พบข้อมูลการจอง</p>
-                    </div>
-                <?php else: ?>
-                    <div class="col-12 text-center py-5 d-none" id="noResultsMessage">
-                        <i class="bi bi-search fs-1 text-muted"></i>
-                        <p class="mt-3 text-muted">ไม่พบรายการที่ตรงกับการค้นหา</p>
-                    </div>
-                    <?php foreach ($bookings as $booking): ?>
-                        <div class="col-md-6 col-lg-4 booking-item-col">
-                            <div class="booking-card">
-                                <div class="booking-card-header">
-                                    <span class="fw-bold text-primary booking-code">#<?= htmlspecialchars($booking['booking_code']) ?></span>
-                                    <?php
-                                    $isAwaitingSlipCheck = (($booking['status'] == 'pending' || $booking['status'] == 'awaiting_payment') && !empty($booking['payment_slip']));
-
-                                    $display_status_text = '';
-                                    $display_status_class = $booking['status'];
-                                    $display_status_icon = 'bi-question-circle';
-
-                                    if ($isAwaitingSlipCheck) {
-                                        $display_status_text = 'รอตรวจสอบสลิป';
-                                        $display_status_class = 'รอตรวจสอบสลิป';
-                                        $display_status_icon = 'bi-receipt';
-                                    } elseif ($booking['status'] == 'pending') {
-                                        $display_status_text = 'รอยืนยัน';
-                                        $display_status_icon = 'bi-hourglass-split';
-                                    } elseif ($booking['status'] == 'awaiting_payment') {
-                                        $display_status_text = 'ส่ง QR แล้ว';
-                                        $display_status_icon = 'bi-qr-code';
-                                    } elseif ($booking['status'] == 'confirmed') {
-                                        $display_status_text = 'ยืนยันแล้ว';
-                                        $display_status_icon = 'bi-check-circle-fill';
-                                    } elseif ($booking['status'] == 'cancelled') {
-                                        $display_status_text = 'ยกเลิกแล้ว';
-                                        $display_status_icon = 'bi-x-circle-fill';
-                                    } else {
-                                        $display_status_text = htmlspecialchars($booking['status']);
-                                    }
-                                    ?>
-                                    <span class="status-badge status-<?= $display_status_class ?>">
-                                        <i class="bi <?= $display_status_icon ?> me-1"></i> <?= $display_status_text ?>
-                                    </span>
-                                </div>
-                                <div class="p-4">
-                                    <div class="mb-2">
-                                        <span class="info-label"><i class="bi bi-person me-2"></i>ลูกค้า:</span>
-                                        <span class="info-value guest-name"><?= htmlspecialchars($booking['guest_name']) ?></span>
-                                    </div>
-                                    <div class="mb-2">
-                                        <span class="info-label"><i class="bi bi-calendar-event me-2"></i>วันที่:</span>
-                                        <span class="info-value"><?= date('d/m/Y', strtotime($booking['booking_date'])) ?></span>
-                                    </div>
-                                    <div class="mb-2">
-                                        <span class="info-label"><i class="bi bi-clock me-2"></i>เวลา:</span>
-                                        <span class="info-value"><?= date('H:i', strtotime($booking['booking_time'])) ?> น.</span>
-                                    </div>
-                                    <div class="mb-2">
-                                        <span class="info-label"><i class="bi bi-people me-2"></i>จำนวน:</span>
-                                        <span class="info-value"><?= $booking['visitor_count'] ?> ท่าน</span>
-                                    </div>
-                                    <div class="mb-3">
-                                        <span class="info-label"><i class="bi bi-currency-dollar me-2"></i>ยอดรวม:</span>
-                                        <span class="info-value fw-bold text-dark">฿<?= number_format($booking['price_total'], 2) ?></span>
-                                    </div>
-
-                                    <div class="mb-3">
-                                        <span class="info-label d-block mb-2"><i class="bi bi-receipt me-2"></i>สลิป:</span>
-                                        <?php if (!empty($booking['payment_slip'])): ?>
-                                            <a href="../user/Paymentslip-Gardenreservation/<?= htmlspecialchars($booking['payment_slip']) ?>" target="_blank">
-                                                <img src="../user/Paymentslip-Gardenreservation/<?= htmlspecialchars($booking['payment_slip']) ?>" class="img-fluid rounded" style="width: 100%; height: 150px; object-fit: cover;" alt="Payment Slip">
-                                            </a>
-                                        <?php else: ?>
-                                            <div class="slip-image-container d-flex align-items-center justify-content-center text-muted">
-                                                <div class="text-center">
-                                                    <i class="bi bi-image fs-3"></i><br>ไม่มีสลิป
-                                                </div>
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
-
-                                    <hr class="my-3 opacity-50">
-
-                                    <div class="d-flex gap-2 justify-content-end flex-wrap">
-                                        <?php if ($booking['status'] == 'pending' && !$isAwaitingSlipCheck): ?>
-                                            <button class="action-btn btn-info" onclick="showQrCodeModal(<?= $booking['bookings_id'] ?>, '<?= htmlspecialchars(json_encode($booking), ENT_QUOTES, 'UTF-8') ?>')">
-                                                <i class="bi bi-qr-code me-1"></i> ส่ง QR
-                                            </button>
-                                        <?php endif; ?>
-
-                                        <?php if ($isAwaitingSlipCheck): ?>
-                                            <button class="action-btn btn-confirm" onclick="showConfirmationModal(<?= $booking['bookings_id'] ?>, 'confirm', 'ยืนยันการจองนี้ใช่หรือไม่?')">
-                                                <i class="bi bi-check2-circle me-1"></i> ยืนยัน
-                                            </button>
-                                        <?php endif; ?>
-
-                                        <?php if ($booking['status'] != 'confirmed' && $booking['status'] != 'cancelled'): ?>
-                                            <button class="action-btn btn-cancel" onclick="showConfirmationModal(<?= $booking['bookings_id'] ?>, 'cancel', 'ต้องการยกเลิกการจองนี้ใช่หรือไม่?')">
-                                                <i class="bi bi-x-lg me-1"></i> ยกเลิก
-                                            </button>
-                                        <?php endif; ?>
-                                        <button class="btn btn-light rounded-pill px-3" onclick="viewDetails(<?= htmlspecialchars(json_encode($booking)) ?>)">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
+    <!-- Filter Buttons -->
+    <div class="mb-3 mb-md-4 text-center py-2 py-md-3 bg-white rounded-3 shadow-sm">
+        <div class="filter-btn-group" role="group">
+            <button type="button" class="btn btn-light filter-btn active" data-filter="all">
+                <i class="bi bi-collection me-1"></i> ทั้งหมด
+                <span class="badge rounded-pill bg-secondary ms-1"><?= $stats['total'] ?></span>
+            </button>
+            <button type="button" class="btn btn-light filter-btn" data-filter="pending">
+                <i class="bi bi-hourglass-split me-1"></i> รอยืนยัน
+                <?php if ($stats['pending'] > 0): ?>
+                    <span class="badge rounded-pill bg-warning text-dark ms-1"><?= $stats['pending'] ?></span>
                 <?php endif; ?>
-            </div>
+            </button>
+            <button type="button" class="btn btn-light filter-btn" data-filter="awaiting_payment" title="แสดงรายการที่ส่ง QR Code ให้ลูกค้าแล้ว">
+                <i class="bi bi-qr-code me-1"></i> ส่ง QR แล้ว
+                <?php if ($stats['awaiting_payment'] > 0): ?>
+                    <span class="badge rounded-pill ms-1" style="background-color: #fd7e14; color: white;"><?= $stats['awaiting_payment'] ?></span>
+                <?php endif; ?>
+            </button>
+            <button type="button" class="btn btn-light filter-btn" data-filter="รอตรวจสอบสลิป">
+                <i class="bi bi-receipt me-1"></i> รอสลิป
+                <?php if ($stats['awaiting_slip_check'] > 0): ?>
+                    <span class="badge rounded-pill bg-primary ms-1"><?= $stats['awaiting_slip_check'] ?></span>
+                <?php endif; ?>
+            </button>
+            <button type="button" class="btn btn-light filter-btn" data-filter="confirmed">
+                <i class="bi bi-check2-circle me-1"></i> ยืนยันแล้ว
+                <?php if ($stats['confirmed'] > 0): ?>
+                    <span class="badge rounded-pill bg-success ms-1"><?= $stats['confirmed'] ?></span>
+                <?php endif; ?>
+            </button>
+            <button type="button" class="btn btn-light filter-btn" data-filter="cancelled">
+                <i class="bi bi-x-circle me-1"></i> ยกเลิกแล้ว
+                <?php if ($stats['cancelled'] > 0): ?>
+                    <span class="badge rounded-pill bg-danger ms-1"><?= $stats['cancelled'] ?></span>
+                <?php endif; ?>
+            </button>
         </div>
     </div>
 
-    <!-- Modals (same as before) -->
-    <div class="modal fade" id="detailModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header border-0 bg-light">
-                    <h5 class="modal-title fw-bold">รายละเอียดการจอง</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div id="modalBody" class="modal-body p-4"></div>
-            </div>
+    <!-- Search Input -->
+    <div class="mb-3 mb-md-4">
+        <div class="input-group">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+            <input type="text" id="searchInput" class="form-control form-control-lg border-start-0" placeholder="ค้นหาด้วยชื่อ หรือรหัสอ้างอิง...">
         </div>
     </div>
 
-    <div class="modal fade" id="actionConfirmModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content rounded-4 border-0 shadow">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title" id="actionConfirmModalLabel">ยืนยันการดำเนินการ</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body py-4" id="actionConfirmModalBody"></div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="button" class="btn btn-primary" id="confirmActionButton">ยืนยัน</button>
-                </div>
+    <!-- Booking List -->
+    <div class="row g-3" id="bookingList">
+        <?php if (empty($bookings)): ?>
+            <div class="col-12 text-center py-5">
+                <i class="bi bi-inbox fs-1 text-muted"></i>
+                <p class="mt-3 text-muted">ไม่พบข้อมูลการจอง</p>
             </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="cancelReasonModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content rounded-4 border-0 shadow">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title" id="cancelReasonModalLabel">ระบุเหตุผลการยกเลิก</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <textarea id="cancellationReason" class="form-control" rows="4" placeholder="กรุณาระบุเหตุผล..."></textarea>
-                </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="button" class="btn btn-danger" id="confirmCancelButton">ยืนยันการยกเลิก</button>
-                </div>
+        <?php else: ?>
+            <div class="col-12 text-center py-5 d-none" id="noResultsMessage">
+                <i class="bi bi-search fs-1 text-muted"></i>
+                <p class="mt-3 text-muted">ไม่พบรายการที่ตรงกับการค้นหา</p>
             </div>
-        </div>
-    </div>
+            <?php foreach ($bookings as $booking): ?>
+                <div class="col-md-6 col-lg-4 booking-item-col">
+                    <div class="booking-card">
+                        <div class="booking-card-header">
+                            <span class="fw-bold text-primary booking-code">#<?= htmlspecialchars($booking['booking_code']) ?></span>
+                            <?php
+                            $isAwaitingSlipCheck = (($booking['status'] == 'pending' || $booking['status'] == 'awaiting_payment') && !empty($booking['payment_slip']));
 
-    <div class="modal fade" id="qrCodeModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content rounded-4 border-0 shadow">
-                <div class="modal-header border-0 bg-primary text-white">
-                    <h5 class="modal-title" id="qrCodeModalLabel"><i class="bi bi-qr-code me-2"></i>ส่ง QR Code สำหรับชำระเงิน</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="alert alert-light border-primary border-2 border-start">
-                        <p class="mb-1"><strong>การจอง:</strong> <span id="qrBookingCode" class="fw-bold"></span></p>
-                        <p class="mb-0"><strong>ยอดชำระมัดจำ:</strong> <span id="qrDepositAmount" class="fw-bold text-danger"></span> บาท</p>
-                    </div>
-                    <form id="qrCodeForm" class="mt-3">
-                        <input type="hidden" name="id" id="qrBookingId">
-                        <input type="hidden" name="action" value="send_qr">
-                        <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
-                        <div id="qrUploadArea" class="file-upload-area-modern">
-                            <div class="file-upload-icon"><i class="bi bi-cloud-arrow-up-fill"></i></div>
-                            <div>ลากไฟล์ QR Code มาวาง หรือคลิกเพื่อเลือก</div>
-                            <div class="text-muted small">รองรับ: JPG, PNG, GIF (ไม่เกิน 2MB)</div>
-                            <input class="d-none" type="file" id="qrCodeFile" name="qr_code_file" accept="image/png, image/jpeg, image/gif" required>
+                            $display_status_text = '';
+                            $display_status_class = $booking['status'];
+                            $display_status_icon = 'bi-question-circle';
+
+                            if ($isAwaitingSlipCheck) {
+                                $display_status_text = 'รอตรวจสอบสลิป';
+                                $display_status_class = 'รอตรวจสอบสลิป';
+                                $display_status_icon = 'bi-receipt';
+                            } elseif ($booking['status'] == 'pending') {
+                                $display_status_text = 'รอยืนยัน';
+                                $display_status_icon = 'bi-hourglass-split';
+                            } elseif ($booking['status'] == 'awaiting_payment') {
+                                $display_status_text = 'ส่ง QR แล้ว';
+                                $display_status_icon = 'bi-qr-code';
+                            } elseif ($booking['status'] == 'confirmed') {
+                                $display_status_text = 'ยืนยันแล้ว';
+                                $display_status_icon = 'bi-check-circle-fill';
+                            } elseif ($booking['status'] == 'cancelled') {
+                                $display_status_text = 'ยกเลิกแล้ว';
+                                $display_status_icon = 'bi-x-circle-fill';
+                            } else {
+                                $display_status_text = htmlspecialchars($booking['status']);
+                            }
+                            ?>
+                            <span class="status-badge status-<?= $display_status_class ?>">
+                                <i class="bi <?= $display_status_icon ?> me-1"></i> <?= $display_status_text ?>
+                            </span>
                         </div>
-                        <div id="qrPreviewContainer" class="text-center d-none">
-                            <div class="qr-preview-wrapper">
-                                <img id="qrPreview" src="#" alt="QR Code Preview" class="img-fluid rounded" style="max-height: 250px; object-fit: contain;">
-                                <button type="button" id="removeQrBtn" class="btn btn-danger btn-sm rounded-circle qr-remove-btn" title="ลบไฟล์"><i class="bi bi-x"></i></button>
+                        <div class="p-4">
+                            <div class="mb-2">
+                                <span class="info-label"><i class="bi bi-person me-2"></i>ลูกค้า:</span>
+                                <span class="info-value guest-name"><?= htmlspecialchars($booking['guest_name']) ?></span>
+                            </div>
+                            <div class="mb-2">
+                                <span class="info-label"><i class="bi bi-calendar-event me-2"></i>วันที่:</span>
+                                <span class="info-value"><?= date('d/m/Y', strtotime($booking['booking_date'])) ?></span>
+                            </div>
+                            <div class="mb-2">
+                                <span class="info-label"><i class="bi bi-clock me-2"></i>เวลา:</span>
+                                <span class="info-value"><?= date('H:i', strtotime($booking['booking_time'])) ?> น.</span>
+                            </div>
+                            <div class="mb-2">
+                                <span class="info-label"><i class="bi bi-people me-2"></i>จำนวน:</span>
+                                <span class="info-value"><?= $booking['visitor_count'] ?> ท่าน</span>
+                            </div>
+                            <div class="mb-3">
+                                <span class="info-label"><i class="bi bi-currency-dollar me-2"></i>ยอดรวม:</span>
+                                <span class="info-value fw-bold text-dark">฿<?= number_format($booking['price_total'], 2) ?></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <span class="info-label d-block mb-2"><i class="bi bi-receipt me-2"></i>สลิป:</span>
+                                <?php if (!empty($booking['payment_slip'])): ?>
+                                    <a href="../user/Paymentslip-Gardenreservation/<?= htmlspecialchars($booking['payment_slip']) ?>" target="_blank">
+                                        <img src="../user/Paymentslip-Gardenreservation/<?= htmlspecialchars($booking['payment_slip']) ?>" class="img-fluid rounded" style="width: 100%; height: 150px; object-fit: cover;" alt="Payment Slip">
+                                    </a>
+                                <?php else: ?>
+                                    <div class="slip-image-container d-flex align-items-center justify-content-center text-muted">
+                                        <div class="text-center">
+                                            <i class="bi bi-image fs-3"></i><br>ไม่มีสลิป
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <hr class="my-3 opacity-50">
+
+                            <div class="d-flex gap-2 justify-content-end flex-wrap">
+                                <?php if ($booking['status'] == 'pending' && !$isAwaitingSlipCheck): ?>
+                                    <button class="action-btn btn-info" onclick="showQrCodeModal(<?= $booking['bookings_id'] ?>, '<?= htmlspecialchars(json_encode($booking), ENT_QUOTES, 'UTF-8') ?>')">
+                                        <i class="bi bi-qr-code me-1"></i> ส่ง QR
+                                    </button>
+                                <?php endif; ?>
+
+                                <?php if ($isAwaitingSlipCheck): ?>
+                                    <button class="action-btn btn-confirm" onclick="showConfirmationModal(<?= $booking['bookings_id'] ?>, 'confirm', 'ยืนยันการจองนี้ใช่หรือไม่?')">
+                                        <i class="bi bi-check2-circle me-1"></i> ยืนยัน
+                                    </button>
+                                <?php endif; ?>
+
+                                <?php if ($booking['status'] != 'confirmed' && $booking['status'] != 'cancelled'): ?>
+                                    <button class="action-btn btn-cancel" onclick="showConfirmationModal(<?= $booking['bookings_id'] ?>, 'cancel', 'ต้องการยกเลิกการจองนี้ใช่หรือไม่?')">
+                                        <i class="bi bi-x-lg me-1"></i> ยกเลิก
+                                    </button>
+                                <?php endif; ?>
+                                <button class="btn btn-light rounded-pill px-3" onclick="viewDetails(<?= htmlspecialchars(json_encode($booking)) ?>)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
                             </div>
                         </div>
-                    </form>
+                    </div>
                 </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="button" class="btn btn-primary" id="sendQrButton">
-                        <span class="send-qr-text"><i class="bi bi-send me-2"></i>ส่งอีเมล</span>
-                        <span class="send-qr-loading d-none">
-                            <span class="spinner-border spinner-border-sm" role="status"></span>
-                            กำลังส่ง...
-                        </span>
-                    </button>
-                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- Modals (same as before) -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 bg-light">
+                <h5 class="modal-title fw-bold">รายละเอียดการจอง</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div id="modalBody" class="modal-body p-4"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="actionConfirmModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="actionConfirmModalLabel">ยืนยันการดำเนินการ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-4" id="actionConfirmModalBody"></div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" id="confirmActionButton">ยืนยัน</button>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="modal fade" id="statusModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content rounded-4 border-0 shadow">
-                <div class="modal-header border-0" id="statusModalHeader">
-                    <h5 class="modal-title" id="statusModalLabel"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body py-4 text-center">
-                    <div id="statusModalIcon" class="mb-3"></div>
-                    <p id="statusModalMessage" class="fs-5"></p>
-                </div>
-                <div class="modal-footer border-0 justify-content-center">
-                    <button type="button" class="btn btn-primary px-5" data-bs-dismiss="modal" id="statusModalOkButton">ตกลง</button>
-                </div>
+<div class="modal fade" id="cancelReasonModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="cancelReasonModalLabel">ระบุเหตุผลการยกเลิก</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <textarea id="cancellationReason" class="form-control" rows="4" placeholder="กรุณาระบุเหตุผล..."></textarea>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-danger" id="confirmCancelButton">ยืนยันการยกเลิก</button>
             </div>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Toggle sidebar for mobile
-        function toggleSidebar() {
-            const sidebar = document.querySelector('.sidebar');
-            sidebar.classList.toggle('show');
+<div class="modal fade" id="qrCodeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 bg-primary text-white">
+                <h5 class="modal-title" id="qrCodeModalLabel"><i class="bi bi-qr-code me-2"></i>ส่ง QR Code สำหรับชำระเงิน</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-light border-primary border-2 border-start">
+                    <p class="mb-1"><strong>การจอง:</strong> <span id="qrBookingCode" class="fw-bold"></span></p>
+                    <p class="mb-0"><strong>ยอดชำระมัดจำ:</strong> <span id="qrDepositAmount" class="fw-bold text-danger"></span> บาท</p>
+                </div>
+                <form id="qrCodeForm" class="mt-3">
+                    <input type="hidden" name="id" id="qrBookingId">
+                    <input type="hidden" name="action" value="send_qr">
+                    <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                    <div id="qrUploadArea" class="file-upload-area-modern">
+                        <div class="file-upload-icon"><i class="bi bi-cloud-arrow-up-fill"></i></div>
+                        <div>ลากไฟล์ QR Code มาวาง หรือคลิกเพื่อเลือก</div>
+                        <div class="text-muted small">รองรับ: JPG, PNG, GIF (ไม่เกิน 2MB)</div>
+                        <input class="d-none" type="file" id="qrCodeFile" name="qr_code_file" accept="image/png, image/jpeg, image/gif" required>
+                    </div>
+                    <div id="qrPreviewContainer" class="text-center d-none">
+                        <div class="qr-preview-wrapper">
+                            <img id="qrPreview" src="#" alt="QR Code Preview" class="img-fluid rounded" style="max-height: 250px; object-fit: contain;">
+                            <button type="button" id="removeQrBtn" class="btn btn-danger btn-sm rounded-circle qr-remove-btn" title="ลบไฟล์"><i class="bi bi-x"></i></button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" id="sendQrButton">
+                    <span class="send-qr-text"><i class="bi bi-send me-2"></i>ส่งอีเมล</span>
+                    <span class="send-qr-loading d-none">
+                        <span class="spinner-border spinner-border-sm" role="status"></span>
+                        กำลังส่ง...
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0" id="statusModalHeader">
+                <h5 class="modal-title" id="statusModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-4 text-center">
+                <div id="statusModalIcon" class="mb-3"></div>
+                <p id="statusModalMessage" class="fs-5"></p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center">
+                <button type="button" class="btn btn-primary px-5" data-bs-dismiss="modal" id="statusModalOkButton">ตกลง</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Initialize Bootstrap Modals
+    const confirmModalEl = document.getElementById('actionConfirmModal');
+    const confirmModal = new bootstrap.Modal(confirmModalEl);
+    const confirmActionButton = document.getElementById('confirmActionButton');
+    const statusModalEl = document.getElementById('statusModal');
+    const statusModal = new bootstrap.Modal(statusModalEl);
+    const detailModalEl = document.getElementById('detailModal');
+    const detailModal = new bootstrap.Modal(detailModalEl);
+    const qrCodeModalEl = document.getElementById('qrCodeModal');
+    const qrCodeModal = new bootstrap.Modal(qrCodeModalEl);
+
+    function handleBookingAction(id, action, reason = null) {
+        const formData = new FormData();
+        formData.append('id', id);
+        formData.append('action', action);
+        formData.append('csrf_token', '<?= $csrf_token ?>');
+        if (reason) {
+            formData.append('reason', reason);
         }
 
-        // Close sidebar when clicking outside on mobile
-        document.addEventListener('click', function(event) {
-            const sidebar = document.querySelector('.sidebar');
-            const toggleBtn = document.querySelector('.sidebar-toggle-btn');
-
-            if (window.innerWidth <= 768) {
-                if (!sidebar.contains(event.target) && !toggleBtn.contains(event.target) && sidebar.classList.contains('show')) {
-                    sidebar.classList.remove('show');
+        fetch('booking_list.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            }
-        });
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showStatusModal('สำเร็จ', 'ดำเนินการเรียบร้อยแล้ว', true, true);
+                    statusModalEl.addEventListener('hidden.bs.modal', () => {
+                        location.reload();
+                    }, {
+                        once: true
+                    });
+                } else {
+                    showStatusModal('เกิดข้อผิดพลาด', data.message || 'ไม่สามารถดำเนินการได้', false, false);
+                }
+            })
+            .catch(error => {
+                showStatusModal('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้', false, false);
+            });
+    }
 
-        // Handle window resize - reset sidebar state
-        window.addEventListener('resize', function() {
-            if (window.innerWidth > 768) {
-                const sidebar = document.querySelector('.sidebar');
-                sidebar.classList.remove('show');
-            }
-        });
+    function showConfirmationModal(id, action, message) {
+        const modalBody = document.getElementById('actionConfirmModalBody');
+        const modalLabel = document.getElementById('actionConfirmModalLabel');
 
-        // Initialize Bootstrap Modals
-        const confirmModalEl = document.getElementById('actionConfirmModal');
-        const confirmModal = new bootstrap.Modal(confirmModalEl);
-        const confirmActionButton = document.getElementById('confirmActionButton');
-        const statusModalEl = document.getElementById('statusModal');
-        const statusModal = new bootstrap.Modal(statusModalEl);
-        const detailModalEl = document.getElementById('detailModal');
-        const detailModal = new bootstrap.Modal(detailModalEl);
-        const qrCodeModalEl = document.getElementById('qrCodeModal');
-        const qrCodeModal = new bootstrap.Modal(qrCodeModalEl);
+        if (action === 'confirm') {
+            modalBody.textContent = message;
+            modalLabel.textContent = 'ยืนยันการจอง';
+            confirmActionButton.className = 'btn btn-success';
 
-        function handleBookingAction(id, action, reason = null) {
-            const formData = new FormData();
-            formData.append('id', id);
-            formData.append('action', action);
-            formData.append('csrf_token', '<?= $csrf_token ?>');
-            if (reason) {
-                formData.append('reason', reason);
-            }
+            confirmActionButton.onclick = () => {
+                confirmModal.hide();
+                handleBookingAction(id, action);
+            };
+            confirmModal.show();
+        } else if (action === 'cancel') {
+            const cancelReasonModalEl = document.getElementById('cancelReasonModal');
+            const cancelReasonModal = new bootstrap.Modal(cancelReasonModalEl);
+            const reasonTextarea = document.getElementById('cancellationReason');
+            const confirmCancelBtn = document.getElementById('confirmCancelButton');
 
-            fetch('booking_list.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        showStatusModal('สำเร็จ', 'ดำเนินการเรียบร้อยแล้ว', true, true);
-                        statusModalEl.addEventListener('hidden.bs.modal', () => {
-                            location.reload();
-                        }, {
-                            once: true
-                        });
-                    } else {
-                        showStatusModal('เกิดข้อผิดพลาด', data.message || 'ไม่สามารถดำเนินการได้', false, false);
-                    }
-                })
-                .catch(error => {
-                    showStatusModal('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้', false, false);
-                });
+            reasonTextarea.value = '';
+
+            confirmCancelBtn.onclick = () => {
+                const reason = reasonTextarea.value.trim();
+                if (!reason) {
+                    alert('กรุณาระบุเหตุผลในการยกเลิก');
+                    reasonTextarea.focus();
+                    return;
+                }
+                cancelReasonModal.hide();
+                handleBookingAction(id, 'cancel', reason);
+            };
+            cancelReasonModal.show();
         }
+    }
 
-        function showConfirmationModal(id, action, message) {
-            const modalBody = document.getElementById('actionConfirmModalBody');
-            const modalLabel = document.getElementById('actionConfirmModalLabel');
+    function showStatusModal(title, message, isSuccess = true, showCheckmark = false) {
+        const modalLabel = document.getElementById('statusModalLabel');
+        const modalMessage = document.getElementById('statusModalMessage');
+        const modalIcon = document.getElementById('statusModalIcon');
+        const modalHeader = document.getElementById('statusModalHeader');
+        const modalOkButton = document.getElementById('statusModalOkButton');
 
-            if (action === 'confirm') {
-                modalBody.textContent = message;
-                modalLabel.textContent = 'ยืนยันการจอง';
-                confirmActionButton.className = 'btn btn-success';
+        modalLabel.textContent = title;
+        modalMessage.textContent = message;
+        modalIcon.innerHTML = '';
 
-                confirmActionButton.onclick = () => {
-                    confirmModal.hide();
-                    handleBookingAction(id, action);
-                };
-                confirmModal.show();
-            } else if (action === 'cancel') {
-                const cancelReasonModalEl = document.getElementById('cancelReasonModal');
-                const cancelReasonModal = new bootstrap.Modal(cancelReasonModalEl);
-                const reasonTextarea = document.getElementById('cancellationReason');
-                const confirmCancelBtn = document.getElementById('confirmCancelButton');
-
-                reasonTextarea.value = '';
-
-                confirmCancelBtn.onclick = () => {
-                    const reason = reasonTextarea.value.trim();
-                    if (!reason) {
-                        alert('กรุณาระบุเหตุผลในการยกเลิก');
-                        reasonTextarea.focus();
-                        return;
-                    }
-                    cancelReasonModal.hide();
-                    handleBookingAction(id, 'cancel', reason);
-                };
-                cancelReasonModal.show();
-            }
-        }
-
-        function showStatusModal(title, message, isSuccess = true, showCheckmark = false) {
-            const modalLabel = document.getElementById('statusModalLabel');
-            const modalMessage = document.getElementById('statusModalMessage');
-            const modalIcon = document.getElementById('statusModalIcon');
-            const modalHeader = document.getElementById('statusModalHeader');
-            const modalOkButton = document.getElementById('statusModalOkButton');
-
-            modalLabel.textContent = title;
-            modalMessage.textContent = message;
-            modalIcon.innerHTML = '';
-
-            if (isSuccess === 'loading') {
-                modalHeader.classList.remove('bg-danger', 'text-white');
-                modalHeader.classList.add('bg-light');
-                modalIcon.innerHTML = `<div class="spinner-border text-primary" role="status" style="width: 4rem; height: 4rem;"><span class="visually-hidden">Loading...</span></div>`;
-                modalOkButton.style.display = 'none';
-            } else if (isSuccess) {
-                modalHeader.classList.remove('bg-danger', 'text-white');
-                modalHeader.classList.add('bg-light');
-                if (showCheckmark) {
-                    modalIcon.innerHTML = `
+        if (isSuccess === 'loading') {
+            modalHeader.classList.remove('bg-danger', 'text-white');
+            modalHeader.classList.add('bg-light');
+            modalIcon.innerHTML = `<div class="spinner-border text-primary" role="status" style="width: 4rem; height: 4rem;"><span class="visually-hidden">Loading...</span></div>`;
+            modalOkButton.style.display = 'none';
+        } else if (isSuccess) {
+            modalHeader.classList.remove('bg-danger', 'text-white');
+            modalHeader.classList.add('bg-light');
+            if (showCheckmark) {
+                modalIcon.innerHTML = `
                         <div class="success-checkmark">
                             <div class="check-icon">
                                 <span class="icon-line line-tip"></span>
@@ -1625,167 +1566,167 @@ foreach ($bookings as $b) {
                             </div>
                         </div>
                     `;
-                    modalOkButton.className = 'btn btn-success px-5';
-                } else {
-                    modalIcon.innerHTML = '<i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>';
-                    modalOkButton.className = 'btn btn-primary px-5';
-                }
+                modalOkButton.className = 'btn btn-success px-5';
             } else {
-                modalHeader.classList.remove('bg-light');
-                modalHeader.classList.add('bg-danger', 'text-white');
-                modalIcon.innerHTML = '<i class="bi bi-x-circle-fill text-danger" style="font-size: 4rem;"></i>';
-                modalOkButton.className = 'btn btn-danger px-5';
+                modalIcon.innerHTML = '<i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>';
+                modalOkButton.className = 'btn btn-primary px-5';
             }
-            statusModal.show();
+        } else {
+            modalHeader.classList.remove('bg-light');
+            modalHeader.classList.add('bg-danger', 'text-white');
+            modalIcon.innerHTML = '<i class="bi bi-x-circle-fill text-danger" style="font-size: 4rem;"></i>';
+            modalOkButton.className = 'btn btn-danger px-5';
         }
+        statusModal.show();
+    }
 
-        // QR Code Modal Logic
-        const qrUploadArea = document.getElementById('qrUploadArea');
-        const qrFileInput = document.getElementById('qrCodeFile');
-        const qrPreviewContainer = document.getElementById('qrPreviewContainer');
-        const qrPreview = document.getElementById('qrPreview');
-        const removeQrBtn = document.getElementById('removeQrBtn');
-        const sendQrButton = document.getElementById('sendQrButton');
+    // QR Code Modal Logic
+    const qrUploadArea = document.getElementById('qrUploadArea');
+    const qrFileInput = document.getElementById('qrCodeFile');
+    const qrPreviewContainer = document.getElementById('qrPreviewContainer');
+    const qrPreview = document.getElementById('qrPreview');
+    const removeQrBtn = document.getElementById('removeQrBtn');
+    const sendQrButton = document.getElementById('sendQrButton');
 
-        if (qrUploadArea) {
-            qrUploadArea.addEventListener('click', () => qrFileInput.click());
-            qrUploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                qrUploadArea.classList.add('dragover');
-            });
-            qrUploadArea.addEventListener('dragleave', () => {
-                qrUploadArea.classList.remove('dragover');
-            });
-            qrUploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                qrUploadArea.classList.remove('dragover');
-                if (e.dataTransfer.files.length) {
-                    qrFileInput.files = e.dataTransfer.files;
-                    handleQrFile(qrFileInput.files[0]);
-                }
-            });
-        }
+    if (qrUploadArea) {
+        qrUploadArea.addEventListener('click', () => qrFileInput.click());
+        qrUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            qrUploadArea.classList.add('dragover');
+        });
+        qrUploadArea.addEventListener('dragleave', () => {
+            qrUploadArea.classList.remove('dragover');
+        });
+        qrUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            qrUploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                qrFileInput.files = e.dataTransfer.files;
+                handleQrFile(qrFileInput.files[0]);
+            }
+        });
+    }
 
-        if (qrFileInput) {
-            qrFileInput.addEventListener('change', () => {
-                if (qrFileInput.files.length) {
-                    handleQrFile(qrFileInput.files[0]);
-                }
-            });
-        }
+    if (qrFileInput) {
+        qrFileInput.addEventListener('change', () => {
+            if (qrFileInput.files.length) {
+                handleQrFile(qrFileInput.files[0]);
+            }
+        });
+    }
 
-        if (removeQrBtn) {
-            removeQrBtn.addEventListener('click', () => {
+    if (removeQrBtn) {
+        removeQrBtn.addEventListener('click', () => {
+            qrFileInput.value = '';
+            qrPreviewContainer.classList.add('d-none');
+            qrUploadArea.classList.remove('d-none');
+            qrPreview.src = '#';
+        });
+    }
+
+    function handleQrFile(file) {
+        if (file && file.type.startsWith('image/')) {
+            if (file.size > 2 * 1024 * 1024) {
+                alert('ไฟล์มีขนาดใหญ่เกิน 2MB');
                 qrFileInput.value = '';
-                qrPreviewContainer.classList.add('d-none');
-                qrUploadArea.classList.remove('d-none');
-                qrPreview.src = '#';
-            });
-        }
-
-        function handleQrFile(file) {
-            if (file && file.type.startsWith('image/')) {
-                if (file.size > 2 * 1024 * 1024) {
-                    alert('ไฟล์มีขนาดใหญ่เกิน 2MB');
-                    qrFileInput.value = '';
-                    return;
-                }
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    qrPreview.src = e.target.result;
-                    qrUploadArea.classList.add('d-none');
-                    qrPreviewContainer.classList.remove('d-none');
-                };
-                reader.readAsDataURL(file);
-            } else {
-                alert('กรุณาเลือกไฟล์รูปภาพเท่านั้น');
-                qrFileInput.value = '';
+                return;
             }
-        }
-
-        function showQrCodeModal(id, bookingJson) {
-            const booking = JSON.parse(bookingJson);
-            document.getElementById('qrBookingId').value = id;
-            document.getElementById('qrBookingCode').textContent = '#' + booking.booking_code;
-            document.getElementById('qrDepositAmount').textContent = parseFloat(booking.deposit_amount).toLocaleString('th-TH', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
-            const qrForm = document.getElementById('qrCodeForm');
-            if (qrForm) qrForm.reset();
-            if (removeQrBtn) removeQrBtn.click();
-            qrCodeModal.show();
-        }
-
-        if (sendQrButton) {
-            sendQrButton.addEventListener('click', function() {
-                const form = document.getElementById('qrCodeForm');
-                const fileInput = document.getElementById('qrCodeFile');
-                if (!fileInput.files || fileInput.files.length === 0) {
-                    alert('กรุณาเลือกไฟล์ QR Code');
-                    return;
-                }
-                const formData = new FormData(form);
-                qrCodeModal.hide();
-                const btnText = this.querySelector('.send-qr-text');
-                const btnLoading = this.querySelector('.send-qr-loading');
-                this.disabled = true;
-                btnText.classList.add('d-none');
-                btnLoading.classList.remove('d-none');
-                fetch('booking_list.php', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            showStatusModal('สำเร็จ', 'ส่งอีเมลพร้อม QR Code เรียบร้อยแล้ว', true, true);
-                            statusModalEl.addEventListener('hidden.bs.modal', () => {
-                                window.location.reload();
-                            }, {
-                                once: true
-                            });
-                        } else {
-                            showStatusModal('เกิดข้อผิดพลาด', data.message || 'ไม่สามารถส่งอีเมลได้', false);
-                        }
-                    })
-                    .catch(error => {
-                        showStatusModal('เกิดข้อผิดพลาด', 'การเชื่อมต่อล้มเหลว: ' + error.message, false);
-                    })
-                    .finally(() => {
-                        this.disabled = false;
-                        btnText.classList.remove('d-none');
-                        btnLoading.classList.add('d-none');
-                    });
-            });
-        }
-
-        function translateBookingType(type) {
-            const types = {
-                'private': 'บุคคลทั่วไป',
-                'organization': 'หน่วยงาน/องค์กร'
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                qrPreview.src = e.target.result;
+                qrUploadArea.classList.add('d-none');
+                qrPreviewContainer.classList.remove('d-none');
             };
-            return types[type] || type;
+            reader.readAsDataURL(file);
+        } else {
+            alert('กรุณาเลือกไฟล์รูปภาพเท่านั้น');
+            qrFileInput.value = '';
         }
+    }
 
-        function translateStatus(status) {
-            const statuses = {
-                'pending': 'รอยืนยัน',
-                'awaiting_payment': 'ส่ง QR Code แล้ว',
-                'confirmed': 'ยืนยันแล้ว',
-                'cancelled': 'ยกเลิกแล้ว'
-            };
-            return statuses[status] || status;
-        }
+    function showQrCodeModal(id, bookingJson) {
+        const booking = JSON.parse(bookingJson);
+        document.getElementById('qrBookingId').value = id;
+        document.getElementById('qrBookingCode').textContent = '#' + booking.booking_code;
+        document.getElementById('qrDepositAmount').textContent = parseFloat(booking.deposit_amount).toLocaleString('th-TH', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        const qrForm = document.getElementById('qrCodeForm');
+        if (qrForm) qrForm.reset();
+        if (removeQrBtn) removeQrBtn.click();
+        qrCodeModal.show();
+    }
 
-        function viewDetails(data) {
-            const modalBody = document.getElementById('modalBody');
-            const bookingTypeThai = translateBookingType(data.booking_type);
-            let statusThai = translateStatus(data.status);
-            if ((data.status === 'pending' || data.status === 'awaiting_payment') && data.payment_slip) {
-                statusThai = 'รอตรวจสอบสลิป';
+    if (sendQrButton) {
+        sendQrButton.addEventListener('click', function() {
+            const form = document.getElementById('qrCodeForm');
+            const fileInput = document.getElementById('qrCodeFile');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('กรุณาเลือกไฟล์ QR Code');
+                return;
             }
-            modalBody.innerHTML = `
+            const formData = new FormData(form);
+            qrCodeModal.hide();
+            const btnText = this.querySelector('.send-qr-text');
+            const btnLoading = this.querySelector('.send-qr-loading');
+            this.disabled = true;
+            btnText.classList.add('d-none');
+            btnLoading.classList.remove('d-none');
+            fetch('booking_list.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showStatusModal('สำเร็จ', 'ส่งอีเมลพร้อม QR Code เรียบร้อยแล้ว', true, true);
+                        statusModalEl.addEventListener('hidden.bs.modal', () => {
+                            window.location.reload();
+                        }, {
+                            once: true
+                        });
+                    } else {
+                        showStatusModal('เกิดข้อผิดพลาด', data.message || 'ไม่สามารถส่งอีเมลได้', false);
+                    }
+                })
+                .catch(error => {
+                    showStatusModal('เกิดข้อผิดพลาด', 'การเชื่อมต่อล้มเหลว: ' + error.message, false);
+                })
+                .finally(() => {
+                    this.disabled = false;
+                    btnText.classList.remove('d-none');
+                    btnLoading.classList.add('d-none');
+                });
+        });
+    }
+
+    function translateBookingType(type) {
+        const types = {
+            'private': 'บุคคลทั่วไป',
+            'organization': 'หน่วยงาน/องค์กร'
+        };
+        return types[type] || type;
+    }
+
+    function translateStatus(status) {
+        const statuses = {
+            'pending': 'รอยืนยัน',
+            'awaiting_payment': 'ส่ง QR Code แล้ว',
+            'confirmed': 'ยืนยันแล้ว',
+            'cancelled': 'ยกเลิกแล้ว'
+        };
+        return statuses[status] || status;
+    }
+
+    function viewDetails(data) {
+        const modalBody = document.getElementById('modalBody');
+        const bookingTypeThai = translateBookingType(data.booking_type);
+        let statusThai = translateStatus(data.status);
+        if ((data.status === 'pending' || data.status === 'awaiting_payment') && data.payment_slip) {
+            statusThai = 'รอตรวจสอบสลิป';
+        }
+        modalBody.innerHTML = `
                 <div class="text-center mb-4">
                     <div class="display-6 fw-bold text-primary">#${data.booking_code}</div>
                     <div class="text-muted">สถานะ: ${statusThai}</div>
@@ -1805,73 +1746,71 @@ foreach ($bookings as $b) {
                     ${data.booking_type === 'organization' && data.attachment_path ? `<div class="col-12"><small class="text-muted d-block">เอกสารองค์กร</small><a href="../user/${data.attachment_path}" target="_blank" class="btn btn-sm btn-outline-secondary mt-1 w-100">เปิดดูเอกสาร</a></div>` : ''}
                 </div>
             `;
-            detailModal.show();
+        detailModal.show();
+    }
+
+    // Search and filter functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const bookingList = document.getElementById('bookingList');
+        const bookingItems = bookingList ? bookingList.querySelectorAll('.booking-item-col') : [];
+        const noResultsMessage = document.getElementById('noResultsMessage');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        let currentFilter = 'all';
+
+        function applyFilters() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            let visibleCount = 0;
+            bookingItems.forEach(item => {
+                const statusBadge = item.querySelector('.status-badge');
+                let statusMatch = false;
+                if (currentFilter === 'all') {
+                    statusMatch = true;
+                } else {
+                    if (statusBadge && statusBadge.classList.contains('status-' + currentFilter)) {
+                        statusMatch = true;
+                    }
+                }
+                const guestName = item.querySelector('.guest-name');
+                const bookingCode = item.querySelector('.booking-code');
+                const searchMatch = (guestName && guestName.textContent.toLowerCase().includes(searchTerm)) ||
+                    (bookingCode && bookingCode.textContent.toLowerCase().replace('#', '').includes(searchTerm));
+                if (statusMatch && searchMatch) {
+                    item.classList.remove('d-none');
+                    visibleCount++;
+                } else {
+                    item.classList.add('d-none');
+                }
+            });
+            if (visibleCount === 0 && bookingItems.length > 0) {
+                noResultsMessage.classList.remove('d-none');
+            } else if (noResultsMessage) {
+                noResultsMessage.classList.add('d-none');
+            }
         }
 
-        // Search and filter functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('searchInput');
-            const bookingList = document.getElementById('bookingList');
-            const bookingItems = bookingList ? bookingList.querySelectorAll('.booking-item-col') : [];
-            const noResultsMessage = document.getElementById('noResultsMessage');
-            const filterButtons = document.querySelectorAll('.filter-btn');
-            let currentFilter = 'all';
-
-            function applyFilters() {
-                const searchTerm = searchInput.value.toLowerCase().trim();
-                let visibleCount = 0;
-                bookingItems.forEach(item => {
-                    const statusBadge = item.querySelector('.status-badge');
-                    let statusMatch = false;
-                    if (currentFilter === 'all') {
-                        statusMatch = true;
-                    } else {
-                        if (statusBadge && statusBadge.classList.contains('status-' + currentFilter)) {
-                            statusMatch = true;
-                        }
-                    }
-                    const guestName = item.querySelector('.guest-name');
-                    const bookingCode = item.querySelector('.booking-code');
-                    const searchMatch = (guestName && guestName.textContent.toLowerCase().includes(searchTerm)) ||
-                        (bookingCode && bookingCode.textContent.toLowerCase().replace('#', '').includes(searchTerm));
-                    if (statusMatch && searchMatch) {
-                        item.classList.remove('d-none');
-                        visibleCount++;
-                    } else {
-                        item.classList.add('d-none');
-                    }
-                });
-                if (visibleCount === 0 && bookingItems.length > 0) {
-                    noResultsMessage.classList.remove('d-none');
-                } else if (noResultsMessage) {
-                    noResultsMessage.classList.add('d-none');
-                }
-            }
-
-            if (searchInput) {
-                searchInput.addEventListener('input', applyFilters);
-            }
-            filterButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    filterButtons.forEach(btn => btn.classList.remove('active'));
-                    this.classList.add('active');
-                    currentFilter = this.dataset.filter;
-                    applyFilters();
-                });
+        if (searchInput) {
+            searchInput.addEventListener('input', applyFilters);
+        }
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                currentFilter = this.dataset.filter;
+                applyFilters();
             });
-            const urlParams = new URLSearchParams(window.location.search);
-            const filterParam = urlParams.get('filter');
-            if (filterParam) {
-                const targetButton = document.querySelector(`.filter-btn[data-filter="${filterParam}"]`);
-                if (targetButton) {
-                    filterButtons.forEach(btn => btn.classList.remove('active'));
-                    targetButton.classList.add('active');
-                    currentFilter = filterParam;
-                    applyFilters();
-                }
-            }
         });
-    </script>
-</body>
-
-</html>
+        const urlParams = new URLSearchParams(window.location.search);
+        const filterParam = urlParams.get('filter');
+        if (filterParam) {
+            const targetButton = document.querySelector(`.filter-btn[data-filter="${filterParam}"]`);
+            if (targetButton) {
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                targetButton.classList.add('active');
+                currentFilter = filterParam;
+                applyFilters();
+            }
+        }
+    });
+</script>
+<?php adminPageEnd(); ?>
