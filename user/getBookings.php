@@ -2,10 +2,9 @@
 
 header('Content-Type: application/json; charset=utf-8');
 
-// Enable error reporting for debugging
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Keep runtime errors out of the JSON response.
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 
 // Ensure the database connection is included
 require_once __DIR__ . '/../db/db.php';
@@ -43,7 +42,7 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) || !preg_match('/^\d{4}-\d{2}-\
 try {
     $out = [];
     if ($use_mysqli) {
-        $sql = "SELECT bookings_id, booking_code, member_id, guest_name, guest_email, guest_phone, booking_date, booking_time, visitor_count, lunch_request, price_total, deposit_amount, balance_amount, status, is_member_booking, attachment_path, created_at, updated_at 
+        $sql = "SELECT bookings_id, booking_code, member_id, guest_name, guest_email, guest_phone, booking_date, booking_time, visitor_count, lunch_request, price_total, deposit_amount, balance_amount, status, is_member_booking, attachment_path, payment_slip, created_at, updated_at
                 FROM bookings 
                 WHERE booking_date BETWEEN ? AND ? 
                 ORDER BY booking_date ASC";
@@ -75,6 +74,7 @@ try {
                 'status' => $r['status'],
                 'is_member_booking' => (bool)$r['is_member_booking'],
                 'attachment_path' => $r['attachment_path'],
+                'payment_slip' => $r['payment_slip'],
                 'created_at' => $r['created_at'],
                 'updated_at' => $r['updated_at']
             ];
@@ -84,7 +84,7 @@ try {
         if (!isset($pdo)) {
             throw new Exception('No DB connection available');
         }
-        $sql = "SELECT bookings_id, booking_code, member_id, guest_name, guest_email, guest_phone, booking_date, booking_time, visitor_count, lunch_request, price_total, deposit_amount, balance_amount, status, is_member_booking, attachment_path, created_at, updated_at 
+        $sql = "SELECT bookings_id, booking_code, member_id, guest_name, guest_email, guest_phone, booking_date, booking_time, visitor_count, lunch_request, price_total, deposit_amount, balance_amount, status, is_member_booking, attachment_path, payment_slip, created_at, updated_at
                 FROM bookings 
                 WHERE DATE(booking_date) BETWEEN :start AND :end 
                 ORDER BY booking_date ASC";
@@ -109,6 +109,7 @@ try {
                 'status' => $r['status'],
                 'is_member_booking' => (bool)$r['is_member_booking'],
                 'attachment_path' => $r['attachment_path'],
+                'payment_slip' => $r['payment_slip'],
                 'created_at' => $r['created_at'],
                 'updated_at' => $r['updated_at']
             ];

@@ -1,76 +1,78 @@
 <?php
-// saveBooking.php — clean handler to insert into `bookings` table
+// saveBooking.php — handler to insert into `bookings` table (server-side authoritative)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 header('Content-Type: application/json; charset=utf-8');
 set_time_limit(60);
 
-// Load DB config from ./db/db.php (preferred) or root ./db.php (fallback)
+// include booking helpers
+require_once __DIR__ . '/booking_utils.php';
+
+// Load DB config
 $dbConfig = [
-	'host' => '119.59.120.143',
-	'name' => 'kratipho_db_mango',
-	'user' => 'kratipho_db_mango',
-	'pass' => 'kratipho_db_mango',
-	'charset' => 'utf8mb4'
+    'host' => '119.59.120.143',
+    'name' => 'kratipho_db_mango',
+    'user' => 'kratipho_db_mango',
+    'pass' => 'kratipho_db_mango',
+    'charset' => 'utf8mb4'
 ];
 
-// Prefer central project's db/db.php (one directory up)
 if (file_exists(__DIR__ . '/../db/db.php')) {
-	include __DIR__ . '/../db/db.php';
+    include __DIR__ . '/../db/db.php';
 } elseif (file_exists(__DIR__ . '/../db.php')) {
-	include __DIR__ . '/../db.php';
+    include __DIR__ . '/../db.php';
 }
 
-// If variables are present from included file, use them
 if (isset($servername, $username, $password, $dbname)) {
-	$dbConfig['host'] = $servername;
-	$dbConfig['user'] = $username;
-	$dbConfig['pass'] = $password;
-	$dbConfig['name'] = $dbname;
+    $dbConfig['host'] = $servername;
+    $dbConfig['user'] = $username;
+    $dbConfig['pass'] = $password;
+    $dbConfig['name'] = $dbname;
 }
 
 try {
-	$dsn = "mysql:host={$dbConfig['host']};dbname={$dbConfig['name']};charset={$dbConfig['charset']}";
-	$pdo = new PDO($dsn, $dbConfig['user'], $dbConfig['pass'], [
-		PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-		PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-	]);
+    $dsn = "mysql:host={$dbConfig['host']};dbname={$dbConfig['name']};charset={$dbConfig['charset']}";
+    $pdo = new PDO($dsn, $dbConfig['user'], $dbConfig['pass'], [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    ]);
 } catch (PDOException $e) {
-	http_response_code(500);
-	echo json_encode(['status' => 'error', 'message' => 'DB connection failed', 'debug' => $e->getMessage()]);
-	exit;
+    http_response_code(500);
+    echo json_encode(['status' => 'error', 'message' => 'DB connection failed']);
+    exit;
 }
 
 function get($k, $d=null){ return isset($_POST[$k]) ? trim($_POST[$k]) : $d; }
 function errorJson($code,$data){ http_response_code($code); echo json_encode($data); exit; }
 
-// Gather inputs (match your table columns)
-$member_id = get('member_id', null);
+if (empty($_SESSION['member_id'])) {
+    errorJson(401, ['status'=>'error','message'=>'login required']);
+}
+
+// Gather inputs
+$member_id = (int)$_SESSION['member_id'];
 $guest_name = get('name', get('guest_name', null));
 $guest_email = get('email', get('guest_email', null));
 $guest_phone = get('phone', get('guest_phone', null));
 $booking_date = get('selected_date', get('booking_date', null));
 $booking_time = get('booking_time', null);
-$visitor_count = (int)get('visitor_count', 1);
-$lunch_request = (bool)get('lunch_request') ? 1 : 0; // แปลงเป็น boolean อย่างชัดเจนก่อน
-$price_total = (float)get('price_total', 0.00);
-$deposit_amount = (float)get('deposit_amount', 0.00);
-$balance_amount = (float)get('balance_amount', 0.00);
+$visitor_count = max(1, (int)get('visitor_count', 1));
+$lunch_request = (bool)get('lunch_request') ? 1 : 0;
 $booking_type = get('booking_type', 'private');
 
-// If client didn't send totals, compute server-side (include venue fee)
-if (empty($price_total) || $price_total <= 0) {
-	$price_per_person = 150.00;
-	$instructor_fee = 1800.00;
-	$venue_fee = 3000.00;
-	$price_total = ($visitor_count * $price_per_person) + $instructor_fee + $venue_fee;
+if (!in_array($booking_type, ['private', 'organization'], true)) {
+    $booking_type = 'private';
 }
-if (empty($deposit_amount) || $deposit_amount <= 0) {
-	$deposit_amount = round($price_total * 0.3, 2);
-}
-if (empty($balance_amount) || $balance_amount <= 0) {
-	$balance_amount = round($price_total - $deposit_amount, 2);
-}
-$status = get('status', 'pending');
-$is_member_booking = (int)get('is_member_booking', ($member_id ? 1 : 0));
+
+// Server-side totals
+$totals = calculate_booking_totals($visitor_count);
+$price_total = $totals['price_total'];
+$deposit_amount = $totals['deposit_amount'];
+$balance_amount = $totals['balance_amount'];
+$status = 'pending';
+$is_member_booking = 1;
 
 $errors = [];
 if (empty($booking_date)) $errors[] = 'booking_date is required';
@@ -78,105 +80,120 @@ if (empty($booking_time)) $errors[] = 'booking_time is required';
 if (empty($guest_name) && empty($member_id)) $errors[] = 'guest name or member_id is required';
 if (!empty($errors)) errorJson(422, ['status'=>'error','errors'=>$errors]);
 
+// Duplicate check (transactional to reduce race conditions)
+try {
+    $pdo->beginTransaction();
+    $dupSql = "SELECT bookings_id FROM bookings WHERE booking_date = :booking_date AND status IN ('pending','awaiting_payment','confirmed') LIMIT 1 FOR UPDATE";
+    $dupStmt = $pdo->prepare($dupSql);
+    $dupStmt->execute([':booking_date' => $booking_date]);
+    if ($dupStmt->fetch()) {
+        $pdo->rollBack();
+        errorJson(409, ['status'=>'error','message'=>'selected date is already booked']);
+    }
+} catch (Exception $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    errorJson(500, ['status'=>'error','message'=>'DB error during duplicate check']);
+}
+
+// Booking code
 $booking_code = get('booking_code');
 if (empty($booking_code)) $booking_code = 'GV'.date('Ymd').str_pad(mt_rand(1,9999),4,'0',STR_PAD_LEFT);
 
-// Handle optional file upload
+// Handle optional document upload
 $attachment_path = null;
 if (isset($_FILES['document']) && $_FILES['document']['error'] !== UPLOAD_ERR_NO_FILE) {
-	$f = $_FILES['document'];
-	if ($f['error'] === UPLOAD_ERR_OK) {
-		$max = 10 * 1024 * 1024; //10MB
-		$ext = strtolower(pathinfo($f['name'], PATHINFO_EXTENSION));
-		$allow = ['pdf','jpg','jpeg','png'];
-		if ($f['size'] > $max) errorJson(413, ['status'=>'error','message'=>'file too large']);
-		if (!in_array($ext,$allow)) errorJson(415, ['status'=>'error','message'=>'invalid file type']);
-		$dir = __DIR__.'/uploads/'; if (!is_dir($dir)) mkdir($dir,0777,true);
-		$safe = time().'_'.preg_replace('/[^A-Za-z0-9_\\-\\.]/','_',basename($f['name']));
-		$target = $dir.$safe;
-		if (!move_uploaded_file($f['tmp_name'],$target)) {
-			errorJson(500,['status'=>'error','message'=>'failed to move uploaded file']);
-		}
-		$attachment_path = 'uploads/'.$safe;
-	} else {
-		errorJson(400,['status'=>'error','message'=>'upload error code '.$_FILES['document']['error']]);
-	}
+    $f = $_FILES['document'];
+    list($ok, $msg) = valid_upload_file($f);
+    if (!$ok) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        errorJson(415, ['status'=>'error','message'=>'document upload invalid: '.$msg]);
+    }
+    $dir = __DIR__.'/uploads/'; if (!is_dir($dir)) mkdir($dir,0755,true);
+    try {
+        $safe = time().'_'.bin2hex(random_bytes(6)).'.'.strtolower(pathinfo($f['name'], PATHINFO_EXTENSION));
+    } catch (Exception $e) {
+        $safe = time().'_'.mt_rand(1000,9999).'.'.strtolower(pathinfo($f['name'], PATHINFO_EXTENSION));
+    }
+    $target = $dir.$safe;
+    if (!move_uploaded_file($f['tmp_name'],$target)) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        errorJson(500,['status'=>'error','message'=>'failed to move uploaded file']);
+    }
+    $attachment_path = 'uploads/'.$safe;
 }
 
-// Insert into bookings
+// Insert booking
 try {
-	$sql = "INSERT INTO bookings (
-		booking_code, member_id, guest_name, guest_email, guest_phone,
-		booking_date, booking_time, visitor_count, lunch_request,
-		price_total, deposit_amount, balance_amount, booking_type, status, is_member_booking, attachment_path, created_at, updated_at
-	) VALUES (
-		:booking_code, :member_id, :guest_name, :guest_email, :guest_phone,
-		:booking_date, :booking_time, :visitor_count, :lunch_request,
-		:price_total, :deposit_amount, :balance_amount, :booking_type, :status, :is_member_booking, :attachment_path, NOW(), NOW()
-	)";
+    $sql = "INSERT INTO bookings (
+        booking_code, member_id, guest_name, guest_email, guest_phone,
+        booking_date, booking_time, visitor_count, lunch_request,
+        price_total, deposit_amount, balance_amount, booking_type, status, is_member_booking, attachment_path, created_at, updated_at
+    ) VALUES (
+        :booking_code, :member_id, :guest_name, :guest_email, :guest_phone,
+        :booking_date, :booking_time, :visitor_count, :lunch_request,
+        :price_total, :deposit_amount, :balance_amount, :booking_type, :status, :is_member_booking, :attachment_path, NOW(), NOW()
+    )";
 
-	$stmt = $pdo->prepare($sql);
-	$stmt->execute([
-		':booking_code'=>$booking_code,
-		':member_id'=>($member_id!==''? $member_id : null),
-		':guest_name'=>$guest_name,
-		':guest_email'=>$guest_email,
-		':guest_phone'=>$guest_phone,
-		':booking_date'=>$booking_date,
-		':booking_time'=>$booking_time,
-		':visitor_count'=>$visitor_count,
-		':lunch_request'=>$lunch_request,
-		':price_total'=>$price_total,
-		':deposit_amount'=>$deposit_amount,
-		':balance_amount'=>$balance_amount,
-		':booking_type'=>$booking_type,
-		':status'=>$status,
-		':is_member_booking'=>$is_member_booking,
-		':attachment_path'=>$attachment_path,
-	]);
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        ':booking_code'=>$booking_code,
+        ':member_id'=>$member_id,
+        ':guest_name'=>$guest_name,
+        ':guest_email'=>$guest_email,
+        ':guest_phone'=>$guest_phone,
+        ':booking_date'=>$booking_date,
+        ':booking_time'=>$booking_time,
+        ':visitor_count'=>$visitor_count,
+        ':lunch_request'=>$lunch_request,
+        ':price_total'=>$price_total,
+        ':deposit_amount'=>$deposit_amount,
+        ':balance_amount'=>$balance_amount,
+        ':booking_type'=>$booking_type,
+        ':status'=>$status,
+        ':is_member_booking'=>$is_member_booking,
+        ':attachment_path'=>$attachment_path,
+    ]);
 
-	$id = $pdo->lastInsertId();
-	$res = ['status'=>'success','booking_id'=>$id,'booking_code'=>$booking_code, 'booking_type_saved'=>$booking_type];
-	if ($attachment_path) $res['attachment_path']=$attachment_path;
+    $id = $pdo->lastInsertId();
+    if ($pdo->inTransaction()) $pdo->commit();
 
-	// Fetch the inserted row to confirm saved values (helpful for debugging booking_type)
-	try {
-		$chk = $pdo->prepare('SELECT * FROM bookings WHERE bookings_id = :id LIMIT 1');
-		$chk->execute([':id'=>$id]);
-		$inserted = $chk->fetch(PDO::FETCH_ASSOC);
-		if ($inserted) {
-			// Expose the stored booking_type and related fields for verification
-			$res['stored'] = [
-				'booking_type' => $inserted['booking_type'] ?? null,
-				'price_total' => isset($inserted['price_total']) ? (float)$inserted['price_total'] : null,
-				'deposit_amount' => isset($inserted['deposit_amount']) ? (float)$inserted['deposit_amount'] : null,
-				'balance_amount' => isset($inserted['balance_amount']) ? (float)$inserted['balance_amount'] : null,
-				'attachment_path' => $inserted['attachment_path'] ?? null
-			];
-		}
-	} catch (Exception $e) {
-		// ignore — this is only for debug visibility
-		$res['stored_error'] = $e->getMessage();
-	}
+    $res = ['status'=>'success','booking_id'=>$id,'booking_code'=>$booking_code, 'booking_type_saved'=>$booking_type];
+    if ($attachment_path) $res['attachment_path']=$attachment_path;
 
-	// Send booking emails directly in-process so production hosting does not depend on self-HTTP callbacks.
-	try {
-		require_once __DIR__ . '/sendEmail.php';
-		$emailResult = sendBookingEmails(['booking_code' => $booking_code, 'async' => 1]);
-		$res['sendEmail_dispatched'] = !empty($emailResult) && in_array($emailResult['status'] ?? '', ['success', 'partial'], true) ? 1 : 0;
-		$res['sendEmail_status'] = $emailResult['status'] ?? 'unknown';
-		if (isset($emailResult['response'])) {
-			$res['sendEmail_response'] = $emailResult['response'];
-		}
-	} catch (Exception $e) {
-		$res['sendEmail_exception'] = $e->getMessage();
-	}
+    // Fetch inserted row for verification
+    try {
+        $chk = $pdo->prepare('SELECT * FROM bookings WHERE bookings_id = :id LIMIT 1');
+        $chk->execute([':id'=>$id]);
+        $inserted = $chk->fetch(PDO::FETCH_ASSOC);
+        if ($inserted) {
+            $res['stored'] = [
+                'booking_type' => $inserted['booking_type'] ?? null,
+                'price_total' => isset($inserted['price_total']) ? (float)$inserted['price_total'] : null,
+                'deposit_amount' => isset($inserted['deposit_amount']) ? (float)$inserted['deposit_amount'] : null,
+                'balance_amount' => isset($inserted['balance_amount']) ? (float)$inserted['balance_amount'] : null,
+                'attachment_path' => $inserted['attachment_path'] ?? null
+            ];
+        }
+    } catch (Exception $e) {
+        // ignore
+    }
 
-	echo json_encode($res);
+    // Send booking emails (best-effort)
+    try {
+        require_once __DIR__ . '/sendEmail.php';
+        $emailResult = sendBookingEmails(['booking_code' => $booking_code, 'async' => 1]);
+        $res['sendEmail_status'] = $emailResult['status'] ?? 'unknown';
+    } catch (Exception $e) {
+        $res['sendEmail_exception'] = $e->getMessage();
+    }
+
+    echo json_encode($res);
+    exit;
 
 } catch (PDOException $e) {
-	error_log('saveBooking error: '.$e->getMessage());
-	errorJson(500,['status'=>'error','message'=>'DB error','debug'=>$e->getMessage()]);
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    error_log('saveBooking error: '.$e->getMessage());
+    errorJson(500,['status'=>'error','message'=>'DB error']);
 }
 
 ?>
