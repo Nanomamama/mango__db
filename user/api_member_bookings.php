@@ -15,7 +15,7 @@ $bookings = [];
 
 $stmt = $conn->prepare("
     SELECT bookings_id, booking_date, booking_time, guest_name, status, rejection_reason, 
-           approved_at, approved_by, payment_slip, price_total, deposit_amount, balance_amount 
+           approved_at, approved_by, payment_slip, payment_qr_path, price_total, deposit_amount, balance_amount
     FROM bookings 
     WHERE member_id = ? 
     ORDER BY bookings_id DESC

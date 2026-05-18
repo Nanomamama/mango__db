@@ -23,6 +23,13 @@ require_once __DIR__ . '/../db/db.php';
 
 $conn->set_charset('utf8mb4');
 
+function jsonResponse(array $payload, int $statusCode = 200): void
+{
+    http_response_code($statusCode);
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
 function formatTimeAgo(?string $dateTime): string
 {
     if (empty($dateTime)) {
@@ -51,7 +58,9 @@ function formatTimeAgo(?string $dateTime): string
     return floor($diff / 86400) . ' วันที่แล้ว';
 }
 
+$lastCheck = isset($_GET['last_check']) ? (int) $_GET['last_check'] : 0;
 $count = 0;
+$newCount = 0;
 $recentBookings = [];
 
 $countResult = $conn->query("
@@ -64,7 +73,40 @@ if ($countResult instanceof mysqli_result) {
     $row = $countResult->fetch_assoc();
     $count = (int) ($row['count'] ?? 0);
     $countResult->close();
+} else {
+    jsonResponse([
+        'success' => false,
+        'error' => 'Count query failed',
+        'details' => $conn->error,
+    ], 500);
 }
+
+$stmtNew = $conn->prepare("
+    SELECT COUNT(*) AS count
+    FROM bookings
+    WHERE status = 'pending'
+      AND UNIX_TIMESTAMP(created_at) > ?
+");
+
+if (!$stmtNew) {
+    jsonResponse([
+        'success' => false,
+        'error' => 'New booking query prepare failed',
+        'details' => $conn->error,
+    ], 500);
+}
+
+$stmtNew->bind_param('i', $lastCheck);
+$stmtNew->execute();
+$newResult = $stmtNew->get_result();
+
+if ($newResult instanceof mysqli_result) {
+    $row = $newResult->fetch_assoc();
+    $newCount = (int) ($row['count'] ?? 0);
+    $newResult->close();
+}
+
+$stmtNew->close();
 
 $recentResult = $conn->query("
     SELECT
@@ -95,12 +137,18 @@ if ($recentResult instanceof mysqli_result) {
         ];
     }
     $recentResult->close();
+} else {
+    jsonResponse([
+        'success' => false,
+        'error' => 'Recent bookings query failed',
+        'details' => $conn->error,
+    ], 500);
 }
 
 echo json_encode([
     'success' => true,
     'count' => $count,
-    'new_count' => $count,
+    'new_count' => $newCount,
     'recent_bookings' => $recentBookings,
     'current_time' => time(),
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

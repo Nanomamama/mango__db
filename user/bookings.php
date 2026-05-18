@@ -1,3 +1,4 @@
+
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -1163,6 +1164,31 @@ if ($is_member) {
             color: var(--text-light);
         }
 
+        .payment-qr-box {
+            width: 150px;
+            max-width: 100%;
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            border: 1px solid #dbeafe;
+            border-radius: var(--border-radius-sm);
+            background: #ffffff;
+            text-align: center;
+        }
+
+        .payment-qr-box img {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            object-fit: contain;
+            display: block;
+        }
+
+        .payment-qr-box small {
+            display: block;
+            margin-top: 0.35rem;
+            color: var(--text-light);
+            font-size: 0.78rem;
+        }
+
         .list-empty-state {
             text-align: center;
             padding: 2rem;
@@ -1904,6 +1930,7 @@ if ($is_member) {
                                 status: (b.status || '').toLowerCase() || 'pending',
                                 member_id: b.member_id, // เพิ่ม member_id
                                 payment_slip: b.payment_slip, // เพิ่มข้อมูลสลิป
+                                payment_qr_path: b.payment_qr_path || '',
                                 id: b.bookings_id, // เพิ่ม ID ของการจอง
                                 time: b.time || b.booking_time || b.bookingTime || '',
                                 visitor_count: b.visitor_count ? parseInt(b.visitor_count) : (b.visitorCount ? parseInt(b.visitorCount) : 0)
@@ -2132,7 +2159,12 @@ if ($is_member) {
                         } else {
                             // ถ้ายังไม่แนบ, แสดงปุ่ม
                             const visitorCount = b.visitor_count || 0;
-                            actionHtml = `<button class="btn-modern btn-warning-modern btn-sm" onclick="openUploadModal(${b.id}, ${visitorCount})" title="แนบสลิป">
+                            const qrHtml = b.payment_qr_path ? `
+                                <div class="payment-qr-box">
+                                    <img src="download.php?type=qr&file=${encodeURIComponent(b.payment_qr_path)}" alt="Payment QR Code">
+                                    <small>QR Code สำหรับชำระเงิน</small>
+                                </div>` : '';
+                            actionHtml = `${qrHtml}<button class="btn-modern btn-warning-modern btn-sm" onclick="openUploadModal(${b.id}, ${visitorCount})" title="แนบสลิป">
                                             <i class="fas fa-upload me-1"></i> แนบสลิป
                                           </button>`;
                         }

@@ -18,7 +18,7 @@ mysqli_report(MYSQLI_REPORT_OFF);
 // --------------------------------------------------
 if (!headers_sent()) {
 
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com https://unpkg.com; img-src 'self' data: https:; connect-src 'self'; frame-src 'self' https://www.youtube.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'");
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; img-src 'self' data: https:; connect-src 'self'; media-src 'self' https://www.soundjay.com; frame-src 'self' https://www.youtube.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'");
 
     header("X-Content-Type-Options: nosniff");
     header("X-Frame-Options: SAMEORIGIN");
@@ -620,18 +620,23 @@ function adminPageStart(string $title): void
 
                 width: 46px;
                 height: 46px;
+                min-width: 46px;
 
                 border: none;
 
                 border-radius: 14px;
 
-                background: var(--green);
+                background: var(--green) !important;
 
-                color: white;
+                color: white !important;
+                border-color: var(--green) !important;
 
                 cursor: pointer;
 
                 transition: .25s ease;
+                flex-shrink: 0;
+                position: relative;
+                z-index: 1200;
 
                 box-shadow:
                     0 10px 20px rgba(1, 106, 112, .18);
@@ -645,6 +650,7 @@ function adminPageStart(string $title): void
             .mobile-toggle i {
 
                 font-size: 1.5rem;
+                color: currentColor !important;
             }
 
             /* =====================================================
@@ -721,7 +727,7 @@ function adminPageStart(string $title): void
 
                 .mobile-toggle {
 
-                    display: flex;
+                    display: inline-flex !important;
 
                     align-items: center;
 
@@ -744,6 +750,19 @@ function adminPageStart(string $title): void
                 .admin-topbar {
 
                     padding: 16px 20px;
+                    align-items: flex-start;
+                    flex-wrap: wrap;
+                }
+
+                .admin-topbar-left {
+                    flex: 1 1 100%;
+                    width: 100%;
+                }
+
+                .admin-topbar-right {
+                    flex: 1 1 100%;
+                    width: 100%;
+                    justify-content: flex-start;
                 }
 
                 .page-content {
@@ -1123,6 +1142,7 @@ function adminPageStart(string $title): void
 
                 </a>
 
+                <?php if (($_SESSION['admin_role'] ?? 'sub') === 'main'): ?>
                 <a href="./add_admin.php"
                     class="nav-link <?= $currentPage === 'add_admin.php' ? 'active' : '' ?>">
 
@@ -1130,6 +1150,7 @@ function adminPageStart(string $title): void
                     เพิ่มแอดมิน
 
                 </a>
+                <?php endif; ?>
 
                 <a href="logout.php"
                     class="nav-link"
@@ -1351,18 +1372,30 @@ function adminPageStart(string $title): void
 
                 async checkNewBookings() {
                     try {
-                        const response = await fetch(`get_new_bookings.php?last_check=${this.lastCheck}&t=${Date.now()}`, {
-                            cache: 'no-store'
+                        const response = await fetch(`./get_new_bookings.php?last_check=${encodeURIComponent(this.lastCheck)}&t=${Date.now()}`, {
+                            cache: 'no-store',
+                            credentials: 'same-origin'
                         });
+                        const contentType = response.headers.get('content-type') || '';
+
+                        if (!response.ok) {
+                            throw new Error(`Notification request failed: ${response.status}`);
+                        }
+
+                        if (!contentType.includes('application/json')) {
+                            const body = await response.text();
+                            throw new Error(`Notification response is not JSON: ${body.substring(0, 120)}`);
+                        }
+
                         const data = await response.json();
 
                         if (data.success) {
-                            const newCount = Number.parseInt(data.new_count ?? data.count ?? 0, 10) || 0;
+                            const totalCount = Number.parseInt(data.count ?? 0, 10) || 0;
+                            const newCount = Number.parseInt(data.new_count ?? 0, 10) || 0;
 
-                            if (newCount > this.currentCount) {
+                            if (newCount > 0) {
                                 // มีการจองใหม่!
-                                const diff = newCount - this.currentCount;
-                                this.showNewBookingNotification(diff, data.recent_bookings);
+                                this.showNewBookingNotification(newCount, data.recent_bookings);
 
                                 // เล่นเสียง
                                 if (this.audio) {
@@ -1373,8 +1406,8 @@ function adminPageStart(string $title): void
                                 this.ringBell();
                             }
 
-                            this.currentCount = newCount;
-                            this.updateBadge(newCount);
+                            this.currentCount = totalCount;
+                            this.updateBadge(totalCount);
 
                             if (Array.isArray(data.recent_bookings) && data.recent_bookings.length > 0) {
                                 this.updateNotificationList(data.recent_bookings);
@@ -1383,8 +1416,10 @@ function adminPageStart(string $title): void
                             }
 
                             // อัปเดตเวลาเช็คล่าสุด
-                            this.lastCheck = data.current_time;
+                            this.lastCheck = data.current_time || Math.floor(Date.now() / 1000);
                             localStorage.setItem('lastBookingCheck', this.lastCheck);
+                        } else {
+                            console.warn('Booking notification check failed:', data.error || data);
                         }
                     } catch (error) {
                         console.error('Error checking bookings:', error);

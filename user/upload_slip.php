@@ -34,6 +34,35 @@ if ($slip_file['error'] !== UPLOAD_ERR_OK) {
     exit;
 }
 
+$max_size = 5 * 1024 * 1024; // 5MB
+$allowed_extensions = ['jpg', 'jpeg', 'png', 'pdf'];
+$allowed_mimes = ['image/jpeg', 'image/png', 'application/pdf'];
+$file_extension = strtolower(pathinfo($slip_file['name'], PATHINFO_EXTENSION));
+$detected_mime = '';
+
+if ($slip_file['size'] > $max_size) {
+    echo json_encode(['success' => false, 'message' => 'ไฟล์มีขนาดใหญ่เกิน 5MB']);
+    exit;
+}
+
+if (!in_array($file_extension, $allowed_extensions, true)) {
+    echo json_encode(['success' => false, 'message' => 'ประเภทไฟล์ไม่ถูกต้อง กรุณาเลือกไฟล์ JPG, PNG หรือ PDF เท่านั้น']);
+    exit;
+}
+
+if (function_exists('finfo_open')) {
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    if ($finfo) {
+        $detected_mime = finfo_file($finfo, $slip_file['tmp_name']);
+        finfo_close($finfo);
+    }
+}
+
+if ($detected_mime !== '' && !in_array($detected_mime, $allowed_mimes, true)) {
+    echo json_encode(['success' => false, 'message' => 'ชนิดไฟล์ไม่ตรงกับไฟล์ที่อนุญาต']);
+    exit;
+}
+
 // ตรวจสอบว่าเป็นเจ้าของการจองจริง
 $stmt_check = $conn->prepare("SELECT bookings_id, booking_code, guest_name FROM bookings WHERE bookings_id = ? AND member_id = ?");
 $stmt_check->bind_param("ii", $booking_id, $member_id);
@@ -62,16 +91,16 @@ if (!is_dir($upload_dir)) {
     mkdir($upload_dir, 0755, true);
 }
 
-$file_extension = pathinfo($slip_file['name'], PATHINFO_EXTENSION);
 $new_filename = 'slip_' . $booking_id . '_' . time() . '.' . $file_extension;
 $upload_path = $upload_dir . $new_filename;
 
 // ย้ายไฟล์ไปยังโฟลเดอร์ที่ต้องการ
 if (move_uploaded_file($slip_file['tmp_name'], $upload_path)) {
-    // อัปเดตฐานข้อมูล
-    $stmt_update = $conn->prepare("UPDATE bookings SET payment_slip = ? WHERE bookings_id = ?");
+    // อัปเดตฐานข้อมูล: เก็บชื่อไฟล์สลิป และเปลี่ยนสถานะเป็น awaiting_payment พร้อมอัปเดตเวลา
+    $stmt_update = $conn->prepare("UPDATE bookings SET payment_slip = ?, status = ?, updated_at = NOW() WHERE bookings_id = ? AND member_id = ?");
     if ($stmt_update) {
-        $stmt_update->bind_param("si", $new_filename, $booking_id);
+        $status_after = 'awaiting_payment';
+        $stmt_update->bind_param("ssii", $new_filename, $status_after, $booking_id, $member_id);
 
         // ส่งอีเมลแจ้งเตือน Admin
         try {
@@ -131,8 +160,9 @@ if (move_uploaded_file($slip_file['tmp_name'], $upload_path)) {
         }
 
         if ($stmt_update->execute()) {
-            echo json_encode(['success' => true, 'message' => 'อัปโหลดสลิปสำเร็จ']);
+            echo json_encode(['success' => true, 'message' => 'อัปโหลดสลิปสำเร็จ', 'status' => $status_after]);
         } else {
+            error_log('upload_slip: DB update failed: ' . $conn->error);
             echo json_encode(['success' => false, 'message' => 'ไม่สามารถอัปเดตฐานข้อมูลได้']);
         }
         $stmt_update->close();
