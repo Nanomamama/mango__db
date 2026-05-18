@@ -4,7 +4,11 @@ require_once __DIR__ . '/../db/db.php';
 require_once 'sidebar.php';
 
 // ===== รายการออเดอร์ =====
+$allowedStatuses = ['all', 'pending', 'approved', 'rejected', 'completed'];
 $status = $_GET['status'] ?? 'all';
+$status = in_array($status, $allowedStatuses, true) ? $status : 'all';
+$displayLimit = 9;
+$currentPage = max(1, (int)($_GET['page'] ?? 1));
 
 $where = "";
 $params = [];
@@ -14,12 +18,31 @@ if ($status != 'all') {
     $params[] = $status;
 }
 
+$countSql = "
+SELECT COUNT(*) as total_orders
+FROM orders o
+$where
+";
+
+$countStmt = $conn->prepare($countSql);
+if ($params) {
+    $countStmt->bind_param("s", ...$params);
+}
+$countStmt->execute();
+$totalFilteredOrders = (int)($countStmt->get_result()->fetch_assoc()['total_orders'] ?? 0);
+$totalPages = max(1, (int)ceil($totalFilteredOrders / $displayLimit));
+$currentPage = min($currentPage, $totalPages);
+$offset = ($currentPage - 1) * $displayLimit;
+$showingFrom = $totalFilteredOrders > 0 ? $offset + 1 : 0;
+$showingTo = min($offset + $displayLimit, $totalFilteredOrders);
+
 $sql = "
 SELECT 
     o.*
 FROM orders o
 $where
 ORDER BY o.order_date DESC
+LIMIT $displayLimit OFFSET $offset
 ";
 
 $stmt = $conn->prepare($sql);
@@ -119,6 +142,48 @@ $adminPageExtraHead = <<<'HTML'
             transition: transform 0.3s;
             height: 100%;
             margin-bottom: 20px;
+        }
+
+        .stats-layout {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .stats-group {
+            background: #fff;
+            border: 1px solid #edf0f3;
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.04);
+        }
+
+        .stats-group-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #2c3e50;
+            font-size: 1rem;
+            font-weight: 700;
+            margin: 0 0 14px;
+        }
+
+        .stats-group-title i {
+            color: #4361ec;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .stats-grid .stat-card {
+            border: 1px solid #f1f3f5;
+            box-shadow: none;
+            margin-bottom: 0;
+            min-width: 0;
         }
 
         .stat-card:hover {
@@ -305,10 +370,14 @@ $adminPageExtraHead = <<<'HTML'
             padding: 8px 20px;
             border-radius: 20px;
             text-decoration: none;
-            margin-right: 10px;
             font-weight: 500;
             border: 2px solid transparent;
             transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 42px;
         }
 
         .btn-filter-all {
@@ -383,8 +452,75 @@ $adminPageExtraHead = <<<'HTML'
 
         .order-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 20px;
+        }
+
+        .order-filter-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .pagination-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            border-top: 1px solid #edf0f3;
+            margin-top: 20px;
+            padding-top: 18px;
+        }
+
+        .pagination-info {
+            color: #64748b;
+            font-size: 0.92rem;
+            font-weight: 500;
+        }
+
+        .pagination-list {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .page-link-local {
+            min-width: 40px;
+            height: 40px;
+            padding: 0 12px;
+            border-radius: 10px;
+            border: 1px solid #dbe2ea;
+            color: #334155;
+            background: #fff;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .page-link-local:hover {
+            border-color: #4361ec;
+            color: #4361ec;
+            background: #f5f7ff;
+        }
+
+        .page-link-local.active {
+            border-color: #4361ec;
+            background: #4361ec;
+            color: #fff;
+        }
+
+        .page-link-local.disabled {
+            pointer-events: none;
+            color: #a0aec0;
+            background: #f8fafc;
         }
 
         @media (max-width: 992px) {
@@ -407,6 +543,8 @@ $adminPageExtraHead = <<<'HTML'
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            min-width: 0;
+            min-height: 210px;
         }
 
         .order-card-header {
@@ -590,6 +728,10 @@ $adminPageExtraHead = <<<'HTML'
         text-align: center;
     }
 
+    .order-filter-list {
+        margin-bottom: 0 !important;
+    }
+
     .product-table th,
     .product-table td {
         white-space: nowrap;
@@ -616,6 +758,10 @@ $adminPageExtraHead = <<<'HTML'
     @media (max-width: 1024px) {
         .page-content {
             padding: 22px;
+        }
+
+        .stats-layout {
+            grid-template-columns: 1fr;
         }
 
         .order-grid {
@@ -663,6 +809,10 @@ $adminPageExtraHead = <<<'HTML'
             padding: 16px;
         }
 
+        .stats-group {
+            padding: 16px;
+        }
+
         .stat-number,
         .stats-value {
             font-size: 1.45rem;
@@ -688,6 +838,20 @@ $adminPageExtraHead = <<<'HTML'
         .action-btn {
             width: 100%;
             justify-content: center;
+        }
+
+        .pagination-wrap {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .pagination-list {
+            justify-content: center;
+            width: 100%;
+        }
+
+        .page-link-local {
+            flex: 1 1 42px;
         }
 
         .search-box {
@@ -739,6 +903,10 @@ $adminPageExtraHead = <<<'HTML'
     @media (max-width: 480px) {
         .page-content {
             padding: 12px;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
         }
 
         .navbar,
@@ -806,48 +974,52 @@ adminPageStart('จัดการคำสั่งซื้อ');
     <br>
 
    <!-- สถิติ -->
-<div class="row mb-4">
-    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-        <div class="stat-card">
-            <div class="stat-icon icon-all">
-                <i class="fa-solid fa-clipboard-check"></i>
+<div class="stats-layout">
+    <section class="stats-group" aria-labelledby="overall-stats-title">
+        <h5 class="stats-group-title" id="overall-stats-title">
+            <i class="fas fa-chart-pie"></i> สถิติทั้งหมด
+        </h5>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon icon-all">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                </div>
+                <div class="stat-number"><?= number_format($stats['total_completed'] ?? 0) ?></div>
+                <div class="stat-title">ขายสำเร็จทั้งหมด (ออเดอร์)</div>
             </div>
-            <div class="stat-number"><?= number_format($stats['total_completed'] ?? 0) ?></div>
-            <div class="stat-title">ขายไปทั้งหมด/ออเดอร์</div>
-        </div>
-    </div>
 
-    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-        <div class="stat-card">
-            <div class="stat-icon icon-revenue">
-                <i class="fas fa-money-bill-wave"></i>
+            <div class="stat-card">
+                <div class="stat-icon icon-revenue">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="stat-number"><?= number_format($overallRevenueStats['revenue'] ?? 0, 2) ?></div>
+                <div class="stat-title">ยอดขายรวมทั้งหมด (บาท)</div>
             </div>
-            <div class="stat-number"><?= number_format($overallRevenueStats['revenue'] ?? 0, 2) ?></div>
-            <div class="stat-title">ยอดรวมทั้งหมด (บาท)</div>
         </div>
-    </div>
-    
-    <!-- ----------------------------------- -->
+    </section>
 
-    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-        <div class="stat-card">
-            <div class="stat-icon icon-completed">
-                <i class="fa-solid fa-check-double"></i>
+    <section class="stats-group" aria-labelledby="today-stats-title">
+        <h5 class="stats-group-title" id="today-stats-title">
+            <i class="fas fa-calendar-day"></i> สถิติวันนี้
+        </h5>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon icon-completed">
+                    <i class="fa-solid fa-check-double"></i>
+                </div>
+                <div class="stat-number"><?= number_format($todayStats['completed_count'] ?? 0) ?></div>
+                <div class="stat-title">ขายสำเร็จวันนี้ (ออเดอร์)</div>
             </div>
-            <div class="stat-number"><?= number_format($todayStats['completed_count'] ?? 0) ?></div>
-            <div class="stat-title">เสร็จสิ้นวันนี้</div>
-        </div>
-    </div>
 
-    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-        <div class="stat-card">
-            <div class="stat-icon icon-revenue">
-                <i class="fas fa-money-bill-wave"></i>
+            <div class="stat-card">
+                <div class="stat-icon icon-revenue">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="stat-number"><?= number_format($todayStats['revenue'] ?? 0, 2) ?></div>
+                <div class="stat-title">ยอดขายวันนี้ (บาท)</div>
             </div>
-            <div class="stat-number"><?= number_format($todayStats['revenue'] ?? 0, 2) ?></div>
-            <div class="stat-title">ยอดรวมวันนี้ (บาท)</div>
         </div>
-    </div>
+    </section>
 </div>
 
 
@@ -857,28 +1029,28 @@ adminPageStart('จัดการคำสั่งซื้อ');
             <h5 class="card-title"><i class="fas fa-filter"></i> กรองตามสถานะ</h5>
         </div>
 
-        <div class="mb-4">
-            <a href="?status=all"
+        <div class="order-filter-list">
+            <a href="?status=all&page=1"
                 class="btn-filter btn-filter-all <?= $status == 'all' ? 'active' : '' ?>">
                 <i class="fas fa-list"></i> ทั้งหมด (<?= number_format($stats['total_count'] ?? 0) ?>)
             </a>
 
-            <a href="?status=pending"
+            <a href="?status=pending&page=1"
                 class="btn-filter btn-filter-pending <?= $status == 'pending' ? 'active' : '' ?>">
                 <i class="fas fa-clock"></i> รอยืนยัน (<?= number_format($stats['pending_count'] ?? 0) ?>)
             </a>
 
-            <a href="?status=approved"
+            <a href="?status=approved&page=1"
                 class="btn-filter btn-filter-approved <?= $status == 'approved' ? 'active' : '' ?>">
                 <i class="fas fa-check-circle"></i> ยืนยันแล้ว (<?= number_format($stats['approved_count'] ?? 0) ?>)
             </a>
 
-            <a href="?status=rejected"
+            <a href="?status=rejected&page=1"
                 class="btn-filter btn-filter-rejected <?= $status == 'rejected' ? 'active' : '' ?>">
                 <i class="fas fa-times-circle"></i> ปฏิเสธแล้ว (<?= number_format($stats['rejected_count'] ?? 0) ?>)
             </a>
 
-            <a href="?status=completed"
+            <a href="?status=completed&page=1"
    class="btn-filter btn-filter-completed <?= $status == 'completed' ? 'active' : '' ?>">
 
     <i class="fas fa-box-check"></i>
@@ -904,7 +1076,7 @@ adminPageStart('จัดการคำสั่งซื้อ');
                     </span>
                 <?php endif; ?>
             </h5>
-            <small>แสดง <?= $result->num_rows ?> รายการ</small>
+            <small>แสดง <?= number_format($showingFrom) ?>-<?= number_format($showingTo) ?> จาก <?= number_format($totalFilteredOrders) ?> รายการ</small>
         </div>
 
         <div class="order-grid">
@@ -989,6 +1161,54 @@ adminPageStart('จัดการคำสั่งซื้อ');
                 </div>
             <?php endif; ?>
         </div>
+
+        <?php if ($totalPages > 1): ?>
+            <div class="pagination-wrap">
+                <div class="pagination-info">
+                    หน้า <?= number_format($currentPage) ?> จาก <?= number_format($totalPages) ?>
+                </div>
+                <nav aria-label="เปลี่ยนหน้ารายการคำสั่งซื้อ">
+                    <ul class="pagination-list">
+                        <?php
+                        $paginationParams = $status != 'all' ? ['status' => $status] : ['status' => 'all'];
+                        $prevParams = array_merge($paginationParams, ['page' => max(1, $currentPage - 1)]);
+                        $nextParams = array_merge($paginationParams, ['page' => min($totalPages, $currentPage + 1)]);
+                        ?>
+                        <li>
+                            <a class="page-link-local <?= $currentPage <= 1 ? 'disabled' : '' ?>"
+                                href="?<?= http_build_query($prevParams) ?>">
+                                ก่อนหน้า
+                            </a>
+                        </li>
+
+                        <?php for ($pageNumber = 1; $pageNumber <= $totalPages; $pageNumber++): ?>
+                            <?php
+                            if ($totalPages > 7 && $pageNumber != 1 && $pageNumber != $totalPages && abs($pageNumber - $currentPage) > 1) {
+                                if ($pageNumber == 2 || $pageNumber == $totalPages - 1) {
+                                    echo '<li><span class="page-link-local disabled">...</span></li>';
+                                }
+                                continue;
+                            }
+                            $pageParams = array_merge($paginationParams, ['page' => $pageNumber]);
+                            ?>
+                            <li>
+                                <a class="page-link-local <?= $pageNumber == $currentPage ? 'active' : '' ?>"
+                                    href="?<?= http_build_query($pageParams) ?>">
+                                    <?= number_format($pageNumber) ?>
+                                </a>
+                            </li>
+                        <?php endfor; ?>
+
+                        <li>
+                            <a class="page-link-local <?= $currentPage >= $totalPages ? 'disabled' : '' ?>"
+                                href="?<?= http_build_query($nextParams) ?>">
+                                ถัดไป
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        <?php endif; ?>
     </div>
 
 

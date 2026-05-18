@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
 require_once 'sidebar.php';
@@ -23,732 +23,638 @@ $search_keyword = $_GET['search'] ?? '';
 
 $adminPageExtraHead = <<<'HTML'
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        /* ============================================
-           SENIOR-FRIENDLY DESIGN
-           - ตัวหนังสือใหญ่
-           - ปุ่มใหญ่ กดง่าย
-           - คอนทราสต์สูง
-           - ระยะห่างมากขึ้น
-        ============================================ */
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Kanit', sans-serif;
-            background: #e9ecef;
-            font-size: 18px;  /* ฐานใหญ่ขึ้น */
-            line-height: 1.6;
-        }
-
-        /* SIDEBAR - ขนาดใหญ่ขึ้น */
-        .sidebar {
-            width: 280px;
-            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-            color: #fff;
-            position: fixed;
-            height: 100vh;
-            left: 0;
-            top: 0;
-            z-index: 100;
-            overflow-y: auto;
-        }
-
-        .sidebar-header {
-            padding: 30px 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.15);
-            text-align: center;
-        }
-
-        .sidebar-header h3 {
-            font-size: 26px;
-            font-weight: 600;
-        }
-
-        .sidebar-header p {
-            font-size: 16px;
-            opacity: 0.8;
-            margin-top: 8px;
-        }
-
-        .sidebar-menu {
-            list-style: none;
-            padding: 20px 0;
-        }
-
-        .sidebar-menu li {
-            margin-bottom: 4px;
-        }
-
-        .sidebar-menu li a {
-            display: flex;
-            align-items: center;
-            padding: 16px 24px;
-            color: rgba(255,255,255,0.85);
-            text-decoration: none;
-            font-size: 18px;
-            gap: 14px;
-            transition: 0.2s;
-        }
-
-        .sidebar-menu li a i {
-            width: 28px;
-            font-size: 22px;
-        }
-
-        .sidebar-menu li a:hover,
-        .sidebar-menu li.active a {
-            background: rgba(255,255,255,0.12);
-            border-left: 5px solid #60a5fa;
-            color: white;
-        }
-
-        /* MAIN CONTENT */
-        .main-content {
-            margin-left: 280px;
-            padding: 30px 35px;
-            min-height: 100vh;
-        }
-
-        /* HEADER CARD */
-        .header-card {
-            background: white;
-            border-radius: 28px;
-            padding: 24px 32px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-
-        .title-section h1 {
-            font-size: 32px;
-            font-weight: 700;
-            color: #0f172a;
-            margin: 0;
-        }
-
-        .title-section p {
-            font-size: 18px;
-            color: #475569;
-            margin: 8px 0 0;
-        }
-
-        .admin-card {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            background: #f1f5f9;
-            padding: 12px 24px;
-            border-radius: 80px;
-        }
-
-        .admin-card img {
-            width: 52px;
-            height: 52px;
-            border-radius: 50%;
-        }
-
-        .admin-card .name {
-            font-weight: 600;
-            font-size: 18px;
-        }
-
-        .admin-card .email {
-            font-size: 14px;
-            color: #64748b;
-        }
-
-        /* FILTER SECTION - ปุ่มใหญ่ขึ้น */
-        .filter-section {
-            background: white;
-            border-radius: 28px;
-            padding: 24px 28px;
-            margin-bottom: 28px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-
-        .filter-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .filter-btn {
-            padding: 14px 28px;
-            font-size: 18px;
-            font-weight: 500;
-            border-radius: 60px;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            transition: 0.2s;
-            border: 2px solid #e2e8f0;
-            background: white;
-            color: #1e293b;
-        }
-
-        .filter-btn i {
-            font-size: 20px;
-        }
-
-        .filter-btn .badge-count {
-            background: #e2e8f0;
-            padding: 4px 12px;
-            border-radius: 40px;
-            font-size: 15px;
-            margin-left: 8px;
-        }
-
-        .filter-btn.active {
-            background: #2563eb;
-            border-color: #2563eb;
-            color: white;
-        }
-
-        .filter-btn.active .badge-count {
-            background: rgba(255,255,255,0.25);
-            color: white;
-        }
-
-        .filter-btn:hover:not(.active) {
-            background: #f8fafc;
-            border-color: #94a3b8;
-            transform: scale(1.02);
-        }
-
-        /* SEARCH + ADD BUTTON - ใหญ่ กดง่าย */
-        .action-row {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            gap: 20px;
-            margin-top: 10px;
-        }
-
-        .search-box {
-            display: flex;
-            gap: 12px;
-            flex: 1;
-            max-width: 500px;
-        }
-
-        .search-box input {
-            flex: 1;
-            padding: 14px 20px;
-            font-size: 18px;
-            border: 2px solid #e2e8f0;
-            border-radius: 60px;
-            font-family: 'Kanit', sans-serif;
-        }
-
-        .search-box input:focus {
-            outline: none;
-            border-color: #2563eb;
-        }
-
-        .search-box button {
-            padding: 14px 28px;
-            font-size: 18px;
-            background: #2563eb;
-            color: white;
-            border: none;
-            border-radius: 60px;
-            font-family: 'Kanit', sans-serif;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .search-box button:hover {
-            background: #1d4ed8;
-            transform: scale(1.02);
-        }
-
-        .btn-add-large {
-            background: #10b981;
-            color: white;
-            padding: 14px 32px;
-            border-radius: 60px;
-            text-decoration: none;
-            font-size: 18px;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            transition: 0.2s;
-        }
-
-        .btn-add-large:hover {
-            background: #059669;
-            color: white;
-            transform: scale(1.02);
-        }
-
-        /* RESULT COUNT */
-        .result-info {
-            font-size: 18px;
-            color: #475569;
-            margin-bottom: 20px;
-            padding-left: 8px;
-        }
-
-        /* TABLE - ใหญ่ อ่านง่าย */
-        .table-container {
-            background: white;
-            border-radius: 28px;
-            overflow-x: auto;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.05);
-        }
-
-        .product-table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 900px;
-        }
-
-        .product-table th {
-            background: #f8fafc;
-            padding: 20px 18px;
-            font-size: 18px;
-            font-weight: 600;
-            color: #0f172a;
-            border-bottom: 3px solid #e2e8f0;
-            text-align: left;
-        }
-
-        .product-table td {
-            padding: 20px 18px;
-            font-size: 17px;
-            border-bottom: 1px solid #f1f5f9;
-            vertical-align: middle;
-        }
-
-        .product-table tr:hover td {
-            background: #fefce8;
-        }
-
-        /* รูปสินค้า */
-        .product-img {
-            width: 80px;
-            height: 80px;
-            border-radius: 16px;
-            object-fit: cover;
-            background: #f1f5f9;
-            border: 1px solid #e2e8f0;
-        }
-
-        .no-img {
-            width: 80px;
-            height: 80px;
-            background: #f1f5f9;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #94a3b8;
-            border: 1px dashed #cbd5e1;
-        }
-
-        /* ชื่อสินค้า */
-        .product-name {
-            font-weight: 700;
-            font-size: 18px;
-            color: #0f172a;
-        }
-
-        .seasonal-tag {
-            background: #fef3c7;
-            color: #b45309;
-            padding: 4px 12px;
-            border-radius: 30px;
-            font-size: 13px;
-            margin-left: 10px;
-        }
-
-        /* ราคา */
-        .price-highlight {
-            font-weight: 700;
-            font-size: 20px;
-            color: #10b981;
-        }
-
-        /* สถานะ badge */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 18px;
-            border-radius: 60px;
-            font-size: 16px;
-            font-weight: 500;
-        }
-
-        .badge-active {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .badge-inactive {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        /* ปุ่มจัดการ - ใหญ่ จับง่าย */
-        .action-group {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .btn-action {
-            padding: 10px 20px;
-            border-radius: 50px;
-            font-size: 16px;
-            font-weight: 500;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: 0.2s;
-            border: none;
-            cursor: pointer;
-        }
-
-        .btn-toggle-on {
-            background: #ef4444;
-            color: white;
-        }
-
-        .btn-toggle-off {
-            background: #10b981;
-            color: white;
-        }
-
-        .btn-edit {
-            background: #f59e0b;
-            color: white;
-        }
-
-        .btn-action:hover {
-            transform: translateY(-2px);
-            filter: brightness(0.92);
-        }
-
-        /* Empty state */
-        .empty-box {
-            text-align: center;
-            padding: 70px 20px;
-        }
-
-        .empty-box i {
-            font-size: 80px;
-            color: #cbd5e1;
-        }
-
-        .empty-box h3 {
-            font-size: 26px;
-            margin-top: 20px;
-            color: #475569;
-        }
-
-        /* Responsive */
-        @media (max-width: 992px) {
-            .sidebar {
-                transform: translateX(-100%);
-                position: fixed;
-                z-index: 1050;
-            }
-            .main-content {
-                margin-left: 0;
-                padding: 20px;
-            }
-        }
-
-        @media (max-width: 640px) {
-            body {
-                font-size: 16px;
-            }
-            .filter-buttons {
-                justify-content: center;
-            }
-            .action-row {
-                flex-direction: column;
-            }
-            .search-box {
-                max-width: 100%;
-                width: 100%;
-            }
-            .btn-add-large {
-                width: 100%;
-                justify-content: center;
-            }
-        }
-    </style>
-
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
 <style>
-    body {
-        margin-left: 0 !important;
-        padding: 0 !important;
-        max-width: none !important;
-        overflow-x: hidden;
-    }
+:root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --primary-light: #3b82f6;
+    --success: #10b981;
+    --success-dark: #059669;
+    --success-light: #d1fae5;
+    --warning: #f59e0b;
+    --warning-dark: #d97706;
+    --warning-light: #fef3c7;
+    --danger: #ef4444;
+    --danger-dark: #dc2626;
+    --danger-light: #fee2e2;
+    --info: #0ea5e9;
+    --info-light: #ecfeff;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+}
 
-    .page-content {
-        width: 100%;
-        max-width: 100%;
-    }
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    color: var(--gray-900);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+}
+
+/* Main Layout Fix */
+.admin-local-page {
+    margin-left: 0 !important;
+    padding: 1.5rem !important;
+    min-height: auto !important;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Header Card */
+.header-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+}
+
+.title-section h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--gray-900), var(--gray-700));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0 0 0.375rem 0;
+}
+
+.title-section p {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+    margin: 0;
+}
+
+.admin-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: linear-gradient(135deg, var(--gray-50), white);
+    padding: 0.625rem 1.25rem;
+    border-radius: 100px;
+    border: 1px solid var(--gray-200);
+    box-shadow: var(--shadow-sm);
+}
+
+.admin-card img {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: var(--shadow-sm);
+}
+
+.admin-card .name {
+    font-weight: 700;
+    font-size: 0.938rem;
+    color: var(--gray-900);
+}
+
+.admin-card .email {
+    font-size: 0.688rem;
+    color: var(--gray-500);
+}
+
+/* Filter Section */
+.filter-section {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+}
+
+.filter-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.filter-btn {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 100px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    border: 2px solid var(--gray-200);
+    background: white;
+    color: var(--gray-700);
+}
+
+.filter-btn i {
+    font-size: 1rem;
+}
+
+.filter-btn .badge-count {
+    background: var(--gray-100);
+    padding: 0.25rem 0.625rem;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 0.375rem;
+}
+
+.filter-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.filter-btn.active .badge-count {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.filter-btn:hover:not(.active) {
+    background: var(--gray-50);
+    border-color: var(--gray-400);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Action Row */
+.action-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.search-box {
+    display: flex;
+    gap: 0.75rem;
+    flex: 1;
+    max-width: 500px;
+}
+
+.search-box input {
+    flex: 1;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+    border: 2px solid var(--gray-200);
+    border-radius: 100px;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.search-box button {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 100px;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.search-box button:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-add-large {
+    background: var(--success);
+    color: white;
+    padding: 0.75rem 1.75rem;
+    border-radius: 100px;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.btn-add-large:hover {
+    background: var(--success-dark);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Result Info */
+.result-info {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    margin-bottom: 1rem;
+    padding: 0.5rem 1rem;
+    background: white;
+    border-radius: 100px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid var(--gray-200);
+}
+
+.result-info i {
+    color: var(--primary);
+    font-size: 1rem;
+}
+
+.result-info strong {
+    color: var(--gray-900);
+    font-weight: 700;
+}
+
+/* Table Container */
+.table-container {
+    background: white;
+    border-radius: var(--radius-lg);
+    overflow-x: auto;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+}
+
+.product-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 900px;
+}
+
+.product-table th {
+    background: linear-gradient(to bottom, var(--gray-50), white);
+    padding: 1rem 1.25rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--gray-600);
+    border-bottom: 2px solid var(--gray-200);
+    text-align: left;
+}
+
+.product-table td {
+    padding: 1rem 1.25rem;
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--gray-100);
+    vertical-align: middle;
+}
+
+.product-table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.product-table tbody tr:hover {
+    background: var(--gray-50);
+}
+
+/* Product Image */
+.product-img {
+    width: 65px;
+    height: 65px;
+    border-radius: var(--radius-md);
+    object-fit: cover;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+}
+
+.no-img {
+    width: 65px;
+    height: 65px;
+    background: var(--gray-100);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-400);
+    border: 2px dashed var(--gray-300);
+}
+
+.no-img i {
+    font-size: 1.5rem;
+}
+
+/* Product Name */
+.product-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--gray-900);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.seasonal-tag {
+    background: var(--warning-light);
+    color: var(--warning-dark);
+    padding: 0.25rem 0.75rem;
+    border-radius: 100px;
+    font-size: 0.688rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Category */
+.category-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    background: var(--gray-100);
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+/* Price */
+.price-highlight {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--success);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.125rem;
+}
+
+/* Status Badge */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 1rem;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-active {
+    background: var(--success-light);
+    color: var(--success-dark);
+}
+
+.badge-inactive {
+    background: var(--danger-light);
+    color: var(--danger-dark);
+}
+
+/* Action Buttons */
+.action-group {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-action {
+    padding: 0.5rem 1rem;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-toggle-on {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-toggle-on:hover {
+    background: var(--danger-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-toggle-off {
+    background: var(--success);
+    color: white;
+}
+
+.btn-toggle-off:hover {
+    background: var(--success-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-edit {
+    background: var(--warning);
+    color: white;
+}
+
+.btn-edit:hover {
+    background: var(--warning-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Empty State */
+.empty-box {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-box i {
+    font-size: 5rem;
+    color: var(--gray-300);
+    margin-bottom: 1rem;
+}
+
+.empty-box h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+}
+
+.empty-box p {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+    margin-bottom: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
     .admin-local-page {
-        margin-left: 0 !important;
-        padding: 0 !important;
-        min-height: auto !important;
+        padding: 1rem !important;
+    }
+    
+    .header-card {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1.25rem;
+    }
+    
+    .admin-card {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .filter-buttons {
+        justify-content: center;
+    }
+    
+    .action-row {
+        flex-direction: column;
+    }
+    
+    .search-box {
+        max-width: 100%;
+        width: 100%;
+        flex-direction: column;
+    }
+    
+    .search-box input,
+    .search-box button {
         width: 100%;
     }
-
-    .navbar,
-    .dashboard-header,
-    .header-card,
-    .filter-section,
-    .dashboard-card,
-    .card-form,
-    .table-container,
-    .course-card,
-    .modal-content {
-        max-width: 100%;
+    
+    .btn-add-large {
+        width: 100%;
+        justify-content: center;
     }
-
-    .card-header,
-    .dashboard-header .d-flex,
-    .header-card,
-    .action-row,
-    .course-card-header {
-        min-width: 0;
+    
+    /* Mobile Table */
+    .product-table thead {
+        display: none;
     }
-
-    .filter-buttons,
-    .order-filter-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
+    
+    .product-table tbody tr {
+        display: block;
+        margin-bottom: 1rem;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-md);
+        background: white;
+        overflow: hidden;
     }
-
-    .btn-filter,
-    .filter-btn,
-    .btn-add-large,
-    .btn-add-course,
-    .btn-action,
-    .action-btn {
-        white-space: normal;
-        text-align: center;
-    }
-
-    .product-table th,
+    
     .product-table td {
-        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.875rem 1rem;
+        border-bottom: 1px solid var(--gray-100);
+        text-align: right;
     }
-
-    .table-container {
-        -webkit-overflow-scrolling: touch;
+    
+    .product-table td:last-child {
+        border-bottom: none;
     }
-
-    .current-image-card,
-    .preview-container {
-        min-width: 0;
+    
+    .product-table td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        font-size: 0.75rem;
+        color: var(--gray-600);
+        text-align: left;
+        flex: 0 0 90px;
     }
-
-    .current-image-details,
-    .preview-details,
-    .title-section,
-    .course-card-header h5,
-    .card-title {
-        min-width: 0;
-        overflow-wrap: anywhere;
+    
+    .product-table td:first-child {
+        justify-content: center;
+        background: var(--gray-50);
+        padding: 1rem;
     }
-
-    @media (max-width: 1024px) {
-        .page-content {
-            padding: 22px;
-        }
-
-        .order-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
+    
+    .product-table td:first-child::before {
+        display: none;
     }
-
-    @media (max-width: 768px) {
-        .page-content {
-            padding: 16px;
-        }
-
-        .navbar,
-        .dashboard-header,
-        .header-card,
-        .filter-section,
-        .dashboard-card,
-        .card-form {
-            border-radius: 16px !important;
-            padding: 18px !important;
-        }
-
-        .navbar .d-flex,
-        .card-header,
-        .dashboard-header .d-flex,
-        .header-card,
-        .action-row,
-        .course-card-header,
-        .d-flex.justify-content-between.align-items-center.mb-4 {
-            align-items: stretch !important;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .navbar h2,
-        .dashboard-title,
-        .title-section h1,
-        .page-title {
-            font-size: 1.45rem !important;
-            line-height: 1.3;
-        }
-
-        .stat-card,
-        .course-card-body {
-            padding: 16px;
-        }
-
-        .stat-number,
-        .stats-value {
-            font-size: 1.45rem;
-        }
-
-        .order-grid {
-            grid-template-columns: 1fr;
-            gap: 14px;
-        }
-
-        .order-card .d-flex.justify-content-between.align-items-center {
-            align-items: flex-start !important;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .btn-filter,
-        .filter-btn,
-        .btn-add-large,
-        .btn-add-course,
-        .search-box button,
-        .btn-action,
-        .action-btn {
-            width: 100%;
-            justify-content: center;
-        }
-
-        .search-box {
-            flex-direction: column;
-            max-width: none;
-        }
-
-        .search-box input,
-        .search-box button,
-        .form-control,
-        .form-select {
-            width: 100%;
-            min-width: 0;
-        }
-
-        .product-table {
-            min-width: 760px;
-        }
-
-        .current-image-card,
-        .preview-container {
-            flex-direction: column;
-            align-items: stretch;
-            text-align: center;
-            gap: 1rem;
-        }
-
-        .current-image,
-        .preview-image {
-            width: min(100%, 180px);
-            height: 150px;
-            margin-inline: auto;
-        }
-
-        .section-title {
-            font-size: 1.35rem;
-            align-items: flex-start;
-        }
-
-        .modal-dialog {
-            margin: .75rem;
-        }
-
-        .modal-body {
-            padding: 1rem !important;
-        }
+    
+    .product-name {
+        justify-content: flex-end;
     }
-
-    @media (max-width: 480px) {
-        .page-content {
-            padding: 12px;
-        }
-
-        .navbar,
-        .dashboard-header,
-        .header-card,
-        .filter-section,
-        .dashboard-card,
-        .card-form {
-            padding: 14px !important;
-        }
-
-        .admin-card {
-            width: 100%;
-            border-radius: 18px;
-            padding: 10px 12px;
-        }
-
-        .admin-card img,
-        .admin-profile img {
-            width: 40px;
-            height: 40px;
-        }
-
-        .order-amount {
-            font-size: 1.25rem;
-        }
-
-        .status-badge,
-        .badge-count,
-        .seasonal-tag {
-            margin-left: 0;
-            margin-top: 6px;
-        }
-
-        .product-name {
-            white-space: normal;
-        }
+    
+    .action-group {
+        width: 100%;
+        justify-content: flex-end;
     }
+}
+
+@media (max-width: 480px) {
+    .title-section h1 {
+        font-size: 1.25rem;
+    }
+    
+    .filter-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.75rem;
+    }
+    
+    .product-img,
+    .no-img {
+        width: 50px;
+        height: 50px;
+    }
+}
 </style>
 
+<style>
+/* Fix for sidebar layout */
+body {
+    margin-left: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    overflow-x: hidden;
+}
+
+.page-content {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+}
+</style>
 HTML;
 adminPageStart('จัดการสินค้า');
 ?>
 
-<div class="admin-local-page products-admin-page">
+<div class="admin-local-page">
     <!-- HEADER -->
     <div class="header-card">
         <div class="title-section">
@@ -756,10 +662,10 @@ adminPageStart('จัดการสินค้า');
             <p>จัดการข้อมูลสินค้าทั้งหมดในระบบ</p>
         </div>
         <div class="admin-card">
-            <img src="https://ui-avatars.com/api/?name=<?= urlencode($admin_name) ?>&background=2563eb&color=fff&size=52" alt="admin">
+            <img src="https://ui-avatars.com/api/?name=<?= urlencode($admin_name) ?>&background=2563eb&color=fff&size=44&bold=true" alt="admin">
             <div>
-                <div class="name"><?= htmlspecialchars($admin_name) ?></div>
-                <div class="email"><?= htmlspecialchars($admin_email) ?></div>
+                <div class="name"><?= htmlspecialchars($admin_name ?: 'แอดมิน') ?></div>
+                <div class="email"><?= htmlspecialchars($admin_email ?: 'admin@example.com') ?></div>
             </div>
         </div>
     </div>
@@ -784,10 +690,12 @@ adminPageStart('จัดการสินค้า');
         <div class="action-row">
             <form method="GET" action="" class="search-box">
                 <?php if ($current_status != 'all'): ?>
-                    <input type="hidden" name="status" value="<?= $current_status ?>">
+                    <input type="hidden" name="status" value="<?= htmlspecialchars($current_status) ?>">
                 <?php endif; ?>
                 <input type="text" name="search" placeholder="🔍 ค้นหาสินค้า..." value="<?= htmlspecialchars($search_keyword) ?>">
-                <button type="submit">ค้นหา</button>
+                <button type="submit">
+                    <i class="bi bi-search"></i> ค้นหา
+                </button>
             </form>
             <a href="add_product.php" class="btn-add-large">
                 <i class="bi bi-plus-lg"></i> เพิ่มสินค้าใหม่
@@ -840,31 +748,32 @@ adminPageStart('จัดการสินค้า');
         <table class="product-table">
             <thead>
                 <tr>
-                    <th>รูป</th>
+                    <th style="width: 80px;">รูป</th>
                     <th>ชื่อสินค้า</th>
                     <th>หมวดหมู่</th>
-                    <th>ราคา</th>
-                    <th>หน่วย</th>
-                    <th>สถานะ</th>
-                    <th>จัดการ</th>
+                    <th style="width: 100px;">ราคา</th>
+                    <th style="width: 80px;">หน่วย</th>
+                    <th style="width: 110px;">สถานะ</th>
+                    <th style="width: 180px;">จัดการ</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if ($total_results > 0): ?>
                     <?php while ($row = $result->fetch_assoc()): ?>
                         <tr>
-                            <td>
+                            <td data-label="รูปสินค้า">
                                 <?php if (!empty($row['product_image'])): ?>
-                                    <img src="uploads/products/<?= htmlspecialchars($row['product_image']) ?>" 
+                                    <img src="../admin/uploads/products/<?= htmlspecialchars($row['product_image']) ?>" 
                                         class="product-img"
-                                        onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2280%22%20height%3D%2280%22%20viewBox%3D%220%200%2080%2080%22%3E%3Crect%20width%3D%2280%22%20height%3D%2280%22%20fill%3D%22%23f1f5f9%22%2F%3E%3Ctext%20x%3D%2240%22%20y%3D%2245%22%20text-anchor%3D%22middle%22%20fill%3D%22%2394a3b8%22%3ENo%20Img%3C%2Ftext%3E%3C%2Fsvg%3E'">
+                                        alt="<?= htmlspecialchars($row['product_name']) ?>"
+                                        onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2265%22%20height%3D%2265%22%20viewBox%3D%220%200%2065%2065%22%3E%3Crect%20width%3D%2265%22%20height%3D%2265%22%20fill%3D%22%23f1f5f9%22%2F%3E%3Ctext%20x%3D%2232.5%22%20y%3D%2238%22%20text-anchor%3D%22middle%22%20fill%3D%22%2394a3b8%22%20font-size%3D%2210%22%3ENo%20Img%3C%2Ftext%3E%3C%2Fsvg%3E'">
                                 <?php else: ?>
                                     <div class="no-img">
-                                        <i class="bi bi-image fs-2"></i>
+                                        <i class="bi bi-image"></i>
                                     </div>
                                 <?php endif; ?>
                             </td>
-                            <td>
+                            <td data-label="ชื่อสินค้า">
                                 <div class="product-name">
                                     <?= htmlspecialchars($row['product_name']) ?>
                                     <?php if ($row['seasonal'] == 1): ?>
@@ -874,23 +783,34 @@ adminPageStart('จัดการสินค้า');
                                     <?php endif; ?>
                                 </div>
                             </td>
-                            <td><?= htmlspecialchars($row['category'] ?? '-') ?></td>
-                            <td class="price-highlight"><?= number_format($row['price'], 2) ?> ฿</td>
-                            <td><?= htmlspecialchars($row['unit'] ?? '-') ?></td>
-                            <td>
+                            <td data-label="หมวดหมู่">
+                                <span class="category-tag">
+                                    <i class="bi bi-tag-fill"></i>
+                                    <?= htmlspecialchars($row['category'] ?? '-') ?>
+                                </span>
+                            </td>
+                            <td data-label="ราคา">
+                                <span class="price-highlight">
+                                    ฿<?= number_format($row['price'], 2) ?>
+                                </span>
+                            </td>
+                            <td data-label="หน่วย">
+                                <?= htmlspecialchars($row['unit'] ?? '-') ?>
+                            </td>
+                            <td data-label="สถานะ">
                                 <?php if ($row['status'] == 'active'): ?>
                                     <span class="status-badge badge-active">
                                         <i class="bi bi-check-circle-fill"></i> พร้อมขาย
                                     </span>
                                 <?php else: ?>
                                     <span class="status-badge badge-inactive">
-                                        <i class="bi bi-x-circle-fill"></i> ไม่พร้อมขาย
+                                        <i class="bi bi-x-circle-fill"></i> ปิดขาย
                                     </span>
                                 <?php endif; ?>
                             </td>
-                            <td>
+                            <td data-label="จัดการ">
                                 <div class="action-group">
-                                    <a href="toggle_product.php?id=<?= $row['product_id'] ?>&from=manage_product<?= isset($_GET['status']) ? '&status='.$_GET['status'] : '' ?><?= !empty($search_keyword) ? '&search='.urlencode($search_keyword) : '' ?>" 
+                                    <a href="toggle_product.php?id=<?= $row['product_id'] ?>&from=manage_product<?= isset($_GET['status']) ? '&status='.urlencode($_GET['status']) : '' ?><?= !empty($search_keyword) ? '&search='.urlencode($search_keyword) : '' ?>" 
                                         class="btn-action <?= $row['status'] == 'active' ? 'btn-toggle-on' : 'btn-toggle-off' ?>"
                                         onclick="return confirm('ยืนยันการเปลี่ยนสถานะสินค้า?')">
                                         <i class="bi <?= $row['status'] == 'active' ? 'bi-toggle-off' : 'bi-toggle-on' ?>"></i>
@@ -907,10 +827,10 @@ adminPageStart('จัดการสินค้า');
                     <tr>
                         <td colspan="7" class="empty-box">
                             <i class="bi bi-box-seam"></i>
-                            <h3>ไม่พบสินค้า</h3>
-                            <p style="font-size: 18px;">ลองเปลี่ยนคำค้นหาหรือเพิ่มสินค้าใหม่</p>
-                            <a href="add_product.php" class="btn-add-large" style="display: inline-flex; margin-top: 16px;">
-                                <i class="bi bi-plus-lg"></i> เพิ่มสินค้า
+                            <h3>ไม่มีสินค้าในระบบ</h3>
+                            <p>คลิกปุ่มด้านล่างเพื่อเพิ่มสินค้าชิ้นแรกของคุณ</p>
+                            <a href="add_product.php" class="btn-add-large" style="display: inline-flex; margin-top: 0.5rem;">
+                                <i class="bi bi-plus-lg"></i> เพิ่มสินค้าใหม่
                             </a>
                         </td>
                     </tr>
@@ -922,6 +842,9 @@ adminPageStart('จัดการสินค้า');
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<?php $stmt->close(); ?>
+<?php 
+$stmt->close();
+$conn->close();
+?>
 
 <?php adminPageEnd(); ?>
