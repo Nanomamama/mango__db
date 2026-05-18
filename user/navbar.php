@@ -1,3 +1,37 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+  session_start();
+}
+
+$awaiting_qr_payment_count = 0;
+
+if (isset($_SESSION['member_id'])) {
+  if (!isset($conn) || !($conn instanceof mysqli)) {
+    require_once __DIR__ . '/../db/db.php';
+  }
+
+  if (isset($conn) && $conn instanceof mysqli) {
+    $member_id = (int) $_SESSION['member_id'];
+    $stmt_qr_notice = $conn->prepare("
+      SELECT COUNT(*) AS total
+      FROM bookings
+      WHERE member_id = ?
+        AND status = 'awaiting_payment'
+        AND (payment_slip IS NULL OR payment_slip = '')
+    ");
+
+    if ($stmt_qr_notice) {
+      $stmt_qr_notice->bind_param("i", $member_id);
+      $stmt_qr_notice->execute();
+      $result_qr_notice = $stmt_qr_notice->get_result();
+      if ($row_qr_notice = $result_qr_notice->fetch_assoc()) {
+        $awaiting_qr_payment_count = (int) ($row_qr_notice['total'] ?? 0);
+      }
+      $stmt_qr_notice->close();
+    }
+  }
+}
+?>
 <!DOCTYPE html>
 <html lang="th">
 
@@ -55,7 +89,8 @@
       transition: background-color 0.4s ease;
       padding-top: 0.5rem;
       padding-bottom: 0.5rem;
-      position: sticky; /* เปลี่ยนจาก fixed */
+      position: sticky;
+      /* เปลี่ยนจาก fixed */
       top: 0;
       z-index: 1000;
       background-color: var(--white);
@@ -90,6 +125,57 @@
 
     .navbar-nav .nav-link:hover::after {
       width: 100%;
+    }
+
+    .booking-alert-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .booking-alert-badge {
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 999px;
+      background: #dc3545;
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      line-height: 18px;
+      text-align: center;
+      box-shadow: 0 0 0 2px #fff;
+    }
+
+    .navbar-toggler.booking-menu-alert {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      color: #dc3545 !important;
+      animation: bookingMenuPulse 1s ease-in-out infinite;
+    }
+
+    .hamburger-alert-text {
+      color: #dc3545;
+      font-size: 0.68rem;
+      font-weight: 700;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+
+    @keyframes bookingMenuPulse {
+
+      0%,
+      100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 0 rgba(220, 53, 69, 0));
+      }
+
+      50% {
+        transform: scale(1.08);
+        filter: drop-shadow(0 0 8px rgba(220, 53, 69, 0.55));
+      }
     }
 
     .cta-btn {
@@ -170,6 +256,12 @@
         font-size: 0.9rem;
       }
     }
+
+    @media (min-width: 1200px) {
+      .navbar-expand-xl .navbar-toggler.booking-menu-alert {
+        display: none;
+      }
+    }
   </style>
 </head>
 
@@ -182,8 +274,11 @@
         <img src="../user/image/logo-3.png" alt="สวนลุงเผือก" class="logo logo--navbar">
       </a>
 
-      <button class="navbar-toggler text-dark border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#navMenu">
+      <button class="navbar-toggler text-dark border-0 <?= $awaiting_qr_payment_count > 0 ? 'booking-menu-alert' : '' ?>" type="button" data-bs-toggle="offcanvas" data-bs-target="#navMenu" aria-label="เปิดเมนูนำทาง">
         <i class='bx bx-menu' style="font-size:30px;"></i>
+        <?php if ($awaiting_qr_payment_count > 0): ?>
+          <!-- <span class="hamburger-alert-text">ได้รับ QR Code รอชำระเงิน</span> -->
+        <?php endif; ?>
       </button>
 
       <div class="offcanvas offcanvas-end" tabindex="-1" id="navMenu">
@@ -195,10 +290,19 @@
         <div class="offcanvas-body">
           <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
             <li class="nav-item"><a class="nav-link" href="index.php">หน้าแรก</a></li>
-             <li class="nav-item"><a class="nav-link" href="bookings.php">จองคิวออนไลน์</a></li>
-              <li class="nav-item"><a class="nav-link" href="course.php">กิจกรรมอบรม</a></li>
+            <li class="nav-item">
+              <a class="nav-link booking-alert-link" href="bookings.php">
+                <span>จองคิวออนไลน์</span>
+                <?php if ($awaiting_qr_payment_count > 0): ?>
+                  <span class="booking-alert-badge" title="มี QR Code รอชำระเงิน">
+                    <?= $awaiting_qr_payment_count > 9 ? '9+' : $awaiting_qr_payment_count ?>
+                  </span>
+                <?php endif; ?>
+              </a>
+            </li>
+            <li class="nav-item"><a class="nav-link" href="course.php">กิจกรรมอบรม</a></li>
             <li class="nav-item"><a class="nav-link" href="products.php">สั่งซื้อสินค้า</a></li>
-          
+
             <!-- <li class="nav-item"><a class="nav-link" href="#">ติดต่อเรา</a></li> -->
 
             <?php if (!isset($_SESSION['member_id'])): ?>

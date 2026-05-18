@@ -41,6 +41,51 @@ function app_base_url()
     return $scheme . '://' . $host . $basePath;
 }
 
+function save_qr_upload(array $qr_file, int $booking_id): array
+{
+    $max_size = 5 * 1024 * 1024;
+    $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif'];
+    $allowed_mimes = ['image/jpeg', 'image/png', 'image/gif'];
+    $extension = strtolower(pathinfo($qr_file['name'] ?? '', PATHINFO_EXTENSION));
+
+    if (($qr_file['size'] ?? 0) > $max_size) {
+        return ['ok' => false, 'message' => 'QR Code file is larger than 5MB'];
+    }
+
+    if (!in_array($extension, $allowed_extensions, true)) {
+        return ['ok' => false, 'message' => 'Invalid QR Code file type'];
+    }
+
+    if (function_exists('finfo_open')) {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if ($finfo) {
+            $mime = finfo_file($finfo, $qr_file['tmp_name']);
+            finfo_close($finfo);
+            if ($mime && !in_array($mime, $allowed_mimes, true)) {
+                return ['ok' => false, 'message' => 'Invalid QR Code MIME type'];
+            }
+        }
+    }
+
+    $upload_dir = __DIR__ . '/../user/PaymentQR-Gardenreservation/';
+    if (!is_dir($upload_dir) && !mkdir($upload_dir, 0755, true)) {
+        return ['ok' => false, 'message' => 'Cannot create QR upload directory'];
+    }
+
+    try {
+        $filename = 'qr_' . $booking_id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
+    } catch (\Throwable $e) {
+        $filename = 'qr_' . $booking_id . '_' . time() . '_' . mt_rand(1000, 9999) . '.' . $extension;
+    }
+
+    $target = $upload_dir . $filename;
+    if (!move_uploaded_file($qr_file['tmp_name'], $target)) {
+        return ['ok' => false, 'message' => 'Cannot save QR Code file'];
+    }
+
+    return ['ok' => true, 'filename' => $filename, 'path' => $target];
+}
+
 // จัดการการอัปเดตสถานะการจอง
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'], $_POST['csrf_token'])) {
     // ตรวจ CSRF
@@ -66,6 +111,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
             $stmt_details->close();
 
             if ($booking && !empty($booking['guest_email'])) {
+                $saved_qr = save_qr_upload($qr_file, $id);
+                if (!$saved_qr['ok']) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'message' => $saved_qr['message']]);
+                    exit;
+                }
+
                 try {
                     $mail = new PHPMailer(true);
                     // Enable SMTP debug output to PHP error log for troubleshooting
@@ -90,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 
                     $mail->setFrom('nanoone342@gmail.com', 'สวนลุงเผือก');
                     $mail->addAddress($booking['guest_email'], $booking['guest_name']);
-                    $mail->addEmbeddedImage($qr_file['tmp_name'], 'qrcode_deposit', 'qrcode.jpg');
+                    $mail->addEmbeddedImage($saved_qr['path'], 'qrcode_deposit', $saved_qr['filename']);
 
                     $mail->isHTML(true);
                     $mail->Subject = "ชำระเงินมัดจำสำหรับการจอง";
@@ -175,18 +227,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 
                     if ($mail->send()) {
                         // Update status to 'awaiting_payment' after sending QR
-                        $stmt_update = $conn->prepare("UPDATE bookings SET status = 'awaiting_payment', updated_at = NOW() WHERE bookings_id = ?");
+                        $stmt_update = $conn->prepare("UPDATE bookings SET payment_qr_path = ?, status = 'awaiting_payment', updated_at = NOW() WHERE bookings_id = ?");
                         if ($stmt_update) {
-                            $stmt_update->bind_param("i", $id);
+                            $stmt_update->bind_param("si", $saved_qr['filename'], $id);
                             $stmt_update->execute();
                             $stmt_update->close();
                         }
 
                         $response = ['success' => true, 'message' => 'ส่งอีเมลพร้อม QR Code สำเร็จ'];
                     } else {
+                        if (!empty($saved_qr['path']) && is_file($saved_qr['path'])) {
+                            unlink($saved_qr['path']);
+                        }
                         $response = ['success' => false, 'message' => 'ไม่สามารถส่งอีเมลได้: ' . $mail->ErrorInfo];
                     }
                 } catch (Exception $e) {
+                    if (!empty($saved_qr['path']) && is_file($saved_qr['path'])) {
+                        unlink($saved_qr['path']);
+                    }
                     $response = ['success' => false, 'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()];
                     error_log("QR Mailer Error for booking ID $id: " . $e->getMessage());
                 }
