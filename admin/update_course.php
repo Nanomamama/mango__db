@@ -71,9 +71,14 @@ function delete_course_image_file(?string $filename, string $target_dir): void
     }
 }
 
-function upload_course_image_or_keep(string $file_key, ?string $current_image, string $target_dir, array $allowed_types): ?string
+function upload_course_image_or_keep(string $file_key, ?string $current_image, string $target_dir, array $allowed_types, bool $remove_image = false): ?string
 {
     if (!isset($_FILES[$file_key]) || $_FILES[$file_key]['error'] === UPLOAD_ERR_NO_FILE) {
+        if ($remove_image) {
+            delete_course_image_file($current_image, $target_dir);
+            return null;
+        }
+
         return $current_image;
     }
 
@@ -103,9 +108,9 @@ function upload_course_image_or_keep(string $file_key, ?string $current_image, s
 }
 
 try {
-    $image1 = upload_course_image_or_keep('image1', $old_images['image1'], $target_dir, $allowed_types);
-    $image2 = upload_course_image_or_keep('image2', $old_images['image2'], $target_dir, $allowed_types);
-    $image3 = upload_course_image_or_keep('image3', $old_images['image3'], $target_dir, $allowed_types);
+    $image1 = upload_course_image_or_keep('image1', $old_images['image1'], $target_dir, $allowed_types, isset($_POST['remove_image1']));
+    $image2 = upload_course_image_or_keep('image2', $old_images['image2'], $target_dir, $allowed_types, isset($_POST['remove_image2']));
+    $image3 = upload_course_image_or_keep('image3', $old_images['image3'], $target_dir, $allowed_types, isset($_POST['remove_image3']));
 } catch (RuntimeException $e) {
     header('Location: edit_courses.php?error=' . urlencode($e->getMessage()));
     exit;

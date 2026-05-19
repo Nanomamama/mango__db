@@ -51,7 +51,7 @@ while ($row = $items->fetch_assoc()) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>รายละเอียดออเดอร์ #<?= htmlspecialchars($order['order_code']) ?></title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
     /* Primary Colors */
@@ -60,24 +60,24 @@ while ($row = $items->fetch_assoc()) {
     --primary-light: #3b82f6;
     
     /* Status Colors - Pending (รอยืนยัน) */
-    --status-pending-text: #92400e;
-    --status-pending-bg: #fffbeb;
-    --status-pending-border: #fde68a;
+    --status-pending-text: #ffffff;
+    --status-pending-bg: #ffd000;
+    --status-pending-border: #f3ff06;
     
     /* Status Colors - Approved (ยืนยันแล้ว) */
-    --status-approved-text: #166534;
-    --status-approved-bg: #f0fdf4;
-    --status-approved-border: #bbf7d0;
+    --status-approved-text: #ffffff;
+    --status-approved-bg: #42dd00;
+    --status-approved-border: #16ff70;
     
     /* Status Colors - Rejected (ถูกปฏิเสธ) */
-    --status-rejected-text: #991b1b;
-    --status-rejected-bg: #fef2f2;
-    --status-rejected-border: #fecaca;
+    --status-rejected-text: #ffffff;
+    --status-rejected-bg: #ff0000;
+    --status-rejected-border: #ff3737;
     
     /* Status Colors - Completed (เสร็จสมบูรณ์) */
-    --status-completed-text: #155e75;
-    --status-completed-bg: #ecfeff;
-    --status-completed-border: #a5f3fc;
+    --status-completed-text: #ffffff;
+    --status-completed-bg: #00c5e4;
+    --status-completed-border: #3592fd;
     
     /* Gray Scale */
     --gray-50: #f9fafb;
@@ -92,9 +92,9 @@ while ($row = $items->fetch_assoc()) {
     --gray-900: #111827;
     
     /* Semantic Colors */
-    --success: #10b981;
+    --success: #00ddff;
     --success-dark: #059669;
-    --success-bg: #29ff37;
+    --success-bg: #90ff21;
     --success-text: #065f46;
     
     --danger: #ef4444;
@@ -122,8 +122,8 @@ while ($row = $items->fetch_assoc()) {
     
     /* Typography */
     --text-primary: var(--gray-900);
-    --text-secondary: var(--gray-600);
-    --text-muted: var(--gray-500);
+    --text-secondary: var(--gray-700);
+    --text-muted: var(--gray-600);
     --text-disabled: var(--gray-400);
 }
 
@@ -134,11 +134,11 @@ while ($row = $items->fetch_assoc()) {
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Noto Sans Thai', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     color: var(--text-primary);
-    font-size: 14px;
-    line-height: 1.5;
+    font-size: 16px;
+    line-height: 1.6;
     min-height: 100vh;
 }
 
@@ -167,8 +167,8 @@ body {
 }
 
 .order-title h1 {
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-size: 1.65rem;
+    font-weight: 800;
     color: var(--text-primary);
     margin-bottom: 0.25rem;
 }
@@ -177,7 +177,7 @@ body {
     display: flex;
     gap: 1rem;
     flex-wrap: wrap;
-    font-size: 0.875rem;
+    font-size: 1rem;
     color: var(--text-muted);
 }
 
@@ -191,18 +191,18 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 1.25rem;
+    padding: 0.7rem 1.45rem;
     border-radius: 100px;
-    font-size: 0.875rem;
-    font-weight: 600;
+    font-size: 1.1rem;
+    font-weight: 800;
     background: <?= $s['bg'] ?>;
     color: <?= $s['color'] ?>;
-    border: 1px solid <?= $s['border'] ?>;
-    box-shadow: var(--shadow-sm);
+    border: 2px solid <?= $s['border'] ?>;
+    box-shadow: 0 10px 18px -10px rgb(0 0 0 / 0.35);
 }
 
 .status-badge i {
-    font-size: 1rem;
+    font-size: 1.2rem;
 }
 
 .btn-back {
@@ -213,8 +213,8 @@ body {
     border-radius: var(--radius-sm);
     background: white;
     color: var(--gray-700);
-    font-size: 0.875rem;
-    font-weight: 500;
+    font-size: 1rem;
+    font-weight: 700;
     text-decoration: none;
     border: 1px solid var(--gray-200);
     transition: all 0.2s ease;
@@ -272,8 +272,8 @@ body {
 }
 
 .card-header h3 {
-    font-size: 0.75rem;
-    font-weight: 700;
+    font-size: 0.95rem;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-secondary);
@@ -284,7 +284,7 @@ body {
 }
 
 .card-header h3 i {
-    font-size: 0.875rem;
+    font-size: 1rem;
     color: var(--gray-500);
 }
 
@@ -314,15 +314,15 @@ body {
 }
 
 .info-label {
-    font-size: 0.813rem;
-    font-weight: 500;
+    font-size: 0.95rem;
+    font-weight: 700;
     color: var(--text-secondary);
     min-width: 80px;
 }
 
 .info-value {
-    font-size: 0.875rem;
-    font-weight: 500;
+    font-size: 1rem;
+    font-weight: 700;
     color: var(--text-primary);
     text-align: right;
     word-break: break-word;
@@ -335,12 +335,12 @@ body {
     gap: 0.375rem;
     padding: 0.25rem 0.75rem;
     border-radius: 100px;
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.95rem;
+    font-weight: 700;
 }
 
 .chip-pickup {
-    background: var(--success-bg);
+    background-color: #8dfff2;
     color: var(--success-text);
 }
 
@@ -422,8 +422,8 @@ body {
 }
 
 .timeline-title {
-    font-weight: 600;
-    font-size: 0.875rem;
+    font-weight: 700;
+    font-size: 1rem;
     margin-bottom: 0.125rem;
     color: var(--text-primary);
 }
@@ -437,7 +437,7 @@ body {
 }
 
 .timeline-desc {
-    font-size: 0.75rem;
+    font-size: 0.9rem;
     color: var(--text-muted);
 }
 
@@ -459,8 +459,8 @@ body {
 .product-table th {
     padding: 0.875rem 1rem;
     text-align: left;
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.95rem;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-secondary);
@@ -492,13 +492,13 @@ body {
 }
 
 .product-name {
-    font-weight: 600;
+    font-weight: 800;
     color: var(--text-primary);
     margin-bottom: 0.25rem;
 }
 
 .product-price {
-    font-size: 0.75rem;
+    font-size: 0.95rem;
     color: var(--text-muted);
 }
 
@@ -510,28 +510,28 @@ body {
     padding: 0.25rem 0.75rem;
     background: var(--gray-100);
     border-radius: 100px;
-    font-weight: 600;
-    font-size: 0.875rem;
+    font-weight: 800;
+    font-size: 1rem;
     color: var(--gray-700);
 }
 
 .price-amount {
-    font-weight: 600;
+    font-weight: 800;
     color: var(--text-primary);
 }
 
 .product-table tfoot td {
     background: var(--gray-50);
     border-top: 2px solid var(--gray-200);
-    font-weight: 700;
-    font-size: 1rem;
+    font-weight: 800;
+    font-size: 1.1rem;
     padding: 1rem;
     color: var(--text-primary);
 }
 
 /* Summary Card */
 .summary-card {
-    background: linear-gradient(135deg, var(--gray-900) 0%, #1e293b 100%);
+    background-color: #aeefff;
     border-radius: var(--radius-md);
     padding: 1.25rem 1.5rem;
     margin-bottom: 1rem;
@@ -550,33 +550,35 @@ body {
 }
 
 .summary-label {
-    font-size: 0.75rem;
-    color: var(--gray-400);
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--gray-900);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
 
 .summary-amount {
     font-size: 1.75rem;
-    font-weight: 700;
-    color: white;
+    font-weight: 800;
+    color: red;
 }
 
 .summary-amount small {
-    font-size: 0.875rem;
-    font-weight: 400;
-    color: var(--gray-400);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--gray-700);
     margin-left: 0.25rem;
 }
 
 .summary-badge {
-    background: rgba(255, 255, 255, 0.1);
+    background: <?= $s['bg'] ?>;
     border-radius: 100px;
-    padding: 0.5rem 1rem;
-    font-weight: 600;
-    font-size: 0.875rem;
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0.7rem 1.25rem;
+    font-weight: 800;
+    font-size: 1.05rem;
+    color: <?= $s['color'] ?>;
+    border: 2px solid <?= $s['border'] ?>;
+    box-shadow: 0 10px 18px -10px rgb(0 0 0 / 0.35);
 }
 
 /* Alert Box */
@@ -615,8 +617,8 @@ body {
 }
 
 .action-title {
-    font-size: 0.75rem;
-    font-weight: 700;
+    font-size: 0.95rem;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-secondary);
@@ -635,8 +637,8 @@ body {
     gap: 0.5rem;
     padding: 0.625rem 1.25rem;
     border-radius: var(--radius-sm);
-    font-size: 0.875rem;
-    font-weight: 600;
+    font-size: 1rem;
+    font-weight: 800;
     text-decoration: none;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -708,8 +710,8 @@ body {
 
 .form-label {
     display: block;
-    font-size: 0.813rem;
-    font-weight: 600;
+    font-size: 1rem;
+    font-weight: 800;
     color: var(--text-primary);
     margin-bottom: 0.5rem;
 }
@@ -725,7 +727,7 @@ body {
     border: 1px solid var(--gray-300);
     border-radius: var(--radius-sm);
     font-family: inherit;
-    font-size: 0.875rem;
+    font-size: 1rem;
     resize: vertical;
     transition: all 0.2s ease;
     color: var(--text-primary);
@@ -854,7 +856,7 @@ body {
                                     </span>
                                 <?php else: ?>
                                     <span class="chip chip-delivery">
-                                        <i class="fas fa-motorcycle"></i> ส่งถึงบ้าน
+                                        <i class="fas fa-truck"></i> ส่งถึงบ้าน
                                     </span>
                                 <?php endif; ?>
                             </span>

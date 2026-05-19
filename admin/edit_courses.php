@@ -3,1046 +3,991 @@ require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
 require_once 'sidebar.php';
 
-// ดึงชื่อ admin จาก session
 $admin_name = $_SESSION['admin_name'] ?? '';
 $admin_email = $_SESSION['admin_email'] ?? '';
 
-// ดึงข้อมูลหลักสูตรทั้งหมด
 $courses = [];
-$result = $conn->query("SELECT * FROM courses ORDER BY courses_id DESC");
-while ($row = $result->fetch_assoc()) {
-    // ปรับปรุงชื่อคอลัมน์จากฐานข้อมูลให้สอดคล้องกับโค้ด JavaScript
-    $courses[] = [
-        'id' => $row['courses_id'],
-        'course_name' => $row['course_name'],
-        'course_description' => $row['course_description'],
-        'image1' => $row['image1'],
-        'image2' => $row['image2'],
-        'image3' => $row['image3']
-    ];
+$result = $conn->query("
+    SELECT courses_id, course_name, course_description, image1, image2, image3, created_at, updated_at
+    FROM courses
+    ORDER BY courses_id DESC
+");
+
+if ($result instanceof mysqli_result) {
+    while ($row = $result->fetch_assoc()) {
+        $courses[] = [
+            'id' => (int)$row['courses_id'],
+            'course_name' => $row['course_name'] ?? '',
+            'course_description' => $row['course_description'] ?? '',
+            'image1' => $row['image1'] ?? '',
+            'image2' => $row['image2'] ?? '',
+            'image3' => $row['image3'] ?? '',
+            'created_at' => $row['created_at'] ?? '',
+            'updated_at' => $row['updated_at'] ?? '',
+        ];
+    }
+    $result->close();
 }
 
-// แปลงข้อมูล courses เป็น JSON สำหรับใช้ใน JavaScript
-$courses_json = json_encode($courses, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+$courseCount = count($courses);
+$imageCount = 0;
+foreach ($courses as $course) {
+    foreach (['image1', 'image2', 'image3'] as $imageKey) {
+        if (!empty($course[$imageKey])) {
+            $imageCount++;
+        }
+    }
+}
+
+$courses_json = json_encode($courses, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
 
 $adminPageExtraHead = <<<'HTML'
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <style>
-        :root {
-            --primary: #4361ee;
-            --secondary: #3f37c9;
-            --success: #4cc9f0;
-            --info: #36b9cc;
-            --warning: #f6c23e;
-            --danger: #e74a3b;
-            --light: #f8f9fa;
-            --dark: #212529;
-            --purple: #7209b7;
-            --teal: #20c997;
-            --pink: #e83e8c;
-            --cyan: #0dcaf0;
-            --mango: #FFC107;
-            --mango-dark: #E6A000;
-        }
-
-        * {
-            font-family: 'Kanit', sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4e7f1 100%);
-            min-height: 100vh;
-        }
-
-        .dashboard-header {
-            background: linear-gradient(120deg, var(--primary), var(--secondary));
-            color: white;
-            padding: 1rem;
-            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
-            position: relative;
-            overflow: hidden;
-            z-index: 10;
-            border-radius: 50px;
-        }
-
-        .dashboard-header::before {
-            content: "";
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 70%);
-            pointer-events: none;
-        }
-
-        .admin-profile {
-            display: flex;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            padding: 0.5rem 1rem;
-            border-radius: 50px;
-            transition: all 0.3s ease;
-        }
-
-        .admin-profile:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .admin-profile img {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            margin-right: 10px;
-            border: 2px solid rgba(255, 255, 255, 0.5);
-        }
-
-        .admin-profile span {
-            font-weight: 500;
-            color: white;
-            font-size: 0.9rem;
-        }
-
-
-        .stats-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
-            padding: 1.5rem;
-            text-align: center;
-            margin-bottom: 1.5rem;
-            transition: all 0.3s ease;
-            height: 100%;
-        }
-
-        .stats-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        .stats-icon {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            color: var(--primary);
-        }
-
-        .stats-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--dark);
-            margin-bottom: 0.5rem;
-        }
-
-        .stats-label {
-            font-size: 0.9rem;
-            color: #6c757d;
-            font-weight: 500;
-        }
-
-        .course-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-            overflow: hidden;
-            margin-bottom: 1.5rem;
-            border: none;
-            position: relative;
-        }
-
-        .course-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        .course-card::after {
-            content: "";
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-        }
-
-        .course-card-header {
-            padding: 1rem 1.5rem;
-            background: linear-gradient(90deg, rgba(67, 97, 238, 0.1), transparent);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .course-card-body {
-            padding: 1.5rem;
-        }
-
-        .course-image {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-
-        .course-description {
-            color: #6c757d;
-            margin-bottom: 1rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .action-btn {
-            border-radius: 50px;
-            padding: 0.5rem 1.2rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            border: none;
-            font-size: 0.9rem;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .action-btn i {
-            margin-right: 5px;
-        }
-
-        .btn-view {
-            background: rgba(67, 97, 238, 0.1);
-            color: var(--primary);
-        }
-
-        .btn-view:hover {
-            background: rgba(67, 97, 238, 0.2);
-            color: var(--primary);
-        }
-
-        .btn-edit {
-            background: rgba(246, 194, 62, 0.1);
-            color: var(--warning);
-        }
-
-        .btn-edit:hover {
-            background: rgba(246, 194, 62, 0.2);
-            color: var(--warning);
-        }
-
-        .btn-delete {
-            background: rgba(231, 74, 59, 0.1);
-            color: var(--danger);
-        }
-
-        .btn-delete:hover {
-            background: rgba(231, 74, 59, 0.2);
-            color: var(--danger);
-        }
-
-        .search-box {
-            position: relative;
-            margin-bottom: 1.5rem;
-        }
-
-        .search-box input {
-            border-radius: 50px;
-            padding: 0.75rem 1.5rem;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-        }
-
-        .search-box input:focus {
-            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.2);
-            border-color: var(--primary);
-        }
-
-        .search-box i {
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6c757d;
-        }
-
-        .course-modal .modal-content {
-            border-radius: 16px;
-            overflow: hidden;
-            border: none;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-        }
-
-        .course-modal .modal-header {
-            background: linear-gradient(120deg, var(--primary), var(--secondary));
-            color: white;
-            border-bottom: none;
-        }
-
-        .course-modal .btn-close {
-            filter: invert(1);
-        }
-
-        .modal-image {
-            width: 100%;
-            max-height: 250px;
-            /* ปรับขนาดความสูงให้เหมาะสมขึ้น */
-            object-fit: cover;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-
-        .admin-profile {
-            display: flex;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            padding: 0.5rem 1rem;
-            border-radius: 50px;
-            transition: all 0.3s ease;
-        }
-
-        .admin-profile:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .admin-profile img {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            margin-right: 10px;
-            border: 2px solid rgba(255, 255, 255, 0.5);
-        }
-
-        .admin-profile span {
-            font-weight: 500;
-            color: white;
-            font-size: 0.9rem;
-        }
-
-        .btn-add-course {
-            background: linear-gradient(120deg, var(--primary), var(--secondary));
-            color: white;
-            border: none;
-            border-radius: 50px;
-            padding: 0.75rem 1.5rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .btn-add-course:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
-            color: white;
-        }
-
-        .btn-add-course i {
-            margin-right: 5px;
-        }
-
-        @media (max-width: 768px) {
-            .course-card-body {
-                padding: 1rem;
-            }
-
-            .action-btn {
-                width: 100%;
-                margin-bottom: 0.5rem;
-            }
-
-            .btn-group-vertical {
-                width: 100%;
-            }
-
-            .dashboard-title {
-                font-size: 1.5rem;
-            }
-
-            .p-4 {
-                margin-left: 0 !important;
-                /* ยกเลิก margin-left สำหรับ Mobile */
-            }
-        }
-    </style>
-
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
-    body {
-        margin-left: 0 !important;
-        padding: 0 !important;
-        max-width: none !important;
-        overflow-x: hidden;
+    :root {
+        --course-green: #016A70;
+        --course-green-dark: #01545a;
+        --course-green-soft: rgba(1, 106, 112, .09);
+        --course-ink: #0f172a;
+        --course-muted: #64748b;
+        --course-line: #e2e8f0;
+        --course-bg: #f8fafc;
+        --course-panel: #ffffff;
+        --course-yellow: #f59e0b;
+        --course-red: #ef4444;
+        --course-blue: #2563eb;
+        --course-shadow: 0 16px 38px rgba(15, 23, 42, .08);
+        --course-radius: 8px;
     }
 
     .page-content {
         width: 100%;
         max-width: 100%;
+        padding: 0;
     }
 
-    .admin-local-page {
-        margin-left: 0 !important;
-        padding: 0 !important;
-        min-height: auto !important;
+    .courses-admin-page {
         width: 100%;
+        max-width: 1420px;
+        margin: 0 auto;
+        padding: 28px;
+        color: var(--course-ink);
     }
 
-    .navbar,
-    .dashboard-header,
-    .header-card,
-    .filter-section,
-    .dashboard-card,
-    .card-form,
-    .table-container,
+    .course-hero,
+    .course-toolbar,
+    .course-empty,
     .course-card,
-    .modal-content {
-        max-width: 100%;
+    .course-modal .modal-content,
+    .delete-dialog .modal-content {
+        background: var(--course-panel);
+        border: 1px solid var(--course-line);
+        border-radius: var(--course-radius);
+        box-shadow: var(--course-shadow);
     }
 
-    .card-header,
-    .dashboard-header .d-flex,
-    .header-card,
-    .action-row,
-    .course-card-header {
-        min-width: 0;
+    .course-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 20px;
+        padding: 24px;
+        margin-bottom: 18px;
     }
 
-    .filter-buttons,
-    .order-filter-list {
+    .course-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        color: var(--course-green);
+        font-size: .82rem;
+        font-weight: 700;
+    }
+
+    .course-title {
+        margin: 0;
+        font-size: clamp(1.45rem, 2vw, 2rem);
+        font-weight: 800;
+        line-height: 1.25;
+        letter-spacing: 0;
+    }
+
+    .course-subtitle {
+        margin: 8px 0 0;
+        color: var(--course-muted);
+        line-height: 1.7;
+        overflow-wrap: anywhere;
+    }
+
+    .admin-chip {
         display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 220px;
+        padding: 10px 14px;
+        border: 1px solid var(--course-line);
+        border-radius: var(--course-radius);
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+    }
+
+    .admin-chip img {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex: 0 0 auto;
+    }
+
+    .admin-chip strong,
+    .admin-chip span {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .admin-chip strong {
+        font-size: .95rem;
+    }
+
+    .admin-chip span {
+        color: var(--course-muted);
+        font-size: .78rem;
+    }
+
+    .course-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .course-stat {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 16px;
+        background: #fff;
+        border: 1px solid var(--course-line);
+        border-radius: var(--course-radius);
+    }
+
+    .course-stat-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 8px;
+        color: var(--course-green);
+        background: var(--course-green-soft);
+        flex: 0 0 auto;
+    }
+
+    .course-stat-value {
+        margin: 0;
+        font-size: 1.35rem;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+
+    .course-stat-label {
+        color: var(--course-muted);
+        font-size: .82rem;
+    }
+
+    .course-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 16px;
+        margin-bottom: 20px;
+    }
+
+    .course-search {
+        position: relative;
+        flex: 1 1 360px;
+        max-width: 560px;
+    }
+
+    .course-search i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--course-muted);
+    }
+
+    .course-search input {
+        width: 100%;
+        min-height: 46px;
+        padding: 10px 16px 10px 42px;
+        border: 1px solid var(--course-line);
+        border-radius: var(--course-radius);
+        outline: none;
+        transition: .2s ease;
+    }
+
+    .course-search input:focus {
+        border-color: var(--course-green);
+        box-shadow: 0 0 0 4px rgba(1, 106, 112, .10);
+    }
+
+    .course-actions {
+        display: flex;
+        align-items: center;
         flex-wrap: wrap;
         gap: 10px;
     }
 
-    .btn-filter,
-    .filter-btn,
-    .btn-add-large,
-    .btn-add-course,
-    .btn-action,
+    .btn-course-primary,
+    .btn-course-secondary,
     .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 42px;
+        border-radius: var(--course-radius);
+        font-weight: 700;
         white-space: normal;
         text-align: center;
     }
 
-    .product-table th,
-    .product-table td {
-        white-space: nowrap;
+    .btn-course-primary {
+        border: 1px solid var(--course-green);
+        background: var(--course-green);
+        color: #fff;
+        padding: 10px 16px;
     }
 
-    .table-container {
-        -webkit-overflow-scrolling: touch;
+    .btn-course-primary:hover {
+        background: var(--course-green-dark);
+        color: #fff;
     }
 
-    .current-image-card,
-    .preview-container {
-        min-width: 0;
+    .btn-course-secondary {
+        border: 1px solid var(--course-line);
+        background: #fff;
+        color: var(--course-green);
+        padding: 10px 16px;
+        text-decoration: none;
     }
 
-    .current-image-details,
-    .preview-details,
-    .title-section,
-    .course-card-header h5,
-    .card-title {
-        min-width: 0;
+    .btn-course-secondary:hover {
+        background: var(--course-green-soft);
+        color: var(--course-green-dark);
+    }
+
+    .course-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    .course-card {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 100%;
+    }
+
+    .course-thumb-wrap {
+        position: relative;
+        aspect-ratio: 16 / 10;
+        background: #eef2f7;
+        overflow: hidden;
+    }
+
+    .course-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transition: transform .25s ease;
+    }
+
+    .course-card:hover .course-image {
+        transform: scale(1.035);
+    }
+
+    .course-badge {
+        position: absolute;
+        left: 12px;
+        bottom: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        max-width: calc(100% - 24px);
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, .78);
+        color: #fff;
+        font-size: .75rem;
+        font-weight: 700;
+    }
+
+    .course-card-body {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        padding: 16px;
+    }
+
+    .course-name {
+        margin: 0 0 10px;
+        font-size: 1.02rem;
+        font-weight: 800;
+        line-height: 1.45;
         overflow-wrap: anywhere;
     }
 
-    @media (max-width: 1024px) {
-        .page-content {
-            padding: 22px;
-        }
+    .course-description {
+        margin: 0 0 16px;
+        color: var(--course-muted);
+        line-height: 1.7;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
 
-        .order-grid {
+    .course-card-actions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: auto;
+    }
+
+    .action-btn {
+        border: 1px solid transparent;
+        padding: 9px 10px;
+        font-size: .88rem;
+    }
+
+    .btn-view {
+        background: rgba(37, 99, 235, .09);
+        color: var(--course-blue);
+        border-color: rgba(37, 99, 235, .16);
+    }
+
+    .btn-edit {
+        background: rgba(245, 158, 11, .12);
+        color: #b45309;
+        border-color: rgba(245, 158, 11, .2);
+    }
+
+    .btn-delete {
+        background: rgba(239, 68, 68, .10);
+        color: var(--course-red);
+        border-color: rgba(239, 68, 68, .16);
+    }
+
+    .course-empty {
+        display: none;
+        padding: 42px 18px;
+        color: var(--course-muted);
+        text-align: center;
+    }
+
+    .course-empty i {
+        display: block;
+        margin-bottom: 10px;
+        color: var(--course-green);
+        font-size: 2rem;
+    }
+
+    .course-modal .modal-header,
+    .delete-dialog .modal-header {
+        background: var(--course-green);
+        color: #fff;
+        border: 0;
+    }
+
+    .course-modal .btn-close,
+    .delete-dialog .btn-close {
+        filter: invert(1);
+    }
+
+    .modal-image {
+        width: 100%;
+        max-height: 260px;
+        object-fit: cover;
+        border-radius: var(--course-radius);
+        border: 1px solid var(--course-line);
+    }
+
+    .detail-table th {
+        width: 170px;
+        color: var(--course-muted);
+        background: var(--course-bg);
+    }
+
+    .detail-table td {
+        overflow-wrap: anywhere;
+    }
+
+    .image-upload-card {
+        height: 100%;
+        padding: 12px;
+        border: 1px dashed #cbd5e1;
+        border-radius: var(--course-radius);
+        background: #f8fafc;
+    }
+
+    .preview-image {
+        display: none;
+        width: 100%;
+        height: 145px;
+        margin-top: 10px;
+        object-fit: cover;
+        border-radius: var(--course-radius);
+        border: 1px solid var(--course-line);
+    }
+
+    .preview-image.is-marked-remove {
+        opacity: .35;
+        filter: grayscale(1);
+    }
+
+    .remove-image-check {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        padding: 9px 10px;
+        border: 1px solid rgba(239, 68, 68, .18);
+        border-radius: var(--course-radius);
+        background: rgba(239, 68, 68, .08);
+        color: var(--course-red);
+        font-size: .84rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .remove-image-check input {
+        width: 1rem;
+        height: 1rem;
+        flex: 0 0 auto;
+    }
+
+    @media (max-width: 1180px) {
+        .course-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
 
     @media (max-width: 768px) {
-        .page-content {
-            padding: 16px;
+        .courses-admin-page {
+            padding: 18px;
         }
 
-        .navbar,
-        .dashboard-header,
-        .header-card,
-        .filter-section,
-        .dashboard-card,
-        .card-form {
-            border-radius: 16px !important;
-            padding: 18px !important;
-        }
-
-        .navbar .d-flex,
-        .card-header,
-        .dashboard-header .d-flex,
-        .header-card,
-        .action-row,
-        .course-card-header,
-        .d-flex.justify-content-between.align-items-center.mb-4 {
-            align-items: stretch !important;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .navbar h2,
-        .dashboard-title,
-        .title-section h1,
-        .page-title {
-            font-size: 1.45rem !important;
-            line-height: 1.3;
-        }
-
-        .stat-card,
-        .course-card-body {
-            padding: 16px;
-        }
-
-        .stat-number,
-        .stats-value {
-            font-size: 1.45rem;
-        }
-
-        .order-grid {
+        .course-hero,
+        .course-toolbar {
             grid-template-columns: 1fr;
-            gap: 14px;
+            align-items: stretch;
         }
 
-        .order-card .d-flex.justify-content-between.align-items-center {
-            align-items: flex-start !important;
+        .course-hero {
+            display: flex;
             flex-direction: column;
-            gap: 8px;
+            padding: 18px;
         }
 
-        .btn-filter,
-        .filter-btn,
-        .btn-add-large,
-        .btn-add-course,
-        .search-box button,
-        .btn-action,
-        .action-btn {
+        .admin-chip,
+        .course-search,
+        .btn-course-primary,
+        .btn-course-secondary {
             width: 100%;
-            justify-content: center;
-        }
-
-        .search-box {
-            flex-direction: column;
             max-width: none;
         }
 
-        .search-box input,
-        .search-box button,
-        .form-control,
-        .form-select {
-            width: 100%;
-            min-width: 0;
+        .course-search {
+            flex: 0 1 auto;
         }
 
-        .product-table {
-            min-width: 760px;
+        .course-stats {
+            grid-template-columns: 1fr;
         }
 
-        .current-image-card,
-        .preview-container {
+        .course-toolbar {
             flex-direction: column;
             align-items: stretch;
-            text-align: center;
-            gap: 1rem;
         }
 
-        .current-image,
-        .preview-image {
-            width: min(100%, 180px);
-            height: 150px;
-            margin-inline: auto;
+        .course-actions {
+            flex-direction: column;
+            align-items: stretch;
         }
 
-        .section-title {
-            font-size: 1.35rem;
-            align-items: flex-start;
+        .course-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .course-card-actions {
+            grid-template-columns: 1fr;
         }
 
         .modal-dialog {
             margin: .75rem;
         }
 
-        .modal-body {
+        .modal-body,
+        .modal-footer {
             padding: 1rem !important;
+        }
+
+        .detail-table,
+        .detail-table tbody,
+        .detail-table tr,
+        .detail-table th,
+        .detail-table td {
+            display: block;
+            width: 100%;
+        }
+
+        .detail-table th {
+            border-bottom: 0;
         }
     }
 
     @media (max-width: 480px) {
-        .page-content {
+        .courses-admin-page {
             padding: 12px;
         }
 
-        .navbar,
-        .dashboard-header,
-        .header-card,
-        .filter-section,
-        .dashboard-card,
-        .card-form {
-            padding: 14px !important;
+        .course-title {
+            font-size: 1.28rem;
         }
 
-        .admin-card {
-            width: 100%;
-            border-radius: 18px;
-            padding: 10px 12px;
-        }
-
-        .admin-card img,
-        .admin-profile img {
-            width: 40px;
-            height: 40px;
-        }
-
-        .order-amount {
-            font-size: 1.25rem;
-        }
-
-        .status-badge,
-        .badge-count,
-        .seasonal-tag {
-            margin-left: 0;
-            margin-top: 6px;
-        }
-
-        .product-name {
-            white-space: normal;
+        .course-stat {
+            align-items: flex-start;
         }
     }
 </style>
-
 HTML;
+
 adminPageStart('จัดการกิจกรรมอบรม');
 ?>
 
-<div class="admin-local-page courses-admin-page">
-        <header class="dashboard-header pb-4 mb-4">
-            <div class="container">
-                <div class="d-flex justify-content-between align-items-center flex-wrap">
-                    <div>
-                        <h2 class="dashboard-title mb-0">จัดการกิจกรรมอบรม</h2>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mt-2 mt-md-0">
-                        <div class="position-relative">
-                            <button class="btn btn-light rounded-circle p-2 shadow-sm position-relative" style="width:44px; height:44px;">
-                                <i class="bi bi-bell fs-5"></i>
-                                <span class="notification-badge position-absolute top-0 end-0 translate-middle badge rounded-pill bg-danger" style="font-size:0.75rem; min-width:20px; height:20px; display:flex; align-items:center; justify-content:center;">
-                                    3
-                                </span>
-                            </button>
-                        </div>
-                        <div class="admin-profile">
-                            <img src="https://ui-avatars.com/api/?name=<?= urlencode($admin_name) ?>&background=random&color=fff" alt="Admin">
-                            <span><?= htmlspecialchars($admin_name) ?></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </header>
-
-        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-
-            <div class="d-flex gap-2">
-                <button type="button" class="btn btn-add-course" data-bs-toggle="modal" data-bs-target="#addCourseModal">
-                    <i class="bi bi-plus-circle"></i> เพิ่มกิจกรรมอบรมใหม่
-                </button>
-
-                <!-- ปุ่มไปหน้าจัดการความคิดเห็น (สไตล์เดียวกัน) -->
-                <a href="manage_comments.php" class="btn btn-add-course">
-                    <i class="bi bi-chat-left-dots"></i> จัดการความคิดเห็น
-                </a>
-            </div>
-
-
+<div class="courses-admin-page">
+    <section class="course-hero">
+        <div>
+            <div class="course-kicker"><i class="bi bi-stars"></i> ระบบกิจกรรมอบรม</div>
+            <h1 class="course-title">จัดการกิจกรรมอบรม</h1>
+            <p class="course-subtitle">เพิ่ม แก้ไข ลบ และตรวจสอบรายละเอียดกิจกรรมทั้งหมด พร้อมทางลัดไปหน้าจัดการความคิดเห็น</p>
         </div>
+       
+    </section>
 
-
-        <div class="row">
-            <?php foreach ($courses as $course): ?>
-                <div class="col-lg-4 col-md-6 course-col">
-                    <div class="course-card">
-                        <div class="course-card-header">
-                            <h5 class="mb-0"><?= htmlspecialchars($course['course_name']) ?></h5>
-                        </div>
-                        <div class="course-card-body">
-                            <img src="<?= $course['image1'] ? '../uploads/' . htmlspecialchars($course['image1'], ENT_QUOTES, 'UTF-8') : 'https://via.placeholder.com/400x200?text=No+Image' ?>"
-                                class="course-image" alt="<?= htmlspecialchars($course['course_name']) ?>">
-                            <p class="course-description"><?= htmlspecialchars($course['course_description']) ?></p>
-                            <div class="d-flex flex-wrap gap-2">
-                                <button class="btn action-btn btn-view view-course-btn"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#courseModal"
-                                    data-course='<?= htmlspecialchars(json_encode([
-                                                        'id' => $course['id'],
-                                                        'name' => $course['course_name'],
-                                                        'description' => $course['course_description'],
-                                                        'image1' => $course['image1'],
-                                                        'image2' => $course['image2'],
-                                                        'image3' => $course['image3']
-                                                    ]), ENT_QUOTES, 'UTF-8') ?>'>
-                                    <i class="bi bi-info-circle"></i> ดูข้อมูล
-                                </button>
-                                <button class="btn action-btn btn-edit edit-course-btn"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#editCourseModal" data-course-id="<?= $course['id'] ?>">
-                                    <i class="bi bi-pencil"></i> แก้ไข
-                                </button>
-                                <button class="btn action-btn btn-delete" onclick="confirmDelete(<?= $course['id'] ?>)">
-                                    <i class="bi bi-trash"></i> ลบ
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            <?php endforeach; ?>
+    <section class="course-stats" aria-label="สรุปข้อมูลกิจกรรม">
+        <div class="course-stat">
+            <span class="course-stat-icon"><i class="bi bi-calendar2-check"></i></span>
+            <div>
+                <p class="course-stat-value"><?= number_format($courseCount) ?></p>
+                <div class="course-stat-label">กิจกรรมทั้งหมด</div>
+            </div>
         </div>
+        <div class="course-stat">
+            <span class="course-stat-icon"><i class="bi bi-images"></i></span>
+            <div>
+                <p class="course-stat-value"><?= number_format($imageCount) ?></p>
+                <div class="course-stat-label">รูปภาพประกอบ</div>
+            </div>
+        </div>
+        <div class="course-stat">
+            <span class="course-stat-icon"><i class="bi bi-chat-left-text"></i></span>
+            <div>
+                <p class="course-stat-value"><a class="text-decoration-none text-reset" href="manage_comments.php">คอมเมนต์</a></p>
+                <div class="course-stat-label">ตรวจสอบความคิดเห็นผู้ใช้</div>
+            </div>
+        </div>
+    </section>
 
-    </div>
-    <!-- View Course Modal -->
-    <div class="modal fade course-modal" id="courseModal" tabindex="-1" aria-labelledby="courseModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="courseModalLabel"><i class="bi bi-book-fill me-2"></i>รายละเอียดกิจกรรมอบรม</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <section class="course-toolbar" aria-label="เครื่องมือจัดการกิจกรรม">
+        <div class="course-search">
+            <i class="bi bi-search"></i>
+            <input type="search" id="courseSearch" placeholder="ค้นหาชื่อหรือรายละเอียดกิจกรรม..." autocomplete="off">
+        </div>
+        <div class="course-actions">
+            <button type="button" class="btn btn-course-primary" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+                <i class="bi bi-plus-lg"></i> เพิ่มกิจกรรมใหม่
+            </button>
+            <a href="manage_comments.php" class="btn-course-secondary">
+                <i class="bi bi-chat-dots"></i> จัดการความคิดเห็น
+            </a>
+        </div>
+    </section>
+
+    <div class="course-grid" id="courseGrid">
+        <?php foreach ($courses as $course): ?>
+            <?php
+            $images = array_values(array_filter([$course['image1'], $course['image2'], $course['image3']]));
+            $primaryImage = $course['image1'] ?: ($images[0] ?? '');
+            ?>
+            <article class="course-card course-col" data-search="<?= htmlspecialchars(mb_strtolower($course['course_name'] . ' ' . $course['course_description'], 'UTF-8'), ENT_QUOTES, 'UTF-8') ?>">
+                <div class="course-thumb-wrap">
+                    <img
+                        src="<?= $primaryImage ? '../uploads/' . htmlspecialchars($primaryImage, ENT_QUOTES, 'UTF-8') : 'https://placehold.co/800x500/f1f5f9/64748b?text=No+Image' ?>"
+                        class="course-image"
+                        alt="<?= htmlspecialchars($course['course_name'], ENT_QUOTES, 'UTF-8') ?>">
+                    <span class="course-badge"><i class="bi bi-image"></i> <?= count($images) ?> รูป</span>
                 </div>
-                <div class="modal-body p-4">
-                    <div class="table-responsive">
-                        <table class="table table-bordered" id="courseDetailTable">
-                        </table>
+                <div class="course-card-body">
+                    <h2 class="course-name"><?= htmlspecialchars($course['course_name'], ENT_QUOTES, 'UTF-8') ?></h2>
+                    <p class="course-description"><?= htmlspecialchars($course['course_description'], ENT_QUOTES, 'UTF-8') ?></p>
+                    <div class="course-card-actions">
+                        <button class="btn action-btn btn-view view-course-btn" type="button" data-bs-toggle="modal" data-bs-target="#courseModal" data-course-id="<?= (int)$course['id'] ?>">
+                            <i class="bi bi-eye"></i> ดู
+                        </button>
+                        <button class="btn action-btn btn-edit edit-course-btn" type="button" data-bs-toggle="modal" data-bs-target="#editCourseModal" data-course-id="<?= (int)$course['id'] ?>">
+                            <i class="bi bi-pencil-square"></i> แก้ไข
+                        </button>
+                        <button class="btn action-btn btn-delete" type="button" onclick="confirmDelete(<?= (int)$course['id'] ?>, <?= json_encode($course['course_name'], JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT) ?>)">
+                            <i class="bi bi-trash"></i> ลบ
+                        </button>
                     </div>
                 </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+            </article>
+        <?php endforeach; ?>
+    </div>
+
+    <div class="course-empty" id="courseEmpty">
+        <i class="bi bi-search"></i>
+        <strong>ไม่พบกิจกรรมที่ค้นหา</strong>
+        <div>ลองเปลี่ยนคำค้นหา หรือเพิ่มกิจกรรมใหม่เข้าสู่ระบบ</div>
+    </div>
+</div>
+
+<div class="modal fade course-modal" id="courseModal" tabindex="-1" aria-labelledby="courseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="courseModalLabel"><i class="bi bi-journal-text me-2"></i>รายละเอียดกิจกรรมอบรม</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="table-responsive">
+                    <table class="table table-bordered detail-table mb-0" id="courseDetailTable"></table>
                 </div>
+            </div>
+            <div class="modal-footer border-0 p-4 pt-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Add Course Modal -->
-    <div class="modal fade course-modal" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addCourseModalLabel"><i class="bi bi-plus-circle-fill me-2"></i>เพิ่มกิจกรรมอบรม</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <form action="save_course.php" method="POST" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label for="course_name" class="form-label fw-bold">ชื่อกิจกรรมอบรม</label>
-                            <input type="text" class="form-control" id="course_name" name="course_name" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="course_description" class="form-label fw-bold">คำอธิบาย</label>
-                            <textarea class="form-control" id="course_description" name="course_description" rows="3" required></textarea>
-                        </div>
-                        <hr class="my-4">
-                        <h6 class="fw-bold mb-3">รูปภาพประกอบ</h6>
-                        <div class="row g-3">
+<div class="modal fade course-modal" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCourseModalLabel"><i class="bi bi-plus-circle me-2"></i>เพิ่มกิจกรรมอบรม</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form action="save_course.php" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="course_name" class="form-label fw-bold">ชื่อกิจกรรมอบรม</label>
+                        <input type="text" class="form-control" id="course_name" name="course_name" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="course_description" class="form-label fw-bold">คำอธิบาย</label>
+                        <textarea class="form-control" id="course_description" name="course_description" rows="5" required></textarea>
+                    </div>
+                    <h6 class="fw-bold mb-3">รูปภาพประกอบ</h6>
+                    <div class="row g-3">
+                        <?php for ($i = 1; $i <= 3; $i++): ?>
                             <div class="col-md-4">
-                                <label for="image1" class="form-label">รูปที่ 1 (หลัก)</label>
-                                <input type="file" class="form-control" id="image1" name="image1" accept="image/*" onchange="previewImage(event, 'preview1')">
-                                <img id="preview1" src="#" alt="Preview Image 1" class="img-thumbnail mt-2" style="display: none; max-height: 150px; width: 100%; object-fit: cover;">
+                                <div class="image-upload-card">
+                                    <label for="image<?= $i ?>" class="form-label"><?= $i === 1 ? 'รูปที่ 1 (หลัก)' : 'รูปที่ ' . $i ?></label>
+                                    <input type="file" class="form-control" id="image<?= $i ?>" name="image<?= $i ?>" accept="image/*" onchange="previewImage(event, 'preview<?= $i ?>')">
+                                    <img id="preview<?= $i ?>" src="#" alt="ตัวอย่างรูปที่ <?= $i ?>" class="preview-image">
+                                </div>
                             </div>
-                            <div class="col-md-4">
-                                <label for="image2" class="form-label">รูปที่ 2</label>
-                                <input type="file" class="form-control" id="image2" name="image2" accept="image/*" onchange="previewImage(event, 'preview2')">
-                                <img id="preview2" src="#" alt="Preview Image 2" class="img-thumbnail mt-2" style="display: none; max-height: 150px; width: 100%; object-fit: cover;">
-                            </div>
-                            <div class="col-md-4">
-                                <label for="image3" class="form-label">รูปที่ 3</label>
-                                <input type="file" class="form-control" id="image3" name="image3" accept="image/*" onchange="previewImage(event, 'preview3')">
-                                <img id="preview3" src="#" alt="Preview Image 3" class="img-thumbnail mt-2" style="display: none; max-height: 150px; width: 100%; object-fit: cover;">
-                            </div>
-                        </div>
-                        <div class="d-flex justify-content-end gap-2 mt-4 pt-4 border-top">
-                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
-                            <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i>บันทึก</button>
-                        </div>
-                    </form>
-                </div>
+                        <?php endfor; ?>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-4 border-top flex-wrap">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-success"><i class="bi bi-save me-2"></i>บันทึก</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Edit Course Modal -->
-    <div class="modal fade course-modal" id="editCourseModal" tabindex="-1" aria-labelledby="editCourseModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editCourseModalLabel"><i class="bi bi-pencil-square me-2"></i>แก้ไขกิจกรรมอบรม</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <form action="update_course.php" method="POST" enctype="multipart/form-data">
-                        <input type="hidden" id="editCourseId" name="id">
-                        <div class="mb-3">
-                            <label for="editCourseName" class="form-label fw-bold">ชื่อหลักสูตร</label>
-                            <input type="text" class="form-control" id="editCourseName" name="course_name" required>
-                        </div>
-                        <div class="mb-4">
-                            <label for="editCourseDescription" class="form-label fw-bold">คำอธิบายกิจกรรมอบรม</label>
-                            <textarea class="form-control" id="editCourseDescription" name="course_description" rows="4" required></textarea>
-                        </div>
-
-                        <hr class="my-4">
-                        <h6 class="fw-bold mb-3">รูปภาพประกอบ (เลือกไฟล์ใหม่เพื่อแทนที่ของเดิม)</h6>
-                        <div class="row g-3">
+<div class="modal fade course-modal" id="editCourseModal" tabindex="-1" aria-labelledby="editCourseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editCourseModalLabel"><i class="bi bi-pencil-square me-2"></i>แก้ไขกิจกรรมอบรม</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form action="update_course.php" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" id="editCourseId" name="id">
+                    <div class="mb-3">
+                        <label for="editCourseName" class="form-label fw-bold">ชื่อกิจกรรมอบรม</label>
+                        <input type="text" class="form-control" id="editCourseName" name="course_name" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="editCourseDescription" class="form-label fw-bold">คำอธิบายกิจกรรมอบรม</label>
+                        <textarea class="form-control" id="editCourseDescription" name="course_description" rows="5" required></textarea>
+                    </div>
+                    <h6 class="fw-bold mb-3">รูปภาพประกอบ (เลือกไฟล์ใหม่เพื่อแทนที่รูปเดิม)</h6>
+                    <div class="row g-3">
+                        <?php for ($i = 1; $i <= 3; $i++): ?>
                             <div class="col-md-4">
-                                <label for="editImage1" class="form-label">รูปที่ 1 (หลัก)</label>
-                                <input type="file" class="form-control" id="editImage1" name="image1" accept="image/*" onchange="previewImage(event, 'previewEdit1')">
-                                <img id="previewEdit1" src="#" alt="Preview Image 1" class="img-thumbnail mt-2" style="max-height: 150px; width: 100%; object-fit: cover;">
+                                <div class="image-upload-card">
+                                    <label for="editImage<?= $i ?>" class="form-label"><?= $i === 1 ? 'รูปที่ 1 (หลัก)' : 'รูปที่ ' . $i ?></label>
+                                    <input type="file" class="form-control" id="editImage<?= $i ?>" name="image<?= $i ?>" accept="image/*" onchange="previewImage(event, 'previewEdit<?= $i ?>')">
+                                    <img id="previewEdit<?= $i ?>" src="#" alt="ตัวอย่างรูปที่ <?= $i ?>" class="preview-image">
+                                    <label class="remove-image-check" id="removeImageWrap<?= $i ?>">
+                                        <input type="checkbox" name="remove_image<?= $i ?>" id="removeImage<?= $i ?>" value="1">
+                                        ลบรูปนี้ออก
+                                    </label>
+                                </div>
                             </div>
-                            <div class="col-md-4">
-                                <label for="editImage2" class="form-label">รูปที่ 2</label>
-                                <input type="file" class="form-control" id="editImage2" name="image2" accept="image/*" onchange="previewImage(event, 'previewEdit2')">
-                                <img id="previewEdit2" src="#" alt="Preview Image 2" class="img-thumbnail mt-2" style="max-height: 150px; width: 100%; object-fit: cover;">
-                            </div>
-                            <div class="col-md-4">
-                                <label for="editImage3" class="form-label">รูปที่ 3</label>
-                                <input type="file" class="form-control" id="editImage3" name="image3" accept="image/*" onchange="previewImage(event, 'previewEdit3')">
-                                <img id="previewEdit3" src="#" alt="Preview Image 3" class="img-thumbnail mt-2" style="max-height: 150px; width: 100%; object-fit: cover;">
-                            </div>
-                        </div>
-
-                        <div class="d-flex justify-content-end gap-2 mt-4 pt-4 border-top">
-                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
-                            <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i>บันทึกการเปลี่ยนแปลง</button>
-                        </div>
-                    </form>
-                </div>
+                        <?php endfor; ?>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-4 border-top flex-wrap">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-success"><i class="bi bi-save me-2"></i>บันทึกการเปลี่ยนแปลง</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteCourseModal" tabindex="-1" aria-labelledby="deleteCourseModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteCourseModalLabel">ยืนยันการลบ</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
-                </div>
-                <div class="modal-body">
-                    <p>คุณแน่ใจหรือไม่ว่าต้องการลบหลักสูตรนี้?</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                    <form action="delete_course.php" method="post" id="deleteForm">
-                        <input type="hidden" name="id" id="deleteCourseId">
-                        <button type="submit" class="btn btn-danger">ลบ</button>
-                    </form>
-
-                </div>
+<div class="modal fade delete-dialog" id="deleteCourseModal" tabindex="-1" aria-labelledby="deleteCourseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteCourseModalLabel"><i class="bi bi-exclamation-triangle me-2"></i>ยืนยันการลบ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-1">ต้องการลบกิจกรรมนี้หรือไม่?</p>
+                <strong id="deleteCourseName" class="d-block text-danger"></strong>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                <form action="delete_course.php" method="post" id="deleteForm">
+                    <input type="hidden" name="id" id="deleteCourseId">
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>ลบกิจกรรม</button>
+                </form>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Toast Notification -->
-    <div class="toast-container position-fixed bottom-0 end-0 p-3">
-        <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
-                <i class="bi bi-check-circle-fill me-2 text-success"></i>
-                <strong class="me-auto">สำเร็จ</strong>
-                <small>เมื่อสักครู่</small>
-                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body" id="toast-body">
-                <!-- Message will be injected here -->
-            </div>
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="bi bi-check-circle-fill me-2 text-success" id="toastIcon"></i>
+            <strong class="me-auto" id="toastTitle">สำเร็จ</strong>
+            <small>เมื่อสักครู่</small>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="ปิด"></button>
         </div>
+        <div class="toast-body" id="toast-body"></div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // ใช้พาธ '../uploads/' ที่แก้แล้ว
-        // เก็บข้อมูลหลักสูตรทั้งหมดในตัวแปร JavaScript
-        const coursesData = <?= $courses_json ?>;
-        const UPLOADS_PATH = '../uploads/';
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const coursesData = <?= $courses_json ?: '[]' ?>;
+    const UPLOADS_PATH = '../uploads/';
 
-        function escapeHTML(value) {
-            return String(value ?? '').replace(/[&<>"']/g, function(char) {
-                return ({
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#039;'
-                })[char];
-            });
-        }
+    function escapeHTML(value) {
+        return String(value ?? '').replace(/[&<>"']/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        })[char]);
+    }
 
-        function escapeAttr(value) {
-            return escapeHTML(value).replace(/`/g, '&#096;');
-        }
+    function escapeAttr(value) {
+        return escapeHTML(value).replace(/`/g, '&#096;');
+    }
 
-        document.querySelectorAll('.view-course-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const course = JSON.parse(this.getAttribute('data-course'));
-                let html = '';
+    function findCourse(id) {
+        return coursesData.find(course => Number(course.id) === Number(id));
+    }
 
-                const fields = [{
-                        key: 'name',
-                        label: 'ชื่อหลักสูตร'
-                    },
-                    {
-                        key: 'description',
-                        label: 'คำอธิบาย'
-                    },
-                    {
-                        key: 'image1',
-                        label: 'รูปภาพ 1',
-                        format: value => value ? `<img src="${UPLOADS_PATH}${escapeAttr(value)}" class="modal-image" alt="Image 1">` : 'ไม่มีรูปภาพ'
-                    },
-                    {
-                        key: 'image2',
-                        label: 'รูปภาพ 2',
-                        format: value => value ? `<img src="${UPLOADS_PATH}${escapeAttr(value)}" class="modal-image" alt="Image 2">` : 'ไม่มีรูปภาพ'
-                    },
-                    {
-                        key: 'image3',
-                        label: 'รูปภาพ 3',
-                        format: value => value ? `<img src="${UPLOADS_PATH}${escapeAttr(value)}" class="modal-image" alt="Image 3">` : 'ไม่มีรูปภาพ'
-                    }
-                ];
+    document.querySelectorAll('.view-course-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const course = findCourse(this.dataset.courseId);
+            if (!course) return;
 
-                fields.forEach(field => {
-                    let value = course[field.key] !== null ? course[field.key] : '';
-                    if (field.format) {
-                        value = field.format(value);
-                    } else if (field.key === 'description') {
-                        // เพื่อให้แสดงผลเป็นบรรทัดใหม่
-                        value = escapeHTML(value).replace(/\n/g, '<br>');
-                    } else {
-                        value = escapeHTML(value);
-                    }
+            const fields = [
+                { key: 'course_name', label: 'ชื่อกิจกรรม' },
+                { key: 'course_description', label: 'คำอธิบาย', multiline: true },
+                { key: 'image1', label: 'รูปภาพ 1', image: true },
+                { key: 'image2', label: 'รูปภาพ 2', image: true },
+                { key: 'image3', label: 'รูปภาพ 3', image: true },
+                { key: 'updated_at', label: 'แก้ไขล่าสุด' }
+            ];
 
+            const html = fields.map(field => {
+                const rawValue = course[field.key] ?? '';
+                let value = '';
 
-                    html += `<tr>
-                    <th style="width:180px; background-color: #f8f9fa;">${field.label}</th>
-                    <td>${value}</td>
-                </tr>`;
-                });
-
-                document.getElementById('courseDetailTable').innerHTML = html;
-            });
-        });
-
-        document.querySelectorAll('.edit-course-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const courseId = parseInt(this.getAttribute('data-course-id'), 10);
-                const course = coursesData.find(c => parseInt(c.id, 10) === courseId);
-                if (!course) {
-                    console.error('Course not found:', courseId, 'Available:', coursesData);
-                    return;
-                }
-
-                document.getElementById('editCourseId').value = course.id;
-                document.getElementById('editCourseName').value = course.course_name;
-                document.getElementById('editCourseDescription').value = course.course_description;
-
-                // ฟังก์ชันสำหรับตั้งค่ารูปภาพ
-                function setPreviewImage(courseImage, previewElementId) {
-                    const preview = document.getElementById(previewElementId);
-                    if (courseImage) {
-                        // แก้ไข JavaScript: ใช้พาธสัมพัทธ์ '../uploads/'
-                        preview.src = UPLOADS_PATH + courseImage;
-                        preview.style.display = 'block';
-                    } else {
-                        preview.src = '#';
-                        preview.style.display = 'none';
-                    }
-                }
-
-                setPreviewImage(course.image1, 'previewEdit1');
-                setPreviewImage(course.image2, 'previewEdit2');
-                setPreviewImage(course.image3, 'previewEdit3');
-            });
-        });
-
-        // ฟังก์ชันค้นหาหลักสูตร
-        // ต้องเลือก card.parentElement เพราะ course-card อยู่ภายใน col-lg-4
-        const searchInput = document.querySelector('.search-box input');
-        if (searchInput) {
-            searchInput.addEventListener('keyup', function() {
-                const searchText = this.value.toLowerCase();
-                document.querySelectorAll('.course-col').forEach(col => { // เลือก col แทน card
-                    const card = col.querySelector('.course-card');
-                    if (card) {
-                        const nameElement = card.querySelector('h5');
-                        const name = nameElement ? nameElement.textContent.toLowerCase() : '';
-
-                        if (name.includes(searchText)) {
-                            col.style.display = 'block';
-                        } else {
-                            col.style.display = 'none';
-                        }
-                    }
-                });
-            });
-        }
-
-        function previewImage(event, previewId) {
-            const input = event.target;
-            const preview = document.getElementById(previewId);
-
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                };
-                reader.readAsDataURL(input.files[0]);
-            } else {
-                preview.src = '#';
-                preview.style.display = 'none';
-            }
-        }
-
-        function confirmDelete(id) {
-            document.getElementById('deleteCourseId').value = id;
-
-            const deleteCourseModal = new bootstrap.Modal(
-                document.getElementById('deleteCourseModal')
-            );
-            deleteCourseModal.show();
-        }
-
-
-        // Toast notification for success/error messages from URL
-        document.addEventListener('DOMContentLoaded', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const success = urlParams.get('success');
-            const error = urlParams.get('error');
-            const toastEl = document.getElementById('liveToast');
-            const toastBody = document.getElementById('toast-body');
-            if (toastEl && (success || error)) {
-                let message = '';
-                if (success === 'update') {
-                    message = 'อัปเดตข้อมูลหลักสูตรสำเร็จ!';
-                } else if (success === 'add') {
-                    message = 'เพิ่มหลักสูตรใหม่สำเร็จ!';
-                } else if (success === 'delete') {
-                    message = 'ลบกิจกรรมอบรมสำเร็จ!';
-                } else if (error) {
-                    message = 'เกิดข้อผิดพลาด: ' + error;
+                if (field.image) {
+                    value = rawValue
+                        ? `<img src="${UPLOADS_PATH}${escapeAttr(rawValue)}" class="modal-image" alt="${escapeAttr(field.label)}">`
+                        : '<span class="text-muted">ไม่มีรูปภาพ</span>';
+                } else if (field.multiline) {
+                    value = escapeHTML(rawValue).replace(/\n/g, '<br>');
                 } else {
-                    message = 'ดำเนินการสำเร็จ';
+                    value = escapeHTML(rawValue || '-');
                 }
-                toastBody.textContent = message;
-                const toast = new bootstrap.Toast(toastEl);
-                toast.show();
+
+                return `<tr><th>${field.label}</th><td>${value}</td></tr>`;
+            }).join('');
+
+            document.getElementById('courseDetailTable').innerHTML = html;
+        });
+    });
+
+    document.querySelectorAll('.edit-course-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const course = findCourse(this.dataset.courseId);
+            if (!course) return;
+
+            document.getElementById('editCourseId').value = course.id;
+            document.getElementById('editCourseName').value = course.course_name;
+            document.getElementById('editCourseDescription').value = course.course_description;
+
+            [1, 2, 3].forEach(number => {
+                const preview = document.getElementById(`previewEdit${number}`);
+                const fileInput = document.getElementById(`editImage${number}`);
+                const removeWrap = document.getElementById(`removeImageWrap${number}`);
+                const removeInput = document.getElementById(`removeImage${number}`);
+                const image = course[`image${number}`];
+
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+
+                if (removeInput) {
+                    removeInput.checked = false;
+                }
+
+                if (image) {
+                    preview.src = UPLOADS_PATH + image;
+                    preview.style.display = 'block';
+                    preview.classList.remove('is-marked-remove');
+                    if (removeWrap) removeWrap.style.display = 'flex';
+                } else {
+                    preview.src = '#';
+                    preview.style.display = 'none';
+                    preview.classList.remove('is-marked-remove');
+                    if (removeWrap) removeWrap.style.display = 'none';
+                }
+            });
+        });
+    });
+
+    const searchInput = document.getElementById('courseSearch');
+    const emptyState = document.getElementById('courseEmpty');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const keyword = this.value.trim().toLowerCase();
+            let visibleCount = 0;
+
+            document.querySelectorAll('.course-col').forEach(card => {
+                const searchableText = (card.dataset.search || '').toLowerCase();
+                const visible = searchableText.includes(keyword);
+                card.style.display = visible ? '' : 'none';
+                if (visible) visibleCount++;
+            });
+
+            if (emptyState) {
+                emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
             }
         });
-    </script>
+    }
+
+    function previewImage(event, previewId) {
+        const input = event.target;
+        const preview = document.getElementById(previewId);
+        if (!preview) return;
+
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                preview.classList.remove('is-marked-remove');
+            };
+            reader.readAsDataURL(input.files[0]);
+
+            const editMatch = previewId.match(/^previewEdit([1-3])$/);
+            if (editMatch) {
+                const removeInput = document.getElementById(`removeImage${editMatch[1]}`);
+                if (removeInput) removeInput.checked = false;
+            }
+        } else {
+            preview.src = '#';
+            preview.style.display = 'none';
+            preview.classList.remove('is-marked-remove');
+        }
+    }
+
+    document.querySelectorAll('[id^="removeImage"]').forEach(input => {
+        input.addEventListener('change', function() {
+            const number = this.id.replace('removeImage', '');
+            const preview = document.getElementById(`previewEdit${number}`);
+            if (preview) {
+                preview.classList.toggle('is-marked-remove', this.checked);
+            }
+        });
+    });
+
+    function confirmDelete(id, name) {
+        document.getElementById('deleteCourseId').value = id;
+        document.getElementById('deleteCourseName').textContent = name || '';
+        new bootstrap.Modal(document.getElementById('deleteCourseModal')).show();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const success = urlParams.get('success');
+        const error = urlParams.get('error');
+        const toastEl = document.getElementById('liveToast');
+        const toastBody = document.getElementById('toast-body');
+        const toastTitle = document.getElementById('toastTitle');
+        const toastIcon = document.getElementById('toastIcon');
+
+        if (!toastEl || (!success && !error)) return;
+
+        const successMessages = {
+            update: 'อัปเดตข้อมูลกิจกรรมสำเร็จ',
+            add: 'เพิ่มกิจกรรมใหม่สำเร็จ',
+            delete: 'ลบกิจกรรมอบรมสำเร็จ'
+        };
+
+        if (error) {
+            toastTitle.textContent = 'เกิดข้อผิดพลาด';
+            toastIcon.className = 'bi bi-exclamation-circle-fill me-2 text-danger';
+            toastBody.textContent = 'เกิดข้อผิดพลาด: ' + error;
+        } else {
+            toastTitle.textContent = 'สำเร็จ';
+            toastBody.textContent = successMessages[success] || 'ดำเนินการสำเร็จ';
+        }
+
+        new bootstrap.Toast(toastEl).show();
+    });
+</script>
 
 <?php adminPageEnd(); ?>

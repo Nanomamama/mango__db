@@ -975,6 +975,29 @@ adminPageStart('จัดการคำสั่งซื้อ');
 
    <!-- สถิติ -->
 <div class="stats-layout">
+   <section class="stats-group" aria-labelledby="today-stats-title">
+        <h5 class="stats-group-title" id="today-stats-title">
+            <i class="fas fa-calendar-day"></i> สถิติวันนี้
+        </h5>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon icon-completed">
+                    <i class="fa-solid fa-check-double"></i>
+                </div>
+                <div class="stat-number"><?= number_format($todayStats['completed_count'] ?? 0) ?></div>
+                <div class="stat-title">ขายสำเร็จวันนี้ (ออเดอร์)</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon icon-revenue">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="stat-number"><?= number_format($todayStats['revenue'] ?? 0, 2) ?></div>
+                <div class="stat-title">ยอดขายวันนี้ (บาท)</div>
+            </div>
+        </div>
+    </section>
+    
     <section class="stats-group" aria-labelledby="overall-stats-title">
         <h5 class="stats-group-title" id="overall-stats-title">
             <i class="fas fa-chart-pie"></i> สถิติทั้งหมด
@@ -998,28 +1021,7 @@ adminPageStart('จัดการคำสั่งซื้อ');
         </div>
     </section>
 
-    <section class="stats-group" aria-labelledby="today-stats-title">
-        <h5 class="stats-group-title" id="today-stats-title">
-            <i class="fas fa-calendar-day"></i> สถิติวันนี้
-        </h5>
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon icon-completed">
-                    <i class="fa-solid fa-check-double"></i>
-                </div>
-                <div class="stat-number"><?= number_format($todayStats['completed_count'] ?? 0) ?></div>
-                <div class="stat-title">ขายสำเร็จวันนี้ (ออเดอร์)</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon icon-revenue">
-                    <i class="fas fa-money-bill-wave"></i>
-                </div>
-                <div class="stat-number"><?= number_format($todayStats['revenue'] ?? 0, 2) ?></div>
-                <div class="stat-title">ยอดขายวันนี้ (บาท)</div>
-            </div>
-        </div>
-    </section>
+ 
 </div>
 
 
