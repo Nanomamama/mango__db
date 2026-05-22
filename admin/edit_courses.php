@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
 require_once 'sidebar.php';
@@ -831,7 +831,7 @@ adminPageStart('จัดการกิจกรรมอบรม');
             const fields = [
                 { key: 'course_name', label: 'ชื่อกิจกรรม' },
                 { key: 'course_description', label: 'คำอธิบาย', multiline: true },
-                { key: 'image1', label: 'รูปภาพ 1', image: true },
+                { key: 'image1', label: 'รูปภาพ 1 (หลัก)', image: true },
                 { key: 'image2', label: 'รูปภาพ 2', image: true },
                 { key: 'image3', label: 'รูปภาพ 3', image: true },
                 { key: 'updated_at', label: 'แก้ไขล่าสุด' }

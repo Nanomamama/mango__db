@@ -1,5 +1,6 @@
 ﻿<?php
 require_once 'auth.php';
+requireAdminRole('main');
 require_once __DIR__ . '/../db/db.php';
 require_once 'sidebar.php';
 
@@ -20,6 +21,10 @@ $counts = $counts_result->fetch_assoc();
 $current_status = $_GET['status'] ?? 'all';
 $search_keyword = $_GET['search'] ?? '';
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 
 $adminPageExtraHead = <<<'HTML'
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -27,6 +32,7 @@ $adminPageExtraHead = <<<'HTML'
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
 <style>
 :root {
+    --green: #016A70;
     --primary: #2563eb;
     --primary-dark: #1d4ed8;
     --primary-light: #3b82f6;
@@ -74,6 +80,12 @@ body {
     min-height: 100vh;
 }
 
+.page-content.product-page-bg {
+    background:
+        radial-gradient(circle at top right, rgba(13, 138, 146, 0.12), transparent 28%),
+        linear-gradient(180deg, #f8fbfc 0%, #f3f7f8 100%);
+}
+
 /* Main Layout Fix */
 .admin-local-page {
     margin-left: 0 !important;
@@ -86,17 +98,36 @@ body {
 
 /* Header Card */
 .header-card {
-    background: white;
-    border-radius: var(--radius-lg);
-    padding: 1.5rem 2rem;
-    margin-bottom: 1.5rem;
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--gray-200);
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #ffffff 0%, #f2fbfb 52%, #e7f7f7 100%);
+    border-radius: 28px;
+    padding: 1.75rem 2rem;
+    margin-bottom: 1rem;
+    margin-top: 5px;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(1, 106, 112, 0.14);
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 1.25rem;
+}
+
+.header-card::after {
+    content: "";
+    position: absolute;
+    inset: auto -60px -80px auto;
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(13, 138, 146, 0.18), rgba(13, 138, 146, 0));
+    pointer-events: none;
+}
+
+.title-section {
+    position: relative;
+    z-index: 1;
 }
 
 .title-section h1 {
@@ -148,11 +179,24 @@ body {
 /* Filter Section */
 .filter-section {
     background: white;
-    border-radius: var(--radius-lg);
+    border-radius: 24px;
     padding: 1.5rem;
     margin-bottom: 1.5rem;
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--gray-200);
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+    border: 1px solid rgba(1, 106, 112, 0.12);
+}
+
+.product-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin-bottom: 1rem;
+    padding: 0.875rem 1rem;
+    border-radius: 16px;
+    background: #ecfdf5;
+    border: 1px solid rgba(16, 185, 129, 0.24);
+    color: #047857;
+    font-weight: 700;
 }
 
 .filter-buttons {
@@ -191,8 +235,8 @@ body {
 }
 
 .filter-btn.active {
-    background: var(--primary);
-    border-color: var(--primary);
+    background: var(--green);
+    border-color: var(--success);
     color: white;
 }
 
@@ -308,10 +352,11 @@ body {
 /* Table Container */
 .table-container {
     background: white;
-    border-radius: var(--radius-lg);
+    border-radius: 24px;
     overflow-x: auto;
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--gray-200);
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+    border: 1px solid rgba(1, 106, 112, 0.12);
 }
 
 .product-table {
@@ -351,7 +396,7 @@ body {
 .product-img {
     width: 65px;
     height: 65px;
-    border-radius: var(--radius-md);
+    border-radius: 0rem;
     object-fit: cover;
     background: var(--gray-100);
     border: 1px solid var(--gray-200);
@@ -361,7 +406,7 @@ body {
     width: 65px;
     height: 65px;
     background: var(--gray-100);
-    border-radius: var(--radius-md);
+    border-radius: 0rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -382,6 +427,8 @@ body {
     align-items: center;
     flex-wrap: wrap;
     gap: 0.5rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .seasonal-tag {
@@ -494,6 +541,11 @@ body {
     box-shadow: var(--shadow-sm);
 }
 
+.action-form {
+    display: inline-flex;
+    margin: 0;
+}
+
 /* Empty State */
 .empty-box {
     text-align: center;
@@ -560,18 +612,39 @@ body {
         justify-content: center;
     }
     
-    /* Mobile Table */
+    /* Mobile Card Table */
+    .table-container {
+        overflow-x: visible;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+    }
+
+    .product-table {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        border-collapse: separate;
+    }
+
     .product-table thead {
         display: none;
+    }
+
+    .product-table tbody {
+        display: block;
+        width: 100%;
     }
     
     .product-table tbody tr {
         display: block;
+        width: 100%;
         margin-bottom: 1rem;
         border: 1px solid var(--gray-200);
         border-radius: var(--radius-md);
         background: white;
         overflow: hidden;
+        box-shadow: var(--shadow-sm);
     }
     
     .product-table td {
@@ -579,9 +652,12 @@ body {
         align-items: center;
         justify-content: space-between;
         gap: 1rem;
+        width: 100%;
+        min-width: 0;
         padding: 0.875rem 1rem;
         border-bottom: 1px solid var(--gray-100);
         text-align: right;
+        overflow-wrap: anywhere;
     }
     
     .product-table td:last-child {
@@ -594,7 +670,7 @@ body {
         font-size: 0.75rem;
         color: var(--gray-600);
         text-align: left;
-        flex: 0 0 90px;
+        flex: 0 0 86px;
     }
     
     .product-table td:first-child {
@@ -609,11 +685,44 @@ body {
     
     .product-name {
         justify-content: flex-end;
+        text-align: right;
+        max-width: calc(100% - 96px);
+    }
+
+    .category-tag,
+    .price-highlight,
+    .status-badge {
+        max-width: calc(100% - 96px);
+        text-align: right;
     }
     
     .action-group {
         width: 100%;
         justify-content: flex-end;
+    }
+
+    .action-group .btn-action {
+        justify-content: center;
+        min-width: 72px;
+    }
+
+    .product-table .empty-row {
+        border: 0;
+        box-shadow: none;
+        background: transparent;
+    }
+
+    .product-table .empty-box {
+        display: block;
+        width: 100%;
+        background: white;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-md);
+        text-align: center;
+    }
+
+    .product-table .empty-box::before {
+        display: none;
     }
 }
 
@@ -632,6 +741,31 @@ body {
         width: 50px;
         height: 50px;
     }
+
+    .product-table td {
+        gap: 0.75rem;
+        padding: 0.75rem 0.875rem;
+    }
+
+    .product-table td::before {
+        flex-basis: 74px;
+    }
+
+    .product-name,
+    .category-tag,
+    .price-highlight,
+    .status-badge {
+        max-width: calc(100% - 82px);
+    }
+
+    .action-group {
+        gap: 0.375rem;
+    }
+
+    .action-group .btn-action {
+        flex: 1 1 76px;
+        padding: 0.5rem 0.75rem;
+    }
 }
 </style>
 
@@ -647,7 +781,7 @@ body {
 .page-content {
     width: 100%;
     max-width: 100%;
-    padding: 0;
+    padding: 1rem;
 }
 </style>
 HTML;
@@ -661,13 +795,7 @@ adminPageStart('จัดการสินค้า');
             <h1><i class="bi bi-box-seam me-2"></i>จัดการสินค้า</h1>
             <p>จัดการข้อมูลสินค้าทั้งหมดในระบบ</p>
         </div>
-        <div class="admin-card">
-            <img src="https://ui-avatars.com/api/?name=<?= urlencode($admin_name) ?>&background=2563eb&color=fff&size=44&bold=true" alt="admin">
-            <div>
-                <div class="name"><?= htmlspecialchars($admin_name ?: 'แอดมิน') ?></div>
-                <div class="email"><?= htmlspecialchars($admin_email ?: 'admin@example.com') ?></div>
-            </div>
-        </div>
+
     </div>
 
     <!-- FILTER -->
@@ -692,9 +820,10 @@ adminPageStart('จัดการสินค้า');
                 <?php if ($current_status != 'all'): ?>
                     <input type="hidden" name="status" value="<?= htmlspecialchars($current_status) ?>">
                 <?php endif; ?>
-                <input type="text" name="search" placeholder="🔍 ค้นหาสินค้า..." value="<?= htmlspecialchars($search_keyword) ?>">
+                <input type="text" name="search" placeholder=" ค้นหาสินค้า..." value="<?= htmlspecialchars($search_keyword) ?>">
+
                 <button type="submit">
-                    <i class="bi bi-search"></i> ค้นหา
+                    <i class="fa-solid fa-magnifying-glass"></i> ค้นหา
                 </button>
             </form>
             <a href="add_product.php" class="btn-add-large">
@@ -702,6 +831,25 @@ adminPageStart('จัดการสินค้า');
             </a>
         </div>
     </div>
+
+    <?php if (!empty($_SESSION['success'])): ?>
+        <div class="product-alert">
+            <i class="bi bi-check-circle-fill"></i>
+            <?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') ?>
+        </div>
+        <?php unset($_SESSION['success']); ?>
+    <?php elseif (!empty($_SESSION['product_error'])): ?>
+        <div class="product-alert" style="background:#fef2f2;border-color:rgba(239,68,68,.24);color:#991b1b;">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <?= htmlspecialchars($_SESSION['product_error'], ENT_QUOTES, 'UTF-8') ?>
+        </div>
+        <?php unset($_SESSION['product_error']); ?>
+    <?php elseif (!empty($_GET['error'])): ?>
+        <div class="product-alert" style="background:#fef2f2;border-color:rgba(239,68,68,.24);color:#991b1b;">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <?= htmlspecialchars((string) $_GET['error'], ENT_QUOTES, 'UTF-8') ?>
+        </div>
+    <?php endif; ?>
 
     <?php
     // Build SQL with filters
@@ -754,7 +902,7 @@ adminPageStart('จัดการสินค้า');
                     <th style="width: 100px;">ราคา</th>
                     <th style="width: 80px;">หน่วย</th>
                     <th style="width: 110px;">สถานะ</th>
-                    <th style="width: 180px;">จัดการ</th>
+                    <th style="width: 140px;">จัดการ</th>
                 </tr>
             </thead>
             <tbody>
@@ -810,12 +958,16 @@ adminPageStart('จัดการสินค้า');
                             </td>
                             <td data-label="จัดการ">
                                 <div class="action-group">
-                                    <a href="toggle_product.php?id=<?= $row['product_id'] ?>&from=manage_product<?= isset($_GET['status']) ? '&status='.urlencode($_GET['status']) : '' ?><?= !empty($search_keyword) ? '&search='.urlencode($search_keyword) : '' ?>" 
-                                        class="btn-action <?= $row['status'] == 'active' ? 'btn-toggle-on' : 'btn-toggle-off' ?>"
-                                        onclick="return confirm('ยืนยันการเปลี่ยนสถานะสินค้า?')">
-                                        <i class="bi <?= $row['status'] == 'active' ? 'bi-toggle-off' : 'bi-toggle-on' ?>"></i>
-                                        <?= $row['status'] == 'active' ? 'ปิด' : 'เปิด' ?>
-                                    </a>
+                                    <form action="toggle_product.php" method="POST" class="action-form" onsubmit="return confirm('ยืนยันการเปลี่ยนสถานะสินค้า?')">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
+                                        <input type="hidden" name="id" value="<?= (int) $row['product_id'] ?>">
+                                        <input type="hidden" name="status_filter" value="<?= htmlspecialchars($current_status, ENT_QUOTES, 'UTF-8') ?>">
+                                        <input type="hidden" name="search" value="<?= htmlspecialchars($search_keyword, ENT_QUOTES, 'UTF-8') ?>">
+                                        <button type="submit" class="btn-action <?= $row['status'] == 'active' ? 'btn-toggle-on' : 'btn-toggle-off' ?>">
+                                            <i class="bi <?= $row['status'] == 'active' ? 'bi-toggle-off' : 'bi-toggle-on' ?>"></i>
+                                            <?= $row['status'] == 'active' ? 'ปิด' : 'เปิด' ?>
+                                        </button>
+                                    </form>
                                     <a href="edit_product.php?id=<?= $row['product_id'] ?>" class="btn-action btn-edit">
                                         <i class="bi bi-pencil-square"></i> แก้ไข
                                     </a>
@@ -824,7 +976,7 @@ adminPageStart('จัดการสินค้า');
                         </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
-                    <tr>
+                    <tr class="empty-row">
                         <td colspan="7" class="empty-box">
                             <i class="bi bi-box-seam"></i>
                             <h3>ไม่มีสินค้าในระบบ</h3>
@@ -841,6 +993,9 @@ adminPageStart('จัดการสินค้า');
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.querySelector('.page-content')?.classList.add('product-page-bg');
+</script>
 
 <?php 
 $stmt->close();

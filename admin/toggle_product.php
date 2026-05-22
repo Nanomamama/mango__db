@@ -1,26 +1,60 @@
 <?php
 require_once 'auth.php';
+requireAdminRole('main');
 require_once __DIR__ . '/../db/db.php';
 
-if (!isset($_GET['id'])) {
-    header("Location: manage_product.php");
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: manage_product.php');
     exit;
 }
 
-$id = (int) $_GET['id'];
+if (
+    empty($_POST['csrf_token']) ||
+    empty($_SESSION['csrf_token']) ||
+    !hash_equals($_SESSION['csrf_token'], (string) $_POST['csrf_token'])
+) {
+    $_SESSION['product_error'] = 'การร้องขอไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง';
+    header('Location: manage_product.php');
+    exit;
+}
 
-/* ดึงสถานะปัจจุบัน */
-$stmt = $conn->prepare("SELECT status FROM products WHERE product_id = ?");
-$stmt->bind_param("i", $id);
+$id = (int) ($_POST['id'] ?? 0);
+if ($id <= 0) {
+    header('Location: manage_product.php');
+    exit;
+}
+
+$stmt = $conn->prepare('SELECT status FROM products WHERE product_id = ? LIMIT 1');
+$stmt->bind_param('i', $id);
 $stmt->execute();
-$current = $stmt->get_result()->fetch_assoc()['status'];
+$product = $stmt->get_result()->fetch_assoc();
+$stmt->close();
 
-/* สลับสถานะ */
-$newStatus = ($current === 'active') ? 'inactive' : 'active';
+if (!$product) {
+    $_SESSION['product_error'] = 'ไม่พบสินค้า';
+    header('Location: manage_product.php');
+    exit;
+}
 
-$update = $conn->prepare("UPDATE products SET status = ? WHERE product_id = ?");
-$update->bind_param("si", $newStatus, $id);
+$newStatus = $product['status'] === 'active' ? 'inactive' : 'active';
+$update = $conn->prepare('UPDATE products SET status = ? WHERE product_id = ?');
+$update->bind_param('si', $newStatus, $id);
 $update->execute();
+$update->close();
 
-header("Location: manage_product.php");
+$_SESSION['success'] = $newStatus === 'active' ? 'เปิดขายสินค้าแล้ว' : 'ปิดขายสินค้าแล้ว';
+
+$query = [];
+if (!empty($_POST['status_filter']) && in_array($_POST['status_filter'], ['active', 'inactive'], true)) {
+    $query['status'] = $_POST['status_filter'];
+}
+if (!empty($_POST['search'])) {
+    $query['search'] = $_POST['search'];
+}
+
+header('Location: manage_product.php' . ($query ? '?' . http_build_query($query) : ''));
 exit;

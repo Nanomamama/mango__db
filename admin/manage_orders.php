@@ -634,6 +634,7 @@ $adminPageExtraHead = <<<'HTML'
 .info-row strong {
     color: #2c3e50;
     font-weight: 500;
+    font-size: 18px;
 }
 
 .dot {
@@ -947,6 +948,409 @@ $adminPageExtraHead = <<<'HTML'
     }
 </style>
 
+<style>
+    :root {
+        --orders-primary: var(--green);
+        --orders-primary-dark: var(--green-dark);
+        --orders-surface: #ffffff;
+        --orders-surface-soft: #f8fafc;
+        --orders-border: var(--border);
+        --orders-text: var(--text);
+        --orders-text-soft: var(--text-soft);
+        --orders-success: #16a34a;
+        --orders-warning: #f59e0b;
+        --orders-danger: #ef4444;
+        --orders-info: #3b82f6;
+    }
+
+    body {
+        margin-left: 0 !important;
+        padding: 0 !important;
+        max-width: none !important;
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbfb 100%) !important;
+    }
+
+    .page-content.orders-page {
+        background:
+            radial-gradient(circle at top right, rgba(13, 138, 146, 0.12), transparent 28%),
+            linear-gradient(180deg, #f8fbfc 0%, #f3f7f8 100%);
+    }
+
+    .orders-shell {
+        display: grid;
+        gap: 24px;
+    }
+
+    .orders-hero {
+        position: relative;
+        overflow: hidden;
+        padding: 28px;
+        border: 1px solid rgba(1, 106, 112, 0.14);
+        border-radius: 28px;
+        background: linear-gradient(135deg, #ffffff 0%, #f2fbfb 52%, #e7f7f7 100%);
+        box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+    }
+
+    .orders-hero::after {
+        content: "";
+        position: absolute;
+        inset: auto -60px -80px auto;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(13, 138, 146, 0.18), rgba(13, 138, 146, 0));
+        pointer-events: none;
+    }
+
+    .orders-topline {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(1, 106, 112, 0.08);
+        color: var(--orders-primary);
+        font-size: 0.9rem;
+        font-weight: 700;
+    }
+
+    .orders-hero-grid {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(260px, auto);
+        gap: 22px;
+        align-items: end;
+        margin-top: 18px;
+    }
+
+    .orders-title {
+        margin: 0;
+        color: var(--orders-text);
+        font-size: 2.5rem;
+        line-height: 1.05;
+        font-weight: 500;
+    }
+
+    .orders-copy {
+        max-width: 64ch;
+        margin: 12px 0 0;
+        color: var(--orders-text-soft);
+        line-height: 1.7;
+    }
+
+
+
+
+    .stats-layout {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        margin: 0;
+    }
+
+    .stats-group,
+    .dashboard-card {
+        background: var(--orders-surface);
+        border: 1px solid var(--orders-border);
+        border-radius: 24px;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.05);
+    }
+
+    .stats-group {
+        padding: 22px;
+    }
+
+    .stats-group-title,
+    .card-title {
+        color: var(--orders-text);
+    }
+
+    .stats-group-title i,
+    .card-title i {
+        color: var(--orders-primary);
+    }
+
+    .stats-grid {
+        gap: 14px;
+    }
+
+    .stat-card {
+        margin: 0;
+        padding: 18px;
+        border: 1px solid #edf2f7 !important;
+        border-radius: 20px;
+        box-shadow: none !important;
+        background: #fff;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06) !important;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        margin-bottom: 14px;
+        background: rgba(1, 106, 112, 0.1) !important;
+        color: var(--orders-primary) !important;
+    }
+
+    .icon-revenue {
+        background: rgba(245, 158, 11, 0.13) !important;
+        color: #b45309 !important;
+    }
+
+    .stat-number {
+        color: var(--orders-text);
+        font-size: 1.75rem;
+        line-height: 1.05;
+    }
+
+    .stat-title {
+        color: var(--orders-text-soft);
+    }
+
+    .dashboard-card {
+        padding: 22px;
+        margin: 0;
+    }
+
+    .card-header {
+        border-bottom: 1px solid var(--orders-border);
+        padding: 0 0 16px;
+        margin-bottom: 18px;
+        background: transparent;
+    }
+
+    .card-header small {
+        color: var(--orders-text-soft);
+        font-weight: 600;
+    }
+
+    .order-filter-list {
+        gap: 10px;
+    }
+
+    .btn-filter {
+        min-height: 42px;
+        padding: 9px 15px;
+        border: 1px solid var(--orders-border);
+        border-radius: 999px;
+        background: #f8fafc !important;
+        color: var(--orders-primary) !important;
+        font-weight: 700;
+    }
+
+    .btn-filter.active,
+    .btn-filter:hover {
+        background: var(--orders-primary) !important;
+        border-color: var(--orders-primary) !important;
+        color: #fff !important;
+    }
+
+    .orders-search {
+        min-height: 46px;
+        margin-bottom: 18px !important;
+        border: 1px solid var(--orders-border);
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: none;
+    }
+
+    .orders-search:focus {
+        border-color: var(--orders-primary);
+        box-shadow: 0 0 0 4px rgba(1, 106, 112, 0.12);
+    }
+
+    .order-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    .order-card {
+        min-height: 236px;
+        padding: 18px;
+        border: 1px solid var(--orders-border);
+        border-radius: 22px;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .order-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 18px 32px rgba(15, 23, 42, 0.08);
+    }
+
+    .order-code {
+        display: inline-flex;
+        padding: 7px 11px;
+        border-radius: 999px;
+        background: #f8fafc;
+        color: var(--orders-primary);
+        font-weight: 800;
+        font-size: 0.9rem;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 7px 12px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 800;
+        white-space: nowrap;
+        border: 1px solid transparent;
+        box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+    }
+
+    .badge-pending {
+        background: #f59e0b;
+        color: #111827;
+        border-color: #d97706;
+    }
+
+    .badge-approved {
+        background: #16a34a;
+        color: #ffffff;
+        border-color: #15803d;
+    }
+
+    .badge-completed {
+        background: #0891b2;
+        color: #ffffff;
+        border-color: #0e7490;
+    }
+
+    .badge-rejected {
+        background: #dc2626;
+        color: #ffffff;
+        border-color: #b91c1c;
+    }
+
+    .badge-new {
+        background: var(--orders-danger);
+        color: #fff;
+    }
+
+    .order-amount {
+        margin-top: 18px;
+        color: var(--orders-text);
+        font-size: 1.7rem;
+        font-weight: 800;
+    }
+
+    .order-amount span,
+    .info-row,
+    .order-date-small {
+        color: var(--orders-text-soft);
+    }
+
+    .info-row strong {
+        color: var(--orders-text);
+        font-weight: 700;
+    }
+
+    .order-divider {
+        border-top: 1px solid #edf2f7;
+        margin: 14px 0;
+    }
+
+    .btn-detail {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 18px;
+        min-height: 42px;
+        border: 1px solid rgba(1, 106, 112, 0.2);
+        border-radius: 14px;
+        background: var(--orders-primary);
+        color: #fff;
+        font-weight: 800;
+    }
+
+    .btn-detail:hover {
+        background: var(--orders-primary-dark);
+        color: #fff;
+    }
+
+    .empty-orders {
+        grid-column: 1 / -1;
+        padding: 44px 20px;
+        border: 1px dashed var(--orders-border);
+        border-radius: 20px;
+        color: var(--orders-text-soft);
+        text-align: center;
+        background: #f8fafc;
+    }
+
+    .pagination-wrap {
+        border-top: 1px solid var(--orders-border);
+    }
+
+    .page-link-local {
+        border-radius: 12px;
+        border-color: var(--orders-border);
+    }
+
+    .page-link-local.active,
+    .page-link-local:hover {
+        border-color: var(--orders-primary);
+        background: var(--orders-primary);
+        color: #fff;
+    }
+
+    @media (max-width: 1200px) {
+        .order-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 1024px) {
+        .orders-hero-grid,
+        .stats-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .page-content.orders-page {
+            padding: 18px;
+        }
+
+        .orders-hero,
+        .dashboard-card,
+        .stats-group,
+        .order-card {
+            border-radius: 20px !important;
+        }
+
+        .orders-hero {
+            padding: 22px !important;
+        }
+
+        .orders-hero-meta,
+        .stats-grid,
+        .order-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .card-header {
+            align-items: flex-start !important;
+            flex-direction: column;
+        }
+
+        .btn-filter,
+        .btn-detail {
+            width: 100%;
+        }
+    }
+</style>
+
 HTML;
 adminPageStart('จัดการคำสั่งซื้อ');
 ?>
@@ -962,16 +1366,17 @@ adminPageStart('จัดการคำสั่งซื้อ');
             }, 3000);
         </script>
     <?php endif; ?>
-<!-- Navbar -->
-    <div class="navbar">
-        <div class="d-flex justify-content-between align-items-center w-100">
+
+<div class="orders-shell">
+    <section class="orders-hero">
+    
+        <div class="orders-hero-grid">
             <div>
-                <h2 class="mb-0 text-white"> จัดการคำสั่งซื้อ</h2>
-                <!-- <small class="text-muted ">ตรวจสอบและจัดการคำสั่งซื้อทั้งหมด</small> -->
+                <h3 class="orders-title">จัดการคำสั่งซื้อ</h3>
+                <p class="orders-copy">ตรวจสอบคำสั่งซื้อ แยกตามสถานะ และเปิดรายละเอียดเพื่อดำเนินการยืนยัน ปฏิเสธ หรือปิดงานให้ครบถ้วน</p>
             </div>
         </div>
-    </div>
-    <br>
+    </section>
 
    <!-- สถิติ -->
 <div class="stats-layout">
@@ -1157,7 +1562,7 @@ adminPageStart('จัดการคำสั่งซื้อ');
                 <?php endwhile; ?>
 
             <?php else: ?>
-                <div style="grid-column:1/-1; text-align:center; padding:40px; color:#777;">
+                <div class="empty-orders">
                     <i class="fas fa-shopping-cart fa-3x"></i><br><br>
                     ไม่พบข้อมูลคำสั่งซื้อ
                 </div>
@@ -1213,13 +1618,9 @@ adminPageStart('จัดการคำสั่งซื้อ');
         <?php endif; ?>
     </div>
 
-
     <!-- ตารางออเดอร์ -->
     <!-- --------------------------------------------------------------------------------------------- -->
-
-
-    </div>
-    </div>
+</div>
 
 
     <!-- JavaScript -->
@@ -1228,7 +1629,7 @@ adminPageStart('จัดการคำสั่งซื้อ');
         // ค้นหาออเดอร์
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
-        searchInput.className = 'form-control mb-3';
+        searchInput.className = 'form-control orders-search';
         searchInput.placeholder = 'ค้นหาออเดอร์... (รหัส, ชื่อ, เบอร์โทร)';
         searchInput.id = 'searchOrders';
 
@@ -1238,7 +1639,7 @@ adminPageStart('จัดการคำสั่งซื้อ');
             cardHeader.parentNode.insertBefore(searchInput, cardHeader.nextElementSibling);
         }
 
-        document.getElementById('searchOrders').addEventListener('input', function(e) {
+        document.getElementById('searchOrders')?.addEventListener('input', function(e) {
             const searchTerm = e.target.value.toLowerCase();
             document.querySelectorAll('.order-card').forEach(card => {
                 const text = card.textContent.toLowerCase();
@@ -1246,6 +1647,8 @@ adminPageStart('จัดการคำสั่งซื้อ');
             });
 
         });
+
+        document.querySelector('.page-content')?.classList.add('orders-page');
     </script>
 
 <?php adminPageEnd(); ?>

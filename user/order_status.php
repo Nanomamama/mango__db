@@ -18,12 +18,10 @@ if ($member_id) {
     $stmt = $conn->prepare("
         SELECT
             o.*,
-            COALESCE(SUM(oi.price * oi.quantity), 0) AS order_total
+            COALESCE(o.total_amount, 0) AS order_total
         FROM orders o
-        LEFT JOIN order_items oi ON o.order_id = oi.order_id
         WHERE o.member_id = ?
           AND o.order_status != 'completed'
-        GROUP BY o.order_id
         ORDER BY o.order_date DESC
     ");
     $stmt->bind_param("i", $member_id);
@@ -39,15 +37,11 @@ if (
 ) {
     $search_performed = true;
 
-    /* ทำความสะอาดเบอร์โทร */
-    $cleanPhone = preg_replace('/[^0-9]/', '', $keyword);
-
     $sql = "
         SELECT
             o.*,
-            COALESCE(SUM(oi.price * oi.quantity), 0) AS order_total
+            COALESCE(o.total_amount, 0) AS order_total
         FROM orders o
-        LEFT JOIN order_items oi ON o.order_id = oi.order_id
         WHERE 1
     ";
 
@@ -59,35 +53,45 @@ if (
     /* ถ้ามีตัวเลข => ค้นหาเบอร์ */
     if ($keywordPhone !== '') {
 
-        $sql .= " AND o.customer_phone LIKE ? ";
-        $params[] = "%{$keywordPhone}%";
-        $types .= 's';
+        if (strlen($keywordPhone) < 9) {
+            $error = "กรุณากรอกเบอร์โทรศัพท์ให้ครบถ้วน";
+        } else {
+            $sql .= " AND o.customer_phone = ? ";
+            $params[] = $keywordPhone;
+            $types .= 's';
+        }
     }
 
     /* ถ้ามีข้อความ => ค้นหาชื่อ */ else {
 
-        $sql .= " AND o.customer_name LIKE ? ";
-        $params[] = "%{$keyword}%";
-        $types .= 's';
+        preg_match_all('/./u', $keyword, $keywordChars);
+        $keywordLength = !empty($keywordChars[0]) ? count($keywordChars[0]) : strlen($keyword);
+
+        if ($keywordLength < 2) {
+            $error = "กรุณากรอกชื่อให้ครบถ้วน";
+        } else {
+            $sql .= " AND o.customer_name = ? ";
+            $params[] = $keyword;
+            $types .= 's';
+        }
     }
 
 
-    $sql .= "
-        GROUP BY o.order_id
-        ORDER BY o.order_date DESC
-    ";
+    if ($types !== '') {
+        $sql .= "
+            ORDER BY o.order_date DESC
+        ";
 
-    $stmt = $conn->prepare($sql);
-    if (!empty($types)) {
+        $stmt = $conn->prepare($sql);
         $stmt->bind_param($types, ...$params);
-    }
-    $stmt->execute();
-    $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->execute();
+        $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-    if (!empty($orders)) {
-        $success = "พบคำสั่งซื้อ " . count($orders) . " รายการ";
-    } else {
-        $error = "ไม่พบคำสั่งซื้อ";
+        if (!empty($orders)) {
+            $success = "พบคำสั่งซื้อ " . count($orders) . " รายการ";
+        } else {
+            $error = "ไม่พบคำสั่งซื้อ";
+        }
     }
 }
 ?>
