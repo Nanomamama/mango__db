@@ -546,6 +546,108 @@ body {
     margin: 0;
 }
 
+.product-row-click {
+    cursor: pointer;
+}
+
+.product-row-click:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, 0.35);
+    outline-offset: -3px;
+}
+
+.product-detail-modal .modal-content {
+    border: 0;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+}
+
+.product-detail-modal .modal-header {
+    border: 0;
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg, #ffffff 0%, #eefafa 100%);
+}
+
+.product-detail-modal .modal-title {
+    color: var(--gray-900);
+    font-weight: 800;
+}
+
+.product-detail-body {
+    display: grid;
+    grid-template-columns: 210px minmax(0, 1fr);
+    gap: 1.25rem;
+    padding: 1.5rem;
+}
+
+.product-detail-image,
+.product-detail-no-image {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 18px;
+    border: 1px solid var(--gray-200);
+    background: var(--gray-100);
+}
+
+.product-detail-image {
+    object-fit: cover;
+}
+
+.product-detail-no-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-400);
+    font-size: 2.4rem;
+}
+
+.product-detail-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.product-detail-item {
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--gray-200);
+    border-radius: 16px;
+    background: #fff;
+}
+
+.product-detail-label {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--gray-500);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.product-detail-value {
+    color: var(--gray-900);
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.product-detail-description {
+    min-height: 112px;
+    padding: 1rem;
+    border: 1px solid var(--gray-200);
+    border-radius: 16px;
+    background: var(--gray-50);
+    color: var(--gray-700);
+    line-height: 1.75;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.product-detail-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 0 1.5rem 1.5rem;
+}
+
 /* Empty State */
 .empty-box {
     text-align: center;
@@ -766,6 +868,19 @@ body {
         flex: 1 1 76px;
         padding: 0.5rem 0.75rem;
     }
+
+    .product-detail-body {
+        grid-template-columns: 1fr;
+    }
+
+    .product-detail-image,
+    .product-detail-no-image {
+        max-height: 280px;
+    }
+
+    .product-detail-meta {
+        grid-template-columns: 1fr;
+    }
 }
 </style>
 
@@ -817,12 +932,12 @@ adminPageStart('จัดการสินค้า');
         <div class="action-row">
             <form method="GET" action="" class="search-box">
                 <?php if ($current_status != 'all'): ?>
-                    <input type="hidden" name="status" value="<?= htmlspecialchars($current_status) ?>">
+                    <input type="hidden" name="status" value="<?= htmlspecialchars($current_status, ENT_QUOTES, 'UTF-8') ?>">
                 <?php endif; ?>
-                <input type="text" name="search" placeholder=" ค้นหาสินค้า..." value="<?= htmlspecialchars($search_keyword) ?>">
+                <input type="text" name="search" placeholder=" ค้นหาสินค้า..." value="<?= htmlspecialchars($search_keyword, ENT_QUOTES, 'UTF-8') ?>">
 
                 <button type="submit">
-                    <i class="fa-solid fa-magnifying-glass"></i> ค้นหา
+                    <i class="bi bi-search"></i> ค้นหา
                 </button>
             </form>
             <a href="add_product.php" class="btn-add-large">
@@ -907,12 +1022,32 @@ adminPageStart('จัดการสินค้า');
             <tbody>
                 <?php if ($total_results > 0): ?>
                     <?php while ($row = $result->fetch_assoc()): ?>
-                        <tr>
+                        <?php
+                        $productImagePath = !empty($row['product_image'])
+                            ? '../admin/uploads/products/' . (string) $row['product_image']
+                            : '';
+                        $productStatusLabel = $row['status'] == 'active' ? 'พร้อมขาย' : 'ปิดขาย';
+                        $productSeasonalLabel = (int) $row['seasonal'] === 1 ? 'ตามฤดูกาล' : 'ไม่ใช่สินค้าตามฤดูกาล';
+                        $productDescription = trim((string) ($row['product_description'] ?? ''));
+                        ?>
+                        <tr class="product-row-click"
+                            role="button"
+                            tabindex="0"
+                            data-product-id="<?= (int) $row['product_id'] ?>"
+                            data-product-name="<?= htmlspecialchars((string) $row['product_name'], ENT_QUOTES, 'UTF-8') ?>"
+                            data-category="<?= htmlspecialchars((string) ($row['category'] ?? '-'), ENT_QUOTES, 'UTF-8') ?>"
+                            data-price="฿<?= htmlspecialchars(number_format((float) $row['price'], 2), ENT_QUOTES, 'UTF-8') ?>"
+                            data-unit="<?= htmlspecialchars((string) ($row['unit'] ?? '-'), ENT_QUOTES, 'UTF-8') ?>"
+                            data-status="<?= htmlspecialchars($productStatusLabel, ENT_QUOTES, 'UTF-8') ?>"
+                            data-seasonal="<?= htmlspecialchars($productSeasonalLabel, ENT_QUOTES, 'UTF-8') ?>"
+                            data-description="<?= htmlspecialchars($productDescription !== '' ? $productDescription : 'ไม่มีรายละเอียดสินค้า', ENT_QUOTES, 'UTF-8') ?>"
+                            data-image="<?= htmlspecialchars($productImagePath, ENT_QUOTES, 'UTF-8') ?>"
+                            data-edit-url="edit_product.php?id=<?= (int) $row['product_id'] ?>">
                             <td data-label="รูปสินค้า">
-                                <?php if (!empty($row['product_image'])): ?>
-                                    <img src="../admin/uploads/products/<?= htmlspecialchars($row['product_image']) ?>" 
+                                <?php if ($productImagePath !== ''): ?>
+                                    <img src="<?= htmlspecialchars($productImagePath, ENT_QUOTES, 'UTF-8') ?>" 
                                         class="product-img"
-                                        alt="<?= htmlspecialchars($row['product_name']) ?>"
+                                        alt="<?= htmlspecialchars($row['product_name'], ENT_QUOTES, 'UTF-8') ?>"
                                         onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2265%22%20height%3D%2265%22%20viewBox%3D%220%200%2065%2065%22%3E%3Crect%20width%3D%2265%22%20height%3D%2265%22%20fill%3D%22%23f1f5f9%22%2F%3E%3Ctext%20x%3D%2232.5%22%20y%3D%2238%22%20text-anchor%3D%22middle%22%20fill%3D%22%2394a3b8%22%20font-size%3D%2210%22%3ENo%20Img%3C%2Ftext%3E%3C%2Fsvg%3E'">
                                 <?php else: ?>
                                     <div class="no-img">
@@ -922,7 +1057,7 @@ adminPageStart('จัดการสินค้า');
                             </td>
                             <td data-label="ชื่อสินค้า">
                                 <div class="product-name">
-                                    <?= htmlspecialchars($row['product_name']) ?>
+                                    <?= htmlspecialchars($row['product_name'], ENT_QUOTES, 'UTF-8') ?>
                                     <?php if ($row['seasonal'] == 1): ?>
                                         <span class="seasonal-tag">
                                             <i class="bi bi-tree-fill"></i> ตามฤดูกาล
@@ -933,7 +1068,7 @@ adminPageStart('จัดการสินค้า');
                             <td data-label="หมวดหมู่">
                                 <span class="category-tag">
                                     <i class="bi bi-tag-fill"></i>
-                                    <?= htmlspecialchars($row['category'] ?? '-') ?>
+                                    <?= htmlspecialchars($row['category'] ?? '-', ENT_QUOTES, 'UTF-8') ?>
                                 </span>
                             </td>
                             <td data-label="ราคา">
@@ -942,7 +1077,7 @@ adminPageStart('จัดการสินค้า');
                                 </span>
                             </td>
                             <td data-label="หน่วย">
-                                <?= htmlspecialchars($row['unit'] ?? '-') ?>
+                                <?= htmlspecialchars($row['unit'] ?? '-', ENT_QUOTES, 'UTF-8') ?>
                             </td>
                             <td data-label="สถานะ">
                                 <?php if ($row['status'] == 'active'): ?>
@@ -991,9 +1126,139 @@ adminPageStart('จัดการสินค้า');
     </div>
 </div>
 
+<div class="modal fade product-detail-modal" id="productDetailModal" tabindex="-1" aria-labelledby="productDetailTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="productDetailTitle">รายละเอียดสินค้า</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+            </div>
+            <div class="product-detail-body">
+                <div>
+                    <img id="productDetailImage" class="product-detail-image d-none" src="" alt="">
+                    <div id="productDetailNoImage" class="product-detail-no-image">
+                        <i class="bi bi-image"></i>
+                    </div>
+                </div>
+                <div>
+                    <div class="product-detail-meta">
+                        <div class="product-detail-item">
+                            <span class="product-detail-label">รหัสสินค้า</span>
+                            <span class="product-detail-value" id="productDetailId">-</span>
+                        </div>
+                        <div class="product-detail-item">
+                            <span class="product-detail-label">หมวดหมู่</span>
+                            <span class="product-detail-value" id="productDetailCategory">-</span>
+                        </div>
+                        <div class="product-detail-item">
+                            <span class="product-detail-label">ราคา</span>
+                            <span class="product-detail-value" id="productDetailPrice">-</span>
+                        </div>
+                        <div class="product-detail-item">
+                            <span class="product-detail-label">หน่วย</span>
+                            <span class="product-detail-value" id="productDetailUnit">-</span>
+                        </div>
+                        <div class="product-detail-item">
+                            <span class="product-detail-label">สถานะ</span>
+                            <span class="product-detail-value" id="productDetailStatus">-</span>
+                        </div>
+                        <div class="product-detail-item">
+                            <span class="product-detail-label">ฤดูกาล</span>
+                            <span class="product-detail-value" id="productDetailSeasonal">-</span>
+                        </div>
+                    </div>
+                    <span class="product-detail-label">รายละเอียด</span>
+                    <div class="product-detail-description" id="productDetailDescription">-</div>
+                </div>
+            </div>
+            <div class="product-detail-actions">
+                <button type="button" class="btn-action" style="background:var(--gray-100);color:var(--gray-700);" data-bs-dismiss="modal">
+                    ปิด
+                </button>
+                <a href="#" class="btn-action btn-edit" id="productDetailEditLink">
+                    <i class="bi bi-pencil-square"></i> แก้ไข
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.querySelector('.page-content')?.classList.add('product-page-bg');
+
+const productDetailModalElement = document.getElementById('productDetailModal');
+const productDetailModal = productDetailModalElement ? new bootstrap.Modal(productDetailModalElement) : null;
+const productDetailImage = document.getElementById('productDetailImage');
+const productDetailNoImage = document.getElementById('productDetailNoImage');
+const productDetailEditLink = document.getElementById('productDetailEditLink');
+
+if (productDetailImage && productDetailNoImage) {
+    productDetailImage.addEventListener('error', () => {
+        productDetailImage.removeAttribute('src');
+        productDetailImage.alt = '';
+        productDetailImage.classList.add('d-none');
+        productDetailNoImage.classList.remove('d-none');
+    });
+}
+
+function setText(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.textContent = value || '-';
+    }
+}
+
+function openProductDetail(row) {
+    if (!productDetailModal) {
+        return;
+    }
+
+    const data = row.dataset;
+    setText('productDetailTitle', data.productName || 'รายละเอียดสินค้า');
+    setText('productDetailId', `#${data.productId || '-'}`);
+    setText('productDetailCategory', data.category);
+    setText('productDetailPrice', data.price);
+    setText('productDetailUnit', data.unit);
+    setText('productDetailStatus', data.status);
+    setText('productDetailSeasonal', data.seasonal);
+    setText('productDetailDescription', data.description);
+
+    if (productDetailEditLink) {
+        productDetailEditLink.href = data.editUrl || '#';
+    }
+
+    if (data.image && productDetailImage && productDetailNoImage) {
+        productDetailImage.src = data.image;
+        productDetailImage.alt = data.productName || '';
+        productDetailImage.classList.remove('d-none');
+        productDetailNoImage.classList.add('d-none');
+    } else if (productDetailImage && productDetailNoImage) {
+        productDetailImage.removeAttribute('src');
+        productDetailImage.alt = '';
+        productDetailImage.classList.add('d-none');
+        productDetailNoImage.classList.remove('d-none');
+    }
+
+    productDetailModal.show();
+}
+
+document.querySelectorAll('.product-row-click').forEach((row) => {
+    row.addEventListener('click', (event) => {
+        if (event.target.closest('a, button, input, form, .action-group')) {
+            return;
+        }
+        openProductDetail(row);
+    });
+
+    row.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') {
+            return;
+        }
+        event.preventDefault();
+        openProductDetail(row);
+    });
+});
 </script>
 
 <?php 

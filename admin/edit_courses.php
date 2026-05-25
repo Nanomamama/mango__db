@@ -646,7 +646,11 @@ adminPageStart('จัดการกิจกรรมอบรม');
                         <button class="btn action-btn btn-edit edit-course-btn" type="button" data-bs-toggle="modal" data-bs-target="#editCourseModal" data-course-id="<?= (int)$course['id'] ?>">
                             <i class="bi bi-pencil-square"></i> แก้ไข
                         </button>
-                        <button class="btn action-btn btn-delete" type="button" onclick="confirmDelete(<?= (int)$course['id'] ?>, <?= json_encode($course['course_name'], JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT) ?>)">
+                        <button
+                            class="btn action-btn btn-delete delete-course-btn"
+                            type="button"
+                            data-course-id="<?= (int)$course['id'] ?>"
+                            data-course-name="<?= htmlspecialchars($course['course_name'], ENT_QUOTES, 'UTF-8') ?>">
                             <i class="bi bi-trash"></i> ลบ
                         </button>
                     </div>
@@ -952,11 +956,41 @@ adminPageStart('จัดการกิจกรรมอบรม');
         });
     });
 
-    function confirmDelete(id, name) {
-        document.getElementById('deleteCourseId').value = id;
-        document.getElementById('deleteCourseName').textContent = name || '';
-        new bootstrap.Modal(document.getElementById('deleteCourseModal')).show();
+    function submitDeleteFallback(id, name) {
+        if (!window.confirm(`ต้องการลบกิจกรรม "${name || ''}" หรือไม่?`)) {
+            return;
+        }
+
+        const deleteForm = document.getElementById('deleteForm');
+        const deleteCourseId = document.getElementById('deleteCourseId');
+        if (deleteForm && deleteCourseId) {
+            deleteCourseId.value = id;
+            deleteForm.submit();
+        }
     }
+
+    function confirmDelete(id, name) {
+        const deleteCourseId = document.getElementById('deleteCourseId');
+        const deleteCourseName = document.getElementById('deleteCourseName');
+        const deleteModalElement = document.getElementById('deleteCourseModal');
+
+        if (!deleteCourseId || !deleteCourseName || !deleteModalElement || !window.bootstrap?.Modal) {
+            submitDeleteFallback(id, name);
+            return;
+        }
+
+        deleteCourseId.value = id;
+        deleteCourseName.textContent = name || '';
+        window.bootstrap.Modal.getOrCreateInstance(deleteModalElement).show();
+    }
+
+    window.confirmDelete = confirmDelete;
+
+    document.querySelectorAll('.delete-course-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            confirmDelete(this.dataset.courseId, this.dataset.courseName);
+        });
+    });
 
     document.addEventListener('DOMContentLoaded', function() {
         const urlParams = new URLSearchParams(window.location.search);

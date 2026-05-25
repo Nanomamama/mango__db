@@ -13,7 +13,7 @@ $error = '';
 $success = '';
 
 $keyword = trim($_GET['keyword'] ?? '');
-/* ── Member: ดึงออเดอร์ตัวเองทั้งหมด (ยกเว้น completed) ── */
+/* ── Member: ดึงออเดอร์ตัวเองทั้งหมด ── */
 if ($member_id) {
     $stmt = $conn->prepare("
         SELECT
@@ -21,7 +21,6 @@ if ($member_id) {
             COALESCE(o.total_amount, 0) AS order_total
         FROM orders o
         WHERE o.member_id = ?
-          AND o.order_status != 'completed'
         ORDER BY o.order_date DESC
     ");
     $stmt->bind_param("i", $member_id);

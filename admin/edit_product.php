@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once 'auth.php';
 requireAdminRole('main');
 require_once __DIR__ . '/../db/db.php';
@@ -44,7 +44,6 @@ adminPageStart('แก้ไขสินค้า');
         <div class="product-hero-grid">
             <div>
                 <h1>แก้ไขสินค้า</h1>
-                <p>รหัสสินค้า #<?= (int) $product['product_id'] ?> ปรับข้อมูลสินค้า ราคา สถานะ และรูปภาพ แล้วกดบันทึกเพื่ออัปเดตหน้าร้าน</p>
             </div>
             <a href="manage_product.php" class="product-btn product-btn-secondary">
                 <i class="bi bi-arrow-left"></i> กลับรายการสินค้า

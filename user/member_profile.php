@@ -62,17 +62,17 @@ if ($stmtCount) {
     $stmtCount->close();
 }
 
-// นับคำสั่งซื้อที่อาจเชื่อมโยงกับสมาชิก (matching by phone or fullname)
-// $purchase_count = 0;
-// $stmtOrder = $conn->prepare("SELECT COUNT(*) FROM orders WHERE customer_phone = ? OR customer_name = ?");
-// if ($stmtOrder) {
-//     $stmtOrder->bind_param('ss', $phone, $fullname);
-//     if ($stmtOrder->execute()) {
-//         $res2 = $stmtOrder->get_result();
-//         if ($row2 = $res2->fetch_row()) $purchase_count = (int)$row2[0];
-//     }
-//     $stmtOrder->close();
-// }
+// นับคำสั่งซื้อทั้งหมดของสมาชิก
+$purchase_count = 0;
+$stmtOrder = $conn->prepare("SELECT COUNT(*) FROM orders WHERE member_id = ?");
+if ($stmtOrder) {
+    $stmtOrder->bind_param('i', $member_id);
+    if ($stmtOrder->execute()) {
+        $res2 = $stmtOrder->get_result();
+        if ($row2 = $res2->fetch_row()) $purchase_count = (int)$row2[0];
+    }
+    $stmtOrder->close();
+}
 
 // ดึงชื่อจังหวัด/อำเภอ/ตำบล
 function getNameById($file, $id)
@@ -139,6 +139,53 @@ function formatBookingDate($date, $time)
         $t = ' เวลา ' . htmlspecialchars($time) . ' น.';
     }
     return "$d $m $y" . $t;
+}
+
+function orderStatusInfo($status)
+{
+    $map = [
+        'pending' => ['label' => 'รอยืนยัน', 'class' => 'pending', 'icon' => 'bx-time-five'],
+        'approved' => ['label' => 'ยืนยันแล้ว', 'class' => 'approved', 'icon' => 'bx-check-circle'],
+        'rejected' => ['label' => 'ถูกปฏิเสธ', 'class' => 'rejected', 'icon' => 'bx-x-circle'],
+        'completed' => ['label' => 'เสร็จสมบูรณ์', 'class' => 'completed', 'icon' => 'bx-flag'],
+    ];
+
+    return $map[$status] ?? ['label' => $status ?: '-', 'class' => 'pending', 'icon' => 'bx-info-circle'];
+}
+
+function formatOrderDate($datetime)
+{
+    if (empty($datetime) || strtotime($datetime) === false) {
+        return '-';
+    }
+
+    return date('d/m/Y H:i', strtotime($datetime));
+}
+
+// ดึงคำสั่งซื้อล่าสุดของสมาชิก
+$recent_orders = [];
+$stmtRecentOrders = $conn->prepare("
+    SELECT
+        o.order_id,
+        o.order_code,
+        o.order_date,
+        o.order_status,
+        COALESCE(o.total_amount, SUM(oi.quantity * oi.price), 0) AS total_amount,
+        COUNT(oi.item_id) AS item_count,
+        GROUP_CONCAT(CONCAT(oi.product_name, ' x', oi.quantity) ORDER BY oi.item_id SEPARATOR ', ') AS item_summary
+    FROM orders o
+    LEFT JOIN order_items oi ON oi.order_id = o.order_id
+    WHERE o.member_id = ?
+    GROUP BY o.order_id, o.order_code, o.order_date, o.order_status, o.total_amount
+    ORDER BY o.order_date DESC
+    LIMIT 2
+");
+if ($stmtRecentOrders) {
+    $stmtRecentOrders->bind_param('i', $member_id);
+    if ($stmtRecentOrders->execute()) {
+        $recent_orders = $stmtRecentOrders->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
+    $stmtRecentOrders->close();
 }
 
 // ดึงรายการการจองล่าสุด 5 รายการ (สถานะ: อนุมัติแล้ว, รออนุมัติ, ถูกปฏิเสธ)
@@ -812,6 +859,105 @@ $recent_bookings = [];
             color: var(--ant-primary-color);
         }
 
+        .purchase-card-head {
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .purchase-card-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .purchase-history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .purchase-history-item {
+            border: 1px solid var(--ant-border-color);
+            border-radius: 8px;
+            padding: 14px;
+            background: #fff;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .purchase-history-item:hover {
+            border-color: var(--ant-primary-color);
+            box-shadow: var(--ant-box-shadow);
+        }
+
+        .purchase-history-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .purchase-order-code {
+            font-weight: 600;
+            color: var(--ant-text-color);
+            word-break: break-word;
+        }
+
+        .purchase-order-date,
+        .purchase-item-summary {
+            color: var(--ant-text-color-secondary);
+            font-size: 13px;
+            margin-top: 4px;
+            line-height: 1.5;
+        }
+
+        .purchase-total {
+            color: #cf1322;
+            font-size: 18px;
+            font-weight: 700;
+            white-space: nowrap;
+            text-align: right;
+        }
+
+        .purchase-history-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .order-status-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border-radius: 999px;
+            padding: 2px 9px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .order-status-tag.pending {
+            background: #fff7e6;
+            color: #ad6800;
+        }
+
+        .order-status-tag.approved {
+            background: #f6ffed;
+            color: #237804;
+        }
+
+        .order-status-tag.rejected {
+            background: #fff2f0;
+            color: #cf1322;
+        }
+
+        .order-status-tag.completed {
+            background: #e6f4ff;
+            color: #0958d9;
+        }
+
         @media (max-width: 768px) {
 
             .ant-col-12,
@@ -835,6 +981,16 @@ $recent_bookings = [];
                 margin-bottom: 16px;
                 display: flex;
                 justify-content: center;
+            }
+
+            .purchase-history-top,
+            .purchase-history-footer {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .purchase-total {
+                text-align: left;
             }
         }
     </style>
@@ -879,10 +1035,10 @@ $recent_bookings = [];
                             <div class="profile-stat-value"><?php echo htmlspecialchars((int)$booking_count); ?></div>
                             <div class="profile-stat-label">การจองทั้งหมด</div>
                         </div>
-                        <!-- <div class="profile-stat-item">
+                        <div class="profile-stat-item">
                             <div class="profile-stat-value"><?php echo htmlspecialchars((int)$purchase_count); ?></div>
                             <div class="profile-stat-label">การซื้อสินค้า</div>
-                        </div> -->
+                        </div>
                         <div class="profile-stat-item">
                             <div class="profile-stat-value"><?php echo thaiDate($created_at); ?></div>
                             <div class="profile-stat-label">วันที่สมัครสมาชิก</div>
@@ -1080,36 +1236,65 @@ $recent_bookings = [];
 
                 <!-- Right Column -->
                 <div class="ant-col ant-col-12 gutter-row">
-                    <!-- Purchase Actions -->
+                    <!-- Purchase History -->
                     <div class="ant-card" style="margin-bottom: 24px;">
-                        <div class="ant-card-head">
-                            <i class='bx bx-shopping-bag card-header-icon'></i>
-                            <!-- <span>การซื้อสินค้า</span> -->
+                        <div class="ant-card-head purchase-card-head">
+                            <span class="purchase-card-title">
+                                <i class='bx bx-shopping-bag card-header-icon'></i>
+                                <span>ประวัติการซื้อสินค้าล่าสุด</span>
+                            </span>
+                            <a href="order_status.php" class="ant-btn ant-btn-default">
+                                <i class='bx bx-list-ul'></i> ดูทั้งหมด
+                            </a>
                         </div>
-                        <!-- <div class="ant-card-body">
-                            <div class="ant-row">
-                                <div class="ant-col ant-col-12">
-                                    <div class="ant-card action-card ant-card-bordered" style="text-align: center; padding: 24px;">
-                                        <div class="action-icon"><i class='bx bx-history'></i></div>
-                                        <div class="action-title">ประวัติการซื้อ</div>
-                                        <div class="action-description">ดูรายการสั่งซื้อทั้งหมด</div>
-                                        <a href="purchase_history.php" class="ant-btn ant-btn-default" style="margin-top: 16px;">
-                                            <i class='bx bx-show'></i> ดูรายการ
+                        <div class="ant-card-body">
+                            <?php if (!empty($recent_orders)): ?>
+                                <div class="purchase-history-list">
+                                    <?php foreach ($recent_orders as $order): ?>
+                                        <?php
+                                        $statusInfo = orderStatusInfo($order['order_status'] ?? '');
+                                        $itemSummary = trim((string)($order['item_summary'] ?? ''));
+                                        ?>
+                                        <div class="purchase-history-item">
+                                            <div class="purchase-history-top">
+                                                <div>
+                                                    <div class="purchase-order-code">#<?= htmlspecialchars($order['order_code'] ?? '-') ?></div>
+                                                    <div class="purchase-order-date">
+                                                        <i class='bx bx-calendar'></i>
+                                                        <?= htmlspecialchars(formatOrderDate($order['order_date'] ?? '')) ?>
+                                                    </div>
+                                                    <div class="purchase-item-summary">
+                                                        <?= htmlspecialchars($itemSummary !== '' ? $itemSummary : 'ไม่มีรายการสินค้า') ?>
+                                                    </div>
+                                                </div>
+                                                <div class="purchase-total">฿<?= number_format((float)($order['total_amount'] ?? 0), 0) ?></div>
+                                            </div>
+                                            <div class="purchase-history-footer">
+                                                <span class="order-status-tag <?= htmlspecialchars($statusInfo['class']) ?>">
+                                                    <i class='bx <?= htmlspecialchars($statusInfo['icon']) ?>'></i>
+                                                    <?= htmlspecialchars($statusInfo['label']) ?>
+                                                </span>
+                                                <a href="success.php?code=<?= urlencode($order['order_code'] ?? '') ?>" class="ant-btn ant-btn-primary">
+                                                    <i class='bx bx-show'></i> ดูรายละเอียด
+                                                </a>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php else: ?>
+                                <div class="text-center text-muted">
+                                    <div style="font-size: 42px; color: var(--ant-border-color); margin-bottom: 8px;">
+                                        <i class='bx bx-package'></i>
+                                    </div>
+                                    ยังไม่มีประวัติการซื้อสินค้า
+                                    <div style="margin-top: 16px;">
+                                        <a href="products.php" class="ant-btn ant-btn-primary">
+                                            <i class='bx bx-store'></i> เลือกซื้อสินค้า
                                         </a>
                                     </div>
                                 </div>
-                                <div class="ant-col ant-col-12">
-                                    <div class="ant-card action-card ant-card-bordered" style="text-align: center; padding: 24px;">
-                                        <div class="action-icon"><i class='bx bx-bar-chart-alt'></i></div>
-                                        <div class="action-title">สถานะการสั่งซื้อ</div>
-                                        <div class="action-description">ติดตามการจัดส่ง</div>
-                                        <a href="order_status.php" class="ant-btn ant-btn-default" style="margin-top: 16px;">
-                                            <i class='bx bx-search-alt'></i> ตรวจสอบ
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div> -->
+                            <?php endif; ?>
+                        </div>
                     </div>
 
                     <!-- Booking Actions -->
