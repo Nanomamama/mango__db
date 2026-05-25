@@ -83,7 +83,7 @@ $adminPageExtraHead = <<<'HTML'
     .delete-dialog .modal-content {
         background: var(--course-panel);
         border: 1px solid var(--course-line);
-        border-radius: var(--course-radius);
+        border-radius: 20px;
         box-shadow: var(--course-shadow);
     }
 
@@ -172,7 +172,7 @@ $adminPageExtraHead = <<<'HTML'
         padding: 16px;
         background: #fff;
         border: 1px solid var(--course-line);
-        border-radius: var(--course-radius);
+        border-radius: 20px;
     }
 
     .course-stat-icon {
@@ -578,9 +578,7 @@ adminPageStart('จัดการกิจกรรมอบรม');
 <div class="courses-admin-page">
     <section class="course-hero">
         <div>
-            <div class="course-kicker"><i class="bi bi-stars"></i> ระบบกิจกรรมอบรม</div>
             <h1 class="course-title">จัดการกิจกรรมอบรม</h1>
-            <p class="course-subtitle">เพิ่ม แก้ไข ลบ และตรวจสอบรายละเอียดกิจกรรมทั้งหมด พร้อมทางลัดไปหน้าจัดการความคิดเห็น</p>
         </div>
        
     </section>

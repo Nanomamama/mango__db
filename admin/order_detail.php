@@ -61,8 +61,8 @@ while ($row = $items->fetch_assoc()) {
     
     /* Status Colors - Pending (รอยืนยัน) */
     --status-pending-text: #ffffff;
-    --status-pending-bg: #ffd000;
-    --status-pending-border: #f3ff06;
+    --status-pending-bg: #ffe600;
+    --status-pending-border: #ffda06;
     
     /* Status Colors - Approved (ยืนยันแล้ว) */
     --status-approved-text: #ffffff;
@@ -345,8 +345,8 @@ body {
 }
 
 .chip-delivery {
-    background: var(--info-bg);
-    color: var(--info-text);
+  background-color: #8dfff2;
+    color: var(--success-text);
 }
 
 /* Timeline */

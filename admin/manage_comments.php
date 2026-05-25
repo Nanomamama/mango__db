@@ -110,7 +110,7 @@ $adminPageExtraHead = <<<'HTML'
     .comment-modal .modal-content {
         background: var(--comment-panel);
         border: 1px solid var(--comment-line);
-        border-radius: var(--comment-radius);
+        border-radius: 20px;
         box-shadow: var(--comment-shadow);
     }
 
@@ -155,14 +155,14 @@ $adminPageExtraHead = <<<'HTML'
         min-width: 220px;
         padding: 10px 14px;
         border: 1px solid var(--comment-line);
-        border-radius: var(--comment-radius);
+        border-radius: 20px;
         background: linear-gradient(180deg, #ffffff, #f8fafc);
     }
 
     .admin-chip img {
         width: 44px;
         height: 44px;
-        border-radius: 50%;
+        border-radius: 200px;
         object-fit: cover;
     }
 
@@ -194,7 +194,7 @@ $adminPageExtraHead = <<<'HTML'
         padding: 16px;
         background: #fff;
         border: 1px solid var(--comment-line);
-        border-radius: var(--comment-radius);
+        border-radius: 20px;
     }
 
     .comment-stat-icon {
@@ -515,9 +515,7 @@ adminPageStart('จัดการความคิดเห็น');
 <div class="comments-admin-page">
     <section class="comment-hero">
         <div>
-            <div class="comment-kicker"><i class="bi bi-chat-left-dots"></i> ความคิดเห็นกิจกรรม</div>
             <h1 class="comment-title">จัดการความคิดเห็น</h1>
-            <p class="comment-subtitle">ตรวจสอบความคิดเห็นจากผู้ใช้ ดูรายละเอียดข้อความเต็ม และลบความคิดเห็นที่ไม่เหมาะสม</p>
         </div>
      
     </section>

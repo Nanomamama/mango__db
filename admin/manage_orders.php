@@ -120,7 +120,7 @@ $adminPageExtraHead = <<<'HTML'
         :root {
             --primary-color: #2ecc71;
             --secondary-color: #27ae60;
-            --warning-color: #f39c12;
+            --warning-color: #f3e412;
             --danger-color: #e74c3c;
             --info-color: #3498db;
         }
@@ -397,7 +397,7 @@ $adminPageExtraHead = <<<'HTML'
         }
 
         .btn-filter-pending.active {
-            background-color: #ffc107;
+            background-color: #ffea07;
             color: #212529;
             border-color: #ffc107;
         }
@@ -958,7 +958,7 @@ $adminPageExtraHead = <<<'HTML'
         --orders-text: var(--text);
         --orders-text-soft: var(--text-soft);
         --orders-success: #16a34a;
-        --orders-warning: #f59e0b;
+        --orders-warning: #f5e20b;
         --orders-danger: #ef4444;
         --orders-info: #3b82f6;
     }
@@ -1027,9 +1027,9 @@ $adminPageExtraHead = <<<'HTML'
     .orders-title {
         margin: 0;
         color: var(--orders-text);
-        font-size: 2.5rem;
+        font-size: 2rem;
         line-height: 1.05;
-        font-weight: 500;
+        font-weight: 600;
     }
 
     .orders-copy {
@@ -1208,19 +1208,19 @@ $adminPageExtraHead = <<<'HTML'
     }
 
     .badge-pending {
-        background: #f59e0b;
+        background: #f1f50b;
         color: #111827;
         border-color: #d97706;
     }
 
     .badge-approved {
-        background: #16a34a;
+        background: #00bf40;
         color: #ffffff;
         border-color: #15803d;
     }
 
     .badge-completed {
-        background: #0891b2;
+        background: #04b4cf;
         color: #ffffff;
         border-color: #0e7490;
     }
@@ -1372,8 +1372,7 @@ adminPageStart('จัดการคำสั่งซื้อ');
     
         <div class="orders-hero-grid">
             <div>
-                <h3 class="orders-title">จัดการคำสั่งซื้อ</h3>
-                <p class="orders-copy">ตรวจสอบคำสั่งซื้อ แยกตามสถานะ และเปิดรายละเอียดเพื่อดำเนินการยืนยัน ปฏิเสธ หรือปิดงานให้ครบถ้วน</p>
+                <h1 class="orders-title">จัดการคำสั่งซื้อ</h1>
             </div>
         </div>
     </section>

@@ -792,8 +792,7 @@ adminPageStart('จัดการสินค้า');
     <!-- HEADER -->
     <div class="header-card">
         <div class="title-section">
-            <h1><i class="bi bi-box-seam me-2"></i>จัดการสินค้า</h1>
-            <p>จัดการข้อมูลสินค้าทั้งหมดในระบบ</p>
+            <h1>จัดการสินค้า</h1>
         </div>
 
     </div>
