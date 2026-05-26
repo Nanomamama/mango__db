@@ -17,9 +17,43 @@ $sql_counts = "SELECT
 $counts_result = $conn->query($sql_counts);
 $counts = $counts_result->fetch_assoc();
 
-// Get current status for active button
-$current_status = $_GET['status'] ?? 'all';
-$search_keyword = $_GET['search'] ?? '';
+// Get current filters
+$current_status = in_array(($_GET['status'] ?? 'all'), ['active', 'inactive'], true) ? $_GET['status'] : 'all';
+$search_keyword = trim((string) ($_GET['search'] ?? ''));
+$current_category = trim((string) ($_GET['category'] ?? ''));
+
+$category_options = [];
+$category_result = $conn->query("SELECT DISTINCT category FROM products WHERE category IS NOT NULL AND TRIM(category) <> '' ORDER BY category ASC");
+if ($category_result instanceof mysqli_result) {
+    while ($category_row = $category_result->fetch_assoc()) {
+        $category_options[] = (string) $category_row['category'];
+    }
+    $category_result->close();
+}
+
+$buildProductUrl = function (array $overrides = []) use ($current_status, $search_keyword, $current_category): string {
+    $query = [
+        'status' => $current_status,
+        'search' => $search_keyword,
+        'category' => $current_category,
+    ];
+
+    foreach ($overrides as $key => $value) {
+        $query[$key] = $value;
+    }
+
+    if (($query['status'] ?? 'all') === 'all') {
+        unset($query['status']);
+    }
+    if (($query['search'] ?? '') === '') {
+        unset($query['search']);
+    }
+    if (($query['category'] ?? '') === '') {
+        unset($query['category']);
+    }
+
+    return 'manage_product.php' . ($query ? '?' . http_build_query($query) : '');
+};
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -265,10 +299,11 @@ body {
     display: flex;
     gap: 0.75rem;
     flex: 1;
-    max-width: 500px;
+    max-width: 760px;
 }
 
-.search-box input {
+.search-box input,
+.search-box select {
     flex: 1;
     padding: 0.75rem 1.25rem;
     font-size: 0.875rem;
@@ -279,7 +314,14 @@ body {
     background: white;
 }
 
-.search-box input:focus {
+.search-box select {
+    flex: 0 1 220px;
+    color: var(--gray-700);
+    cursor: pointer;
+}
+
+.search-box input:focus,
+.search-box select:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
@@ -869,6 +911,16 @@ body {
         padding: 0.5rem 0.75rem;
     }
 
+    .search-box {
+        flex-direction: column;
+        max-width: none;
+    }
+
+    .search-box select {
+        flex-basis: auto;
+        width: 100%;
+    }
+
     .product-detail-body {
         grid-template-columns: 1fr;
     }
@@ -915,15 +967,15 @@ adminPageStart('จัดการสินค้า');
     <!-- FILTER -->
     <div class="filter-section">
         <div class="filter-buttons">
-            <a href="manage_product.php" class="filter-btn <?= $current_status == 'all' ? 'active' : '' ?>">
+            <a href="<?= htmlspecialchars($buildProductUrl(['status' => 'all']), ENT_QUOTES, 'UTF-8') ?>" class="filter-btn <?= $current_status == 'all' ? 'active' : '' ?>">
                 <i class="bi bi-grid-3x3-gap-fill"></i> ทั้งหมด
                 <span class="badge-count"><?= $counts['total'] ?? 0 ?></span>
             </a>
-            <a href="manage_product.php?status=active" class="filter-btn <?= $current_status == 'active' ? 'active' : '' ?>">
-                <i class="bi bi-check-circle-fill"></i> กำลังเปิดขาย
+            <a href="<?= htmlspecialchars($buildProductUrl(['status' => 'active']), ENT_QUOTES, 'UTF-8') ?>" class="filter-btn <?= $current_status == 'active' ? 'active' : '' ?>">
+                <i class="bi bi-check-circle-fill"></i> พร้อมขาย
                 <span class="badge-count"><?= $counts['active_count'] ?? 0 ?></span>
             </a>
-            <a href="manage_product.php?status=inactive" class="filter-btn <?= $current_status == 'inactive' ? 'active' : '' ?>">
+            <a href="<?= htmlspecialchars($buildProductUrl(['status' => 'inactive']), ENT_QUOTES, 'UTF-8') ?>" class="filter-btn <?= $current_status == 'inactive' ? 'active' : '' ?>">
                 <i class="bi bi-x-circle-fill"></i> ปิดขาย
                 <span class="badge-count"><?= $counts['inactive_count'] ?? 0 ?></span>
             </a>
@@ -935,6 +987,14 @@ adminPageStart('จัดการสินค้า');
                     <input type="hidden" name="status" value="<?= htmlspecialchars($current_status, ENT_QUOTES, 'UTF-8') ?>">
                 <?php endif; ?>
                 <input type="text" name="search" placeholder=" ค้นหาสินค้า..." value="<?= htmlspecialchars($search_keyword, ENT_QUOTES, 'UTF-8') ?>">
+                <select name="category" aria-label="เลือกหมวดสินค้า" onchange="this.form.submit()">
+                    <option value="">ทุกหมวดสินค้า</option>
+                    <?php foreach ($category_options as $category_option): ?>
+                        <option value="<?= htmlspecialchars($category_option, ENT_QUOTES, 'UTF-8') ?>" <?= $current_category === $category_option ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($category_option, ENT_QUOTES, 'UTF-8') ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
 
                 <button type="submit">
                     <i class="bi bi-search"></i> ค้นหา
@@ -974,6 +1034,12 @@ adminPageStart('จัดการสินค้า');
     if (isset($_GET['status']) && in_array($_GET['status'], ['active', 'inactive'])) {
         $where_conditions[] = "status = ?";
         $params[] = $_GET['status'];
+        $types .= "s";
+    }
+
+    if ($current_category !== '') {
+        $where_conditions[] = "category = ?";
+        $params[] = $current_category;
         $types .= "s";
     }
 
@@ -1097,6 +1163,7 @@ adminPageStart('จัดการสินค้า');
                                         <input type="hidden" name="id" value="<?= (int) $row['product_id'] ?>">
                                         <input type="hidden" name="status_filter" value="<?= htmlspecialchars($current_status, ENT_QUOTES, 'UTF-8') ?>">
                                         <input type="hidden" name="search" value="<?= htmlspecialchars($search_keyword, ENT_QUOTES, 'UTF-8') ?>">
+                                        <input type="hidden" name="category" value="<?= htmlspecialchars($current_category, ENT_QUOTES, 'UTF-8') ?>">
                                         <button type="submit" class="btn-action <?= $row['status'] == 'active' ? 'btn-toggle-on' : 'btn-toggle-off' ?>">
                                             <i class="bi <?= $row['status'] == 'active' ? 'bi-toggle-off' : 'bi-toggle-on' ?>"></i>
                                             <?= $row['status'] == 'active' ? 'ปิด' : 'เปิด' ?>

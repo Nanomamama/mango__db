@@ -605,6 +605,29 @@ adminPageStart('Dashboard');
         color: #ffffff;
     }
 
+    .panel-action-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        padding: 0 14px;
+        border-radius: 12px;
+        background: var(--dashboard-primary);
+        color: #ffffff;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 700;
+        white-space: nowrap;
+        transition: 0.2s ease;
+    }
+
+    .panel-action-link:hover {
+        background: var(--dashboard-primary-dark);
+        color: #ffffff;
+        transform: translateY(-1px);
+    }
+
     .chart-box {
         height: 340px;
     }
@@ -896,6 +919,10 @@ adminPageStart('Dashboard');
                     <button class="chart-btn" type="button" data-period="week">8 สัปดาห์</button>
                     <button class="chart-btn" type="button" data-period="month">12 เดือน</button>
                     <button class="chart-btn" type="button" data-period="year">5 ปี</button>
+                    <a class="panel-action-link" href="sales_report.php">
+                        <i class='bx bx-bar-chart-alt-2'></i>
+                        รายงานการขาย
+                    </a>
                 </div>
             </div>
 

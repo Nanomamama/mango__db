@@ -1,122 +1,724 @@
 <?php
-include 'sidebar.php';
+require_once 'auth.php';
+require_once __DIR__ . '/../db/db.php';
+require_once 'sidebar.php';
+
+function reportDate(?string $value, string $fallback): string
+{
+    if (!$value) {
+        return $fallback;
+    }
+
+    $date = DateTime::createFromFormat('Y-m-d', $value);
+    return $date && $date->format('Y-m-d') === $value ? $value : $fallback;
+}
+
+function baht(float $amount): string
+{
+    return number_format($amount, 2);
+}
+
+function qty(int|float $amount): string
+{
+    return number_format($amount);
+}
+
+$today = date('Y-m-d');
+$monthStart = date('Y-m-01');
+$startDate = reportDate($_GET['start_date'] ?? null, $monthStart);
+$endDate = reportDate($_GET['end_date'] ?? null, $today);
+
+if ($startDate > $endDate) {
+    [$startDate, $endDate] = [$endDate, $startDate];
+}
+
+$groupBy = $_GET['group_by'] ?? 'day';
+$groupBy = in_array($groupBy, ['day', 'month', 'year'], true) ? $groupBy : 'day';
+
+$startDateTime = $startDate . ' 00:00:00';
+$endDateTime = $endDate . ' 23:59:59';
+
+$summary = [
+    'total_sales' => 0.0,
+    'total_orders' => 0,
+    'total_items' => 0,
+    'avg_order_value' => 0.0,
+];
+
+$stmt = $conn->prepare("
+    SELECT
+        COALESCE(SUM(o.total_amount), 0) AS total_sales,
+        COUNT(DISTINCT o.order_id) AS total_orders,
+        COALESCE((
+            SELECT SUM(oi.quantity)
+            FROM order_items oi
+            INNER JOIN orders item_orders ON item_orders.order_id = oi.order_id
+            WHERE item_orders.order_status = 'completed'
+              AND item_orders.receive_datetime BETWEEN ? AND ?
+        ), 0) AS total_items
+    FROM orders o
+    WHERE o.order_status = 'completed'
+      AND o.receive_datetime BETWEEN ? AND ?
+");
+$stmt->bind_param('ssss', $startDateTime, $endDateTime, $startDateTime, $endDateTime);
+$stmt->execute();
+$summaryRow = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+if ($summaryRow) {
+    $summary['total_sales'] = (float) ($summaryRow['total_sales'] ?? 0);
+    $summary['total_orders'] = (int) ($summaryRow['total_orders'] ?? 0);
+    $summary['total_items'] = (int) ($summaryRow['total_items'] ?? 0);
+    $summary['avg_order_value'] = $summary['total_orders'] > 0
+        ? $summary['total_sales'] / $summary['total_orders']
+        : 0.0;
+}
+
+$productRows = [];
+$stmt = $conn->prepare("
+    SELECT
+        oi.product_id,
+        COALESCE(NULLIF(oi.product_name, ''), p.product_name, 'ไม่ระบุสินค้า') AS product_name,
+        SUM(oi.quantity) AS total_quantity,
+        AVG(oi.price) AS avg_price,
+        SUM(oi.quantity * oi.price) AS total_sales
+    FROM order_items oi
+    INNER JOIN orders o ON o.order_id = oi.order_id
+    LEFT JOIN products p ON p.product_id = oi.product_id
+    WHERE o.order_status = 'completed'
+      AND o.receive_datetime BETWEEN ? AND ?
+    GROUP BY oi.product_id, product_name
+    ORDER BY total_sales DESC, total_quantity DESC
+");
+$stmt->bind_param('ss', $startDateTime, $endDateTime);
+$stmt->execute();
+$result = $stmt->get_result();
+while ($row = $result->fetch_assoc()) {
+    $productRows[] = $row;
+}
+$stmt->close();
+
+$groupExpression = match ($groupBy) {
+    'month' => "DATE_FORMAT(o.receive_datetime, '%Y-%m')",
+    'year' => "DATE_FORMAT(o.receive_datetime, '%Y')",
+    default => "DATE(o.receive_datetime)",
+};
+
+$chartRows = [];
+$sql = "
+    SELECT
+        {$groupExpression} AS period_label,
+        COALESCE(SUM(o.total_amount), 0) AS total_sales,
+        COUNT(DISTINCT o.order_id) AS total_orders
+    FROM orders o
+    WHERE o.order_status = 'completed'
+      AND o.receive_datetime BETWEEN ? AND ?
+    GROUP BY period_label
+    ORDER BY period_label
+";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param('ss', $startDateTime, $endDateTime);
+$stmt->execute();
+$result = $stmt->get_result();
+while ($row = $result->fetch_assoc()) {
+    $chartRows[] = $row;
+}
+$stmt->close();
+
+$topProductName = $productRows[0]['product_name'] ?? '-';
+$chartLabels = array_map(static fn(array $row): string => (string) $row['period_label'], $chartRows);
+$chartSales = array_map(static fn(array $row): float => (float) $row['total_sales'], $chartRows);
+$topLabels = array_map(static fn(array $row): string => (string) $row['product_name'], array_slice($productRows, 0, 8));
+$topSales = array_map(static fn(array $row): float => (float) $row['total_sales'], array_slice($productRows, 0, 8));
+
+adminPageStart('รายงานการขายสินค้า');
 ?>
 
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>รายงานการขาย</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
-<div class="d-flex">
-    <div class="p-4" style="margin-left: 250px; flex: 2;">
-        <h2>📊 รายงานการขาย</h2>
-        <canvas id="salesChart" width="400" height="200"></canvas>
-        
-        <h3 class="mt-4">📆 รายงานยอดขายแต่ละเดือน</h3>
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>เดือน</th>
-                    <th>ยอดขายรวม (บาท)</th>
-                    <th>ดูรายละเอียด</th>
-                </tr>
-            </thead>
-            <tbody id="monthlySalesTable">
-                <!-- ข้อมูลยอดขายรายเดือน -->
-            </tbody>
-        </table>
+<style>
+    .sales-report-shell {
+        display: grid;
+        gap: 22px;
+        max-width: 100%;
+    }
 
-        <h3 class="mt-4">📦 รายละเอียดการขายสินค้า</h3>
-        <table class="table table-bordered" id="productSalesTable">
-            <thead>
-                <tr>
-                    <th>สินค้า</th>
-                    <th>จำนวนที่ขาย (ชิ้น)</th>
-                    <th>ยอดขายรวม (บาท)</th>
-                </tr>
-            </thead>
-            <tbody id="salesTableBody">
-                <!-- ข้อมูลสินค้าจะถูกแสดงที่นี่ -->
-            </tbody>
-        </table>
+    .report-panel,
+    .report-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 18px;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    }
 
-        <a href="manage_product.php" class="btn btn-info">🔙 กลับ</a>
-    </div>
+    .report-panel {
+        padding: 22px;
+    }
+
+    .report-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        flex-wrap: wrap;
+        min-width: 0;
+    }
+
+    .report-header > div {
+        min-width: 0;
+    }
+
+    .report-title {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1.35rem;
+        font-weight: 700;
+    }
+
+    .report-subtitle {
+        margin: 6px 0 0;
+        color: #64748b;
+        line-height: 1.7;
+    }
+
+    .report-filter {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(150px, 1fr)) auto;
+        gap: 14px;
+        align-items: end;
+        margin-top: 20px;
+        min-width: 0;
+    }
+
+    .filter-field label {
+        display: block;
+        margin-bottom: 6px;
+        color: #475569;
+        font-size: 0.88rem;
+        font-weight: 600;
+    }
+
+    .filter-field input,
+    .filter-field select {
+        width: 100%;
+        height: 44px;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        padding: 0 12px;
+        color: #0f172a;
+        font: inherit;
+        background: #ffffff;
+    }
+
+    .report-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .report-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 44px;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        padding: 0 16px;
+        color: #ffffff;
+        background: #016A70;
+        text-decoration: none;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.2s ease;
+    }
+
+    .report-btn:hover {
+        background: #01545a;
+        color: #ffffff;
+        transform: translateY(-1px);
+    }
+
+    .report-btn.secondary {
+        border-color: #cbd5e1;
+        color: #016A70;
+        background: #f8fafc;
+    }
+
+    .report-btn.secondary:hover {
+        background: #ecfdf5;
+        color: #016A70;
+    }
+
+    .quick-ranges {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+    }
+
+    .quick-ranges a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border: 1px solid #dbe4ea;
+        border-radius: 999px;
+        color: #0f766e;
+        background: #f8fafc;
+        font-size: 0.86rem;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .report-card {
+        padding: 18px;
+    }
+
+    .card-label {
+        color: #64748b;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .card-value {
+        margin-top: 8px;
+        color: #0f172a;
+        font-size: 1.65rem;
+        font-weight: 800;
+        line-height: 1.1;
+        overflow-wrap: anywhere;
+    }
+
+    .card-note {
+        margin-top: 8px;
+        color: #0f766e;
+        font-size: 0.86rem;
+        font-weight: 600;
+    }
+
+    .chart-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.9fr);
+        gap: 18px;
+    }
+
+    .chart-box {
+        height: 320px;
+        margin-top: 16px;
+        max-width: 100%;
+    }
+
+    .table-wrap {
+        margin-top: 16px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .report-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 760px;
+    }
+
+    .report-table th,
+    .report-table td {
+        padding: 14px 12px;
+        border-bottom: 1px solid #e2e8f0;
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    .report-table th {
+        color: #475569;
+        background: #f8fafc;
+        font-size: 0.86rem;
+        font-weight: 700;
+    }
+
+    .report-table td {
+        color: #0f172a;
+    }
+
+    .text-end {
+        text-align: right !important;
+    }
+
+    .empty-state {
+        padding: 34px 20px;
+        text-align: center;
+        color: #64748b;
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+        border-radius: 14px;
+    }
+
+    @media (max-width: 1180px) {
+        .report-filter {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 1100px) {
+        .summary-grid,
+        .chart-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 720px) {
+        .sales-report-shell {
+            gap: 16px;
+        }
+
+        .report-panel,
+        .report-card {
+            border-radius: 14px;
+        }
+
+        .report-panel {
+            padding: 16px;
+        }
+
+        .report-card {
+            padding: 16px;
+        }
+
+        .report-title {
+            font-size: 1.12rem;
+            line-height: 1.35;
+        }
+
+        .report-subtitle {
+            font-size: 0.9rem;
+        }
+
+        .report-filter,
+        .summary-grid,
+        .chart-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .report-header {
+            align-items: stretch;
+        }
+
+        .report-actions,
+        .report-btn {
+            width: 100%;
+        }
+
+        .quick-ranges {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .quick-ranges a {
+            justify-content: center;
+            min-height: 38px;
+            text-align: center;
+        }
+
+        .card-value {
+            font-size: 1.35rem;
+        }
+
+        .chart-box {
+            height: 260px;
+        }
+
+        .table-wrap {
+            overflow-x: visible;
+        }
+
+        .report-table {
+            min-width: 0;
+            border-collapse: separate;
+            border-spacing: 0 12px;
+        }
+
+        .report-table thead {
+            display: none;
+        }
+
+        .report-table,
+        .report-table tbody,
+        .report-table tr,
+        .report-table td {
+            display: block;
+            width: 100%;
+        }
+
+        .report-table tr {
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            background: #ffffff;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+        }
+
+        .report-table td {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 9px 0;
+            border-bottom: 1px solid #edf2f7;
+            text-align: right !important;
+        }
+
+        .report-table td:last-child {
+            border-bottom: 0;
+        }
+
+        .report-table td::before {
+            content: attr(data-label);
+            color: #64748b;
+            font-weight: 700;
+            text-align: left;
+            flex: 0 0 42%;
+        }
+    }
+
+    @media (max-width: 420px) {
+        .report-panel {
+            padding: 14px;
+        }
+
+        .quick-ranges {
+            grid-template-columns: 1fr;
+        }
+
+        .filter-field input,
+        .filter-field select,
+        .report-btn {
+            min-height: 46px;
+        }
+
+        .chart-box {
+            height: 235px;
+        }
+    }
+</style>
+
+<div class="sales-report-shell">
+    <section class="report-panel">
+        <div class="report-header">
+            <div>
+                <h2 class="report-title">รายงานการขายสินค้า</h2>
+                <p class="report-subtitle">เลือกช่วงวันที่รับสินค้าเพื่อดูยอดขายจริงจากออเดอร์ที่สำเร็จแล้ว แยกตามสินค้าและช่วงเวลา</p>
+            </div>
+            <div class="report-actions">
+                <a href="manage_orders.php" class="report-btn secondary">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    กลับคำสั่งซื้อ
+                </a>
+            </div>
+        </div>
+
+        <form method="GET" class="report-filter">
+            <div class="filter-field">
+                <label for="start_date">วันที่รับสินค้าเริ่มต้น</label>
+                <input type="date" id="start_date" name="start_date" value="<?= h($startDate) ?>">
+            </div>
+            <div class="filter-field">
+                <label for="end_date">วันที่รับสินค้าสิ้นสุด</label>
+                <input type="date" id="end_date" name="end_date" value="<?= h($endDate) ?>">
+            </div>
+            <div class="filter-field">
+                <label for="group_by">ดูกราฟแบบ</label>
+                <select id="group_by" name="group_by">
+                    <option value="day" <?= $groupBy === 'day' ? 'selected' : '' ?>>รายวัน</option>
+                    <option value="month" <?= $groupBy === 'month' ? 'selected' : '' ?>>รายเดือน</option>
+                    <option value="year" <?= $groupBy === 'year' ? 'selected' : '' ?>>รายปี</option>
+                </select>
+            </div>
+            <div class="filter-field">
+                <label>สถานะที่นับยอด</label>
+                <input type="text" value="สำเร็จแล้วเท่านั้น" readonly>
+            </div>
+            <button type="submit" class="report-btn">
+                <i class="fa-solid fa-filter"></i>
+                ดูรายงาน
+            </button>
+        </form>
+
+        <div class="quick-ranges">
+            <a href="?start_date=<?= h($today) ?>&end_date=<?= h($today) ?>&group_by=day">วันนี้</a>
+            <a href="?start_date=<?= h($monthStart) ?>&end_date=<?= h($today) ?>&group_by=day">เดือนนี้</a>
+            <a href="?start_date=<?= h(date('Y-01-01')) ?>&end_date=<?= h($today) ?>&group_by=month">ปีนี้</a>
+            <a href="?start_date=<?= h(date('Y-m-d', strtotime('-11 months'))) ?>&end_date=<?= h($today) ?>&group_by=month">12 เดือนล่าสุด</a>
+        </div>
+    </section>
+
+    <section class="summary-grid">
+        <article class="report-card">
+            <div class="card-label">ยอดขายรวม</div>
+            <div class="card-value">฿<?= baht($summary['total_sales']) ?></div>
+            <div class="card-note"><?= h($startDate) ?> ถึง <?= h($endDate) ?></div>
+        </article>
+        <article class="report-card">
+            <div class="card-label">จำนวนออเดอร์</div>
+            <div class="card-value"><?= qty($summary['total_orders']) ?></div>
+            <div class="card-note">ออเดอร์ที่สำเร็จแล้ว</div>
+        </article>
+        <article class="report-card">
+            <div class="card-label">จำนวนสินค้าที่ขาย</div>
+            <div class="card-value"><?= qty($summary['total_items']) ?></div>
+            <div class="card-note">รวมทุกสินค้า</div>
+        </article>
+        <article class="report-card">
+            <div class="card-label">สินค้าขายดีที่สุด</div>
+            <div class="card-value" style="font-size:1.15rem;line-height:1.45;"><?= h($topProductName) ?></div>
+            <div class="card-note">มูลค่าเฉลี่ย/ออเดอร์ ฿<?= baht($summary['avg_order_value']) ?></div>
+        </article>
+    </section>
+
+    <section class="chart-grid">
+        <article class="report-panel">
+            <div class="report-header">
+                <div>
+                    <h2 class="report-title">ยอดขายตามช่วงเวลา</h2>
+                    <p class="report-subtitle">แสดงตามรูปแบบที่เลือกจากตัวกรอง</p>
+                </div>
+            </div>
+            <div class="chart-box">
+                <canvas id="salesTrendChart"></canvas>
+            </div>
+        </article>
+
+        <article class="report-panel">
+            <div class="report-header">
+                <div>
+                    <h2 class="report-title">สินค้าอันดับต้น</h2>
+                    <p class="report-subtitle">เรียงตามยอดขายรวม</p>
+                </div>
+            </div>
+            <div class="chart-box">
+                <canvas id="topProductChart"></canvas>
+            </div>
+        </article>
+    </section>
+
+    <section class="report-panel">
+        <div class="report-header">
+            <div>
+                <h2 class="report-title">รายละเอียดการขายสินค้า</h2>
+                <p class="report-subtitle">สรุปจำนวนและยอดขายของสินค้าแต่ละรายการในช่วงที่เลือก</p>
+            </div>
+        </div>
+
+        <?php if ($productRows): ?>
+            <div class="table-wrap">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>ลำดับ</th>
+                            <th>สินค้า</th>
+                            <th class="text-end">จำนวนที่ขาย</th>
+                            <th class="text-end">ราคาเฉลี่ย</th>
+                            <th class="text-end">ยอดขายรวม</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($productRows as $index => $row): ?>
+                            <tr>
+                                <td data-label="ลำดับ"><?= $index + 1 ?></td>
+                                <td data-label="สินค้า"><?= h((string) $row['product_name']) ?></td>
+                                <td data-label="จำนวนที่ขาย" class="text-end"><?= qty((int) $row['total_quantity']) ?></td>
+                                <td data-label="ราคาเฉลี่ย" class="text-end">฿<?= baht((float) $row['avg_price']) ?></td>
+                                <td data-label="ยอดขายรวม" class="text-end">฿<?= baht((float) $row['total_sales']) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php else: ?>
+            <div class="empty-state">ไม่พบข้อมูลการขายสินค้าในช่วงวันที่เลือก</div>
+        <?php endif; ?>
+    </section>
 </div>
 
 <script>
-// ข้อมูลจำลองยอดขายรายเดือน
-const monthlySales = [
-    { month: "ม.ค.", total: 12000, details: [
-        { name: "กล้วยทอดอบเนย", quantity: 40, total: 2000 },
-        { name: "มันฝรั่งทอดกรอบ", quantity: 30, total: 1500 }
-    ]},
-    { month: "ก.พ.", total: 15000, details: [
-        { name: "กล้วยทอดอบเนย", quantity: 50, total: 2500 },
-        { name: "มันฝรั่งทอดกรอบ", quantity: 35, total: 1750 }
-    ]},
-    { month: "มี.ค.", total: 13000, details: [
-        { name: "กล้วยทอดอบเนย", quantity: 45, total: 2250 },
-        { name: "ขนมข้าวโพด", quantity: 40, total: 2000 }
-    ]}
-];
+    const trendLabels = <?= json_encode($chartLabels, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    const trendSales = <?= json_encode($chartSales, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    const topLabels = <?= json_encode($topLabels, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    const topSales = <?= json_encode($topSales, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 
-// แสดงข้อมูลยอดขายรายเดือน
-const monthlyTable = document.getElementById("monthlySalesTable");
-monthlySales.forEach((item, index) => {
-    let row = `<tr>
-        <td>${item.month}</td>
-        <td>${item.total.toLocaleString()} บาท</td>
-        <td><button class="btn btn-primary btn-sm" onclick="showDetails(${index})">🔍 ดูรายละเอียด</button></td>
-    </tr>`;
-    monthlyTable.innerHTML += row;
-});
+    const moneyTick = value => Number(value || 0).toLocaleString('th-TH');
 
-// ฟังก์ชันแสดงรายละเอียดสินค้าที่ขายในเดือนนั้น
-function showDetails(index) {
-    const salesTableBody = document.getElementById("salesTableBody");
-    salesTableBody.innerHTML = ""; // เคลียร์ข้อมูลก่อนหน้า
-    
-    monthlySales[index].details.forEach(item => {
-        let row = `<tr>
-            <td>${item.name}</td>
-            <td>${item.quantity}</td>
-            <td>${item.total.toLocaleString()} บาท</td>
-        </tr>`;
-        salesTableBody.innerHTML += row;
-    });
-}
-
-// สร้างกราฟด้วย Chart.js
-const salesData = {
-    labels: monthlySales.map(item => item.month),
-    datasets: [{
-        label: "ยอดขาย (บาท)",
-        data: monthlySales.map(item => item.total),
-        backgroundColor: "rgba(75, 192, 192, 0.2)",
-        borderColor: "rgba(75, 192, 192, 1)",
-        borderWidth: 2
-    }]
-};
-
-const ctx = document.getElementById("salesChart").getContext("2d");
-new Chart(ctx, {
-    type: "line",
-    data: salesData,
-    options: {
-        responsive: true,
-        scales: {
-            y: { beginAtZero: true }
+    new Chart(document.getElementById('salesTrendChart'), {
+        type: 'line',
+        data: {
+            labels: trendLabels,
+            datasets: [{
+                label: 'ยอดขาย',
+                data: trendSales,
+                borderColor: '#016A70',
+                backgroundColor: 'rgba(1, 106, 112, 0.12)',
+                fill: true,
+                tension: 0.35,
+                pointRadius: 4,
+                pointBackgroundColor: '#016A70'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: context => `ยอดขาย ฿${moneyTick(context.parsed.y)}`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { callback: value => `฿${moneyTick(value)}` }
+                }
+            }
         }
-    }
-});
+    });
+
+    new Chart(document.getElementById('topProductChart'), {
+        type: 'bar',
+        data: {
+            labels: topLabels,
+            datasets: [{
+                label: 'ยอดขาย',
+                data: topSales,
+                backgroundColor: '#0d8a92',
+                borderRadius: 8
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: context => `ยอดขาย ฿${moneyTick(context.parsed.x)}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: { callback: value => `฿${moneyTick(value)}` }
+                }
+            }
+        }
+    });
 </script>
 
-</body>
-</html>
+<?php adminPageEnd(); ?>

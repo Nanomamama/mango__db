@@ -1126,6 +1126,14 @@ function adminPageStart(string $title): void
 
                 </a>
 
+                <a href="./sales_report.php"
+                    class="nav-link <?= $currentPage === 'sales_report.php' ? 'active' : '' ?>">
+
+                    <i class='bx bxs-report'></i>
+                    รายงานการขาย
+
+                </a>
+
                 <a href="./edit_courses.php"
                     class="nav-link <?= $currentPage === 'edit_courses.php' ? 'active' : '' ?>">
 

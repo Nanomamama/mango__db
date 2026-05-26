@@ -55,6 +55,9 @@ if (!empty($_POST['status_filter']) && in_array($_POST['status_filter'], ['activ
 if (!empty($_POST['search'])) {
     $query['search'] = $_POST['search'];
 }
+if (!empty($_POST['category'])) {
+    $query['category'] = $_POST['category'];
+}
 
 header('Location: manage_product.php' . ($query ? '?' . http_build_query($query) : ''));
 exit;
