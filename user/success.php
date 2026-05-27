@@ -826,7 +826,7 @@ while ($r = $items->fetch_assoc()) {
                                 <div class="val"><?= htmlspecialchars($order['customer_phone']) ?></div>
                             </div>
                             <div class="info-item">
-                                <div class="lbl">ที่อยู่จัดส่ง</div>
+                                <div class="lbl">รายละเอียดที่อยู่จัดส่ง</div>
                                 <div class="val"><?= nl2br(htmlspecialchars($order['customer_address'])) ?></div>
                             </div>
                             <div class="info-item">

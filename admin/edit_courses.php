@@ -641,7 +641,7 @@ adminPageStart('จัดการกิจกรรมอบรม');
                     <p class="course-description"><?= htmlspecialchars($course['course_description'], ENT_QUOTES, 'UTF-8') ?></p>
                     <div class="course-card-actions">
                         <button class="btn action-btn btn-view view-course-btn" type="button" data-bs-toggle="modal" data-bs-target="#courseModal" data-course-id="<?= (int)$course['id'] ?>">
-                            <i class="bi bi-eye"></i> ดู
+                            <i class="bi bi-eye"></i> ดูข้อมูล
                         </button>
                         <button class="btn action-btn btn-edit edit-course-btn" type="button" data-bs-toggle="modal" data-bs-target="#editCourseModal" data-course-id="<?= (int)$course['id'] ?>">
                             <i class="bi bi-pencil-square"></i> แก้ไข

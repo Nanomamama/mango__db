@@ -1019,6 +1019,7 @@ unset($_SESSION['order_error']);
 
 <body>
     <?php include __DIR__ . '/navbar.php'; ?>
+    <?php include __DIR__ . '/fb_chat_button.php'; ?>
 
     <div class="loading-overlay" id="loadingOverlay">
         <div class="spinner-leaf"></div>
@@ -1096,7 +1097,7 @@ unset($_SESSION['order_error']);
 
                         <div class="section-label">
                             <i class="fas fa-receipt"></i>
-                            ชำระเงิน
+                            ดำเนินการสั่งซื้อ
                         </div>
 
                         <div class="checkout-panel">
@@ -1550,11 +1551,11 @@ unset($_SESSION['order_error']);
             const ta = document.getElementById('customer_address');
             if (type === 'pickup') {
                 lbl.innerHTML = '<i class="fas fa-sticky-note" style="color:var(--sage);margin-right:6px"></i>หมายเหตุ';
-                ta.placeholder = 'หมายเหตุเพิ่มเติม เช่น จะไปรับช่วงบ่าย 3 โมง';
+                ta.placeholder = 'หมายเหตุเพิ่มเติม ';
                 ta.removeAttribute('required');
             } else {
-                lbl.innerHTML = '<i class="fas fa-map-marker-alt" style="color:var(--sage);margin-right:6px"></i>ที่อยู่จัดส่ง';
-                ta.placeholder = 'กรอกที่อยู่สำหรับจัดส่ง เช่น ซอย หมู่บ้านที่เจาะจงเพื่อการจัดส่งที่ถูกต้อง';
+                lbl.innerHTML = '<i class="fas fa-map-marker-alt" style="color:var(--sage);margin-right:6px"></i>รายละเอียดที่อยู่จัดส่ง';
+                ta.placeholder = 'กรอกที่อยู่สำหรับจัดส่ง เช่น ซอย หมู่บ้านที่เจาะจงเพื่อการจัดส่งที่ถูกต้อง';
                 ta.setAttribute('required', 'required');
             }
         }

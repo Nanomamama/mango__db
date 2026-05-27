@@ -858,7 +858,7 @@ if (
         <div class="container">
             <a href="course.php" class="back-link">
                 <i class="fas fa-arrow-left"></i>
-                กลับไปหน้าหลักสูตร
+                กลับไปหน้ากิจกรรม
             </a>
             <h1 class="course-title"><?php echo htmlspecialchars($course['course_name']); ?></h1>
         </div>
@@ -923,7 +923,7 @@ if (
                             <div class="rating-count">(<?php echo $rating_count; ?> คะแนน)</div>
                         </div>
 
-                        <h3 class="section-title">รายละเอียดหลักสูตร</h3>
+                        <h3 class="section-title">รายละเอียดกิจกรรม</h3>
                         <div class="course-description">
                             <?php echo nl2br(htmlspecialchars($course['course_description'] ?? 'ไม่มีรายละเอียดเพิ่มเติม')); ?>
                         </div>
@@ -1029,7 +1029,7 @@ if (
                                 <textarea class="form-control"
                                     id="commentText"
                                     rows="5"
-                                    placeholder="กรุณากรอกความคิดเห็นของคุณเกี่ยวกับหลักสูตรนี้"
+                                    placeholder="กรุณากรอกความคิดเห็นของคุณเกี่ยวกับกิจกรรมนี้"
                                     maxlength="1000"
                                     required></textarea>
                                 <div class="char-count"><span id="charCount">0</span>/1000</div>
@@ -1090,7 +1090,7 @@ if (
                                     <div class="no-comments">
                                         <i class="far fa-comment-dots fa-3x mb-3"></i>
                                         <h4>ยังไม่มีความคิดเห็น</h4>
-                                        <p>เป็นคนแรกที่แสดงความคิดเห็นเกี่ยวกับหลักสูตรนี้</p>
+                                        <p>เป็นคนแรกที่แสดงความคิดเห็นเกี่ยวกับกิจกรรมนี้</p>
                                     </div>
                                     <?php else:
                                     while ($comment = $commentsResult->fetch_assoc()): ?>

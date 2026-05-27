@@ -1138,13 +1138,15 @@ LIMIT 10
             <div class="row">
                 <div class="col-md-4">
                     <p><i class="fas fa-truck"></i> จัดส่งฟรี! ขั้นต่ำ 500 บาท</p>
-                    <p>ในพื้นที่ที่กำหนด บ้านน้อย เชียงคาน แก่งคุดคู้</p>
+                    <p>ในพื้นที่ บ้านน้อย เชียงคาน แก่งคุดคู้ หรือพื้นที่ใกล้เคียง</p>
                 </div>
                 <div class="col-md-4">
                     <p><i class="fas fa-store"></i> รับสินค้าที่สวนได้</p>
+                    <p><i class="fas fa-phone-alt"></i> ติดต่อกลับหากสินค้าไม่พอ</p>
                 </div>
                 <div class="col-md-4">
-                    <p><i class="fas fa-phone-alt"></i> ติดต่อกลับหากสินค้าไม่พอ</p>
+                   <p><i class="fa-solid fa-check"></i> ติดตามสถานะการสั่งซื้อได้ทันที</p>
+                   <p><i class="fa-regular fa-circle-question"></i> สอบถามเพิ่มเติมทางข้อความ หรือโทร 089-8980821</p>
                 </div>
             </div>
         </div>
