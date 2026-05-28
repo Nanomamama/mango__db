@@ -852,7 +852,7 @@ if (
 
 <body>
     <?php include 'navbar.php'; ?>
-
+    <?php include __DIR__ . '/fb_chat_button.php'; ?>
     <!-- Page Header -->
     <div class="page-header">
         <div class="container">
