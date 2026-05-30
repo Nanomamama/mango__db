@@ -3,6 +3,8 @@
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
+require_once __DIR__ . '/../config/env.php';
+
 function convertToThaiDate($dateStr)
 {
     if (!$dateStr) {
@@ -128,8 +130,8 @@ function sendBookingEmails(array $request = null)
         ];
         $adminMail->Host = "smtp.gmail.com";
         $adminMail->SMTPAuth = true;
-        $adminMail->Username = "nanoone342@gmail.com";
-        $adminMail->Password = "yaud bhqb pibw lipz";
+        $adminMail->Username = app_env('MAIL_USERNAME');
+        $adminMail->Password = app_env('MAIL_PASSWORD');
         $adminMail->Port = 465;
         $adminMail->SMTPSecure = "ssl";
         $adminMail->CharSet = 'UTF-8';
@@ -199,8 +201,8 @@ function sendBookingEmails(array $request = null)
         ];
         $userMail->Host = "smtp.gmail.com";
         $userMail->SMTPAuth = true;
-        $userMail->Username = "nanoone342@gmail.com";
-        $userMail->Password = "yaud bhqb pibw lipz";
+        $userMail->Username = app_env('MAIL_USERNAME');
+        $userMail->Password = app_env('MAIL_PASSWORD');
         $userMail->Port = 465;
         $userMail->SMTPSecure = "ssl";
         $userMail->CharSet = 'UTF-8';

@@ -141,6 +141,22 @@ function formatBookingDate($date, $time)
     return "$d $m $y" . $t;
 }
 
+function memberBookingStatusLabel($status)
+{
+    switch ($status) {
+        case 'pending':
+            return ['label' => 'รอเจ้าหน้าที่ตรวจสอบ', 'style' => 'background:#fffbe6;border-color:#ffe58f;color:#ad6800;'];
+        case 'awaiting_payment':
+            return ['label' => 'รอชำระเงิน/ตรวจสลิป', 'style' => 'background:#e6f4ff;border-color:#91caff;color:#0958d9;'];
+        case 'confirmed':
+            return ['label' => 'ยืนยันแล้ว', 'style' => 'background:#f6ffed;border-color:#b7eb8f;color:#237804;'];
+        case 'cancelled':
+            return ['label' => 'ยกเลิกแล้ว', 'style' => 'background:#fff2f0;border-color:#ffccc7;color:#cf1322;'];
+        default:
+            return ['label' => $status ?: 'ไม่ระบุ', 'style' => ''];
+    }
+}
+
 function orderStatusInfo($status)
 {
     $map = [
@@ -188,19 +204,25 @@ if ($stmtRecentOrders) {
     $stmtRecentOrders->close();
 }
 
-// ดึงรายการการจองล่าสุด 5 รายการ (สถานะ: อนุมัติแล้ว, รออนุมัติ, ถูกปฏิเสธ)
+// ดึงรายการการจองล่าสุด 5 รายการ
 $recent_bookings = [];
-// Order by submission (bookings_id) so the most recently created booking appears first,
-// independent of the booked date.
-// $stmt2 = $conn->prepare("SELECT bookings_id, date, time, name, status FROM bookings WHERE member_id = ? AND status IN ('อนุมัติแล้ว','รออนุมัติ','ถูกปฏิเสธ') ORDER BY bookings_id DESC LIMIT 5");
-// $stmt2->bind_param("i", $member_id);
-// if ($stmt2->execute()) {
-//     $res2 = $stmt2->get_result();
-//     while ($row = $res2->fetch_assoc()) {
-//         $recent_bookings[] = $row;
-//     }
-// }
-// $stmt2->close();
+$stmt2 = $conn->prepare("
+    SELECT bookings_id, booking_code, booking_date AS date, booking_time AS time, guest_name AS name, status
+    FROM bookings
+    WHERE member_id = ?
+    ORDER BY created_at DESC, bookings_id DESC
+    LIMIT 5
+");
+if ($stmt2) {
+    $stmt2->bind_param("i", $member_id);
+    if ($stmt2->execute()) {
+        $res2 = $stmt2->get_result();
+        while ($row = $res2->fetch_assoc()) {
+            $recent_bookings[] = $row;
+        }
+    }
+    $stmt2->close();
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -1330,7 +1352,7 @@ $recent_bookings = [];
                                         <div class="action-icon"><i class='bx bx-plus-circle'></i></div>
                                         <div class="action-title">จองเข้าชมใหม่</div>
                                         <div class="action-description">จองรอบเข้าชมใหม่</div>
-                                        <a href="activities.php" class="ant-btn ant-btn-primary" style="margin-top: 16px;">
+                                        <a href="bookings.php" class="ant-btn ant-btn-primary" style="margin-top: 16px;">
                                             <i class='bx bx-calendar-plus'></i> จองเลย
                                         </a>
                                     </div>
@@ -1361,20 +1383,14 @@ $recent_bookings = [];
                                             </div>
                                             <div class="ant-list-item-action">
                                                 <?php
-                                                $s = trim($rb['status'] ?? '');
-                                                if ($s === 'อนุมัติแล้ว') {
-                                                    echo '<span class="ant-tag ant-tag-green">อนุมัติแล้ว</span>';
-                                                } elseif ($s === 'ถูกปฏิเสธ') {
-                                                    echo '<span class="ant-tag" style="background:#fff2f0;border-color:#ffd8d8;color:#e74a3b;">ถูกปฏิเสธ</span>';
-                                                } else {
-                                                    echo '<span class="ant-tag">รออนุมัติ</span>';
-                                                }
+                                                $statusInfo = memberBookingStatusLabel(trim($rb['status'] ?? ''));
+                                                echo '<span class="ant-tag" style="' . htmlspecialchars($statusInfo['style']) . '">' . htmlspecialchars($statusInfo['label']) . '</span>';
                                                 ?>
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
                                 <?php else: ?>
-                                    <div class="text-center text-muted">ไม่มีการจองที่ได้รับการอนุมัติ</div>
+                                    <div class="text-center text-muted">ยังไม่มีรายการจอง</div>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -1624,6 +1640,35 @@ $recent_bookings = [];
             if (!btn) return;
             const modalEl = document.getElementById('bookingStatusModal');
             let modalObj = null;
+            const statusStyles = {
+                pending: 'background:#fffbe6;border-color:#ffe58f;color:#ad6800;',
+                awaiting_payment: 'background:#e6f4ff;border-color:#91caff;color:#0958d9;',
+                confirmed: 'background:#f6ffed;border-color:#b7eb8f;color:#237804;',
+                cancelled: 'background:#fff2f0;border-color:#ffccc7;color:#cf1322;'
+            };
+
+            function getBookingList(json) {
+                if (Array.isArray(json)) return json;
+                if (json && Array.isArray(json.data)) return json.data;
+                return [];
+            }
+
+            function getStatusLabel(b) {
+                if (!b) return '';
+                return b.status_label || b.status || 'ไม่ระบุ';
+            }
+
+            function getStatusTag(b) {
+                const status = (b.status || '').trim();
+                const style = statusStyles[status] || 'background:#fafafa;border-color:#d9d9d9;color:#595959;';
+                return `<span class="ant-tag" style="${style}">${escapeHtml(getStatusLabel(b))}</span>`;
+            }
+
+            function money(value) {
+                const n = Number(value);
+                return Number.isFinite(n) ? n.toLocaleString('th-TH') : '0';
+            }
+
             btn.addEventListener('click', function() {
                 // show bootstrap modal
                 if (!modalObj) modalObj = new bootstrap.Modal(modalEl);
@@ -1634,7 +1679,7 @@ $recent_bookings = [];
                         return res.json();
                     })
                     .then(json => {
-                        const list = json.data || [];
+                        const list = getBookingList(json);
                         // only show the latest booking
                         if (!list || list.length === 0) {
                             const container = document.getElementById('bookingTimelineContainer');
@@ -1667,10 +1712,7 @@ $recent_bookings = [];
                             return res.json();
                         })
                         .then(json => {
-                            const list = (json.data || []).filter(b => {
-                                const s = (b.status || '').trim();
-                                return s === 'อนุมัติแล้ว' || s === 'ถูกปฏิเสธ';
-                            });
+                            const list = getBookingList(json);
                             renderHistory(list);
                             historyModalObj.show();
                         })
@@ -1707,25 +1749,31 @@ $recent_bookings = [];
 
                 // determine step index: 0=submitted,1=in progress,2=completed
                 let step = 0;
-                if (b.status === 'รออนุมัติ') step = 1; // in progress
-                else if (b.status === 'อนุมัติแล้ว') step = 2; // completed
-                else if (b.status === 'ถูกปฏิเสธ') step = 1; // treat as in progress but show rejection
+                if (b.status === 'awaiting_payment') step = 1;
+                else if (b.status === 'confirmed') step = 2;
+                else if (b.status === 'cancelled') step = 1;
 
                 let html = '';
 
                 // Booking header
                 html += `<div style="margin-bottom:12px;padding:8px;border-radius:8px;background:#fff;">`;
-                html += `<div style="font-weight:700; font-size:1.05rem;">${escapeHtml(b.name)}</div>`;
+                html += `<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">`;
+                html += `<div>`;
+                html += `<div style="font-weight:700; font-size:1.05rem;">${escapeHtml(b.name || b.guest_name || '-')}</div>`;
+                if ((b.code || b.booking_code) && b.status === 'confirmed') html += `<div class="text-muted">รหัสการจอง: ${escapeHtml(b.code || b.booking_code)}</div>`;
                 html += `<div class="text-muted">วันที่ ${escapeHtml(b.date)} ${b.time ? 'เวลา ' + escapeHtml(b.time) + ' น.' : ''}</div>`;
+                html += `</div>`;
+                html += `<div>${getStatusTag(b)}</div>`;
+                html += `</div>`;
                 html += `</div>`;
 
                 // 3-step horizontal timeline
                 html += `<div style="display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:12px;border-radius:8px;border:1px solid #eee;background:#fafafa;">`;
-                const steps = ['ยื่นคำขอ', 'กำลังดำเนินการ', 'จองสำเร็จ'];
+                const steps = ['ส่งคำขอ', 'รอดำเนินการ/ชำระเงิน', 'ยืนยันการจอง'];
                 steps.forEach((label, idx) => {
                     const active = idx <= step;
                     const isCurrent = idx === step;
-                    const bg = isCurrent ? '#1677ff' : (active ? '#f0f7ff' : '#fff');
+                    const bg = b.status === 'cancelled' && isCurrent ? '#ff4d4f' : (isCurrent ? '#1677ff' : (active ? '#f0f7ff' : '#fff'));
                     const color = isCurrent ? '#fff' : (active ? '#0b6ed1' : '#777');
                     html += `<div style="flex:1;text-align:center;">`;
                     html += `<div style="margin:0 auto;width:44px;height:44px;border-radius:22px;background:${bg};color:${color};display:flex;align-items:center;justify-content:center;font-weight:700;">${idx+1}</div>`;
@@ -1738,10 +1786,9 @@ $recent_bookings = [];
                 html += `</div>`;
 
                 // show rejection reason if rejected
-                if (b.status === 'ถูกปฏิเสธ') {
+                if (b.status === 'cancelled') {
                     html += `<div style="margin-top:12px;padding:10px;border-radius:8px;background:#fff2f0;border:1px solid #ffd8d8;color:#bf2e2e;">`;
-                    html += `<strong>ปฏิเสธการจอง</strong>`;
-                    if (b.rejection_reason) html += `<div style="margin-top:6px;">สาเหตุ: ${escapeHtml(b.rejection_reason)}</div>`;
+                    html += `<strong>รายการนี้ถูกยกเลิกแล้ว</strong>`;
                     html += `</div>`;
                 }
 
@@ -1752,9 +1799,9 @@ $recent_bookings = [];
                     const remain = b.remain_amount != null ? Number(b.remain_amount) : (total != null && deposit != null ? total - deposit : null);
                     if (total != null) {
                         html += '<div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;">';
-                        html += `<div style="padding:8px;border-radius:8px;background:#fff;border:1px solid #eee;">ยอดรวม: <strong>${Number(total).toLocaleString()} บาท</strong></div>`;
-                        if (deposit != null) html += `<div style="padding:8px;border-radius:8px;background:#f6ffed;border:1px solid #d9f7be;color:#237804;">จ่ายแล้ว: <strong>${Number(deposit).toLocaleString()} บาท</strong></div>`;
-                        if (remain != null) html += `<div style="padding:8px;border-radius:8px;background:#fff7e6;border:1px solid #ffe7ba;color:#b35a00;">คงเหลือ: <strong>${Number(remain).toLocaleString()} บาท</strong></div>`;
+                        html += `<div style="padding:8px;border-radius:8px;background:#fff;border:1px solid #eee;">ยอดรวม: <strong>${money(total)} บาท</strong></div>`;
+                        if (deposit != null) html += `<div style="padding:8px;border-radius:8px;background:#f6ffed;border:1px solid #d9f7be;color:#237804;">ค่ามัดจำ: <strong>${money(deposit)} บาท</strong></div>`;
+                        if (remain != null) html += `<div style="padding:8px;border-radius:8px;background:#fff7e6;border:1px solid #ffe7ba;color:#b35a00;">คงเหลือ: <strong>${money(remain)} บาท</strong></div>`;
                         html += '</div>';
                     }
                 } catch (e) {
@@ -1764,6 +1811,9 @@ $recent_bookings = [];
                 // slip link
                 if (b.slip) {
                     html += `<div style="margin-top:12px;"><a class="ant-btn ant-btn-default" href="download.php?type=slip&file=${encodeURIComponent(b.slip)}" target="_blank">ดูสลิปการชำระ</a></div>`;
+                }
+                if (b.qr) {
+                    html += `<div style="margin-top:8px;"><a class="ant-btn ant-btn-default" href="download.php?type=qr&file=${encodeURIComponent(b.qr)}" target="_blank">ดู QR ชำระเงิน</a></div>`;
                 }
 
                 container.innerHTML = html;
@@ -1780,15 +1830,14 @@ $recent_bookings = [];
                 let html = '<div class="list-group">';
                 items.forEach(b => {
                     html += '<div class="list-group-item" style="border-radius:8px;margin-bottom:8px;">';
-                    html += `<div style="display:flex;justify-content:space-between;align-items:center;">`;
-                    html += `<div style="font-weight:600;">${escapeHtml(b.name)}</div>`;
-                    let statusTag = '';
-                    if (b.status === 'อนุมัติแล้ว') statusTag = '<span class="ant-tag ant-tag-green">อนุมัติแล้ว</span>';
-                    else if (b.status === 'ถูกปฏิเสธ') statusTag = '<span class="ant-tag" style="background:#fff2f0;border-color:#ffd8d8;color:#e74a3b;">ถูกปฏิเสธ</span>';
-                    else statusTag = '<span class="ant-tag">รออนุมัติ</span>';
-                    html += `<div>${statusTag}</div>`;
+                    html += `<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">`;
+                    html += `<div>`;
+                    html += `<div style="font-weight:600;">${escapeHtml(b.name || b.guest_name || '-')}</div>`;
+                    html += `</div>`;
+                    html += `<div>${getStatusTag(b)}</div>`;
                     html += `</div>`;
                     html += `<div class="text-muted" style="margin-top:6px;">วันที่ ${escapeHtml(b.date)} ${b.time ? 'เวลา ' + escapeHtml(b.time) + ' น.' : ''}</div>`;
+                    if (b.visitor_count) html += `<div class="text-muted">จำนวนผู้เข้าชม: ${escapeHtml(b.visitor_count)} คน</div>`;
                     // payment summary for history item
                     try {
                         const total = b.total_amount != null ? Number(b.total_amount) : null;
@@ -1796,25 +1845,21 @@ $recent_bookings = [];
                         const remain = b.remain_amount != null ? Number(b.remain_amount) : (total != null && paid != null ? total - paid : null);
                         if (total != null) {
                             html += '<div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;">';
-                            html += `<div style="padding:8px;border-radius:8px;background:#fff;border:1px solid #eee;">ยอดรวม: <strong>${Number(total).toLocaleString()} บาท</strong></div>`;
-                            if (paid != null) html += `<div style="padding:8px;border-radius:8px;background:#f6ffed;border:1px solid #d9f7be;color:#237804;">จ่ายแล้ว: <strong>${Number(paid).toLocaleString()} บาท</strong></div>`;
-                            if (remain != null) html += `<div style="padding:8px;border-radius:8px;background:#fff7e6;border:1px solid #ffe7ba;color:#b35a00;">คงเหลือ: <strong>${Number(remain).toLocaleString()} บาท</strong></div>`;
+                            html += `<div style="padding:8px;border-radius:8px;background:#fff;border:1px solid #eee;">ยอดรวม: <strong>${money(total)} บาท</strong></div>`;
+                            if (paid != null) html += `<div style="padding:8px;border-radius:8px;background:#f6ffed;border:1px solid #d9f7be;color:#237804;">ค่ามัดจำ: <strong>${money(paid)} บาท</strong></div>`;
+                            if (remain != null) html += `<div style="padding:8px;border-radius:8px;background:#fff7e6;border:1px solid #ffe7ba;color:#b35a00;">คงเหลือ: <strong>${money(remain)} บาท</strong></div>`;
                             html += '</div>';
                         }
                     } catch (e) {
                         console.error(e);
                     }
-                    if (b.status === 'อนุมัติแล้ว') {
-                        if (b.approved_at_display) html += `<div class="text-muted">อนุมัติเมื่อ ${escapeHtml(b.approved_at_display)}</div>`;
-                        else if (b.approved_at) html += `<div class="text-muted">อนุมัติเมื่อ ${formatThaiDateTime(b.approved_at)}</div>`;
-                        if (b.approved_by) html += `<div class="text-muted">อนุมัติโดย: ${escapeHtml(b.approved_by)}</div>`;
-                    } else if (b.status === 'ถูกปฏิเสธ') {
-                        if (b.rejection_reason) html += `<div class="text-danger">สาเหตุ: ${escapeHtml(b.rejection_reason)}</div>`;
-                        else html += `<div class="text-muted">สาเหตุ: ไม่ระบุ</div>`;
-                    }
+                    if (b.updated_at_display) html += `<div class="text-muted" style="margin-top:6px;">อัปเดตล่าสุด: ${escapeHtml(b.updated_at_display)}</div>`;
                     // show slip link if available
                     if (b.slip) {
                         html += `<div style="margin-top:8px;"><a class="ant-btn ant-btn-default" href="download.php?type=slip&file=${encodeURIComponent(b.slip)}" target="_blank">ดูสลิปการชำระ</a></div>`;
+                    }
+                    if (b.qr) {
+                        html += `<div style="margin-top:8px;"><a class="ant-btn ant-btn-default" href="download.php?type=qr&file=${encodeURIComponent(b.qr)}" target="_blank">ดู QR ชำระเงิน</a></div>`;
                     }
                     html += '</div>';
                 });

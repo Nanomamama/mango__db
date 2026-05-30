@@ -1,6 +1,7 @@
 <?php
 require_once 'auth.php'; // For admin authentication and session_start()
 require_once __DIR__ . '/../db/db.php'; // Database connection
+require_once __DIR__ . '/../config/env.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -69,8 +70,8 @@ try {
         $mail->isSMTP();
         $mail->Host       = "smtp.gmail.com";
         $mail->SMTPAuth   = true;
-        $mail->Username   = "nanoone342@gmail.com"; // Replace with your actual email
-        $mail->Password   = "cmlt zqfp jveg jxoi"; // Replace with your App Password
+        $mail->Username   = app_env('MAIL_USERNAME'); // Replace with your actual email
+        $mail->Password   = app_env('MAIL_PASSWORD_ALT'); // Replace with your App Password
         $mail->Port       = 465;
         $mail->SMTPSecure = "ssl";
         $mail->CharSet    = 'UTF-8';

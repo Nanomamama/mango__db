@@ -1,7 +1,11 @@
 <?php
 require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
+require_once __DIR__ . '/../config/env.php';
+require_once __DIR__ . '/auto_cancel_overdue_lib.php';
 require_once 'sidebar.php';
+
+date_default_timezone_set('Asia/Bangkok');
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -20,6 +24,12 @@ $csrf_token = $_SESSION['csrf_token'];
 // ดึงชื่อ admin จาก session
 $admin_name = $_SESSION['admin_name'] ?? 'Admin';
 $admin_email = $_SESSION['admin_email'] ?? '';
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    auto_cancel_overdue_bookings($conn, static function (string $message): void {
+        error_log('[auto-cancel-on-admin] ' . $message);
+    });
+}
 
 function app_base_url()
 {
@@ -86,6 +96,11 @@ function save_qr_upload(array $qr_file, int $booking_id): array
     return ['ok' => true, 'filename' => $filename, 'path' => $target];
 }
 
+function payment_due_at_for_qr(): string
+{
+    return (new DateTimeImmutable('+5 minutes'))->format('Y-m-d H:i:s');
+}
+
 // จัดการการอัปเดตสถานะการจอง
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'], $_POST['csrf_token'])) {
     // ตรวจ CSRF
@@ -119,23 +134,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
                 }
 
                 try {
+                    $payment_due_at = payment_due_at_for_qr();
                     $mail = new PHPMailer(true);
-                    // Enable SMTP debug output to PHP error log for troubleshooting
-                    $mail->SMTPDebug = 2;
-                    $mail->Debugoutput = 'error_log';
                     $mail->isSMTP();
-                    // Relax SSL checks for environments with missing CA bundle (helpful for debugging)
-                    $mail->SMTPOptions = [
-                        'ssl' => [
-                            'verify_peer' => false,
-                            'verify_peer_name' => false,
-                            'allow_self_signed' => true
-                        ]
-                    ];
                     $mail->Host       = "smtp.gmail.com";
                     $mail->SMTPAuth   = true;
-                    $mail->Username   = "nanoone342@gmail.com";
-                    $mail->Password   = "yaud bhqb pibw lipz"; // App Password
+                    $mail->Username   = app_env('MAIL_USERNAME');
+                    $mail->Password   = app_env('MAIL_PASSWORD'); // App Password
                     $mail->Port       = 465;
                     $mail->SMTPSecure = "ssl";
                     $mail->CharSet    = 'UTF-8';
@@ -227,14 +232,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 
                     if ($mail->send()) {
                         // Update status to 'awaiting_payment' after sending QR
-                        $stmt_update = $conn->prepare("UPDATE bookings SET payment_qr_path = ?, status = 'awaiting_payment', updated_at = NOW() WHERE bookings_id = ?");
+                        $stmt_update = $conn->prepare("UPDATE bookings SET payment_qr_path = ?, status = 'awaiting_payment', qr_sent_at = NOW(), payment_due_at = ?, payment_submitted_at = NULL, cancelled_at = NULL, cancel_reason = NULL, cancellation_email_sent_at = NULL, updated_at = NOW() WHERE bookings_id = ? AND status = 'pending'");
                         if ($stmt_update) {
-                            $stmt_update->bind_param("si", $saved_qr['filename'], $id);
+                            $stmt_update->bind_param("ssi", $saved_qr['filename'], $payment_due_at, $id);
                             $stmt_update->execute();
+                            if ($stmt_update->affected_rows !== 1) {
+                                error_log("QR status update skipped for booking ID $id: booking is no longer pending.");
+                                $response = ['success' => false, 'message' => 'Booking status changed before QR update. Please refresh and check this booking.'];
+                            } else {
+                                $response = ['success' => true, 'message' => 'ส่งอีเมลพร้อม QR Code สำเร็จ'];
+                            }
                             $stmt_update->close();
+                        } else {
+                            $response = ['success' => false, 'message' => 'Cannot prepare QR status update.'];
                         }
-
-                        $response = ['success' => true, 'message' => 'ส่งอีเมลพร้อม QR Code สำเร็จ'];
                     } else {
                         if (!empty($saved_qr['path']) && is_file($saved_qr['path'])) {
                             unlink($saved_qr['path']);
@@ -279,21 +290,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
             if ($booking && !empty($booking['guest_email'])) {
                 try {
                     $userMail = new PHPMailer(true);
-                    // Enable SMTP debug output to PHP error log for troubleshooting
-                    $userMail->SMTPDebug = 2;
-                    $userMail->Debugoutput = 'error_log';
                     $userMail->isSMTP();
-                    $userMail->SMTPOptions = [
-                        'ssl' => [
-                            'verify_peer' => false,
-                            'verify_peer_name' => false,
-                            'allow_self_signed' => true
-                        ]
-                    ];
                     $userMail->Host       = "smtp.gmail.com";
                     $userMail->SMTPAuth   = true;
-                    $userMail->Username   = "nanoone342@gmail.com";
-                    $userMail->Password   = "yaud bhqb pibw lipz"; // App Password
+                    $userMail->Username   = app_env('MAIL_USERNAME');
+                    $userMail->Password   = app_env('MAIL_PASSWORD'); // App Password
                     $userMail->Port       = 465;
                     $userMail->SMTPSecure = "ssl";
                     $userMail->CharSet    = 'UTF-8';
@@ -418,8 +419,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
             }
         }
     } elseif ($action === 'cancel') {
-        $stmt = $conn->prepare("UPDATE bookings SET status='cancelled', updated_at=NOW() WHERE bookings_id=?");
-        $stmt->bind_param("i", $id);
+        $stmt = $conn->prepare("UPDATE bookings SET status='cancelled', cancelled_at=NOW(), cancel_reason=?, updated_at=NOW() WHERE bookings_id=?");
+        $cancel_reason = !empty($rejection_reason) ? $rejection_reason : 'admin_cancelled';
+        $stmt->bind_param("si", $cancel_reason, $id);
         $success = $stmt->execute();
 
         if ($success) {
@@ -433,21 +435,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
             if ($booking && !empty($booking['guest_email'])) {
                 try {
                     $cancelMail = new PHPMailer(true);
-                    // Enable SMTP debug output to PHP error log for troubleshooting
-                    $cancelMail->SMTPDebug = 2;
-                    $cancelMail->Debugoutput = 'error_log';
                     $cancelMail->isSMTP();
-                    $cancelMail->SMTPOptions = [
-                        'ssl' => [
-                            'verify_peer' => false,
-                            'verify_peer_name' => false,
-                            'allow_self_signed' => true
-                        ]
-                    ];
                     $cancelMail->Host       = "smtp.gmail.com";
                     $cancelMail->SMTPAuth   = true;
-                    $cancelMail->Username   = "nanoone342@gmail.com";
-                    $cancelMail->Password   = "yaud bhqb pibw lipz"; // App Password
+                    $cancelMail->Username   = app_env('MAIL_USERNAME');
+                    $cancelMail->Password   = app_env('MAIL_PASSWORD'); // App Password
                     $cancelMail->Port       = 465;
                     $cancelMail->SMTPSecure = "ssl";
                     $cancelMail->CharSet    = 'UTF-8';
@@ -792,6 +784,17 @@ adminPageStart('จัดการรายการจอง');
         display: inline-flex;
         align-items: center;
         white-space: nowrap;
+    }
+
+    .action-btn:disabled,
+    .action-btn.is-loading {
+        cursor: wait;
+        opacity: 0.78;
+        pointer-events: none;
+    }
+
+    .action-btn.is-loading {
+        box-shadow: 0 0 0 0.2rem rgba(1, 106, 112, 0.12);
     }
 
     @media (max-width: 576px) {
@@ -1356,8 +1359,9 @@ adminPageStart('จัดการรายการจอง');
                             <div class="mb-3">
                                 <span class="info-label d-block mb-2"><i class="bi bi-receipt me-2"></i>สลิป:</span>
                                 <?php if (!empty($booking['payment_slip'])): ?>
-                                    <a href="../user/Paymentslip-Gardenreservation/<?= htmlspecialchars($booking['payment_slip']) ?>" target="_blank">
-                                        <img src="../user/Paymentslip-Gardenreservation/<?= htmlspecialchars($booking['payment_slip']) ?>" class="img-fluid rounded" style="width: 100%; height: 150px; object-fit: cover;" alt="Payment Slip">
+                                    <?php $slipUrl = '../user/download.php?type=slip&file=' . rawurlencode(basename((string)$booking['payment_slip'])); ?>
+                                    <a href="<?= htmlspecialchars($slipUrl, ENT_QUOTES, 'UTF-8') ?>" target="_blank">
+                                        <img src="<?= htmlspecialchars($slipUrl, ENT_QUOTES, 'UTF-8') ?>" class="img-fluid rounded" style="width: 100%; height: 150px; object-fit: cover;" alt="Payment Slip">
                                     </a>
                                 <?php else: ?>
                                     <div class="slip-image-container d-flex align-items-center justify-content-center text-muted">
@@ -1378,13 +1382,13 @@ adminPageStart('จัดการรายการจอง');
                                 <?php endif; ?>
 
                                 <?php if ($isAwaitingSlipCheck): ?>
-                                    <button class="action-btn btn-confirm" onclick="showConfirmationModal(<?= $booking['bookings_id'] ?>, 'confirm', 'ยืนยันการจองนี้ใช่หรือไม่?')">
+                                    <button class="action-btn btn-confirm" onclick="showConfirmationModal(<?= $booking['bookings_id'] ?>, 'confirm', 'ยืนยันการจองนี้ใช่หรือไม่?', this)">
                                         <i class="bi bi-check2-circle me-1"></i> ยืนยัน
                                     </button>
                                 <?php endif; ?>
 
                                 <?php if ($booking['status'] != 'confirmed' && $booking['status'] != 'cancelled'): ?>
-                                    <button class="action-btn btn-cancel" onclick="showConfirmationModal(<?= $booking['bookings_id'] ?>, 'cancel', 'ต้องการยกเลิกการจองนี้ใช่หรือไม่?')">
+                                    <button class="action-btn btn-cancel" onclick="showConfirmationModal(<?= $booking['bookings_id'] ?>, 'cancel', 'ต้องการยกเลิกการจองนี้ใช่หรือไม่?', this)">
                                         <i class="bi bi-x-lg me-1"></i> ยกเลิก
                                     </button>
                                 <?php endif; ?>
@@ -1521,8 +1525,67 @@ adminPageStart('จัดการรายการจอง');
     const detailModal = new bootstrap.Modal(detailModalEl);
     const qrCodeModalEl = document.getElementById('qrCodeModal');
     const qrCodeModal = new bootstrap.Modal(qrCodeModalEl);
+    const actionLoadingLabels = {
+        confirm: 'กำลังยืนยัน...',
+        cancel: 'กำลังยกเลิก...'
+    };
+    let activeActionButtons = [];
 
-    function handleBookingAction(id, action, reason = null) {
+    function setButtonLoading(button, label) {
+        if (!button) return;
+        if (!button.dataset.originalHtml) {
+            button.dataset.originalHtml = button.innerHTML;
+        }
+        button.disabled = true;
+        button.classList.add('is-loading');
+        button.innerHTML = `
+            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            <span>${label}</span>
+        `;
+    }
+
+    function restoreButton(button) {
+        if (!button) return;
+        if (button.dataset.originalHtml) {
+            button.innerHTML = button.dataset.originalHtml;
+            delete button.dataset.originalHtml;
+        }
+        button.disabled = false;
+        button.classList.remove('is-loading');
+    }
+
+    function setActionLoading(sourceButton, action, modalButton = null) {
+        const buttons = new Set();
+        if (sourceButton) {
+            buttons.add(sourceButton);
+            const bookingCard = sourceButton.closest('.booking-card') || sourceButton.closest('.booking-item-col');
+            if (bookingCard) {
+                bookingCard.querySelectorAll('.action-btn').forEach(button => buttons.add(button));
+            }
+        }
+        if (modalButton) {
+            buttons.add(modalButton);
+        }
+
+        activeActionButtons = Array.from(buttons);
+        activeActionButtons.forEach(button => {
+            if (button === sourceButton || button === modalButton) {
+                setButtonLoading(button, actionLoadingLabels[action] || 'กำลังดำเนินการ...');
+            } else {
+                button.disabled = true;
+            }
+        });
+    }
+
+    function restoreActionLoading() {
+        activeActionButtons.forEach(restoreButton);
+        activeActionButtons = [];
+    }
+
+    function handleBookingAction(id, action, reason = null, sourceButton = null, modalButton = null) {
+        setActionLoading(sourceButton, action, modalButton);
+        showStatusModal('กำลังดำเนินการ', 'กรุณารอสักครู่ ระบบกำลังทำรายการ...', 'loading');
+
         const formData = new FormData();
         formData.append('id', id);
         formData.append('action', action);
@@ -1550,15 +1613,17 @@ adminPageStart('จัดการรายการจอง');
                         once: true
                     });
                 } else {
+                    restoreActionLoading();
                     showStatusModal('เกิดข้อผิดพลาด', data.message || 'ไม่สามารถดำเนินการได้', false, false);
                 }
             })
             .catch(error => {
+                restoreActionLoading();
                 showStatusModal('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้', false, false);
             });
     }
 
-    function showConfirmationModal(id, action, message) {
+    function showConfirmationModal(id, action, message, sourceButton = null) {
         const modalBody = document.getElementById('actionConfirmModalBody');
         const modalLabel = document.getElementById('actionConfirmModalLabel');
 
@@ -1566,10 +1631,11 @@ adminPageStart('จัดการรายการจอง');
             modalBody.textContent = message;
             modalLabel.textContent = 'ยืนยันการจอง';
             confirmActionButton.className = 'btn btn-success';
+            restoreButton(confirmActionButton);
 
             confirmActionButton.onclick = () => {
                 confirmModal.hide();
-                handleBookingAction(id, action);
+                handleBookingAction(id, action, null, sourceButton, confirmActionButton);
             };
             confirmModal.show();
         } else if (action === 'cancel') {
@@ -1579,6 +1645,7 @@ adminPageStart('จัดการรายการจอง');
             const confirmCancelBtn = document.getElementById('confirmCancelButton');
 
             reasonTextarea.value = '';
+            restoreButton(confirmCancelBtn);
 
             confirmCancelBtn.onclick = () => {
                 const reason = reasonTextarea.value.trim();
@@ -1588,7 +1655,7 @@ adminPageStart('จัดการรายการจอง');
                     return;
                 }
                 cancelReasonModal.hide();
-                handleBookingAction(id, 'cancel', reason);
+                handleBookingAction(id, 'cancel', reason, sourceButton, confirmCancelBtn);
             };
             cancelReasonModal.show();
         }
@@ -1613,6 +1680,7 @@ adminPageStart('จัดการรายการจอง');
         } else if (isSuccess) {
             modalHeader.classList.remove('bg-danger', 'text-white');
             modalHeader.classList.add('bg-light');
+            modalOkButton.style.display = '';
             if (showCheckmark) {
                 modalIcon.innerHTML = `
                         <div class="success-checkmark">
@@ -1634,6 +1702,7 @@ adminPageStart('จัดการรายการจอง');
             modalHeader.classList.add('bg-danger', 'text-white');
             modalIcon.innerHTML = '<i class="bi bi-x-circle-fill text-danger" style="font-size: 4rem;"></i>';
             modalOkButton.className = 'btn btn-danger px-5';
+            modalOkButton.style.display = '';
         }
         statusModal.show();
     }
@@ -1731,6 +1800,7 @@ adminPageStart('จัดการรายการจอง');
             this.disabled = true;
             btnText.classList.add('d-none');
             btnLoading.classList.remove('d-none');
+            showStatusModal('กำลังส่ง QR Code', 'กรุณารอสักครู่ ระบบกำลังส่งอีเมล...', 'loading');
             fetch('booking_list.php', {
                     method: 'POST',
                     body: formData
@@ -1777,6 +1847,20 @@ adminPageStart('จัดการรายการจอง');
         return statuses[status] || status;
     }
 
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function bookingDownloadUrl(type, filePath) {
+        const filename = String(filePath || '').split('/').pop().split('\\').pop();
+        return `../user/download.php?type=${encodeURIComponent(type)}&file=${encodeURIComponent(filename)}`;
+    }
+
     function viewDetails(data) {
         const modalBody = document.getElementById('modalBody');
         const bookingTypeThai = translateBookingType(data.booking_type);
@@ -1784,24 +1868,26 @@ adminPageStart('จัดการรายการจอง');
         if ((data.status === 'pending' || data.status === 'awaiting_payment') && data.payment_slip) {
             statusThai = 'รอตรวจสอบสลิป';
         }
+        const slipUrl = data.payment_slip ? bookingDownloadUrl('slip', data.payment_slip) : '';
+        const docUrl = data.attachment_path ? bookingDownloadUrl('doc', data.attachment_path) : '';
         modalBody.innerHTML = `
                 <div class="text-center mb-4">
-                    <div class="display-6 fw-bold text-primary">#${data.booking_code}</div>
-                    <div class="text-muted">สถานะ: ${statusThai}</div>
+                    <div class="display-6 fw-bold text-primary">#${escapeHtml(data.booking_code)}</div>
+                    <div class="text-muted">สถานะ: ${escapeHtml(statusThai)}</div>
                 </div>
                 <div class="row g-3">
-                    <div class="col-12 col-sm-6"><small class="text-muted d-block">ชื่อลูกค้า</small> <strong>${data.guest_name}</strong></div>
-                    <div class="col-12 col-sm-6"><small class="text-muted d-block">เบอร์โทรศัพท์</small> <strong>${data.guest_phone}</strong></div>
-                    <div class="col-12 col-sm-6"><small class="text-muted d-block">อีเมล</small> <strong>${data.guest_email || '-'}</strong></div>
-                    <div class="col-12 col-sm-6"><small class="text-muted d-block">ประเภทการจอง</small> <strong>${bookingTypeThai}</strong></div>
+                    <div class="col-12 col-sm-6"><small class="text-muted d-block">ชื่อลูกค้า</small> <strong>${escapeHtml(data.guest_name)}</strong></div>
+                    <div class="col-12 col-sm-6"><small class="text-muted d-block">เบอร์โทรศัพท์</small> <strong>${escapeHtml(data.guest_phone)}</strong></div>
+                    <div class="col-12 col-sm-6"><small class="text-muted d-block">อีเมล</small> <strong>${escapeHtml(data.guest_email || '-')}</strong></div>
+                    <div class="col-12 col-sm-6"><small class="text-muted d-block">ประเภทการจอง</small> <strong>${escapeHtml(bookingTypeThai)}</strong></div>
                     <div class="col-12"><hr></div>
                     <div class="col-6"><small class="text-muted d-block">ยอดรวม</small> <strong class="text-dark">฿${parseFloat(data.price_total).toLocaleString()}</strong></div>
                     <div class="col-6"><small class="text-muted d-block">เงินมัดจำ</small> <strong class="text-success">฿${parseFloat(data.deposit_amount).toLocaleString()}</strong></div>
                     <div class="col-6"><small class="text-muted d-block">เงินคงเหลือ</small> <strong class="text-danger">฿${parseFloat(data.balance_amount).toLocaleString()}</strong></div>
                     <div class="col-12"><small class="text-muted d-block">หลักฐานการชำระเงิน</small> 
-                        ${data.payment_slip ? `<a href="../user/Paymentslip-Gardenreservation/${data.payment_slip}" target="_blank" class="btn btn-sm btn-outline-primary mt-1 w-100">ดูสลิป</a>` : '<span class="text-danger">ยังไม่มีสลิป</span>'}
+                        ${data.payment_slip ? `<a href="${slipUrl}" target="_blank" class="btn btn-sm btn-outline-primary mt-1 w-100">ดูสลิป</a>` : '<span class="text-danger">ยังไม่มีสลิป</span>'}
                     </div>
-                    ${data.booking_type === 'organization' && data.attachment_path ? `<div class="col-12"><small class="text-muted d-block">เอกสารองค์กร</small><a href="../user/${data.attachment_path}" target="_blank" class="btn btn-sm btn-outline-secondary mt-1 w-100">เปิดดูเอกสาร</a></div>` : ''}
+                    ${data.booking_type === 'organization' && data.attachment_path ? `<div class="col-12"><small class="text-muted d-block">เอกสารองค์กร</small><a href="${docUrl}" target="_blank" class="btn btn-sm btn-outline-secondary mt-1 w-100">เปิดดูเอกสาร</a></div>` : ''}
                 </div>
             `;
         detailModal.show();

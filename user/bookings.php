@@ -3,6 +3,10 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrf_token = $_SESSION['csrf_token'];
 require_once __DIR__ . '/../db/db.php'; // ตรวจสอบให้แน่ใจว่ามีการเชื่อมต่อฐานข้อมูล
 
 // ตรวจสอบสถานะผู้ใช้ที่เข้าสู่ระบบ
@@ -1322,6 +1326,7 @@ if ($is_member) {
                         </div>
 
                         <form id="bookingForm" enctype="multipart/form-data" novalidate>
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8') ?>">
                             <input type="hidden" id="selected_date" name="selected_date">
                             <div class="row g-3">
                                 <div class="col-12 col-md-6">
@@ -1642,8 +1647,14 @@ if ($is_member) {
     <script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
 
     <script>
-        const MEMBER_ID_SESSION = <?php echo json_encode($member_id_session); ?>; // ส่ง member_id ไปยัง JavaScript
-        const MEMBER_DATA = <?php echo json_encode($member_data); ?>;
+        const MEMBER_ID_SESSION = <?php echo json_encode($member_id_session, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>; // ส่ง member_id ไปยัง JavaScript
+        const MEMBER_DATA = <?php echo json_encode($member_data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        const CSRF_TOKEN = <?php echo json_encode($csrf_token, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+
+        function isCurrentMemberBooking(booking) {
+            if (!booking || !booking.member_id || !MEMBER_ID_SESSION) return false;
+            return Number(booking.member_id) === Number(MEMBER_ID_SESSION);
+        }
         let loginRequiredModalObj = null; // ตัวแปรสำหรับเก็บ instance ของ Modal
         let dateConfirmModalObj = null; // For date confirmation modal
 
@@ -1842,6 +1853,7 @@ if ($is_member) {
 
                 const formData = new FormData();
                 formData.append('booking_id', bookingId);
+                formData.append('csrf_token', CSRF_TOKEN);
                 formData.append('slip', fileInput.files[0]);
 
                 // ส่งข้อมูลไปยัง Backend (คุณต้องสร้างไฟล์ upload_slip.php)
@@ -2137,8 +2149,9 @@ if ($is_member) {
             pendingList.innerHTML = '';
             confirmedList.innerHTML = '';
 
-            const pending = (window.bookingData || []).filter(b => b.status === 'pending' || b.status === 'awaiting_payment');
-            const confirmed = (window.bookingData || []).filter(b => b.status === 'confirmed');
+            const ownBookings = (window.bookingData || []).filter(isCurrentMemberBooking);
+            const pending = ownBookings.filter(b => b.status === 'pending' || b.status === 'awaiting_payment');
+            const confirmed = ownBookings.filter(b => b.status === 'confirmed');
 
             document.getElementById('pendingCount').textContent = pending.length;
             document.getElementById('confirmedCount').textContent = confirmed.length;
@@ -2151,22 +2164,26 @@ if ($is_member) {
                     let actionHtml = '<span class="badge-modern bg-warning text-dark">รอ</span>'; // ค่าเริ่มต้น
 
                     // ตรวจสอบว่าเป็นเจ้าของการจองหรือไม่
-                    if (b.member_id && b.member_id === MEMBER_ID_SESSION) {
+                    if (isCurrentMemberBooking(b)) {
                         // ถ้าเป็นเจ้าของ, ตรวจสอบว่าได้แนบสลิปไปแล้วหรือยัง
                         if (b.payment_slip) {
                             // ถ้าแนบแล้ว, แสดงสถานะ
                             actionHtml = `<span class="badge-modern bg-info text-white"><i class="fas fa-check me-1"></i>ส่งสลิปแล้ว</span>`;
                         } else {
                             // ถ้ายังไม่แนบ, แสดงปุ่ม
-                            const visitorCount = b.visitor_count || 0;
-                            const qrHtml = b.payment_qr_path ? `
+                            if (!b.payment_qr_path) {
+                                actionHtml = '<span class="badge-modern bg-warning text-dark">รอ QR Code ชำระเงิน</span>';
+                            } else {
+                                const visitorCount = b.visitor_count || 0;
+                                const qrHtml = `
                                 <div class="payment-qr-box">
                                     <img src="download.php?type=qr&file=${encodeURIComponent(b.payment_qr_path)}" alt="Payment QR Code">
                                     <small>QR Code สำหรับชำระเงิน</small>
-                                </div>` : '';
-                            actionHtml = `${qrHtml}<button class="btn-modern btn-warning-modern btn-sm" onclick="openUploadModal(${b.id}, ${visitorCount})" title="แนบสลิป">
+                                </div>`;
+                                actionHtml = `${qrHtml}<button class="btn-modern btn-warning-modern btn-sm" onclick="openUploadModal(${b.id}, ${visitorCount})" title="แนบสลิป">
                                             <i class="fas fa-upload me-1"></i> แนบสลิป
                                           </button>`;
+                            }
                         }
                     }
 

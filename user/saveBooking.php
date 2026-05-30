@@ -46,16 +46,36 @@ try {
 
 function get($k, $d=null){ return isset($_POST[$k]) ? trim($_POST[$k]) : $d; }
 function errorJson($code,$data){ http_response_code($code); echo json_encode($data); exit; }
+function requirePostCsrf(): void {
+    $sessionToken = $_SESSION['csrf_token'] ?? '';
+    $postedToken = $_POST['csrf_token'] ?? '';
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !is_string($postedToken) || !hash_equals($sessionToken, $postedToken)) {
+        errorJson(403, ['status'=>'error','message'=>'invalid csrf token']);
+    }
+}
+function getActiveMember(PDO $pdo, int $member_id): array {
+    $stmt = $pdo->prepare('SELECT fullname, email, phone, status FROM members WHERE member_id = :member_id LIMIT 1');
+    $stmt->execute([':member_id' => $member_id]);
+    $member = $stmt->fetch();
+    if (!$member || (int)($member['status'] ?? 0) !== 1) {
+        session_unset();
+        session_destroy();
+        errorJson(403, ['status'=>'error','message'=>'member account is disabled']);
+    }
+    return $member;
+}
 
 if (empty($_SESSION['member_id'])) {
     errorJson(401, ['status'=>'error','message'=>'login required']);
 }
+requirePostCsrf();
 
 // Gather inputs
 $member_id = (int)$_SESSION['member_id'];
-$guest_name = get('name', get('guest_name', null));
-$guest_email = get('email', get('guest_email', null));
-$guest_phone = get('phone', get('guest_phone', null));
+$member = getActiveMember($pdo, $member_id);
+$guest_name = trim((string)($member['fullname'] ?? ''));
+$guest_email = trim((string)($member['email'] ?? ''));
+$guest_phone = trim((string)($member['phone'] ?? ''));
 $booking_date = get('selected_date', get('booking_date', null));
 $booking_time = get('booking_time', null);
 $visitor_count = max(1, (int)get('visitor_count', 1));
@@ -75,9 +95,20 @@ $status = 'pending';
 $is_member_booking = 1;
 
 $errors = [];
-if (empty($booking_date)) $errors[] = 'booking_date is required';
-if (empty($booking_time)) $errors[] = 'booking_time is required';
-if (empty($guest_name) && empty($member_id)) $errors[] = 'guest name or member_id is required';
+$allowed_times = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00'];
+if (empty($booking_date) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $booking_date)) {
+    $errors[] = 'booking_date is invalid';
+} else {
+    [$year, $month, $day] = array_map('intval', explode('-', $booking_date));
+    if (!checkdate($month, $day, $year) || strtotime($booking_date) < strtotime(date('Y-m-d'))) {
+        $errors[] = 'booking_date is invalid';
+    }
+}
+if (empty($booking_time) || !in_array($booking_time, $allowed_times, true)) $errors[] = 'booking_time is invalid';
+if (empty($guest_name)) $errors[] = 'member name is required';
+if ($guest_email !== '' && !filter_var($guest_email, FILTER_VALIDATE_EMAIL)) $errors[] = 'member email is invalid';
+if ($guest_phone !== '' && !preg_match('/^[0-9]{10}$/', $guest_phone)) $errors[] = 'member phone is invalid';
+if ($visitor_count < 1 || $visitor_count > 500) $errors[] = 'visitor_count is invalid';
 if (!empty($errors)) errorJson(422, ['status'=>'error','errors'=>$errors]);
 
 // Duplicate check (transactional to reduce race conditions)

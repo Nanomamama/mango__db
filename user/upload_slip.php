@@ -9,6 +9,9 @@ require_once "PHPMailer/SMTP.php";
 require_once "PHPMailer/Exception.php";
 
 require_once __DIR__ . '/../db/db.php';
+require_once __DIR__ . '/../config/env.php';
+
+date_default_timezone_set('Asia/Bangkok');
 
 header('Content-Type: application/json');
 
@@ -21,6 +24,14 @@ if (!isset($_SESSION['member_id'])) {
 // ตรวจสอบว่าเป็น POST request และมีข้อมูลครบถ้วนหรือไม่
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['booking_id']) || !isset($_FILES['slip'])) {
     echo json_encode(['success' => false, 'message' => 'ข้อมูลไม่ถูกต้อง']);
+    exit;
+}
+
+$sessionToken = $_SESSION['csrf_token'] ?? '';
+$postedToken = $_POST['csrf_token'] ?? '';
+if (!is_string($postedToken) || !hash_equals($sessionToken, $postedToken)) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'invalid csrf token']);
     exit;
 }
 
@@ -64,7 +75,13 @@ if ($detected_mime !== '' && !in_array($detected_mime, $allowed_mimes, true)) {
 }
 
 // ตรวจสอบว่าเป็นเจ้าของการจองจริง
-$stmt_check = $conn->prepare("SELECT bookings_id, booking_code, guest_name FROM bookings WHERE bookings_id = ? AND member_id = ?");
+$stmt_check = $conn->prepare("
+    SELECT b.bookings_id, b.booking_code, b.guest_name, b.status AS booking_status, m.status AS member_status
+    FROM bookings b
+    INNER JOIN members m ON m.member_id = b.member_id
+    WHERE b.bookings_id = ? AND b.member_id = ?
+    LIMIT 1
+");
 $stmt_check->bind_param("ii", $booking_id, $member_id);
 $stmt_check->execute();
 $result_check = $stmt_check->get_result();
@@ -73,6 +90,18 @@ if ($result_check->num_rows === 0) {
     exit;
 }
 $booking_details = $result_check->fetch_assoc();
+if ((int)($booking_details['member_status'] ?? 0) !== 1) {
+    session_unset();
+    session_destroy();
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'member account is disabled']);
+    exit;
+}
+if (!in_array((string)($booking_details['booking_status'] ?? ''), ['pending', 'awaiting_payment'], true)) {
+    http_response_code(409);
+    echo json_encode(['success' => false, 'message' => 'booking cannot accept slip upload']);
+    exit;
+}
 
 function sendAdminSlipNotification($booking_id, $booking_code, $guest_name, $slip_path, $slip_filename) {
     $adminMail = new PHPMailer(true);
@@ -91,13 +120,13 @@ if (!is_dir($upload_dir)) {
     mkdir($upload_dir, 0755, true);
 }
 
-$new_filename = 'slip_' . $booking_id . '_' . time() . '.' . $file_extension;
+$new_filename = 'slip_' . $booking_id . '_' . time() . '_' . bin2hex(random_bytes(8)) . '.' . $file_extension;
 $upload_path = $upload_dir . $new_filename;
 
 // ย้ายไฟล์ไปยังโฟลเดอร์ที่ต้องการ
 if (move_uploaded_file($slip_file['tmp_name'], $upload_path)) {
     // อัปเดตฐานข้อมูล: เก็บชื่อไฟล์สลิป และเปลี่ยนสถานะเป็น awaiting_payment พร้อมอัปเดตเวลา
-    $stmt_update = $conn->prepare("UPDATE bookings SET payment_slip = ?, status = ?, updated_at = NOW() WHERE bookings_id = ? AND member_id = ?");
+    $stmt_update = $conn->prepare("UPDATE bookings SET payment_slip = ?, status = ?, payment_submitted_at = NOW(), updated_at = NOW() WHERE bookings_id = ? AND member_id = ? AND status IN ('pending', 'awaiting_payment')");
     if ($stmt_update) {
         $status_after = 'awaiting_payment';
         $stmt_update->bind_param("ssii", $new_filename, $status_after, $booking_id, $member_id);
@@ -105,22 +134,11 @@ if (move_uploaded_file($slip_file['tmp_name'], $upload_path)) {
         // ส่งอีเมลแจ้งเตือน Admin
         try {
             $adminMail = new PHPMailer(true);
-            // Debug to PHP error log for troubleshooting
-            $adminMail->SMTPDebug = 2;
-            $adminMail->Debugoutput = 'error_log';
             $adminMail->isSMTP();
-            // Relax SSL checks for environments missing CA bundle (debug helper)
-            $adminMail->SMTPOptions = [
-                'ssl' => [
-                    'verify_peer' => false,
-                    'verify_peer_name' => false,
-                    'allow_self_signed' => true,
-                ]
-            ];
             $adminMail->Host       = "smtp.gmail.com";
             $adminMail->SMTPAuth   = true;
-            $adminMail->Username   = "nanoone342@gmail.com";
-            $adminMail->Password   = "yaud bhqb pibw lipz"; // App Password
+            $adminMail->Username   = app_env('MAIL_USERNAME');
+            $adminMail->Password   = app_env('MAIL_PASSWORD'); // App Password
             $adminMail->Port       = 465;
             $adminMail->SMTPSecure = "ssl";
             $adminMail->CharSet    = 'UTF-8';
@@ -159,10 +177,13 @@ if (move_uploaded_file($slip_file['tmp_name'], $upload_path)) {
             error_log("Slip Upload Mailer Error: " . $adminMail->ErrorInfo);
         }
 
-        if ($stmt_update->execute()) {
+        if ($stmt_update->execute() && $stmt_update->affected_rows === 1) {
             echo json_encode(['success' => true, 'message' => 'อัปโหลดสลิปสำเร็จ', 'status' => $status_after]);
         } else {
             error_log('upload_slip: DB update failed: ' . $conn->error);
+            if (is_file($upload_path)) {
+                unlink($upload_path);
+            }
             echo json_encode(['success' => false, 'message' => 'ไม่สามารถอัปเดตฐานข้อมูลได้']);
         }
         $stmt_update->close();

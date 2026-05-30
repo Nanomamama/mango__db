@@ -44,6 +44,35 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) || !preg_match('/^\d{4}-\d{2}-\
     exit;
 }
 
+function bookingResponseRow(array $r, bool $is_admin, int $current_member_id): array
+{
+    $memberId = $r['member_id'] !== null ? (int)$r['member_id'] : null;
+    $canSeePrivate = $is_admin || ($current_member_id > 0 && $memberId === $current_member_id);
+
+    return [
+        'bookings_id' => $canSeePrivate ? (int)$r['bookings_id'] : null,
+        'booking_code' => $canSeePrivate ? $r['booking_code'] : null,
+        'member_id' => $canSeePrivate ? $memberId : null,
+        'name' => $canSeePrivate ? $r['guest_name'] : 'Booked',
+        'email' => $canSeePrivate ? $r['guest_email'] : null,
+        'phone' => $canSeePrivate ? $r['guest_phone'] : null,
+        'date' => $r['booking_date'],
+        'time' => $canSeePrivate ? $r['booking_time'] : null,
+        'visitor_count' => $canSeePrivate ? (int)$r['visitor_count'] : null,
+        'lunch_request' => $canSeePrivate ? (int)$r['lunch_request'] : null,
+        'price_total' => $canSeePrivate ? (float)$r['price_total'] : null,
+        'deposit_amount' => $canSeePrivate ? (float)$r['deposit_amount'] : null,
+        'balance_amount' => $canSeePrivate ? (float)$r['balance_amount'] : null,
+        'status' => $r['status'],
+        'is_member_booking' => $canSeePrivate ? (bool)$r['is_member_booking'] : null,
+        'attachment_path' => $canSeePrivate ? $r['attachment_path'] : null,
+        'payment_slip' => $canSeePrivate ? $r['payment_slip'] : null,
+        'payment_qr_path' => $canSeePrivate ? $r['payment_qr_path'] : null,
+        'created_at' => $canSeePrivate ? $r['created_at'] : null,
+        'updated_at' => $canSeePrivate ? $r['updated_at'] : null
+    ];
+}
+
 try {
     $out = [];
     if ($use_mysqli) {
@@ -62,28 +91,7 @@ try {
             throw new Exception('Query execution failed: ' . $conn->error);
         }
         while ($r = $res->fetch_assoc()) {
-            $out[] = [
-                'bookings_id' => (int)$r['bookings_id'],
-                'booking_code' => $r['booking_code'],
-                'member_id' => $r['member_id'] !== null ? (int)$r['member_id'] : null,
-                'name' => $r['guest_name'],
-                'email' => $r['guest_email'],
-                'phone' => $r['guest_phone'],
-                'date' => $r['booking_date'],
-                'time' => $r['booking_time'],
-                'visitor_count' => (int)$r['visitor_count'],
-                'lunch_request' => (int)$r['lunch_request'],
-                'price_total' => (float)$r['price_total'],
-                'deposit_amount' => (float)$r['deposit_amount'],
-                'balance_amount' => (float)$r['balance_amount'],
-                'status' => $r['status'],
-                'is_member_booking' => (bool)$r['is_member_booking'],
-                'attachment_path' => $r['attachment_path'],
-                'payment_slip' => $r['payment_slip'],
-                'payment_qr_path' => ($is_admin || ((int)$r['member_id'] === $current_member_id)) ? $r['payment_qr_path'] : null,
-                'created_at' => $r['created_at'],
-                'updated_at' => $r['updated_at']
-            ];
+            $out[] = bookingResponseRow($r, $is_admin, $current_member_id);
         }
         $stmt->close();
     } else {
@@ -98,28 +106,7 @@ try {
         $stmt->execute([':start' => $start, ':end' => $end]);
         $rows = $stmt->fetchAll();
         foreach ($rows as $r) {
-            $out[] = [
-                'bookings_id' => (int)$r['bookings_id'],
-                'booking_code' => $r['booking_code'],
-                'member_id' => $r['member_id'] !== null ? (int)$r['member_id'] : null,
-                'name' => $r['guest_name'],
-                'email' => $r['guest_email'],
-                'phone' => $r['guest_phone'],
-                'date' => $r['booking_date'],
-                'time' => $r['booking_time'],
-                'visitor_count' => (int)$r['visitor_count'],
-                'lunch_request' => (int)$r['lunch_request'],
-                'price_total' => (float)$r['price_total'],
-                'deposit_amount' => (float)$r['deposit_amount'],
-                'balance_amount' => (float)$r['balance_amount'],
-                'status' => $r['status'],
-                'is_member_booking' => (bool)$r['is_member_booking'],
-                'attachment_path' => $r['attachment_path'],
-                'payment_slip' => $r['payment_slip'],
-                'payment_qr_path' => ($is_admin || ((int)$r['member_id'] === $current_member_id)) ? $r['payment_qr_path'] : null,
-                'created_at' => $r['created_at'],
-                'updated_at' => $r['updated_at']
-            ];
+            $out[] = bookingResponseRow($r, $is_admin, $current_member_id);
         }
     }
 
@@ -128,6 +115,6 @@ try {
 } catch (Exception $e) {
     error_log($e->getMessage()); // Log the error for debugging
     http_response_code(500);
-    echo json_encode(['status' => 'error', 'message' => 'Query failed', 'debug' => $e->getMessage()]);
+    echo json_encode(['status' => 'error', 'message' => 'Query failed']);
 }
 ?>

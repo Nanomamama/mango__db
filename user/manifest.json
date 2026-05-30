@@ -1,0 +1,21 @@
+{
+  "name": "สวนลุงเผือก",
+  "short_name": "สวนลุงเผือก",
+  "start_url": "/mango/user/bookings.php",
+  "scope": "/mango/user/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/mango/logo/logo_01.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/mango/logo/logo_01.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
