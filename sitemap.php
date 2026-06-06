@@ -305,6 +305,23 @@ if (extension_loaded('mysqli')) {
     }
 }
 
+// Keep index.php as the first URL in the sitemap output.
+$indexUrl = $baseUrl . '/index.php';
+usort(
+    $pages,
+    static function (array $a, array $b) use ($indexUrl): int {
+        if ($a['loc'] === $indexUrl) {
+            return -1;
+        }
+
+        if ($b['loc'] === $indexUrl) {
+            return 1;
+        }
+
+        return 0;
+    }
+);
+
 // ---------------------------------------------------------------------------
 // Output XML
 // ---------------------------------------------------------------------------

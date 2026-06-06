@@ -264,7 +264,10 @@ CREATE TABLE `members` (
   `created_at` datetime DEFAULT current_timestamp(),
   `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1=active, 0=disabled',
   `verification_code` varchar(10) DEFAULT NULL,
-  `code_expire` datetime DEFAULT NULL
+  `code_expire` datetime DEFAULT NULL,
+  `pdpa_consent` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1=consented, 0=not consented/withdrawn',
+  `pdpa_consent_at` datetime DEFAULT NULL,
+  `pdpa_consent_version` varchar(100) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -782,3 +785,9 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+
+ALTER TABLE `members`
+  ADD COLUMN `pdpa_consent` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1=consented, 0=not consented/withdrawn' AFTER `code_expire`,
+  ADD COLUMN `pdpa_consent_at` datetime DEFAULT NULL AFTER `pdpa_consent`,
+  ADD COLUMN `pdpa_consent_version` varchar(100) DEFAULT NULL AFTER `pdpa_consent_at`;

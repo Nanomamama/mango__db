@@ -1168,10 +1168,15 @@ if ($is_member) {
             color: var(--text-light);
         }
 
+        .booking-payment-action {
+            width: min(100%, 340px);
+            margin-left: 1rem;
+        }
+
         .payment-qr-box {
-            width: 150px;
+            width: 100%;
             max-width: 100%;
-            padding: 0.5rem;
+            padding: 0.75rem;
             margin: 0.5rem 0;
             border: 1px solid #dbeafe;
             border-radius: var(--border-radius-sm);
@@ -1181,6 +1186,7 @@ if ($is_member) {
 
         .payment-qr-box img {
             width: 100%;
+            min-height: 240px;
             aspect-ratio: 1 / 1;
             object-fit: contain;
             display: block;
@@ -1191,6 +1197,29 @@ if ($is_member) {
             margin-top: 0.35rem;
             color: var(--text-light);
             font-size: 0.78rem;
+        }
+
+        .payment-qr-actions {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+
+        .payment-qr-save-btn {
+            width: 100%;
+            padding: 0.65rem 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .booking-payment-action {
+                width: 100%;
+                margin-left: 0;
+                margin-top: 0.75rem;
+            }
+
+            .payment-qr-box img {
+                min-height: 280px;
+            }
         }
 
         .list-empty-state {
@@ -2175,14 +2204,24 @@ if ($is_member) {
                                 actionHtml = '<span class="badge-modern bg-warning text-dark">รอ QR Code ชำระเงิน</span>';
                             } else {
                                 const visitorCount = b.visitor_count || 0;
+                                const qrUrl = `download.php?type=qr&file=${encodeURIComponent(b.payment_qr_path)}`;
+                                const qrDownloadName = `payment-qr-${b.id || 'booking'}`;
                                 const qrHtml = `
                                 <div class="payment-qr-box">
-                                    <img src="download.php?type=qr&file=${encodeURIComponent(b.payment_qr_path)}" alt="Payment QR Code">
+                                    <img src="${qrUrl}" alt="Payment QR Code">
                                     <small>QR Code สำหรับชำระเงิน</small>
                                 </div>`;
-                                actionHtml = `${qrHtml}<button class="btn-modern btn-warning-modern btn-sm" onclick="openUploadModal(${b.id}, ${visitorCount})" title="แนบสลิป">
-                                            <i class="fas fa-upload me-1"></i> แนบสลิป
-                                          </button>`;
+                                actionHtml = `<div class="booking-payment-action">
+                                                ${qrHtml}
+                                                <div class="payment-qr-actions">
+                                                    <a class="btn-modern btn-primary-modern btn-sm payment-qr-save-btn" href="${qrUrl}" download="${qrDownloadName}" title="บันทึกรูป QR Code">
+                                                        <i class="fas fa-download me-1"></i> บันทึกรูป QR
+                                                    </a>
+                                                    <button class="btn-modern btn-warning-modern btn-sm" onclick="openUploadModal(${b.id}, ${visitorCount})" title="แนบสลิป">
+                                                        <i class="fas fa-upload me-1"></i> แนบสลิป
+                                                    </button>
+                                                </div>
+                                              </div>`;
                             }
                         }
                     }
