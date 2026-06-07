@@ -1,157 +1,160 @@
 <?php
 session_start();
+
 require_once __DIR__ . '/../db/db.php';
-require_once __DIR__ . '/send_sms_helper.php';
+require_once __DIR__ . '/password_reset_mailer.php';
 
-// แสดงข้อผิดพลาดทั้งหมด (สำหรับการพัฒนาเท่านั้น)
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-// Create a PDO instance so existing code using $pdo works.
 if (!isset($pdo)) {
     try {
-        $pdo = new PDO("mysql:host={$servername};dbname={$dbname};charset=utf8mb4", $username, $password);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    } catch (Exception $e) {
+        $pdo = new PDO("mysql:host={$servername};dbname={$dbname};charset=utf8mb4", $username, $password, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]);
+    } catch (PDOException $e) {
         error_log('Failed to create PDO: ' . $e->getMessage());
-        // If PDO can't be created, keep using mysqli $conn (if needed) or fail gracefully
+        $error = 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้';
     }
 }
 
-// ฟังก์ชันส่งรหัส OTP ทาง SMS อยู่ใน user/send_sms_helper.php
-
-// ฟังก์ชันสร้างรหัส 6 หลัก
-function generateVerificationCode() {
-    return rand(100000, 999999);
+function generateVerificationCode(): string
+{
+    return (string) random_int(100000, 999999);
 }
 
-// ตรวจสอบฟอร์มที่ส่งมา
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['phone'])) {
-        // ขั้นตอนที่ 1: กรอกเบอร์โทร
-        $phone = trim($_POST['phone']);
-        
-        // ตรวจสอบเบอร์โทรในฐานข้อมูล
-        try {
-            $stmt = $pdo->prepare("SELECT member_id AS id, fullname, phone FROM members WHERE phone = ?");
-            $stmt->execute([$phone]);
-            $user = $stmt->fetch();
-        } catch (PDOException $e) {
-            // If table not found or other DB error, list available tables (debug)
-            error_log('PDO error: ' . $e->getMessage());
-            $tablesList = [];
-            if (isset($conn) && $conn instanceof mysqli) {
-                $res = $conn->query('SHOW TABLES');
-                if ($res) {
-                    while ($row = $res->fetch_row()) {
-                        $tablesList[] = $row[0];
-                    }
-                }
-            }
-            $error = "Database error: " . htmlspecialchars($e->getMessage());
-            if (!empty($tablesList)) {
-                $error .= " - Available tables: " . implode(', ', $tablesList);
-            } else {
-                $error .= " - (Could not fetch table list via mysqli)";
-            }
-            $user = false;
-        }
-        
-        if ($user) {
-            $verification_code = generateVerificationCode();
-            
-            // บันทึกรหัสยืนยันในฐานข้อมูล
-                try {
-                $stmt = $pdo->prepare("UPDATE members SET verification_code = ?, code_expire = DATE_ADD(NOW(), INTERVAL 5 MINUTE) WHERE member_id = ?");
-                $stmt->execute([$verification_code, $user['id']]);
+function resetPasswordRecoverySession(): void
+{
+    unset($_SESSION['reset_user_id'], $_SESSION['reset_email'], $_SESSION['verified'], $_SESSION['current_step']);
+}
+
+if (isset($_SESSION['error'])) {
+    $error = $_SESSION['error'];
+    unset($_SESSION['error']);
+}
+
+if (!isset($_SESSION['current_step'])) {
+    $_SESSION['current_step'] = 'enter_email';
+}
+
+if ($_SESSION['current_step'] === 'new_password' && empty($_SESSION['verified'])) {
+    $_SESSION['current_step'] = 'enter_email';
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($pdo)) {
+    if (isset($_POST['email'])) {
+        $email = strtolower(trim((string) $_POST['email']));
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = 'กรุณากรอกอีเมลให้ถูกต้อง';
+        } else {
+            try {
+                $stmt = $pdo->prepare('SELECT member_id AS id, fullname, email FROM members WHERE email = ? LIMIT 1');
+                $stmt->execute([$email]);
+                $user = $stmt->fetch();
             } catch (PDOException $e) {
                 error_log('PDO error: ' . $e->getMessage());
-                $error = 'Database error while saving OTP: ' . htmlspecialchars($e->getMessage());
+                $error = 'เกิดข้อผิดพลาดในการตรวจสอบอีเมล';
+                $user = false;
             }
-            
-            // ส่งรหัสผ่านทาง SMS (ใช้ helper)
-            if (sendSmsOtp($user['phone'], $verification_code, $user['fullname'])) {
-                $_SESSION['reset_user_id'] = $user['id'];
-                $_SESSION['current_step'] = 'verify_code';
-                $_SESSION['success'] = "เราได้ส่งรหัสยืนยัน 6 หลักไปยังเบอร์โทรของคุณแล้ว";
-                header("Location: " . $_SERVER['PHP_SELF']);
-                exit();
-            } else {
-                $error = "เกิดข้อผิดพลาดในการส่งรหัสผ่านทาง SMS กรุณาลองอีกครั้งในภายหลัง";
-            }
-        } else {
-            $error = "ไม่พบบัญชีผู้ใช้ที่เกี่ยวข้องกับเบอร์โทรนี้";
-        }
-    } elseif (isset($_POST['verification_code'])) {
-        // ขั้นตอนที่ 2: ยืนยันรหัส
-        $entered_code = $_POST['verification_code'];
-        $user_id = $_SESSION['reset_user_id'];
-        
-        // ตรวจสอบรหัสยืนยันในฐานข้อมูล
-            try {
-            $stmt = $pdo->prepare("SELECT member_id AS id, verification_code, code_expire FROM members WHERE member_id = ? AND verification_code IS NOT NULL");
-            $stmt->execute([$user_id]);
-            $user = $stmt->fetch();
-        } catch (PDOException $e) {
-            error_log('PDO error: ' . $e->getMessage());
-            $error = 'Database error while checking OTP: ' . htmlspecialchars($e->getMessage());
-            $user = false;
-        }
-        
-            if ($user) {
-            if (strtotime($user['code_expire']) < time()) {
-                $error = "รหัสยืนยันหมดอายุแล้ว กรุณาขอรหัสใหม่";
-                $_SESSION['current_step'] = 'enter_phone';
-            } elseif ($entered_code == $user['verification_code']) {
-                $_SESSION['verified'] = true;
-                $_SESSION['current_step'] = 'new_password';
-                header("Location: " . $_SERVER['PHP_SELF']);
-                exit();
-            } else {
-                $error = "รหัสยืนยันไม่ถูกต้อง";
-            }
-        } else {
-            $error = "ไม่พบรหัสยืนยันที่ถูกต้อง กรุณาขอรหัสใหม่";
-            $_SESSION['current_step'] = 'enter_phone';
-        }
-    } elseif (isset($_POST['new_password']) && isset($_POST['confirm_password'])) {
-        // ขั้นตอนที่ 3: ตั้งรหัสผ่านใหม่
-        if ($_SESSION['verified'] && $_SESSION['current_step'] === 'new_password') {
-            $new_password = $_POST['new_password'];
-            $confirm_password = $_POST['confirm_password'];
-            $user_id = $_SESSION['reset_user_id'];
-            
-            if ($new_password !== $confirm_password) {
-                $error = "รหัสผ่านไม่ตรงกัน";
-            } else {
-                // อัปเดตรหัสผ่านในฐานข้อมูล
+
+            if (!empty($user)) {
+                $verificationCode = generateVerificationCode();
+
                 try {
-                    $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-                    $stmt = $pdo->prepare("UPDATE members SET password = ?, verification_code = NULL, code_expire = NULL WHERE member_id = ?");
-                    $stmt->execute([$hashed_password, $user_id]);
+                    $stmt = $pdo->prepare('UPDATE members SET verification_code = ?, code_expire = DATE_ADD(NOW(), INTERVAL 5 MINUTE) WHERE member_id = ?');
+                    $stmt->execute([$verificationCode, $user['id']]);
                 } catch (PDOException $e) {
                     error_log('PDO error: ' . $e->getMessage());
-                    $error = 'Database error while updating password: ' . htmlspecialchars($e->getMessage());
+                    $error = 'เกิดข้อผิดพลาดในการบันทึกรหัสยืนยัน';
                 }
-                
-                // ล้าง session
-                unset($_SESSION['reset_user_id']);
-                unset($_SESSION['verified']);
-                unset($_SESSION['current_step']);
-                
-                $_SESSION['success'] = "ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว คุณสามารถเข้าสู่ระบบได้ตอนนี้";
-                header("Location: login.php");
-                exit();
+
+                if (!isset($error) && sendPasswordResetCodeEmail($user['email'], $verificationCode, $user['fullname'])) {
+                    $_SESSION['reset_user_id'] = $user['id'];
+                    $_SESSION['reset_email'] = $user['email'];
+                    $_SESSION['current_step'] = 'verify_code';
+                    unset($_SESSION['verified']);
+                    $_SESSION['success'] = 'เราได้ส่งรหัสยืนยัน 6 หลักไปยังอีเมลของคุณแล้ว';
+                    header('Location: ' . $_SERVER['PHP_SELF']);
+                    exit();
+                }
+
+                if (!isset($error)) {
+                    $error = 'ไม่สามารถส่งรหัสยืนยันทางอีเมลได้ กรุณาลองอีกครั้ง';
+                }
+            } else {
+                $error = 'ไม่พบบัญชีผู้ใช้ที่เกี่ยวข้องกับอีเมลนี้';
+            }
+        }
+    } elseif (isset($_POST['verification_code'])) {
+        $enteredCode = preg_replace('/\D/', '', (string) $_POST['verification_code']);
+        $userId = $_SESSION['reset_user_id'] ?? null;
+
+        if (!$userId) {
+            $error = 'กรุณาเริ่มขั้นตอนกู้คืนรหัสผ่านใหม่';
+            $_SESSION['current_step'] = 'enter_email';
+        } elseif (strlen($enteredCode) !== 6) {
+            $error = 'กรุณากรอกรหัสยืนยัน 6 หลัก';
+        } else {
+            try {
+                $stmt = $pdo->prepare('SELECT member_id AS id, verification_code, code_expire FROM members WHERE member_id = ? AND verification_code IS NOT NULL LIMIT 1');
+                $stmt->execute([$userId]);
+                $user = $stmt->fetch();
+            } catch (PDOException $e) {
+                error_log('PDO error: ' . $e->getMessage());
+                $error = 'เกิดข้อผิดพลาดในการตรวจสอบรหัสยืนยัน';
+                $user = false;
+            }
+
+            if (!empty($user)) {
+                if (empty($user['code_expire']) || strtotime($user['code_expire']) < time()) {
+                    $error = 'รหัสยืนยันหมดอายุแล้ว กรุณาขอรหัสใหม่';
+                    $_SESSION['current_step'] = 'enter_email';
+                } elseif (hash_equals((string) $user['verification_code'], $enteredCode)) {
+                    $_SESSION['verified'] = true;
+                    $_SESSION['current_step'] = 'new_password';
+                    header('Location: ' . $_SERVER['PHP_SELF']);
+                    exit();
+                } else {
+                    $error = 'รหัสยืนยันไม่ถูกต้อง';
+                }
+            } else {
+                $error = 'ไม่พบรหัสยืนยันที่ถูกต้อง กรุณาขอรหัสใหม่';
+                $_SESSION['current_step'] = 'enter_email';
+            }
+        }
+    } elseif (isset($_POST['new_password'], $_POST['confirm_password'])) {
+        $userId = $_SESSION['reset_user_id'] ?? null;
+
+        if (empty($_SESSION['verified']) || $_SESSION['current_step'] !== 'new_password' || !$userId) {
+            $error = 'กรุณายืนยันรหัส OTP ก่อนตั้งรหัสผ่านใหม่';
+            $_SESSION['current_step'] = 'enter_email';
+        } else {
+            $newPassword = (string) $_POST['new_password'];
+            $confirmPassword = (string) $_POST['confirm_password'];
+
+            if (strlen($newPassword) < 6) {
+                $error = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+            } elseif ($newPassword !== $confirmPassword) {
+                $error = 'รหัสผ่านไม่ตรงกัน';
+            } else {
+                try {
+                    $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+                    $stmt = $pdo->prepare('UPDATE members SET password = ?, verification_code = NULL, code_expire = NULL WHERE member_id = ?');
+                    $stmt->execute([$hashedPassword, $userId]);
+
+                    resetPasswordRecoverySession();
+                    $_SESSION['success'] = 'ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว คุณสามารถเข้าสู่ระบบได้ตอนนี้';
+                    header('Location: member_login.php');
+                    exit();
+                } catch (PDOException $e) {
+                    error_log('PDO error: ' . $e->getMessage());
+                    $error = 'เกิดข้อผิดพลาดในการอัปเดตรหัสผ่าน';
+                }
             }
         }
     }
 }
 
-// กำหนดขั้นตอนเริ่มต้น
-if (!isset($_SESSION['current_step'])) {
-    $_SESSION['current_step'] = 'enter_phone';
-}
+$currentStep = $_SESSION['current_step'] ?? 'enter_email';
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -165,15 +168,11 @@ if (!isset($_SESSION['current_step'])) {
     <style>
         :root {
             --primary: #4361ee;
-            --secondary: #3a0ca3;
-            --accent: #f72585;
             --success: #4cc9f0;
-            --light: #f8f9fa;
-            --dark: #212529;
             --success-dark: rgb(20, 58, 44);
             --success-end: rgba(13, 201, 132, 1);
         }
-        
+
         body {
             font-family: 'Kanit', sans-serif;
             background: linear-gradient(135deg, #f5f7fa 0%, #e4e7f1 100%);
@@ -185,7 +184,7 @@ if (!isset($_SESSION['current_step'])) {
             position: relative;
             overflow-x: hidden;
         }
-        
+
         body::before {
             content: "";
             position: absolute;
@@ -197,7 +196,7 @@ if (!isset($_SESSION['current_step'])) {
             clip-path: polygon(0 0, 100% 0, 100% 80%, 0 100%);
             z-index: -1;
         }
-        
+
         .recovery-container {
             max-width: 500px;
             width: 100%;
@@ -208,7 +207,7 @@ if (!isset($_SESSION['current_step'])) {
             animation: fadeIn 0.8s ease-out;
             background: #fff;
         }
-        
+
         .recovery-header {
             background: linear-gradient(to right, var(--success-dark), var(--success-end));
             color: white;
@@ -217,47 +216,25 @@ if (!isset($_SESSION['current_step'])) {
             position: relative;
             overflow: hidden;
         }
-        
-        .recovery-header::before {
-            content: "";
-            position: absolute;
-            top: -50px;
-            right: -50px;
-            width: 150px;
-            height: 150px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
-        .recovery-header::after {
-            content: "";
-            position: absolute;
-            bottom: -30px;
-            left: -30px;
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
+
         .recovery-title {
             font-family: 'Mitr', sans-serif;
             font-weight: 700;
             font-size: 1.8rem;
-            margin-bottom: 10px;
+            margin-bottom: 0;
             position: relative;
             z-index: 2;
         }
-        
+
         .recovery-body {
             padding: 30px;
         }
-        
+
         .form-group {
             position: relative;
             margin-bottom: 25px;
         }
-        
+
         .form-label {
             font-weight: 500;
             margin-bottom: 8px;
@@ -265,25 +242,27 @@ if (!isset($_SESSION['current_step'])) {
             align-items: center;
             color: #495057;
         }
-        
+
         .form-label i {
             margin-right: 8px;
             color: var(--success-end);
         }
-        
+
         .form-control {
             border-radius: 12px;
-            padding: 14px 20px 14px 45px;
+            padding: 14px 20px;
             border: 2px solid #e9ecef;
             transition: all 0.3s ease;
             font-size: 1rem;
         }
-        
-        .form-control:focus {
+
+        .form-control:focus,
+        .verification-input:focus {
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+            outline: none;
         }
-        
+
         .btn-submit {
             background: linear-gradient(to right, var(--success-dark), var(--success-end));
             border: none;
@@ -291,25 +270,24 @@ if (!isset($_SESSION['current_step'])) {
             padding: 14px;
             font-size: 1.1rem;
             font-weight: 500;
-            letter-spacing: 0.5px;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
             width: 100%;
             color: white;
         }
-        
+
         .btn-submit:hover {
             transform: translateY(-3px);
             box-shadow: 0 7px 20px rgba(67, 97, 238, 0.4);
         }
-        
+
         .steps {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 25px;
+            margin-bottom: 48px;
             position: relative;
         }
-        
+
         .steps::before {
             content: "";
             position: absolute;
@@ -320,7 +298,7 @@ if (!isset($_SESSION['current_step'])) {
             background: #e9ecef;
             z-index: 1;
         }
-        
+
         .step {
             width: 40px;
             height: 40px;
@@ -334,19 +312,19 @@ if (!isset($_SESSION['current_step'])) {
             position: relative;
             z-index: 2;
         }
-        
+
         .step.active {
             background: var(--success-end);
             color: white;
             border-color: var(--success-end);
         }
-        
+
         .step.completed {
             background: var(--success);
             color: white;
             border-color: var(--success);
         }
-        
+
         .step-label {
             position: absolute;
             top: 45px;
@@ -356,18 +334,19 @@ if (!isset($_SESSION['current_step'])) {
             font-size: 0.8rem;
             color: #6c757d;
         }
-        
+
         .step.active .step-label {
             color: var(--success-end);
             font-weight: 500;
         }
-        
+
         .verification-inputs {
             display: flex;
             justify-content: space-between;
+            gap: 8px;
             margin-bottom: 25px;
         }
-        
+
         .verification-input {
             width: 50px;
             height: 60px;
@@ -377,53 +356,34 @@ if (!isset($_SESSION['current_step'])) {
             border: 2px solid #e9ecef;
             transition: all 0.3s ease;
         }
-        
-        .verification-input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
-            outline: none;
-        }
-        
-        .resend-link {
-            text-align: center;
-            margin-top: 20px;
-            color: #6c757d;
-        }
-        
-        .resend-link a {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 500;
-        }
-        
-        .resend-link a:hover {
-            text-decoration: underline;
-        }
-        
+
+        .resend-link,
         .login-link {
             text-align: center;
             margin-top: 20px;
         }
-        
+
+        .resend-link a,
         .login-link a {
             color: var(--primary);
             text-decoration: none;
             font-weight: 500;
         }
-        
+
+        .resend-link a:hover,
         .login-link a:hover {
             text-decoration: underline;
         }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
+
         .alert {
             border-radius: 12px;
             padding: 12px 20px;
             margin-bottom: 20px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
@@ -432,144 +392,147 @@ if (!isset($_SESSION['current_step'])) {
         <div class="recovery-header">
             <h2 class="recovery-title"><i class="fas fa-key"></i> กู้คืนรหัสผ่าน</h2>
         </div>
-        
+
         <div class="recovery-body">
-            <!-- แสดงขั้นตอน -->
-                <div class="steps">
-                <div class="step <?php echo ($_SESSION['current_step'] == 'enter_phone') ? 'active' : 'completed'; ?>">
+            <div class="steps">
+                <div class="step <?php echo ($currentStep === 'enter_email') ? 'active' : 'completed'; ?>">
                     1
-                    <span class="step-label">กรอกเบอร์โทร</span>
+                    <span class="step-label">กรอกอีเมล</span>
                 </div>
-                <div class="step <?php echo ($_SESSION['current_step'] == 'verify_code') ? 'active' : (($_SESSION['current_step'] == 'new_password') ? 'completed' : ''); ?>">
+                <div class="step <?php echo ($currentStep === 'verify_code') ? 'active' : (($currentStep === 'new_password') ? 'completed' : ''); ?>">
                     2
                     <span class="step-label">ยืนยันรหัส</span>
                 </div>
-                <div class="step <?php echo ($_SESSION['current_step'] == 'new_password') ? 'active' : ''; ?>">
+                <div class="step <?php echo ($currentStep === 'new_password') ? 'active' : ''; ?>">
                     3
                     <span class="step-label">รหัสผ่านใหม่</span>
                 </div>
             </div>
-            
-            <!-- แสดงข้อความสำเร็จ -->
+
             <?php if (isset($_SESSION['success'])): ?>
                 <div class="alert alert-success">
-                    <i class="fas fa-check-circle"></i> <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+                    <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8'); unset($_SESSION['success']); ?>
                 </div>
             <?php endif; ?>
-            
-            <!-- แสดงข้อผิดพลาด -->
+
             <?php if (isset($error)): ?>
                 <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-circle"></i> <?php echo $error; ?>
+                    <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
                 </div>
             <?php endif; ?>
-            
-            <!-- ขั้นตอนที่ 1: กรอกเบอร์โทร -->
-            <?php if ($_SESSION['current_step'] == 'enter_phone'): ?>
+
+            <?php if ($currentStep === 'enter_email'): ?>
                 <form method="POST" action="">
                     <div class="form-group">
-                        <label class="form-label"><i class="fas fa-phone"></i> เบอร์โทรศัพท์ที่ลงทะเบียน</label>
-                        <input type="tel" class="form-control" name="phone" required placeholder="+66xxxxxxxx" pattern="^\+?[0-9]{7,15}$">
+                        <label class="form-label"><i class="fas fa-envelope"></i> อีเมลที่ลงทะเบียน</label>
+                        <input type="email" class="form-control" name="email" required placeholder="example@domain.com" autocomplete="email">
                     </div>
-                    
+
                     <button type="submit" class="btn-submit">
                         <i class="fas fa-paper-plane me-2"></i> ส่งรหัสยืนยัน
                     </button>
                 </form>
-                
+
                 <div class="login-link">
                     <a href="member_login.php"><i class="fas fa-arrow-left me-1"></i> กลับไปหน้าเข้าสู่ระบบ</a>
                 </div>
-            
-            <!-- ขั้นตอนที่ 2: ยืนยันรหัส -->
-            <?php elseif ($_SESSION['current_step'] == 'verify_code'): ?>
-                <p class="text-center">เราได้ส่งรหัสยืนยัน 6 หลักไปยังเบอร์โทรของคุณแล้ว กรุณากรอกรหัสที่ได้รับ</p>
-                
-                <form method="POST" action="">
+
+            <?php elseif ($currentStep === 'verify_code'): ?>
+                <p class="text-center">เราได้ส่งรหัสยืนยัน 6 หลักไปยังอีเมลของคุณแล้ว กรุณากรอกรหัสที่ได้รับ</p>
+
+                <form method="POST" action="" id="verifyForm">
                     <div class="verification-inputs">
-                        <input type="text" class="verification-input" name="digit1" maxlength="1" pattern="[0-9]" required autofocus>
-                        <input type="text" class="verification-input" name="digit2" maxlength="1" pattern="[0-9]" required>
-                        <input type="text" class="verification-input" name="digit3" maxlength="1" pattern="[0-9]" required>
-                        <input type="text" class="verification-input" name="digit4" maxlength="1" pattern="[0-9]" required>
-                        <input type="text" class="verification-input" name="digit5" maxlength="1" pattern="[0-9]" required>
-                        <input type="text" class="verification-input" name="digit6" maxlength="1" pattern="[0-9]" required>
+                        <input type="text" class="verification-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required autofocus>
+                        <input type="text" class="verification-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
+                        <input type="text" class="verification-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
+                        <input type="text" class="verification-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
+                        <input type="text" class="verification-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
+                        <input type="text" class="verification-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
                     </div>
-                    
+
                     <input type="hidden" name="verification_code" id="fullCode">
-                    
+
                     <button type="submit" class="btn-submit">
                         <i class="fas fa-check-circle me-2"></i> ยืนยันรหัส
                     </button>
                 </form>
-                
+
                 <div class="resend-link">
-                    ไม่ได้รับรหัส? <a href="#" onclick="resendCode()">ส่งรหัสใหม่</a>
+                    ไม่ได้รับรหัส? <a href="#" onclick="resendCode(event)">ส่งรหัสใหม่</a>
                 </div>
-                
+
                 <script>
-                    // รวมรหัสจากแต่ละช่องใส่ใน hidden input
                     const inputs = document.querySelectorAll('.verification-input');
                     const fullCodeInput = document.getElementById('fullCode');
-                    
+                    const verifyForm = document.getElementById('verifyForm');
+
+                    function updateFullCode() {
+                        fullCodeInput.value = Array.from(inputs).map(input => input.value).join('');
+                    }
+
                     inputs.forEach((input, index) => {
-                        input.addEventListener('input', function() {
+                        input.addEventListener('input', function () {
+                            this.value = this.value.replace(/\D/g, '').slice(0, 1);
                             if (this.value.length === 1 && index < inputs.length - 1) {
                                 inputs[index + 1].focus();
                             }
                             updateFullCode();
                         });
-                        
-                        input.addEventListener('keydown', function(e) {
+
+                        input.addEventListener('keydown', function (e) {
                             if (e.key === 'Backspace' && this.value === '' && index > 0) {
                                 inputs[index - 1].focus();
                             }
-                            updateFullCode();
+                        });
+
+                        input.addEventListener('paste', function (e) {
+                            const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+                            if (pasted.length > 1) {
+                                e.preventDefault();
+                                inputs.forEach((item, pastedIndex) => {
+                                    item.value = pasted[pastedIndex] || '';
+                                });
+                                updateFullCode();
+                                inputs[Math.min(pasted.length, inputs.length) - 1].focus();
+                            }
                         });
                     });
-                    
-                    function updateFullCode() {
-                        let code = '';
-                        inputs.forEach(input => {
-                            code += input.value;
-                        });
-                        fullCodeInput.value = code;
-                    }
-                    
-                    // ฟังก์ชันส่งรหัสใหม่
-                    function resendCode() {
-                        if (confirm("ต้องการส่งรหัสยืนยันใหม่ไปยังเบอร์โทรนี้ใช่หรือไม่?")) {
-                            window.location.href = "resend_code.php";
+
+                    verifyForm.addEventListener('submit', updateFullCode);
+
+                    function resendCode(event) {
+                        event.preventDefault();
+                        if (confirm('ต้องการส่งรหัสยืนยันใหม่ไปยังอีเมลนี้ใช่หรือไม่?')) {
+                            window.location.href = 'resend_code.php';
                         }
                     }
                 </script>
-            
-            <!-- ขั้นตอนที่ 3: ตั้งรหัสผ่านใหม่ -->
-            <?php elseif ($_SESSION['current_step'] == 'new_password'): ?>
+
+            <?php elseif ($currentStep === 'new_password'): ?>
                 <p class="text-center">กรุณาตั้งรหัสผ่านใหม่สำหรับบัญชีของคุณ</p>
-                
+
                 <form method="POST" action="">
                     <div class="form-group">
                         <label class="form-label"><i class="fas fa-lock"></i> รหัสผ่านใหม่</label>
-                        <input type="password" class="form-control" name="new_password" id="newPassword" required minlength="6" placeholder="รหัสผ่านใหม่">
+                        <input type="password" class="form-control" name="new_password" id="newPassword" required minlength="6" placeholder="รหัสผ่านใหม่" autocomplete="new-password">
                     </div>
-                    
+
                     <div class="form-group">
                         <label class="form-label"><i class="fas fa-lock"></i> ยืนยันรหัสผ่านใหม่</label>
-                        <input type="password" class="form-control" name="confirm_password" id="confirmPassword" required minlength="6" placeholder="ยืนยันรหัสผ่านใหม่">
+                        <input type="password" class="form-control" name="confirm_password" id="confirmPassword" required minlength="6" placeholder="ยืนยันรหัสผ่านใหม่" autocomplete="new-password">
                         <div id="passwordMatch" class="mt-2"></div>
                     </div>
-                    
+
                     <button type="submit" class="btn-submit">
                         <i class="fas fa-save me-2"></i> ตั้งรหัสผ่านใหม่
                     </button>
                 </form>
-                
+
                 <script>
-                    // ตรวจสอบว่ารหัสผ่านตรงกัน
                     const newPassword = document.getElementById('newPassword');
                     const confirmPassword = document.getElementById('confirmPassword');
                     const passwordMatch = document.getElementById('passwordMatch');
-                    
+
                     function validatePassword() {
                         if (confirmPassword.value === '') {
                             passwordMatch.innerHTML = '';
@@ -579,26 +542,10 @@ if (!isset($_SESSION['current_step'])) {
                             passwordMatch.innerHTML = '<div class="text-success small"><i class="fas fa-check-circle"></i> รหัสผ่านตรงกัน</div>';
                         }
                     }
-                    
+
                     newPassword.addEventListener('input', validatePassword);
                     confirmPassword.addEventListener('input', validatePassword);
                 </script>
-            <?php else: ?>
-                <?php $_SESSION['current_step'] = 'enter_phone'; ?>
-                <form method="POST" action="">
-                    <div class="form-group">
-                        <label class="form-label"><i class="fas fa-phone"></i> เบอร์โทรศัพท์ที่ลงทะเบียน</label>
-                        <input type="tel" class="form-control" name="phone" required placeholder="+66xxxxxxxx" pattern="^\+?[0-9]{7,15}$">
-                    </div>
-                    
-                    <button type="submit" class="btn-submit">
-                        <i class="fas fa-paper-plane me-2"></i> ส่งรหัสยืนยัน
-                    </button>
-                </form>
-                
-                <div class="login-link">
-                    <a href="member_login.php"><i class="fas fa-arrow-left me-1"></i> กลับไปหน้าเข้าสู่ระบบ</a>
-                </div>
             <?php endif; ?>
         </div>
     </div>

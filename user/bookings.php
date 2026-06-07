@@ -1339,12 +1339,12 @@ if ($is_member) {
                     <div class="card-modern p-3">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <div>
-                                <h4 class="mb-0"><i class="fas fa-file-alt me-2" style="color: var(--primary-color);"></i>กรอกรายละเอียดการจอง</h4>
+                                <h4 class="mb-0">กรอกรายละเอียดการจอง</h4>
                                 <small class="text-muted">กรอกข้อมูลให้ครบเพื่อยืนยันการจอง</small>
                             </div>
                             <div>
                                 <button type="button" class="btn btn-outline-secondary" onclick="showCalendarSection()">
-                                    <i class="fas fa-arrow-left me-1"></i> เปลี่ยนวันที่
+                                    <i class="fas fa-arrow-left me-1"></i> เปลี่ยน
                                 </button>
                             </div>
                         </div>
@@ -1364,7 +1364,7 @@ if ($is_member) {
                                         <option value="private">บุคคลทั่วไป (ส่วนตัว)</option>
                                         <option value="organization">หน่วยงาน/องค์กร</option>
                                     </select>
-                                    <div class="invalid-feedback-modern">กรุณาเลือกประเภทการเข้าชม</div>
+                                    <!-- <div class="invalid-feedback-modern">กรุณาเลือกประเภทการเข้าชม</div> -->
                                 </div>
 
                                 <div class="col-12 col-md-6">
@@ -1382,26 +1382,26 @@ if ($is_member) {
                                         <option value="16:00">16:00 น.</option>
                                         <option value="17:00">17:00 น.</option>
                                     </select>
-                                    <div class="invalid-feedback-modern">กรุณาเลือกเวลาเข้าชม</div>
+                                    <!-- <div class="invalid-feedback-modern">กรุณาเลือกเวลาเข้าชม</div> -->
                                     <small class="text-muted d-block mt-1">เวลาเปิดทำการ: 08:00 - 17:00 น.</small>
                                 </div>
 
                                 <div class="col-12 col-md-6">
                                     <label for="name" class="form-label-modern required">ชื่อ-นามสกุล</label>
                                     <input type="text" id="name" name="name" class="form-control" placeholder="ระบุชื่อ" required <?= $is_member ? 'readonly' : '' ?>>
-                                    <div class="invalid-feedback-modern">กรุณากรอกชื่อ-นามสกุลหรือชื่อหน่วยงาน</div>
+                                    <!-- <div class="invalid-feedback-modern">กรุณากรอกชื่อ-นามสกุลหรือชื่อหน่วยงาน</div> -->
                                 </div>
 
                                 <div class="col-12 col-md-6">
                                     <label for="phone" class="form-label-modern required">เบอร์โทรศัพท์</label>
                                     <input type="tel" id="phone" name="phone" class="form-control" placeholder="08X-XXXXXXX" pattern="[0-9]{10}" required <?= $is_member ? 'readonly' : '' ?>>
-                                    <div class="invalid-feedback-modern">กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (ตัวเลข 10 หลัก)</div>
+                                    <!-- <div class="invalid-feedback-modern">กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (ตัวเลข 10 หลัก)</div> -->
                                 </div>
 
                                 <div class="col-12 col-md-6">
                                     <label for="email" class="form-label-modern required">อีเมล</label>
                                     <input type="email" id="email" name="email" class="form-control" placeholder="example@domain.com" required <?= $is_member ? 'readonly' : '' ?>>
-                                    <div class="invalid-feedback-modern">กรุณากรอกอีเมลให้ถูกต้อง</div>
+                                    <!-- <div class="invalid-feedback-modern">กรุณากรอกอีเมลให้ถูกต้อง</div> -->
                                 </div>
 
                                 <div class="col-12 col-md-6 d-flex flex-column">
@@ -1411,7 +1411,7 @@ if ($is_member) {
                                         <input type="number" id="visitor_count" name="visitor_count" class="form-control text-center" min="1" value="1" oninput="calculatePrice()" required>
                                         <button class="btn btn-outline-secondary" type="button" onclick="changeVisitorCount(1)"><i class="fas fa-plus"></i></button>
                                     </div>
-                                    <small class="text-muted mt-1">คนละ 150 บาท</small>
+                                    <small class="text-muted mt-1">คนละ 150 บาท ต่อท่าน</small>
                                 </div>
 
                                 <div class="col-12">

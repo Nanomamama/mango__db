@@ -408,6 +408,11 @@ session_start();
                     ?>
                         <div class="alert alert-danger text-center" role="alert"><i class="fas fa-exclamation-triangle me-2"></i><?= $error_message ?></div>
                     <?php endif; ?>
+
+                    <?php if (isset($_SESSION['success'])): ?>
+                        <div class="alert alert-success text-center" role="alert"><i class="fas fa-check-circle me-2"></i><?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') ?></div>
+                        <?php unset($_SESSION['success']); ?>
+                    <?php endif; ?>
                     
                     <form action="login_check.php" method="POST" id="loginForm">
                         <div class="form-group">
