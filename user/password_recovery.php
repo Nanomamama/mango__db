@@ -169,8 +169,8 @@ $currentStep = $_SESSION['current_step'] ?? 'enter_email';
         :root {
             --primary: #4361ee;
             --success: #4cc9f0;
-            --success-dark: rgb(20, 58, 44);
-            --success-end: rgba(13, 201, 132, 1);
+            --success-dark: #064e4a;
+            --success-end: #0d6b63;
         }
 
         body {

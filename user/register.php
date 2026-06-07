@@ -18,8 +18,8 @@
             --dark: #212529;
             --gradient-start: #4361ee;
             --gradient-end: #3a0ca3;
-            --success-dark: rgb(20, 58, 44);
-            --success-end: rgba(13, 201, 132, 1);
+            --success-dark: #064e4a;
+            --success-end: #0d6b63;
             --danger:  #e74a3b;
         }
 
@@ -172,6 +172,9 @@
         .form-group {
             position: relative;
             margin-bottom: 25px;
+        }
+        .form-group button {
+            color: #fff;
         }
 
         .form-label {
@@ -510,28 +513,29 @@
                 <div class="register-hero">
                     <div class="text-center">
                         <div class="hero-icon">
-                            <i class="fas fa-user-plus"></i>
+                            <!-- <i class="fas fa-user-plus"></i> -->
                         </div>
                         <h1 class="hero-title">สมัครสมาชิกใหม่</h1>
-                        <p class="hero-subtitle">เข้าร่วมชุมชนของเราเพื่อรับสิทธิพิเศษมากมายและประสบการณ์การใช้งานที่ดียิ่งขึ้น</p>
+                        <p class="hero-subtitle">สร้างบัญชีผู้ใช้ของคุณเพื่อเริ่มต้นประสบการณ์ใหม่</p>
                     </div>
 
                     <div class="hero-features">
                         <div class="feature-item">
                             <i class="fas fa-check"></i>
-                            <span>ส่วนลดพิเศษสำหรับสมาชิก</span>
+                            <span>สามารถจองคิวออนไลน์ได้</span>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <i class="fas fa-check"></i>
+                            <span>รับการแจ้งเตือนผ่านอีเมล</span>
                         </div>
                         <div class="feature-item">
                             <i class="fas fa-check"></i>
-                            <span>บันทึกประวัติการใช้งาน</span>
+                            <span>ดูประวัติการจองคิว</span>
                         </div>
                         <div class="feature-item">
                             <i class="fas fa-check"></i>
-                            <span>ระบบแจ้งเตือนและอัปเดตข่าวสาร</span>
-                        </div>
-                        <div class="feature-item">
-                            <i class="fas fa-check"></i>
-                            <span>บริการลูกค้าสมาชิกพิเศษ</span>
+                            <span>ดูประวัติการสั่งซื้อสินค้า</span>
                         </div>
                     </div>
                 </div>
