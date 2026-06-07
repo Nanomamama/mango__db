@@ -1965,17 +1965,21 @@ if ($is_member) {
                         // กรองสถานะ 'ยกเลิก' ออก และแปลงข้อมูลให้เรียบง่ายสำหรับปฏิทิน
                         window.bookingData = data
                             .filter(b => (b.status || '').toLowerCase() !== 'cancelled')
-                            .map(b => ({
-                                date: b.date || b.booking_date || b.bookingDate,
-                                name: b.name || b.guest_name || b.booking_code || 'ไม่ระบุ',
-                                status: (b.status || '').toLowerCase() || 'pending',
-                                member_id: b.member_id, // เพิ่ม member_id
-                                payment_slip: b.payment_slip, // เพิ่มข้อมูลสลิป
-                                payment_qr_path: b.payment_qr_path || '',
-                                id: b.bookings_id, // เพิ่ม ID ของการจอง
-                                time: b.time || b.booking_time || b.bookingTime || '',
-                                visitor_count: b.visitor_count ? parseInt(b.visitor_count) : (b.visitorCount ? parseInt(b.visitorCount) : 0)
-                            }));
+                            .map(b => {
+                                const memberId = b.member_id || null;
+                                const isOwnBooking = memberId && MEMBER_ID_SESSION && Number(memberId) === Number(MEMBER_ID_SESSION);
+                                return {
+                                    date: b.date || b.booking_date || b.bookingDate,
+                                    name: isOwnBooking ? (b.name || b.guest_name || b.booking_code || 'ไม่ระบุ') : 'bookings',
+                                    status: (b.status || '').toLowerCase() || 'pending',
+                                    member_id: memberId, // เพิ่ม member_id
+                                    payment_slip: isOwnBooking ? b.payment_slip : null, // เพิ่มข้อมูลสลิป
+                                    payment_qr_path: isOwnBooking ? (b.payment_qr_path || '') : '',
+                                    id: isOwnBooking ? b.bookings_id : null, // เพิ่ม ID ของการจอง
+                                    time: isOwnBooking ? (b.time || b.booking_time || b.bookingTime || '') : '',
+                                    visitor_count: isOwnBooking ? (b.visitor_count ? parseInt(b.visitor_count) : (b.visitorCount ? parseInt(b.visitorCount) : 0)) : 0
+                                };
+                            });
 
                         populateLists();
                         resolve();
