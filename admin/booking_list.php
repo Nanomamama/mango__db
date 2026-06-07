@@ -97,8 +97,11 @@ function save_qr_upload(array $qr_file, int $booking_id): array
 }
 
 function payment_due_at_for_qr(): string
-{
-    return (new DateTimeImmutable('+5 minutes'))->format('Y-m-d H:i:s');
+{   // 5 นาที
+    // return (new DateTimeImmutable('+5 minutes'))->format('Y-m-d H:i:s');
+
+    // 3 วัน
+    return (new DateTimeImmutable('+3 days'))->format('Y-m-d H:i:s');
 }
 
 // จัดการการอัปเดตสถานะการจอง
