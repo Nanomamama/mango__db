@@ -23,10 +23,74 @@ function qty(int|float $amount): string
     return number_format($amount);
 }
 
+function reportDateFromParts(string $prefix, ?string $fallback): ?string
+{
+    $day = (int) ($_GET[$prefix . '_day'] ?? 0);
+    $month = (int) ($_GET[$prefix . '_month'] ?? 0);
+    $year = (int) ($_GET[$prefix . '_year'] ?? 0);
+
+    if ($day < 1 || $month < 1 || $year < 1) {
+        return $fallback;
+    }
+
+    if (!checkdate($month, $day, $year)) {
+        return $fallback;
+    }
+
+    return sprintf('%04d-%02d-%02d', $year, $month, $day);
+}
+
+function productPriceText(array $row): string
+{
+    $minPrice = (float) ($row['min_price'] ?? 0);
+    $maxPrice = (float) ($row['max_price'] ?? $minPrice);
+
+    if (abs($minPrice - $maxPrice) < 0.01) {
+        return '฿' . baht($minPrice);
+    }
+
+    return '฿' . baht($minPrice) . ' - ฿' . baht($maxPrice);
+}
+
+$thaiMonths = [
+    1 => 'มกราคม',
+    2 => 'กุมภาพันธ์',
+    3 => 'มีนาคม',
+    4 => 'เมษายน',
+    5 => 'พฤษภาคม',
+    6 => 'มิถุนายน',
+    7 => 'กรกฎาคม',
+    8 => 'สิงหาคม',
+    9 => 'กันยายน',
+    10 => 'ตุลาคม',
+    11 => 'พฤศจิกายน',
+    12 => 'ธันวาคม',
+];
+
 $today = date('Y-m-d');
-$monthStart = date('Y-m-01');
-$startDate = reportDate($_GET['start_date'] ?? null, $monthStart);
-$endDate = reportDate($_GET['end_date'] ?? null, $today);
+$latestSalesDate = $today;
+
+$stmt = $conn->prepare("
+    SELECT DATE(MAX(receive_datetime)) AS latest_sales_date
+    FROM orders
+    WHERE order_status = 'completed'
+      AND receive_datetime IS NOT NULL
+");
+if ($stmt) {
+    $stmt->execute();
+    $latestSalesRow = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    $latestSalesDate = reportDate($latestSalesRow['latest_sales_date'] ?? null, $today);
+}
+
+$hasDateFilter = isset($_GET['start_date'], $_GET['end_date'])
+    || isset($_GET['start_day'], $_GET['start_month'], $_GET['start_year'])
+    || isset($_GET['end_day'], $_GET['end_month'], $_GET['end_year']);
+$defaultEndDate = $hasDateFilter ? $today : $latestSalesDate;
+$monthStart = date('Y-m-01', strtotime($defaultEndDate));
+$startDate = reportDateFromParts('start', reportDate($_GET['start_date'] ?? null, $monthStart)) ?? $monthStart;
+$endDate = reportDateFromParts('end', reportDate($_GET['end_date'] ?? null, $defaultEndDate)) ?? $defaultEndDate;
 
 if ($startDate > $endDate) {
     [$startDate, $endDate] = [$endDate, $startDate];
@@ -80,7 +144,8 @@ $stmt = $conn->prepare("
         oi.product_id,
         COALESCE(NULLIF(oi.product_name, ''), p.product_name, 'ไม่ระบุสินค้า') AS product_name,
         SUM(oi.quantity) AS total_quantity,
-        AVG(oi.price) AS avg_price,
+        MIN(oi.price) AS min_price,
+        MAX(oi.price) AS max_price,
         SUM(oi.quantity * oi.price) AS total_sales
     FROM order_items oi
     INNER JOIN orders o ON o.order_id = oi.order_id
@@ -130,6 +195,10 @@ $chartLabels = array_map(static fn(array $row): string => (string) $row['period_
 $chartSales = array_map(static fn(array $row): float => (float) $row['total_sales'], $chartRows);
 $topLabels = array_map(static fn(array $row): string => (string) $row['product_name'], array_slice($productRows, 0, 8));
 $topSales = array_map(static fn(array $row): float => (float) $row['total_sales'], array_slice($productRows, 0, 8));
+$startParts = date_parse($startDate);
+$endParts = date_parse($endDate);
+$yearStart = (int) min(date('Y', strtotime($monthStart)), date('Y', strtotime($startDate)), date('Y', strtotime($endDate)), date('Y', strtotime('-11 months')));
+$yearEnd = (int) max(date('Y'), date('Y', strtotime($latestSalesDate)), date('Y', strtotime($startDate)), date('Y', strtotime($endDate)));
 
 adminPageStart('รายงานการขายสินค้า');
 ?>
@@ -141,6 +210,7 @@ adminPageStart('รายงานการขายสินค้า');
         display: grid;
         gap: 22px;
         max-width: 100%;
+        min-width: 0;
     }
 
     .report-panel,
@@ -153,6 +223,7 @@ adminPageStart('รายงานการขายสินค้า');
 
     .report-panel {
         padding: 22px;
+        min-width: 0;
     }
 
     .report-header {
@@ -183,11 +254,26 @@ adminPageStart('รายงานการขายสินค้า');
 
     .report-filter {
         display: grid;
-        grid-template-columns: repeat(4, minmax(150px, 1fr)) auto;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
         gap: 14px;
         align-items: end;
         margin-top: 20px;
         min-width: 0;
+    }
+
+    .report-filter .filter-field:nth-child(1),
+    .report-filter .filter-field:nth-child(2) {
+        grid-column: span 6;
+    }
+
+    .report-filter .filter-field:nth-child(3),
+    .report-filter .filter-field:nth-child(4) {
+        grid-column: span 4;
+    }
+
+    .report-filter > .report-btn {
+        grid-column: span 4;
+        width: 100%;
     }
 
     .filter-field label {
@@ -196,6 +282,10 @@ adminPageStart('รายงานการขายสินค้า');
         color: #475569;
         font-size: 0.88rem;
         font-weight: 600;
+    }
+
+    .filter-field {
+        min-width: 0;
     }
 
     .filter-field input,
@@ -208,6 +298,15 @@ adminPageStart('รายงานการขายสินค้า');
         color: #0f172a;
         font: inherit;
         background: #ffffff;
+        transition: 0.2s ease;
+        min-width: 0;
+    }
+
+    .date-select-row {
+        display: grid;
+        grid-template-columns: minmax(70px, 0.75fr) minmax(126px, 1.45fr) minmax(88px, 0.9fr);
+        gap: 8px;
+        min-width: 0;
     }
 
     .report-actions {
@@ -279,6 +378,7 @@ adminPageStart('รายงานการขายสินค้า');
 
     .report-card {
         padding: 18px;
+        min-width: 0;
     }
 
     .card-label {
@@ -307,12 +407,15 @@ adminPageStart('รายงานการขายสินค้า');
         display: grid;
         grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.9fr);
         gap: 18px;
+        min-width: 0;
     }
 
     .chart-box {
         height: 320px;
         margin-top: 16px;
         max-width: 100%;
+        min-width: 0;
+        position: relative;
     }
 
     .table-wrap {
@@ -360,15 +463,42 @@ adminPageStart('รายงานการขายสินค้า');
     }
 
     @media (max-width: 1180px) {
-        .report-filter {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+        .report-filter .filter-field:nth-child(1),
+        .report-filter .filter-field:nth-child(2) {
+            grid-column: span 6;
+        }
+
+        .report-filter .filter-field:nth-child(3),
+        .report-filter .filter-field:nth-child(4) {
+            grid-column: span 4;
+        }
+
+        .report-filter > .report-btn {
+            grid-column: span 4;
         }
     }
 
     @media (max-width: 1100px) {
-        .summary-grid,
-        .chart-grid {
+        .summary-grid {
             grid-template-columns: 1fr 1fr;
+        }
+
+        .chart-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 860px) {
+        .report-filter .filter-field:nth-child(1),
+        .report-filter .filter-field:nth-child(2),
+        .report-filter .filter-field:nth-child(3),
+        .report-filter .filter-field:nth-child(4),
+        .report-filter > .report-btn {
+            grid-column: 1 / -1;
+        }
+
+        .date-select-row {
+            grid-template-columns: minmax(68px, 0.8fr) minmax(120px, 1.4fr) minmax(86px, 1fr);
         }
     }
 
@@ -399,7 +529,6 @@ adminPageStart('รายงานการขายสินค้า');
             font-size: 0.9rem;
         }
 
-        .report-filter,
         .summary-grid,
         .chart-grid {
             grid-template-columns: 1fr;
@@ -423,6 +552,10 @@ adminPageStart('รายงานการขายสินค้า');
             justify-content: center;
             min-height: 38px;
             text-align: center;
+        }
+
+        .date-select-row {
+            grid-template-columns: 1fr;
         }
 
         .card-value {
@@ -471,6 +604,7 @@ adminPageStart('รายงานการขายสินค้า');
             padding: 9px 0;
             border-bottom: 1px solid #edf2f7;
             text-align: right !important;
+            overflow-wrap: anywhere;
         }
 
         .report-table td:last-child {
@@ -484,11 +618,26 @@ adminPageStart('รายงานการขายสินค้า');
             text-align: left;
             flex: 0 0 42%;
         }
+
+        .report-table td:nth-child(2) {
+            display: block;
+            text-align: left !important;
+        }
+
+        .report-table td:nth-child(2)::before {
+            display: block;
+            margin-bottom: 4px;
+            flex: none;
+        }
     }
 
     @media (max-width: 420px) {
+        .sales-report-shell {
+            gap: 12px;
+        }
+
         .report-panel {
-            padding: 14px;
+            padding: 14px 12px;
         }
 
         .quick-ranges {
@@ -502,7 +651,26 @@ adminPageStart('รายงานการขายสินค้า');
         }
 
         .chart-box {
-            height: 235px;
+            height: 220px;
+        }
+
+        .report-table tr {
+            padding: 10px;
+        }
+
+        .report-table td {
+            display: block;
+            text-align: left !important;
+        }
+
+        .report-table td::before {
+            display: block;
+            margin-bottom: 3px;
+            flex: none;
+        }
+
+        .card-value {
+            font-size: 1.22rem;
         }
     }
 </style>
@@ -525,11 +693,43 @@ adminPageStart('รายงานการขายสินค้า');
         <form method="GET" class="report-filter">
             <div class="filter-field">
                 <label for="start_date">วันที่รับสินค้าเริ่มต้น</label>
-                <input type="date" id="start_date" name="start_date" value="<?= h($startDate) ?>">
+                <div class="date-select-row" id="start_date">
+                    <select name="start_day" aria-label="วันเริ่มต้น">
+                        <?php for ($day = 1; $day <= 31; $day++): ?>
+                            <option value="<?= $day ?>" <?= (int) $startParts['day'] === $day ? 'selected' : '' ?>><?= $day ?></option>
+                        <?php endfor; ?>
+                    </select>
+                    <select name="start_month" aria-label="เดือนเริ่มต้น">
+                        <?php foreach ($thaiMonths as $month => $monthName): ?>
+                            <option value="<?= $month ?>" <?= (int) $startParts['month'] === $month ? 'selected' : '' ?>><?= h($monthName) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <select name="start_year" aria-label="ปีเริ่มต้น">
+                        <?php for ($year = $yearEnd; $year >= $yearStart; $year--): ?>
+                            <option value="<?= $year ?>" <?= (int) $startParts['year'] === $year ? 'selected' : '' ?>><?= $year + 543 ?></option>
+                        <?php endfor; ?>
+                    </select>
+                </div>
             </div>
             <div class="filter-field">
                 <label for="end_date">วันที่รับสินค้าสิ้นสุด</label>
-                <input type="date" id="end_date" name="end_date" value="<?= h($endDate) ?>">
+                <div class="date-select-row" id="end_date">
+                    <select name="end_day" aria-label="วันสิ้นสุด">
+                        <?php for ($day = 1; $day <= 31; $day++): ?>
+                            <option value="<?= $day ?>" <?= (int) $endParts['day'] === $day ? 'selected' : '' ?>><?= $day ?></option>
+                        <?php endfor; ?>
+                    </select>
+                    <select name="end_month" aria-label="เดือนสิ้นสุด">
+                        <?php foreach ($thaiMonths as $month => $monthName): ?>
+                            <option value="<?= $month ?>" <?= (int) $endParts['month'] === $month ? 'selected' : '' ?>><?= h($monthName) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <select name="end_year" aria-label="ปีสิ้นสุด">
+                        <?php for ($year = $yearEnd; $year >= $yearStart; $year--): ?>
+                            <option value="<?= $year ?>" <?= (int) $endParts['year'] === $year ? 'selected' : '' ?>><?= $year + 543 ?></option>
+                        <?php endfor; ?>
+                    </select>
+                </div>
             </div>
             <div class="filter-field">
                 <label for="group_by">ดูกราฟแบบ</label>
@@ -576,8 +776,6 @@ adminPageStart('รายงานการขายสินค้า');
         <article class="report-card">
             <div class="card-label">สินค้าขายดีที่สุด</div>
             <div class="card-value" style="font-size:1.15rem;line-height:1.45;"><?= h($topProductName) ?></div>
-            <div class="card-note">มูลค่าเฉลี่ย/ออเดอร์ ฿<?= baht($summary['avg_order_value']) ?></div>
-        </article>
     </section>
 
     <section class="chart-grid">
@@ -622,7 +820,7 @@ adminPageStart('รายงานการขายสินค้า');
                             <th>ลำดับ</th>
                             <th>สินค้า</th>
                             <th class="text-end">จำนวนที่ขาย</th>
-                            <th class="text-end">ราคาเฉลี่ย</th>
+                            <th class="text-end">ราคาสินค้า</th>
                             <th class="text-end">ยอดขายรวม</th>
                         </tr>
                     </thead>
@@ -632,7 +830,7 @@ adminPageStart('รายงานการขายสินค้า');
                                 <td data-label="ลำดับ"><?= $index + 1 ?></td>
                                 <td data-label="สินค้า"><?= h((string) $row['product_name']) ?></td>
                                 <td data-label="จำนวนที่ขาย" class="text-end"><?= qty((int) $row['total_quantity']) ?></td>
-                                <td data-label="ราคาเฉลี่ย" class="text-end">฿<?= baht((float) $row['avg_price']) ?></td>
+                                <td data-label="ราคาสินค้า" class="text-end"><?= h(productPriceText($row)) ?></td>
                                 <td data-label="ยอดขายรวม" class="text-end">฿<?= baht((float) $row['total_sales']) ?></td>
                             </tr>
                         <?php endforeach; ?>
