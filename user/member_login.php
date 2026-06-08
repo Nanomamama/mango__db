@@ -20,8 +20,8 @@ session_start();
             --success: #4cc9f0;
             --light: #f8f9fa;
             --dark: #212529;
-            --success-dark: rgb(20, 58, 44);
-            --success-end: rgba(13, 201, 132, 1);
+            --success-dark: #064e4a;
+            --success-end: #0d6b63;
         }
         
         body {
@@ -173,6 +173,9 @@ session_start();
         .form-group {
             position: relative;
             margin-bottom: 25px;
+        }
+        .form-group button {
+            color: #fff;
         }
         
         .form-label {
@@ -359,7 +362,7 @@ session_start();
                 <div class="login-hero">
                     <div class="text-center">
                         <div class="hero-icon">
-                            <i class="fas fa-user-check"></i>
+                            <!-- <i class="fas fa-user-check"></i> -->
                         </div>
                         <h1 class="hero-title">ยินดีต้อนรับกลับมา</h1>
                         <p class="hero-subtitle">เข้าสู่ระบบเพื่อเข้าถึงบริการพิเศษและอัปเดตข้อมูลล่าสุดสำหรับสมาชิก</p>
@@ -373,10 +376,6 @@ session_start();
                         <div class="feature-item">
                             <i class="fas fa-check"></i>
                             <span>จัดการข้อมูลส่วนตัวและบัญชี</span>
-                        </div>
-                        <div class="feature-item">
-                            <i class="fas fa-check"></i>
-                            <span>รับข้อเสนอพิเศษสำหรับสมาชิก</span>
                         </div>
                         <div class="feature-item">
                             <i class="fas fa-check"></i>
@@ -407,6 +406,11 @@ session_start();
                         if ($error_message):
                     ?>
                         <div class="alert alert-danger text-center" role="alert"><i class="fas fa-exclamation-triangle me-2"></i><?= $error_message ?></div>
+                    <?php endif; ?>
+
+                    <?php if (isset($_SESSION['success'])): ?>
+                        <div class="alert alert-success text-center" role="alert"><i class="fas fa-check-circle me-2"></i><?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') ?></div>
+                        <?php unset($_SESSION['success']); ?>
                     <?php endif; ?>
                     
                     <form action="login_check.php" method="POST" id="loginForm">

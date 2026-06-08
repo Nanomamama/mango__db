@@ -53,7 +53,7 @@ function bookingResponseRow(array $r, bool $is_admin, int $current_member_id): a
         'bookings_id' => $canSeePrivate ? (int)$r['bookings_id'] : null,
         'booking_code' => $canSeePrivate ? $r['booking_code'] : null,
         'member_id' => $canSeePrivate ? $memberId : null,
-        'name' => $canSeePrivate ? $r['guest_name'] : 'Booked',
+        'name' => $canSeePrivate ? $r['guest_name'] : 'bookings',
         'email' => $canSeePrivate ? $r['guest_email'] : null,
         'phone' => $canSeePrivate ? $r['guest_phone'] : null,
         'date' => $r['booking_date'],

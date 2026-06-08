@@ -18,8 +18,8 @@
             --dark: #212529;
             --gradient-start: #4361ee;
             --gradient-end: #3a0ca3;
-            --success-dark: rgb(20, 58, 44);
-            --success-end: rgba(13, 201, 132, 1);
+            --success-dark: #064e4a;
+            --success-end: #0d6b63;
             --danger:  #e74a3b;
         }
 
@@ -173,6 +173,9 @@
             position: relative;
             margin-bottom: 25px;
         }
+        .form-group button {
+            color: #fff;
+        }
 
         .form-label {
             font-weight: 500;
@@ -287,6 +290,82 @@
         .form-footer a:hover {
             color: var(--secondary);
             text-decoration: underline;
+        }
+
+        .pdpa-consent-box {
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 20px;
+            background: #f8fafc;
+        }
+
+        .pdpa-title {
+            font-family: 'Mitr', sans-serif;
+            font-weight: 600;
+            color: var(--success-dark);
+            margin-bottom: 10px;
+        }
+
+        .pdpa-notice {
+            color: #475569;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 14px;
+        }
+
+        .pdpa-policy {
+            max-height: 280px;
+            overflow-y: auto;
+            border: 1px solid #dbe4ef;
+            border-radius: 12px;
+            padding: 16px 18px;
+            background: #fff;
+            color: #334155;
+            font-size: 0.92rem;
+            line-height: 1.75;
+        }
+
+        .pdpa-policy h4 {
+            color: var(--success-dark);
+            font-size: 1.05rem;
+            margin: 0 0 8px;
+        }
+
+        .pdpa-policy h5 {
+            color: #1f2937;
+            font-size: 0.98rem;
+            margin: 16px 0 6px;
+            font-weight: 600;
+        }
+
+        .pdpa-policy ul {
+            padding-left: 22px;
+            margin-bottom: 10px;
+        }
+
+        .pdpa-consent-check {
+            border-top: 1px solid #dbe4ef;
+            margin-top: 16px;
+            padding-top: 16px;
+        }
+
+        .pdpa-consent-check .form-check-input {
+            width: 1.15rem;
+            height: 1.15rem;
+            margin-top: 0.25rem;
+        }
+
+        .pdpa-consent-check .form-check-label {
+            color: #1f2937;
+            font-weight: 500;
+            line-height: 1.6;
+        }
+
+        .pdpa-error {
+            color: var(--danger);
+            display: none;
+            font-size: 0.92rem;
+            margin-top: 8px;
         }
 
         /* Animation for form elements */
@@ -434,28 +513,29 @@
                 <div class="register-hero">
                     <div class="text-center">
                         <div class="hero-icon">
-                            <i class="fas fa-user-plus"></i>
+                            <!-- <i class="fas fa-user-plus"></i> -->
                         </div>
                         <h1 class="hero-title">สมัครสมาชิกใหม่</h1>
-                        <p class="hero-subtitle">เข้าร่วมชุมชนของเราเพื่อรับสิทธิพิเศษมากมายและประสบการณ์การใช้งานที่ดียิ่งขึ้น</p>
+                        <p class="hero-subtitle">สร้างบัญชีผู้ใช้ของคุณเพื่อเริ่มต้นประสบการณ์ใหม่</p>
                     </div>
 
                     <div class="hero-features">
                         <div class="feature-item">
                             <i class="fas fa-check"></i>
-                            <span>ส่วนลดพิเศษสำหรับสมาชิก</span>
+                            <span>สามารถจองคิวออนไลน์ได้</span>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <i class="fas fa-check"></i>
+                            <span>รับการแจ้งเตือนผ่านอีเมล</span>
                         </div>
                         <div class="feature-item">
                             <i class="fas fa-check"></i>
-                            <span>บันทึกประวัติการใช้งาน</span>
+                            <span>ดูประวัติการจองคิว</span>
                         </div>
                         <div class="feature-item">
                             <i class="fas fa-check"></i>
-                            <span>ระบบแจ้งเตือนและอัปเดตข่าวสาร</span>
-                        </div>
-                        <div class="feature-item">
-                            <i class="fas fa-check"></i>
-                            <span>บริการลูกค้าสมาชิกพิเศษ</span>
+                            <span>ดูประวัติการสั่งซื้อสินค้า</span>
                         </div>
                     </div>
                 </div>
@@ -542,6 +622,97 @@
                                 <i class="toggle-password fas fa-eye" id="toggleConfirmPassword"></i>
                             </div>
                             <div class="text-danger mt-2" id="password-error" style="display:none;"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="pdpa-consent-box">
+                                <h3 class="pdpa-title"><i class="fas fa-shield-alt me-2"></i>แบบฟอร์มยินยอมการเก็บรวบรวมข้อมูลส่วนบุคคล</h3>
+                                <p class="pdpa-notice">
+                                    หลังสมัครสมาชิก ระบบจะให้ท่านยืนยันความยินยอมการเก็บข้อมูลส่วนบุคคล (PDPA) ก่อนเข้าใช้งาน
+                                    ท่านสามารถถอนความยินยอมได้ตลอดเวลา
+                                </p>
+
+                                <div class="pdpa-policy" tabindex="0" aria-label="นโยบายการคุ้มครองข้อมูลส่วนบุคคล">
+                                    <h4>แบบฟอร์มยินยอมการเก็บรวบรวมข้อมูลส่วนบุคคล</h4>
+                                    <p>ตาม พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA)</p>
+                                    <p><strong>นโยบายการคุ้มครองข้อมูลส่วนบุคคล</strong>
+                                    <br>ระบบจองคิวเยี่ยมชมศูนย์การเรียนรู้เศรษฐกิจพอเพียงสวนลุงเผือก | จัดทำโดย: มหาวิทยาลัยราชภัฏเลย</p>
+
+                                    <h5>1. ผู้ควบคุมข้อมูลส่วนบุคคล</h5>
+                                    <p>มหาวิทยาลัยราชภัฏเลย ที่อยู่ 234 ถนนเลย-เชียงคาน ตำบลเมือง อำเภอเมืองเลย จังหวัดเลย 42000 โทรศัพท์: 042-835224-8 เว็บไซต์: www.lru.ac.th</p>
+
+                                    <h5>2. วัตถุประสงค์ในการเก็บรวบรวมข้อมูล</h5>
+                                    <ul>
+                                        <li>สร้างและจัดการบัญชีสมาชิกสำหรับการเข้าใช้งานเว็บไซต์สวนลุงเผือก</li>
+                                        <li>ยืนยันตัวตน ติดต่อกลับ และให้บริการสมาชิกในการจองคิวเยี่ยมชมสวนหรือเข้าร่วมกิจกรรม</li>
+                                        <li>ดำเนินการสั่งซื้อสินค้า ตรวจสอบรายการสั่งซื้อ แจ้งสถานะคำสั่งซื้อ และประสานงานเรื่องการรับสินค้า</li>
+                                        <li>ตรวจสอบหลักฐานการชำระเงิน การอัปโหลดสลิป และสถานะการชำระเงินที่เกี่ยวข้องกับการจองหรือการสั่งซื้อ</li>
+                                        <li>บันทึกประวัติการใช้งาน ความคิดเห็น การให้คะแนน และข้อมูลการติดต่อ เพื่อปรับปรุงบริการและดูแลความปลอดภัยของระบบ</li>
+                                        <li>จัดทำรายงานสถิติการจอง การสั่งซื้อ และการใช้งานเว็บไซต์ในภาพรวม โดยหลีกเลี่ยงการระบุตัวตนเมื่อไม่จำเป็น</li>
+                                    </ul>
+
+                                    <h5>3. ประเภทข้อมูลส่วนบุคคลที่เก็บรวบรวม</h5>
+                                    <ul>
+                                        <li>ข้อมูลบัญชีสมาชิก: ชื่อ-นามสกุล อีเมล เบอร์โทรศัพท์ รหัสผ่านที่ผ่านการเข้ารหัส สถานะบัญชี และวันที่สมัครสมาชิก</li>
+                                        <li>ข้อมูลติดต่อและที่อยู่: ที่อยู่ จังหวัด อำเภอ ตำบล รหัสไปรษณีย์ และข้อมูลสำหรับติดต่อกลับ</li>
+                                        <li>ข้อมูลการจอง: วันที่และเวลาที่จอง จำนวนผู้เข้าชม รายละเอียดคำขอเพิ่มเติม สถานะการจอง ยอดชำระ มัดจำ และยอดคงเหลือ</li>
+                                        <li>ข้อมูลการสั่งซื้อสินค้า: รายการสินค้า จำนวน ราคา วิธีรับสินค้า ที่อยู่จัดส่งหรือข้อมูลการรับสินค้า และสถานะคำสั่งซื้อ</li>
+                                        <li>ข้อมูลการชำระเงิน: หลักฐานการโอนเงินหรือสลิปชำระเงิน สถานะการตรวจสอบ และวันเวลาที่ส่งหลักฐาน</li>
+                                        <li>ข้อมูลกิจกรรมบนเว็บไซต์: ความคิดเห็น การให้คะแนนคอร์สหรือกิจกรรม ประวัติการจอง ประวัติคำสั่งซื้อ และการเข้าใช้งานบัญชี</li>
+                                        <li>ข้อมูลทางเทคนิคเพื่อความปลอดภัย: หมายเลข IP เบราว์เซอร์ อุปกรณ์ที่ใช้ วันเวลาเข้าสู่ระบบ และผลการเข้าสู่ระบบ</li>
+                                    </ul>
+
+                                    <h5>4. ฐานทางกฎหมายในการประมวลผลข้อมูล</h5>
+                                    <ul>
+                                        <li>ความยินยอม (Consent): ท่านให้ความยินยอมโดยชัดแจ้งในการเก็บข้อมูลผ่านแบบฟอร์มนี้</li>
+                                        <li>การปฏิบัติตามสัญญาหรือคำขอของท่าน: เพื่อให้บริการสมัครสมาชิก จองคิว สั่งซื้อสินค้า และติดตามสถานะรายการ</li>
+                                        <li>ประโยชน์โดยชอบด้วยกฎหมาย: เพื่อดูแลความปลอดภัย ป้องกันการใช้งานที่ผิดปกติ และปรับปรุงบริการของเว็บไซต์</li>
+                                    </ul>
+
+                                    <h5>5. การเปิดเผยข้อมูลส่วนบุคคล</h5>
+                                    <ul>
+                                        <li>ผู้ดูแลระบบและเจ้าหน้าที่ที่เกี่ยวข้องกับการจองคิว การสั่งซื้อสินค้า การตรวจสอบการชำระเงิน และการให้บริการลูกค้า</li>
+                                        <li>ผู้ให้บริการระบบหรือโฮสติ้งที่จำเป็นต่อการทำงานของเว็บไซต์ ภายใต้มาตรการรักษาความปลอดภัยที่เหมาะสม</li>
+                                        <li>หน่วยงานที่มีอำนาจตามกฎหมาย เฉพาะกรณีที่มีหน้าที่ต้องเปิดเผยตามกฎหมาย</li>
+                                    </ul>
+                                    <p>ระบบจะไม่เปิดเผยข้อมูลส่วนบุคคลที่ระบุตัวตนแก่บุคคลภายนอกโดยไม่ได้รับความยินยอม</p>
+
+                                    <h5>6. ระยะเวลาการเก็บรักษาข้อมูล</h5>
+                                    <p>ระบบจะเก็บรักษาข้อมูลตลอดระยะเวลาที่ท่านเป็นสมาชิก และจะลบหรือทำให้ข้อมูลไม่สามารถระบุตัวตนได้ภายใน 30 วันหลังจากที่ท่านขอยกเลิกและได้รับการอนุมัติ</p>
+
+                                    <h5>7. สิทธิของเจ้าของข้อมูล</h5>
+                                    <ul>
+                                        <li>สิทธิในการเข้าถึงข้อมูล: ท่านสามารถดูข้อมูลส่วนบุคคลที่เราเก็บไว้ได้</li>
+                                        <li>สิทธิในการแก้ไขข้อมูล: ท่านสามารถแก้ไขข้อมูลที่ไม่ถูกต้องได้</li>
+                                        <li>สิทธิในการลบข้อมูล: ท่านสามารถขอให้ลบข้อมูลส่วนบุคคลของท่านได้</li>
+                                        <li>สิทธิในการถอนความยินยอม: ท่านสามารถถอนความยินยอมได้ตลอดเวลา</li>
+                                        <li>สิทธิในการคัดค้าน: ท่านสามารถคัดค้านการประมวลผลข้อมูลได้</li>
+                                    </ul>
+
+                                    <h5>8. มาตรการรักษาความปลอดภัย</h5>
+                                    <ul>
+                                        <li>เข้ารหัสข้อมูลสำคัญด้วย AES-256-GCM</li>
+                                        <li>การสื่อสารผ่าน HTTPS (TLS 1.2 ขึ้นไป)</li>
+                                        <li>การควบคุมการเข้าถึงตามบทบาท (Role-Based Access Control)</li>
+                                        <li>บันทึกประวัติการเข้าถึงและแก้ไขข้อมูล (Audit Log)</li>
+                                    </ul>
+
+                                    <h5>9. การติดต่อ</h5>
+                                    <p>หากท่านมีคำถามหรือต้องการใช้สิทธิ กรุณาติดต่อ:<br>
+                                        ผู้ดูแลระบบสวนลุงเผือกผ่านช่องทางติดต่อที่ระบุบนเว็บไซต์<br>
+                                        หรือผ่านระบบหลังเข้าสู่ระบบ หากมีเมนูสำหรับคำขอเกี่ยวกับข้อมูลส่วนบุคคล
+                                    </p>
+                                    <p><strong>หมายเหตุ:</strong> การถอนความยินยอมจะไม่ส่งผลต่อความชอบด้วยกฎหมายของการประมวลผล ที่เกิดขึ้นก่อนการถอนความยินยอม</p>
+                                </div>
+
+                                <div class="form-check pdpa-consent-check">
+                                    <input class="form-check-input" type="checkbox" name="pdpa_consent" id="pdpa_consent" value="1" required>
+                                    <label class="form-check-label" for="pdpa_consent">
+                                        ข้าพเจ้าได้อ่านและยินยอมให้ระบบเก็บรวบรวม ใช้ และประมวลผลข้อมูลส่วนบุคคลตามรายละเอียดข้างต้น
+                                    </label>
+                                    <div class="pdpa-error" id="pdpa-error">กรุณายินยอมการเก็บรวบรวมข้อมูลส่วนบุคคลก่อนสมัครสมาชิก</div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="form-group mt-4">
@@ -642,6 +813,18 @@
 
         // Form submission handler
         document.getElementById('registrationForm').addEventListener('submit', function(e) {
+            const pdpaConsent = document.getElementById('pdpa_consent');
+            const pdpaError = document.getElementById('pdpa-error');
+
+            if (!pdpaConsent.checked) {
+                e.preventDefault();
+                pdpaError.style.display = 'block';
+                pdpaConsent.focus();
+                return;
+            }
+
+            pdpaError.style.display = 'none';
+
             if (!checkPasswordMatch()) {
                 e.preventDefault();
             } else {

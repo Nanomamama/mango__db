@@ -97,8 +97,11 @@ function save_qr_upload(array $qr_file, int $booking_id): array
 }
 
 function payment_due_at_for_qr(): string
-{
-    return (new DateTimeImmutable('+5 minutes'))->format('Y-m-d H:i:s');
+{   // 5 นาที
+    // return (new DateTimeImmutable('+5 minutes'))->format('Y-m-d H:i:s');
+
+    // 3 วัน
+    return (new DateTimeImmutable('+3 days'))->format('Y-m-d H:i:s');
 }
 
 // จัดการการอัปเดตสถานะการจอง
@@ -503,6 +506,18 @@ $bookings = [];
 while ($row = $result->fetch_assoc()) {
     $bookings[] = $row;
 }
+
+$bookingYears = [];
+foreach ($bookings as $bookingForDateFilter) {
+    $bookingDateForFilter = $bookingForDateFilter['booking_date'] ?? '';
+    if (!empty($bookingDateForFilter) && $bookingDateForFilter !== '0000-00-00') {
+        $bookingYearForFilter = date('Y', strtotime($bookingDateForFilter));
+        if ($bookingYearForFilter) {
+            $bookingYears[$bookingYearForFilter] = $bookingYearForFilter;
+        }
+    }
+}
+rsort($bookingYears, SORT_NUMERIC);
 
 // นับจำนวนสถานะต่างๆ สำหรับ Stats Card
 $stats = [
@@ -1284,6 +1299,48 @@ adminPageStart('จัดการรายการจอง');
             <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
             <input type="text" id="searchInput" class="form-control form-control-lg border-start-0" placeholder="ค้นหาด้วยชื่อ หรือรหัสอ้างอิง...">
         </div>
+        <div class="row g-2 mt-2">
+            <div class="col-12 col-md-4">
+                <select id="bookingDayFilter" class="form-select form-select-lg" aria-label="เลือกวันที่จอง">
+                    <option value="">เลือกวันที่</option>
+                    <?php for ($day = 1; $day <= 31; $day++): ?>
+                        <option value="<?= sprintf('%02d', $day) ?>"><?= $day ?></option>
+                    <?php endfor; ?>
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <select id="bookingMonthFilter" class="form-select form-select-lg" aria-label="เลือกเดือนที่จอง">
+                    <option value="">เลือกเดือน</option>
+                    <?php
+                    $thaiMonthsForFilter = [
+                        1 => 'มกราคม',
+                        2 => 'กุมภาพันธ์',
+                        3 => 'มีนาคม',
+                        4 => 'เมษายน',
+                        5 => 'พฤษภาคม',
+                        6 => 'มิถุนายน',
+                        7 => 'กรกฎาคม',
+                        8 => 'สิงหาคม',
+                        9 => 'กันยายน',
+                        10 => 'ตุลาคม',
+                        11 => 'พฤศจิกายน',
+                        12 => 'ธันวาคม',
+                    ];
+                    ?>
+                    <?php foreach ($thaiMonthsForFilter as $monthNumber => $monthName): ?>
+                        <option value="<?= sprintf('%02d', $monthNumber) ?>"><?= htmlspecialchars($monthName, ENT_QUOTES, 'UTF-8') ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <select id="bookingYearFilter" class="form-select form-select-lg" aria-label="เลือกปีที่จอง">
+                    <option value="">เลือกปี</option>
+                    <?php foreach ($bookingYears as $bookingYear): ?>
+                        <option value="<?= htmlspecialchars((string) $bookingYear, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars((string) ((int) $bookingYear + 543), ENT_QUOTES, 'UTF-8') ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
     </div>
 
     <!-- Booking List -->
@@ -1299,7 +1356,7 @@ adminPageStart('จัดการรายการจอง');
                 <p class="mt-3 text-muted">ไม่พบรายการที่ตรงกับการค้นหา</p>
             </div>
             <?php foreach ($bookings as $booking): ?>
-                <div class="col-md-6 col-lg-4 booking-item-col">
+                <div class="col-md-6 col-lg-4 booking-item-col" data-booking-date="<?= htmlspecialchars((string) ($booking['booking_date'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                     <div class="booking-card">
                         <div class="booking-card-header">
                             <span class="fw-bold text-primary booking-code">#<?= htmlspecialchars($booking['booking_code']) ?></span>
@@ -1896,6 +1953,9 @@ adminPageStart('จัดการรายการจอง');
     // Search and filter functionality
     document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('searchInput');
+        const bookingDayFilter = document.getElementById('bookingDayFilter');
+        const bookingMonthFilter = document.getElementById('bookingMonthFilter');
+        const bookingYearFilter = document.getElementById('bookingYearFilter');
         const bookingList = document.getElementById('bookingList');
         const bookingItems = bookingList ? bookingList.querySelectorAll('.booking-item-col') : [];
         const noResultsMessage = document.getElementById('noResultsMessage');
@@ -1903,7 +1963,10 @@ adminPageStart('จัดการรายการจอง');
         let currentFilter = 'all';
 
         function applyFilters() {
-            const searchTerm = searchInput.value.toLowerCase().trim();
+            const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            const selectedDay = bookingDayFilter ? bookingDayFilter.value : '';
+            const selectedMonth = bookingMonthFilter ? bookingMonthFilter.value : '';
+            const selectedYear = bookingYearFilter ? bookingYearFilter.value : '';
             let visibleCount = 0;
             bookingItems.forEach(item => {
                 const statusBadge = item.querySelector('.status-badge');
@@ -1919,7 +1982,13 @@ adminPageStart('จัดการรายการจอง');
                 const bookingCode = item.querySelector('.booking-code');
                 const searchMatch = (guestName && guestName.textContent.toLowerCase().includes(searchTerm)) ||
                     (bookingCode && bookingCode.textContent.toLowerCase().replace('#', '').includes(searchTerm));
-                if (statusMatch && searchMatch) {
+
+                const bookingDateParts = (item.dataset.bookingDate || '').split('-');
+                const dateMatch = (!selectedYear || bookingDateParts[0] === selectedYear) &&
+                    (!selectedMonth || bookingDateParts[1] === selectedMonth) &&
+                    (!selectedDay || bookingDateParts[2] === selectedDay);
+
+                if (statusMatch && searchMatch && dateMatch) {
                     item.classList.remove('d-none');
                     visibleCount++;
                 } else {
@@ -1936,6 +2005,11 @@ adminPageStart('จัดการรายการจอง');
         if (searchInput) {
             searchInput.addEventListener('input', applyFilters);
         }
+        [bookingDayFilter, bookingMonthFilter, bookingYearFilter].forEach(select => {
+            if (select) {
+                select.addEventListener('change', applyFilters);
+            }
+        });
         filterButtons.forEach(button => {
             button.addEventListener('click', function() {
                 filterButtons.forEach(btn => btn.classList.remove('active'));

@@ -1168,10 +1168,15 @@ if ($is_member) {
             color: var(--text-light);
         }
 
+        .booking-payment-action {
+            width: min(100%, 340px);
+            margin-left: 1rem;
+        }
+
         .payment-qr-box {
-            width: 150px;
+            width: 100%;
             max-width: 100%;
-            padding: 0.5rem;
+            padding: 0.75rem;
             margin: 0.5rem 0;
             border: 1px solid #dbeafe;
             border-radius: var(--border-radius-sm);
@@ -1181,6 +1186,7 @@ if ($is_member) {
 
         .payment-qr-box img {
             width: 100%;
+            min-height: 240px;
             aspect-ratio: 1 / 1;
             object-fit: contain;
             display: block;
@@ -1191,6 +1197,29 @@ if ($is_member) {
             margin-top: 0.35rem;
             color: var(--text-light);
             font-size: 0.78rem;
+        }
+
+        .payment-qr-actions {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+
+        .payment-qr-save-btn {
+            width: 100%;
+            padding: 0.65rem 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .booking-payment-action {
+                width: 100%;
+                margin-left: 0;
+                margin-top: 0.75rem;
+            }
+
+            .payment-qr-box img {
+                min-height: 280px;
+            }
         }
 
         .list-empty-state {
@@ -1310,12 +1339,12 @@ if ($is_member) {
                     <div class="card-modern p-3">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <div>
-                                <h4 class="mb-0"><i class="fas fa-file-alt me-2" style="color: var(--primary-color);"></i>กรอกรายละเอียดการจอง</h4>
+                                <h4 class="mb-0">กรอกรายละเอียดการจอง</h4>
                                 <small class="text-muted">กรอกข้อมูลให้ครบเพื่อยืนยันการจอง</small>
                             </div>
                             <div>
                                 <button type="button" class="btn btn-outline-secondary" onclick="showCalendarSection()">
-                                    <i class="fas fa-arrow-left me-1"></i> เปลี่ยนวันที่
+                                    <i class="fas fa-arrow-left me-1"></i> เปลี่ยน
                                 </button>
                             </div>
                         </div>
@@ -1335,7 +1364,7 @@ if ($is_member) {
                                         <option value="private">บุคคลทั่วไป (ส่วนตัว)</option>
                                         <option value="organization">หน่วยงาน/องค์กร</option>
                                     </select>
-                                    <div class="invalid-feedback-modern">กรุณาเลือกประเภทการเข้าชม</div>
+                                    <!-- <div class="invalid-feedback-modern">กรุณาเลือกประเภทการเข้าชม</div> -->
                                 </div>
 
                                 <div class="col-12 col-md-6">
@@ -1353,26 +1382,26 @@ if ($is_member) {
                                         <option value="16:00">16:00 น.</option>
                                         <option value="17:00">17:00 น.</option>
                                     </select>
-                                    <div class="invalid-feedback-modern">กรุณาเลือกเวลาเข้าชม</div>
+                                    <!-- <div class="invalid-feedback-modern">กรุณาเลือกเวลาเข้าชม</div> -->
                                     <small class="text-muted d-block mt-1">เวลาเปิดทำการ: 08:00 - 17:00 น.</small>
                                 </div>
 
                                 <div class="col-12 col-md-6">
                                     <label for="name" class="form-label-modern required">ชื่อ-นามสกุล</label>
                                     <input type="text" id="name" name="name" class="form-control" placeholder="ระบุชื่อ" required <?= $is_member ? 'readonly' : '' ?>>
-                                    <div class="invalid-feedback-modern">กรุณากรอกชื่อ-นามสกุลหรือชื่อหน่วยงาน</div>
+                                    <!-- <div class="invalid-feedback-modern">กรุณากรอกชื่อ-นามสกุลหรือชื่อหน่วยงาน</div> -->
                                 </div>
 
                                 <div class="col-12 col-md-6">
                                     <label for="phone" class="form-label-modern required">เบอร์โทรศัพท์</label>
                                     <input type="tel" id="phone" name="phone" class="form-control" placeholder="08X-XXXXXXX" pattern="[0-9]{10}" required <?= $is_member ? 'readonly' : '' ?>>
-                                    <div class="invalid-feedback-modern">กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (ตัวเลข 10 หลัก)</div>
+                                    <!-- <div class="invalid-feedback-modern">กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (ตัวเลข 10 หลัก)</div> -->
                                 </div>
 
                                 <div class="col-12 col-md-6">
                                     <label for="email" class="form-label-modern required">อีเมล</label>
                                     <input type="email" id="email" name="email" class="form-control" placeholder="example@domain.com" required <?= $is_member ? 'readonly' : '' ?>>
-                                    <div class="invalid-feedback-modern">กรุณากรอกอีเมลให้ถูกต้อง</div>
+                                    <!-- <div class="invalid-feedback-modern">กรุณากรอกอีเมลให้ถูกต้อง</div> -->
                                 </div>
 
                                 <div class="col-12 col-md-6 d-flex flex-column">
@@ -1382,7 +1411,7 @@ if ($is_member) {
                                         <input type="number" id="visitor_count" name="visitor_count" class="form-control text-center" min="1" value="1" oninput="calculatePrice()" required>
                                         <button class="btn btn-outline-secondary" type="button" onclick="changeVisitorCount(1)"><i class="fas fa-plus"></i></button>
                                     </div>
-                                    <small class="text-muted mt-1">คนละ 150 บาท</small>
+                                    <small class="text-muted mt-1">คนละ 150 บาท ต่อท่าน</small>
                                 </div>
 
                                 <div class="col-12">
@@ -1936,17 +1965,21 @@ if ($is_member) {
                         // กรองสถานะ 'ยกเลิก' ออก และแปลงข้อมูลให้เรียบง่ายสำหรับปฏิทิน
                         window.bookingData = data
                             .filter(b => (b.status || '').toLowerCase() !== 'cancelled')
-                            .map(b => ({
-                                date: b.date || b.booking_date || b.bookingDate,
-                                name: b.name || b.guest_name || b.booking_code || 'ไม่ระบุ',
-                                status: (b.status || '').toLowerCase() || 'pending',
-                                member_id: b.member_id, // เพิ่ม member_id
-                                payment_slip: b.payment_slip, // เพิ่มข้อมูลสลิป
-                                payment_qr_path: b.payment_qr_path || '',
-                                id: b.bookings_id, // เพิ่ม ID ของการจอง
-                                time: b.time || b.booking_time || b.bookingTime || '',
-                                visitor_count: b.visitor_count ? parseInt(b.visitor_count) : (b.visitorCount ? parseInt(b.visitorCount) : 0)
-                            }));
+                            .map(b => {
+                                const memberId = b.member_id || null;
+                                const isOwnBooking = memberId && MEMBER_ID_SESSION && Number(memberId) === Number(MEMBER_ID_SESSION);
+                                return {
+                                    date: b.date || b.booking_date || b.bookingDate,
+                                    name: isOwnBooking ? (b.name || b.guest_name || b.booking_code || 'ไม่ระบุ') : 'bookings',
+                                    status: (b.status || '').toLowerCase() || 'pending',
+                                    member_id: memberId, // เพิ่ม member_id
+                                    payment_slip: isOwnBooking ? b.payment_slip : null, // เพิ่มข้อมูลสลิป
+                                    payment_qr_path: isOwnBooking ? (b.payment_qr_path || '') : '',
+                                    id: isOwnBooking ? b.bookings_id : null, // เพิ่ม ID ของการจอง
+                                    time: isOwnBooking ? (b.time || b.booking_time || b.bookingTime || '') : '',
+                                    visitor_count: isOwnBooking ? (b.visitor_count ? parseInt(b.visitor_count) : (b.visitorCount ? parseInt(b.visitorCount) : 0)) : 0
+                                };
+                            });
 
                         populateLists();
                         resolve();
@@ -2175,14 +2208,24 @@ if ($is_member) {
                                 actionHtml = '<span class="badge-modern bg-warning text-dark">รอ QR Code ชำระเงิน</span>';
                             } else {
                                 const visitorCount = b.visitor_count || 0;
+                                const qrUrl = `download.php?type=qr&file=${encodeURIComponent(b.payment_qr_path)}`;
+                                const qrDownloadName = `payment-qr-${b.id || 'booking'}`;
                                 const qrHtml = `
                                 <div class="payment-qr-box">
-                                    <img src="download.php?type=qr&file=${encodeURIComponent(b.payment_qr_path)}" alt="Payment QR Code">
+                                    <img src="${qrUrl}" alt="Payment QR Code">
                                     <small>QR Code สำหรับชำระเงิน</small>
                                 </div>`;
-                                actionHtml = `${qrHtml}<button class="btn-modern btn-warning-modern btn-sm" onclick="openUploadModal(${b.id}, ${visitorCount})" title="แนบสลิป">
-                                            <i class="fas fa-upload me-1"></i> แนบสลิป
-                                          </button>`;
+                                actionHtml = `<div class="booking-payment-action">
+                                                ${qrHtml}
+                                                <div class="payment-qr-actions">
+                                                    <a class="btn-modern btn-primary-modern btn-sm payment-qr-save-btn" href="${qrUrl}" download="${qrDownloadName}" title="บันทึกรูป QR Code">
+                                                        <i class="fas fa-download me-1"></i> บันทึกรูป QR
+                                                    </a>
+                                                    <button class="btn-modern btn-warning-modern btn-sm" onclick="openUploadModal(${b.id}, ${visitorCount})" title="แนบสลิป">
+                                                        <i class="fas fa-upload me-1"></i> แนบสลิป
+                                                    </button>
+                                                </div>
+                                              </div>`;
                             }
                         }
                     }
