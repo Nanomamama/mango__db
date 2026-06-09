@@ -116,7 +116,7 @@ $todayStats = $stmt_today_stats->get_result()->fetch_assoc();
 $adminPageExtraHead = <<<'HTML'
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
+<style>
         :root {
             --primary-color: #2ecc71;
             --secondary-color: #27ae60;
@@ -593,186 +593,103 @@ $adminPageExtraHead = <<<'HTML'
         }
 
         @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.4; }
-}
-
-
-   .order-amount {
-    font-size: 22px;
-    font-weight: 500;
-    color: #2c3e50;
-}
-
-.order-amount span {
-    font-size: 13px;
-    color: #888;
-    font-weight: 400;
-    margin-left: 4px;
-}
-
-.order-divider {
-    border: none;
-    border-top: 0.5px solid #e5e7eb;
-    margin: 4px 0;
-}
-
-.order-info {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.info-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: #555;
-}
-
-.info-row strong {
-    color: #2c3e50;
-    font-weight: 500;
-    font-size: 18px;
-}
-
-.dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.dot-pickup  { background: #1D9E75; }
-.dot-deliver { background: #378ADD; }
-
-.order-date-small {
-    font-size: 11px;
-    color: #aaa;
-}
-
-.btn-detail {
-    display: block;
-    text-align: center;
-    padding: 8px;
-    border-radius: 8px;
-    border: 0.5px solid #d1d5db;
-    font-size: 13px;
-    font-weight: 500;
-    color: #374151;
-    background: #85c2ff;
-    text-decoration: none;
-    transition: background 0.15s;
-}
-
-.btn-detail:hover {
-    background: #f3f4f6;
-    color: #111;
-}
-    </style>
-
-<style>
-    body {
-        margin-left: 0 !important;
-        padding: 0 !important;
-        max-width: none !important;
-        overflow-x: hidden;
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.4; }
     }
 
-    .page-content {
-        width: 100%;
-        max-width: 100%;
+
+    .order-amount {
+        font-size: 22px;
+        font-weight: 500;
+        color: #2c3e50;
     }
 
-    .admin-local-page {
-        margin-left: 0 !important;
-        padding: 0 !important;
-        min-height: auto !important;
-        width: 100%;
+    .order-amount span {
+        font-size: 13px;
+        color: #888;
+        font-weight: 400;
+        margin-left: 4px;
     }
 
-    .navbar,
-    .dashboard-header,
-    .header-card,
-    .filter-section,
-    .dashboard-card,
-    .card-form,
-    .table-container,
-    .course-card,
-    .modal-content {
-        max-width: 100%;
+    .order-divider {
+        border: none;
+        border-top: 0.5px solid #e5e7eb;
+        margin: 4px 0;
     }
 
-    .card-header,
-    .dashboard-header .d-flex,
-    .header-card,
-    .action-row,
-    .course-card-header {
-        min-width: 0;
-    }
-
-    .filter-buttons,
-    .order-filter-list {
+    .order-info {
         display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
+        flex-direction: column;
+        gap: 6px;
     }
 
-    .btn-filter,
-    .filter-btn,
-    .btn-add-large,
-    .btn-add-course,
-    .btn-action,
-    .action-btn {
-        white-space: normal;
+    .info-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: #555;
+    }
+
+    .info-row strong {
+        color: #2c3e50;
+        font-weight: 500;
+        font-size: 18px;
+    }
+
+    .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .dot-pickup  { background: #1D9E75; }
+    .dot-deliver { background: #378ADD; }
+
+    .order-date-small {
+        font-size: 11px;
+        color: #aaa;
+    }
+
+    .btn-detail {
+        display: block;
         text-align: center;
+        padding: 8px;
+        border-radius: 8px;
+        border: 0.5px solid #d1d5db;
+        font-size: 13px;
+        font-weight: 500;
+        color: #374151;
+        background: #85c2ff;
+        text-decoration: none;
+        transition: background 0.15s;
     }
 
-    .order-filter-list {
-        margin-bottom: 0 !important;
+    .btn-detail:hover {
+        background: #f3f4f6;
+        color: #111;
     }
+        </style>
 
-    .product-table th,
-    .product-table td {
-        white-space: nowrap;
-    }
+    <style>
+        body {
+            margin-left: 0 !important;
+            padding: 0 !important;
+            max-width: none !important;
+            overflow-x: hidden;
+        }
 
-    .table-container {
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .current-image-card,
-    .preview-container {
-        min-width: 0;
-    }
-
-    .current-image-details,
-    .preview-details,
-    .title-section,
-    .course-card-header h5,
-    .card-title {
-        min-width: 0;
-        overflow-wrap: anywhere;
-    }
-
-    @media (max-width: 1024px) {
         .page-content {
-            padding: 22px;
+            width: 100%;
+            max-width: 100%;
         }
 
-        .stats-layout {
-            grid-template-columns: 1fr;
-        }
-
-        .order-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-    }
-
-    @media (max-width: 768px) {
-        .page-content {
-            padding: 16px;
+        .admin-local-page {
+            margin-left: 0 !important;
+            padding: 0 !important;
+            min-height: auto !important;
+            width: 100%;
         }
 
         .navbar,
@@ -780,172 +697,255 @@ $adminPageExtraHead = <<<'HTML'
         .header-card,
         .filter-section,
         .dashboard-card,
-        .card-form {
-            border-radius: 16px !important;
-            padding: 18px !important;
+        .card-form,
+        .table-container,
+        .course-card,
+        .modal-content {
+            max-width: 100%;
         }
 
-        .navbar .d-flex,
         .card-header,
         .dashboard-header .d-flex,
         .header-card,
         .action-row,
-        .course-card-header,
-        .d-flex.justify-content-between.align-items-center.mb-4 {
-            align-items: stretch !important;
-            flex-direction: column;
-            gap: 12px;
+        .course-card-header {
+            min-width: 0;
         }
 
-        .navbar h2,
-        .dashboard-title,
-        .title-section h1,
-        .page-title {
-            font-size: 1.45rem !important;
-            line-height: 1.3;
-        }
-
-        .stat-card,
-        .course-card-body {
-            padding: 16px;
-        }
-
-        .stats-group {
-            padding: 16px;
-        }
-
-        .stat-number,
-        .stats-value {
-            font-size: 1.45rem;
-        }
-
-        .order-grid {
-            grid-template-columns: 1fr;
-            gap: 14px;
-        }
-
-        .order-card .d-flex.justify-content-between.align-items-center {
-            align-items: flex-start !important;
-            flex-direction: column;
-            gap: 8px;
+        .filter-buttons,
+        .order-filter-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .btn-filter,
         .filter-btn,
         .btn-add-large,
         .btn-add-course,
-        .search-box button,
         .btn-action,
         .action-btn {
-            width: 100%;
-            justify-content: center;
+            white-space: normal;
+            text-align: center;
         }
 
-        .pagination-wrap {
-            align-items: stretch;
-            flex-direction: column;
+        .order-filter-list {
+            margin-bottom: 0 !important;
         }
 
-        .pagination-list {
-            justify-content: center;
-            width: 100%;
+        .product-table th,
+        .product-table td {
+            white-space: nowrap;
         }
 
-        .page-link-local {
-            flex: 1 1 42px;
-        }
-
-        .search-box {
-            flex-direction: column;
-            max-width: none;
-        }
-
-        .search-box input,
-        .search-box button,
-        .form-control,
-        .form-select {
-            width: 100%;
-            min-width: 0;
-        }
-
-        .product-table {
-            min-width: 760px;
+        .table-container {
+            -webkit-overflow-scrolling: touch;
         }
 
         .current-image-card,
         .preview-container {
-            flex-direction: column;
-            align-items: stretch;
-            text-align: center;
-            gap: 1rem;
+            min-width: 0;
         }
 
-        .current-image,
-        .preview-image {
-            width: min(100%, 180px);
-            height: 150px;
-            margin-inline: auto;
+        .current-image-details,
+        .preview-details,
+        .title-section,
+        .course-card-header h5,
+        .card-title {
+            min-width: 0;
+            overflow-wrap: anywhere;
         }
 
-        .section-title {
-            font-size: 1.35rem;
-            align-items: flex-start;
+        @media (max-width: 1024px) {
+            .page-content {
+                padding: 22px;
+            }
+
+            .stats-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .order-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
         }
 
-        .modal-dialog {
-            margin: .75rem;
+        @media (max-width: 768px) {
+            .page-content {
+                padding: 16px;
+            }
+
+            .navbar,
+            .dashboard-header,
+            .header-card,
+            .filter-section,
+            .dashboard-card,
+            .card-form {
+                border-radius: 16px !important;
+                padding: 18px !important;
+            }
+
+            .navbar .d-flex,
+            .card-header,
+            .dashboard-header .d-flex,
+            .header-card,
+            .action-row,
+            .course-card-header,
+            .d-flex.justify-content-between.align-items-center.mb-4 {
+                align-items: stretch !important;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .navbar h2,
+            .dashboard-title,
+            .title-section h1,
+            .page-title {
+                font-size: 1.45rem !important;
+                line-height: 1.3;
+            }
+
+            .stat-card,
+            .course-card-body {
+                padding: 16px;
+            }
+
+            .stats-group {
+                padding: 16px;
+            }
+
+            .stat-number,
+            .stats-value {
+                font-size: 1.45rem;
+            }
+
+            .order-grid {
+                grid-template-columns: 1fr;
+                gap: 14px;
+            }
+
+            .order-card .d-flex.justify-content-between.align-items-center {
+                align-items: flex-start !important;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .btn-filter,
+            .filter-btn,
+            .btn-add-large,
+            .btn-add-course,
+            .search-box button,
+            .btn-action,
+            .action-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .pagination-wrap {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .pagination-list {
+                justify-content: center;
+                width: 100%;
+            }
+
+            .page-link-local {
+                flex: 1 1 42px;
+            }
+
+            .search-box {
+                flex-direction: column;
+                max-width: none;
+            }
+
+            .search-box input,
+            .search-box button,
+            .form-control,
+            .form-select {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .product-table {
+                min-width: 760px;
+            }
+
+            .current-image-card,
+            .preview-container {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+                gap: 1rem;
+            }
+
+            .current-image,
+            .preview-image {
+                width: min(100%, 180px);
+                height: 150px;
+                margin-inline: auto;
+            }
+
+            .section-title {
+                font-size: 1.35rem;
+                align-items: flex-start;
+            }
+
+            .modal-dialog {
+                margin: .75rem;
+            }
+
+            .modal-body {
+                padding: 1rem !important;
+            }
         }
 
-        .modal-body {
-            padding: 1rem !important;
-        }
-    }
+        @media (max-width: 480px) {
+            .page-content {
+                padding: 12px;
+            }
 
-    @media (max-width: 480px) {
-        .page-content {
-            padding: 12px;
-        }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
 
-        .stats-grid {
-            grid-template-columns: 1fr;
-        }
+            .navbar,
+            .dashboard-header,
+            .header-card,
+            .filter-section,
+            .dashboard-card,
+            .card-form {
+                padding: 14px !important;
+            }
 
-        .navbar,
-        .dashboard-header,
-        .header-card,
-        .filter-section,
-        .dashboard-card,
-        .card-form {
-            padding: 14px !important;
-        }
+            .admin-card {
+                width: 100%;
+                border-radius: 18px;
+                padding: 10px 12px;
+            }
 
-        .admin-card {
-            width: 100%;
-            border-radius: 18px;
-            padding: 10px 12px;
-        }
+            .admin-card img,
+            .admin-profile img {
+                width: 40px;
+                height: 40px;
+            }
 
-        .admin-card img,
-        .admin-profile img {
-            width: 40px;
-            height: 40px;
-        }
+            .order-amount {
+                font-size: 1.25rem;
+            }
 
-        .order-amount {
-            font-size: 1.25rem;
-        }
+            .status-badge,
+            .badge-count,
+            .seasonal-tag {
+                margin-left: 0;
+                margin-top: 6px;
+            }
 
-        .status-badge,
-        .badge-count,
-        .seasonal-tag {
-            margin-left: 0;
-            margin-top: 6px;
+            .product-name {
+                white-space: normal;
+            }
         }
-
-        .product-name {
-            white-space: normal;
-        }
-    }
 </style>
 
 <style>
@@ -1356,77 +1356,70 @@ adminPageStart('จัดการคำสั่งซื้อ');
 ?>
 
 <?php if (isset($_GET['msg']) && $_GET['msg'] == 'deleted'): ?>
-        <div id="successAlert" class="alert alert-success text-center fs-5 fw-bold">
-            ✅ ลบคำสั่งซื้อเรียบร้อยแล้ว
-        </div>
+    <div id="successAlert" class="alert alert-success text-center fs-5 fw-bold">
+        ✅ ลบคำสั่งซื้อเรียบร้อยแล้ว
+    </div>
 
-        <script>
-            setTimeout(() => {
-                document.getElementById('successAlert').remove();
-            }, 3000);
-        </script>
-    <?php endif; ?>
+    <script>
+        setTimeout(() => {
+            document.getElementById('successAlert').remove();
+        }, 3000);
+    </script>
+<?php endif; ?>
 
 <div class="orders-shell">
-    <section class="orders-hero">
     
-        <div class="orders-hero-grid">
-            <div>
-                <h1 class="orders-title">จัดการคำสั่งซื้อ</h1>
-            </div>
-        </div>
-    </section>
 
-   <!-- สถิติ -->
-<div class="stats-layout">
-   <section class="stats-group" aria-labelledby="today-stats-title">
-        <h5 class="stats-group-title" id="today-stats-title">
-            <i class="fas fa-calendar-day"></i> สถิติวันนี้
-        </h5>
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon icon-completed">
-                    <i class="fa-solid fa-check-double"></i>
+    <!-- สถิติ -->
+    <div class="stats-layout">
+        <section class="stats-group" aria-labelledby="today-stats-title">
+            <h5 class="stats-group-title" id="today-stats-title">
+                <i class="fas fa-calendar-day"></i> สถิติวันนี้
+            </h5>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon icon-completed">
+                        <i class="fa-solid fa-check-double"></i>
+                    </div>
+                    <div class="stat-number"><?= number_format($todayStats['completed_count'] ?? 0) ?></div>
+                    <div class="stat-title">ขายสำเร็จวันนี้ (ออเดอร์)</div>
                 </div>
-                <div class="stat-number"><?= number_format($todayStats['completed_count'] ?? 0) ?></div>
-                <div class="stat-title">ขายสำเร็จวันนี้ (ออเดอร์)</div>
-            </div>
 
-            <div class="stat-card">
-                <div class="stat-icon icon-revenue">
-                    <i class="fas fa-money-bill-wave"></i>
+                <div class="stat-card">
+                    <div class="stat-icon icon-revenue">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="stat-number"><?= number_format($todayStats['revenue'] ?? 0, 2) ?></div>
+                    <div class="stat-title">ยอดขายวันนี้ (บาท)</div>
                 </div>
-                <div class="stat-number"><?= number_format($todayStats['revenue'] ?? 0, 2) ?></div>
-                <div class="stat-title">ยอดขายวันนี้ (บาท)</div>
             </div>
-        </div>
-    </section>
-    
-    <section class="stats-group" aria-labelledby="overall-stats-title">
-        <h5 class="stats-group-title" id="overall-stats-title">
-            <i class="fas fa-chart-pie"></i> สถิติทั้งหมด
-        </h5>
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon icon-all">
-                    <i class="fa-solid fa-clipboard-check"></i>
-                </div>
-                <div class="stat-number"><?= number_format($stats['total_completed'] ?? 0) ?></div>
-                <div class="stat-title">ขายสำเร็จทั้งหมด (ออเดอร์)</div>
-            </div>
+        </section>
 
-            <div class="stat-card">
-                <div class="stat-icon icon-revenue">
-                    <i class="fas fa-money-bill-wave"></i>
+        <section class="stats-group" aria-labelledby="overall-stats-title">
+            <h5 class="stats-group-title" id="overall-stats-title">
+                <i class="fas fa-chart-pie"></i> สถิติทั้งหมด
+            </h5>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon icon-all">
+                        <i class="fa-solid fa-clipboard-check"></i>
+                    </div>
+                    <div class="stat-number"><?= number_format($stats['total_completed'] ?? 0) ?></div>
+                    <div class="stat-title">ขายสำเร็จทั้งหมด (ออเดอร์)</div>
                 </div>
-                <div class="stat-number"><?= number_format($overallRevenueStats['revenue'] ?? 0, 2) ?></div>
-                <div class="stat-title">ยอดขายรวมทั้งหมด (บาท)</div>
-            </div>
-        </div>
-    </section>
 
- 
-</div>
+                <div class="stat-card">
+                    <div class="stat-icon icon-revenue">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="stat-number"><?= number_format($overallRevenueStats['revenue'] ?? 0, 2) ?></div>
+                    <div class="stat-title">ยอดขายรวมทั้งหมด (บาท)</div>
+                </div>
+            </div>
+        </section>
+
+
+    </div>
 
 
     <!-- ฟิลเตอร์สถานะ -->
@@ -1457,14 +1450,14 @@ adminPageStart('จัดการคำสั่งซื้อ');
             </a>
 
             <a href="?status=completed&page=1"
-   class="btn-filter btn-filter-completed <?= $status == 'completed' ? 'active' : '' ?>">
+                class="btn-filter btn-filter-completed <?= $status == 'completed' ? 'active' : '' ?>">
 
-    <i class="fas fa-box-check"></i>
+                <i class="fas fa-box-check"></i>
 
-    เสร็จสิ้นทั้งหมด
-    (<?= number_format($stats['completed_count'] ?? 0) ?>)
+                เสร็จสิ้นทั้งหมด
+                (<?= number_format($stats['completed_count'] ?? 0) ?>)
 
-</a>
+            </a>
         </div>
     </div>
 
@@ -1490,74 +1483,74 @@ adminPageStart('จัดการคำสั่งซื้อ');
                 <?php while ($order = $result->fetch_assoc()): ?>
 
 
-                  <div class="order-card">
+                    <div class="order-card">
 
-    <?php
-    $orderTime = strtotime($order['order_date']);
-    $now = time();
-    $diffHours = ($now - $orderTime) / 3600;
-    ?>
+                        <?php
+                        $orderTime = strtotime($order['order_date']);
+                        $now = time();
+                        $diffHours = ($now - $orderTime) / 3600;
+                        ?>
 
-    <!-- Top: รหัส + badge ใหม่ + status -->
-    <div class="d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center gap-2">
-            <span class="order-code">#<?= htmlspecialchars($order['order_code']) ?></span>
-            <?php if ($diffHours <= 24 && $order['order_status'] == 'pending'): ?>
-                <span class="badge-new">ใหม่</span>
-            <?php endif; ?>
-        </div>
+                        <!-- Top: รหัส + badge ใหม่ + status -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="order-code">#<?= htmlspecialchars($order['order_code']) ?></span>
+                                <?php if ($diffHours <= 24 && $order['order_status'] == 'pending'): ?>
+                                    <span class="badge-new">ใหม่</span>
+                                <?php endif; ?>
+                            </div>
 
-        <?php if ($order['order_status'] == 'pending'): ?>
-            <span class="status-badge badge-pending">รอยืนยัน</span>
-        <?php elseif ($order['order_status'] == 'approved'): ?>
-            <span class="status-badge badge-approved">ยืนยันแล้ว</span>
-        <?php elseif ($order['order_status'] == 'rejected'): ?>
-            <span class="status-badge badge-rejected">ปฏิเสธแล้ว</span>
-        <?php elseif ($order['order_status'] == 'completed'): ?>
-            <span class="status-badge badge-completed">เสร็จสิ้นแล้ว</span>
-        <?php endif; ?>
-    </div>
+                            <?php if ($order['order_status'] == 'pending'): ?>
+                                <span class="status-badge badge-pending">รอยืนยัน</span>
+                            <?php elseif ($order['order_status'] == 'approved'): ?>
+                                <span class="status-badge badge-approved">ยืนยันแล้ว</span>
+                            <?php elseif ($order['order_status'] == 'rejected'): ?>
+                                <span class="status-badge badge-rejected">ปฏิเสธแล้ว</span>
+                            <?php elseif ($order['order_status'] == 'completed'): ?>
+                                <span class="status-badge badge-completed">เสร็จสิ้นแล้ว</span>
+                            <?php endif; ?>
+                        </div>
 
-    <!-- ยอดเงิน -->
-    <div class="order-amount">
-        ฿<?= number_format($order['total_amount'], 2) ?>
-        <span>บาท</span>
-    </div>
+                        <!-- ยอดเงิน -->
+                        <div class="order-amount">
+                            ฿<?= number_format($order['total_amount'], 2) ?>
+                            <span>บาท</span>
+                        </div>
 
-    <hr class="order-divider">
+                        <hr class="order-divider">
 
-    <!-- ข้อมูล -->
-    <div class="order-info">
-        <div class="info-row">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M8 1v2M8 13v2M1 8h2M13 8h2" stroke="currentColor" stroke-width="1.2"/>
-            </svg>
-            <strong><?= htmlspecialchars($order['customer_name']) ?></strong>
-        </div>
+                        <!-- ข้อมูล -->
+                        <div class="order-info">
+                            <div class="info-row">
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                    <circle cx="8" cy="7" r="4" stroke="currentColor" stroke-width="1.5" />
+                                    <path d="M8 1v2M8 13v2M1 8h2M13 8h2" stroke="currentColor" stroke-width="1.2" />
+                                </svg>
+                                <strong><?= htmlspecialchars($order['customer_name']) ?></strong>
+                            </div>
 
-        <div class="info-row">
-            <span class="dot <?= $order['receive_type'] == 'pickup' ? 'dot-pickup' : 'dot-deliver' ?>"></span>
-            <?= $order['receive_type'] == 'pickup' ? 'รับเองที่สวน' : 'ส่งให้' ?> ·
-            <strong>
-                <?= !empty($order['receive_datetime'])
-                    ? date('d/m/Y H:i', strtotime($order['receive_datetime']))
-                    : '-' ?>
-            </strong>
-        </div>
+                            <div class="info-row">
+                                <span class="dot <?= $order['receive_type'] == 'pickup' ? 'dot-pickup' : 'dot-deliver' ?>"></span>
+                                <?= $order['receive_type'] == 'pickup' ? 'รับเองที่สวน' : 'ส่งให้' ?> ·
+                                <strong>
+                                    <?= !empty($order['receive_datetime'])
+                                        ? date('d/m/Y H:i', strtotime($order['receive_datetime']))
+                                        : '-' ?>
+                                </strong>
+                            </div>
 
-        <div class="info-row order-date-small">
-            สั่งเมื่อ <?= date('d/m/Y H:i', strtotime($order['order_date'])) ?>
-        </div>
-    </div>
+                            <div class="info-row order-date-small">
+                                สั่งเมื่อ <?= date('d/m/Y H:i', strtotime($order['order_date'])) ?>
+                            </div>
+                        </div>
 
-    <!-- ปุ่ม -->
-    <a href="order_detail.php?code=<?= $order['order_code'] ?>" class="btn-detail">
-        ดูรายละเอียด
-    </a>
+                        <!-- ปุ่ม -->
+                        <a href="order_detail.php?code=<?= $order['order_code'] ?>" class="btn-detail">
+                            ดูรายละเอียด
+                        </a>
 
-</div>
-                    
+                    </div>
+
                 <?php endwhile; ?>
 
             <?php else: ?>
@@ -1622,32 +1615,32 @@ adminPageStart('จัดการคำสั่งซื้อ');
 </div>
 
 
-    <!-- JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // ค้นหาออเดอร์
-        const searchInput = document.createElement('input');
-        searchInput.type = 'text';
-        searchInput.className = 'form-control orders-search';
-        searchInput.placeholder = 'ค้นหาออเดอร์... (รหัส, ชื่อ, เบอร์โทร)';
-        searchInput.id = 'searchOrders';
+<!-- JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // ค้นหาออเดอร์
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'form-control orders-search';
+    searchInput.placeholder = 'ค้นหาออเดอร์... (รหัส, ชื่อ, เบอร์โทร)';
+    searchInput.id = 'searchOrders';
 
-        const allCards = document.querySelectorAll('.dashboard-card .card-header');
-        const cardHeader = allCards[allCards.length - 1]; // อันสุดท้าย
-        if (cardHeader) {
-            cardHeader.parentNode.insertBefore(searchInput, cardHeader.nextElementSibling);
-        }
+    const allCards = document.querySelectorAll('.dashboard-card .card-header');
+    const cardHeader = allCards[allCards.length - 1]; // อันสุดท้าย
+    if (cardHeader) {
+        cardHeader.parentNode.insertBefore(searchInput, cardHeader.nextElementSibling);
+    }
 
-        document.getElementById('searchOrders')?.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            document.querySelectorAll('.order-card').forEach(card => {
-                const text = card.textContent.toLowerCase();
-                card.style.display = text.includes(searchTerm) ? '' : 'none';
-            });
-
+    document.getElementById('searchOrders')?.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        document.querySelectorAll('.order-card').forEach(card => {
+            const text = card.textContent.toLowerCase();
+            card.style.display = text.includes(searchTerm) ? '' : 'none';
         });
 
-        document.querySelector('.page-content')?.classList.add('orders-page');
-    </script>
+    });
+
+    document.querySelector('.page-content')?.classList.add('orders-page');
+</script>
 
 <?php adminPageEnd(); ?>
