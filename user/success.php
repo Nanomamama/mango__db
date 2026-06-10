@@ -259,17 +259,17 @@ while ($r = $items->fetch_assoc()) {
 
         .status-pill.pending {
             background: #ffee32;
-            color: #713f12;
+            color: #2c2a29;
         }
 
         .status-pill.approved {
-            background: #dcfce7;
-            color: #14532d;
+            background: #02f954;
+            color: #2c2a29;
         }
 
         .status-pill.completed {
-            background: #dbeafe;
-            color: #1e3a5f;
+            background: #03e2ee;
+            color: #2c2a29;
         }
 
         .status-pill.rejected {

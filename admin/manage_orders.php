@@ -1208,21 +1208,20 @@ $adminPageExtraHead = <<<'HTML'
     }
 
     .badge-pending {
-        background: #f1f50b;
-        color: #111827;
-        border-color: #d97706;
+         background: #ffee32;
+            color: #2c2a29;
     }
 
     .badge-approved {
-        background: #00bf40;
-        color: #ffffff;
+        background: #02f954;
+        color: #2c2a29;
         border-color: #15803d;
     }
 
     .badge-completed {
-        background: #04b4cf;
-        color: #ffffff;
-        border-color: #0e7490;
+        background: #03e2ee;
+        color: #2c2a29;
+        border-color: #99c2f1;
     }
 
     .badge-rejected {

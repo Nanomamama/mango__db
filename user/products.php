@@ -1134,11 +1134,11 @@ LIMIT 10
     <div class="container">
         <!-- Info Notice -->
         <div class="info-notice animate__animated animate__fadeInUp">
-            <h6><i class="fas fa-info-circle"></i> หมายเหตุการสั่งซื้อ</h6>
+            <h6><i class="fas fa-info-circle"></i> หมายเหตุการสั่งซื้อ สั่งซื้อได้เลยโดยไม่ต้องสมัครสมาชิก</h6>
             <div class="row">
                 <div class="col-md-4">
                     <p><i class="fas fa-truck"></i> จัดส่งฟรี! ขั้นต่ำ 500 บาท</p>
-                    <p>ในพื้นที่ บ้านน้อย เชียงคาน แก่งคุดคู้ หรือพื้นที่ใกล้เคียง</p>
+                    <p>ในพื้นที่ บ้านน้อย เชียงคาน แก่งคุดคู้ หรือพื้นที่ใกล้เคียง</p>
                 </div>
                 <div class="col-md-4">
                     <p><i class="fas fa-store"></i> รับสินค้าที่สวนได้</p>

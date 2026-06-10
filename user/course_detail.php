@@ -713,6 +713,8 @@ if (
             margin-top: 4px;
         }
 
+        .read-more.is-hidden { display: none; }
+
         .read-more:hover { text-decoration: underline; }
 
         .no-comments {
@@ -738,22 +740,32 @@ if (
             display: none;
             align-items: center;
             justify-content: center;
+            padding: 72px 72px 64px;
+            touch-action: pan-y;
         }
 
         .lightbox.show { display: flex; }
 
         .lightbox-content {
-            max-width: 90vw;
-            max-height: 90vh;
+            width: 100%;
+            height: 100%;
+            max-width: 1200px;
             position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .lightbox-img {
+            width: auto;
+            height: auto;
             max-width: 100%;
-            max-height: 85vh;
+            max-height: 100%;
             object-fit: contain;
             display: block;
             margin: 0 auto;
+            user-select: none;
+            -webkit-user-drag: none;
         }
 
         .lightbox-nav {
@@ -776,6 +788,8 @@ if (
             transition: var(--transition);
             backdrop-filter: blur(5px);
         }
+
+        .lightbox-btn.is-hidden { display: none; }
 
         .lightbox-btn:hover {
             background: rgba(255,255,255,.3);
@@ -843,7 +857,36 @@ if (
             .thumbnail-grid { grid-template-columns: repeat(2, 1fr); }
             .comments-section { padding: 24px 18px; }
             .comments-list { grid-template-columns: 1fr; }
-            .lightbox-nav { padding: 0 1rem; }
+            .lightbox {
+                padding: 68px 12px 58px;
+            }
+            .lightbox-nav {
+                top: auto;
+                bottom: 14px;
+                transform: none;
+                justify-content: center;
+                gap: 16px;
+                padding: 0;
+                pointer-events: none;
+            }
+            .lightbox-btn {
+                width: 44px;
+                height: 44px;
+                font-size: 1rem;
+                pointer-events: auto;
+            }
+            .lightbox-close {
+                top: 14px;
+                right: 14px;
+                width: 42px;
+                height: 42px;
+                font-size: 1.15rem;
+            }
+            .lightbox-counter {
+                bottom: 18px;
+                left: 16px;
+                transform: none;
+            }
             .access-code-form { flex-direction: column; }
             .access-code-btn { width: 100%; justify-content: center; }
         }
@@ -1178,6 +1221,9 @@ if (
             const viewAllBtn = document.getElementById('viewAllBtn');
 
             let currentImageIndex = 0;
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let touchEndX = 0;
 
             thumbnails.forEach(thumb => {
                 thumb.addEventListener('click', function() {
@@ -1207,6 +1253,8 @@ if (
                 currentImageIndex = index;
                 updateLightboxImage();
                 lightbox.classList.add('show');
+                lightboxPrev.classList.toggle('is-hidden', images.length <= 1);
+                lightboxNext.classList.toggle('is-hidden', images.length <= 1);
                 document.body.style.overflow = 'hidden';
             }
 
@@ -1218,16 +1266,21 @@ if (
             function updateLightboxImage() {
                 if (images[currentImageIndex]) {
                     lightboxImage.src = '../uploads/' + images[currentImageIndex];
+                    lightboxImage.onerror = function() { this.src = placeholderSrc; };
                     lightboxCounter.textContent = (currentImageIndex + 1) + ' / ' + images.length;
+                    updateMainImage(currentImageIndex);
+                    updateActiveThumbnail(currentImageIndex);
                 }
             }
 
             function nextImage() {
+                if (images.length <= 1) return;
                 currentImageIndex = (currentImageIndex + 1) % images.length;
                 updateLightboxImage();
             }
 
             function prevImage() {
+                if (images.length <= 1) return;
                 currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
                 updateLightboxImage();
             }
@@ -1246,6 +1299,31 @@ if (
             });
 
             lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+            lightbox.addEventListener('touchstart', (e) => {
+                if (!lightbox.classList.contains('show') || e.touches.length !== 1) return;
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                touchEndX = touchStartX;
+            }, { passive: true });
+
+            lightbox.addEventListener('touchmove', (e) => {
+                if (!lightbox.classList.contains('show') || e.touches.length !== 1) return;
+                touchEndX = e.touches[0].clientX;
+            }, { passive: true });
+
+            lightbox.addEventListener('touchend', (e) => {
+                if (!lightbox.classList.contains('show') || images.length <= 1) return;
+
+                const deltaX = touchEndX - touchStartX;
+                const deltaY = Math.abs((e.changedTouches[0]?.clientY || touchStartY) - touchStartY);
+                if (Math.abs(deltaX) < 45 || Math.abs(deltaX) < deltaY) return;
+
+                if (deltaX < 0) {
+                    nextImage();
+                } else {
+                    prevImage();
+                }
+            });
 
             // Character counter
             const commentText = document.getElementById('commentText');
@@ -1484,24 +1562,58 @@ if (
 
                 newComment.innerHTML = `
                     <div class="comment-header">
-                        <div class="comment-author">คุณ${userName}</div>
+                        <div class="comment-author">คุณ${escapeHTML(userName)}</div>
                         <div class="comment-date">${dateStr}</div>
                     </div>
                     ${ratingHTML}
-                    <div class="comment-text">${commentText.replace(/\n/g, '<br>')}</div>
+                    <div class="comment-text-wrapper">
+                        <div class="comment-text">${escapeHTML(commentText).replace(/\n/g, '<br>')}</div>
+                        <span class="read-more">อ่านเพิ่มเติม</span>
+                    </div>
                 `;
 
                 commentsList.insertBefore(newComment, commentsList.firstChild);
+                initReadMore(newComment);
+            }
+
+            function escapeHTML(value) {
+                const div = document.createElement('div');
+                div.textContent = value;
+                return div.innerHTML;
             }
         });
 
-        // Read more toggle
-        document.querySelectorAll('.read-more').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const text = this.previousElementSibling;
-                text.classList.toggle('expanded');
-                this.textContent = text.classList.contains('expanded') ? 'ย่อข้อความ' : 'อ่านเพิ่มเติม';
+        function initReadMore(root = document) {
+            root.querySelectorAll('.read-more').forEach(btn => {
+                const text = btn.previousElementSibling;
+                if (!text) return;
+
+                const updateVisibility = () => {
+                    const wasExpanded = text.classList.contains('expanded');
+                    text.classList.remove('expanded');
+                    btn.classList.toggle('is-hidden', text.scrollHeight <= text.clientHeight + 1);
+                    text.classList.toggle('expanded', wasExpanded);
+                };
+
+                updateVisibility();
+                if (btn.dataset.readMoreReady === '1') return;
+
+                btn.dataset.readMoreReady = '1';
+                btn.addEventListener('click', function() {
+                    text.classList.toggle('expanded');
+                    this.textContent = text.classList.contains('expanded') ? 'ย่อข้อความ' : 'อ่านเพิ่มเติม';
+                });
             });
+        }
+
+        initReadMore();
+
+        let readMoreResizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(readMoreResizeTimer);
+            readMoreResizeTimer = setTimeout(() => {
+                initReadMore();
+            }, 150);
         });
     </script>
 </body>

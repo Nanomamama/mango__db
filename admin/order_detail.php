@@ -53,31 +53,34 @@ while ($row = $items->fetch_assoc()) {
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+    
 :root {
+      background: #ffee32;
+            color: #2c2a29;
     /* Primary Colors */
     --primary: #2563eb;
     --primary-dark: #1d4ed8;
     --primary-light: #3b82f6;
     
     /* Status Colors - Pending (รอยืนยัน) */
-    --status-pending-text: #ffffff;
-    --status-pending-bg: #ffe600;
+    --status-pending-text: #2c2a29;
+    --status-pending-bg: #ffee32;
     --status-pending-border: #ffda06;
     
     /* Status Colors - Approved (ยืนยันแล้ว) */
-    --status-approved-text: #ffffff;
-    --status-approved-bg: #42dd00;
+    --status-approved-text: #2c2a29;
+    --status-approved-bg: #02f954;
     --status-approved-border: #16ff70;
     
     /* Status Colors - Rejected (ถูกปฏิเสธ) */
-    --status-rejected-text: #ffffff;
+    --status-rejected-text: #2c2a29;
     --status-rejected-bg: #ff0000;
     --status-rejected-border: #ff3737;
     
     /* Status Colors - Completed (เสร็จสมบูรณ์) */
-    --status-completed-text: #ffffff;
-    --status-completed-bg: #00c5e4;
-    --status-completed-border: #3592fd;
+    --status-completed-text: #2c2a29;
+    --status-completed-bg: #03e2ee;
+    --status-completed-border: #99c2f1;
     
     /* Gray Scale */
     --gray-50: #f9fafb;
@@ -94,7 +97,7 @@ while ($row = $items->fetch_assoc()) {
     /* Semantic Colors */
     --success: #00ddff;
     --success-dark: #059669;
-    --success-bg: #90ff21;
+    --success-bg: #77ec77;
     --success-text: #065f46;
     
     --danger: #ef4444;

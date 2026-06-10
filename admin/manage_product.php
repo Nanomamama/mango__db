@@ -604,10 +604,19 @@ body {
     box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
 }
 
+.product-detail-modal .modal-dialog {
+    max-height: calc(100dvh - 1rem);
+}
+
+.product-detail-modal .modal-content {
+    max-height: calc(100dvh - 1rem);
+}
+
 .product-detail-modal .modal-header {
     border: 0;
     padding: 1.25rem 1.5rem;
     background: linear-gradient(135deg, #ffffff 0%, #eefafa 100%);
+    flex: 0 0 auto;
 }
 
 .product-detail-modal .modal-title {
@@ -620,6 +629,8 @@ body {
     grid-template-columns: 210px minmax(0, 1fr);
     gap: 1.25rem;
     padding: 1.5rem;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .product-detail-image,
@@ -688,6 +699,7 @@ body {
     justify-content: flex-end;
     gap: 0.75rem;
     padding: 0 1.5rem 1.5rem;
+    flex: 0 0 auto;
 }
 
 /* Empty State */
@@ -1200,7 +1212,7 @@ adminPageStart('จัดการสินค้า');
                 <h2 class="modal-title fs-5" id="productDetailTitle">รายละเอียดสินค้า</h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
             </div>
-            <div class="product-detail-body">
+            <div class="modal-body product-detail-body">
                 <div>
                     <img id="productDetailImage" class="product-detail-image d-none" src="" alt="">
                     <div id="productDetailNoImage" class="product-detail-no-image">
