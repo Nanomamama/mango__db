@@ -576,12 +576,6 @@ adminPageStart('จัดการกิจกรรมอบรม');
 ?>
 
 <div class="courses-admin-page">
-    <section class="course-hero">
-        <div>
-            <h1 class="course-title">จัดการกิจกรรมอบรม</h1>
-        </div>
-       
-    </section>
 
     <section class="course-stats" aria-label="สรุปข้อมูลกิจกรรม">
         <div class="course-stat">
@@ -830,13 +824,34 @@ adminPageStart('จัดการกิจกรรมอบรม');
             const course = findCourse(this.dataset.courseId);
             if (!course) return;
 
-            const fields = [
-                { key: 'course_name', label: 'ชื่อกิจกรรม' },
-                { key: 'course_description', label: 'คำอธิบาย', multiline: true },
-                { key: 'image1', label: 'รูปภาพ 1 (หลัก)', image: true },
-                { key: 'image2', label: 'รูปภาพ 2', image: true },
-                { key: 'image3', label: 'รูปภาพ 3', image: true },
-                { key: 'updated_at', label: 'แก้ไขล่าสุด' }
+            const fields = [{
+                    key: 'course_name',
+                    label: 'ชื่อกิจกรรม'
+                },
+                {
+                    key: 'course_description',
+                    label: 'คำอธิบาย',
+                    multiline: true
+                },
+                {
+                    key: 'image1',
+                    label: 'รูปภาพ 1 (หลัก)',
+                    image: true
+                },
+                {
+                    key: 'image2',
+                    label: 'รูปภาพ 2',
+                    image: true
+                },
+                {
+                    key: 'image3',
+                    label: 'รูปภาพ 3',
+                    image: true
+                },
+                {
+                    key: 'updated_at',
+                    label: 'แก้ไขล่าสุด'
+                }
             ];
 
             const html = fields.map(field => {
@@ -844,9 +859,9 @@ adminPageStart('จัดการกิจกรรมอบรม');
                 let value = '';
 
                 if (field.image) {
-                    value = rawValue
-                        ? `<img src="${UPLOADS_PATH}${escapeAttr(rawValue)}" class="modal-image" alt="${escapeAttr(field.label)}">`
-                        : '<span class="text-muted">ไม่มีรูปภาพ</span>';
+                    value = rawValue ?
+                        `<img src="${UPLOADS_PATH}${escapeAttr(rawValue)}" class="modal-image" alt="${escapeAttr(field.label)}">` :
+                        '<span class="text-muted">ไม่มีรูปภาพ</span>';
                 } else if (field.multiline) {
                     value = escapeHTML(rawValue).replace(/\n/g, '<br>');
                 } else {

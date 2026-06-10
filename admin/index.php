@@ -806,40 +806,6 @@ adminPageStart('Dashboard');
 </style>
 
 <div class="dashboard-shell">
-    <!-- <section class="dashboard-hero">
-        <div class="hero-topline">
-            <i class='bx bx-pulse'></i>
-            ภาพรวมระบบ Mango Paradise
-        </div>
-
-        <div class="hero-grid">
-            <div>
-                <h1 class="hero-title">แดชบอร์ดผู้ดูแลระบบ</h1>
-                <p class="hero-copy">
-                    ติดตามยอดขาย การจอง สมาชิก และงานที่ต้องจัดการต่อได้ในหน้าเดียว
-                    เพื่อให้ทีมตรวจสอบสถานะล่าสุดได้เร็วขึ้นในทุกขนาดหน้าจอ
-                </p>
-            </div>
-
-            <div class="hero-meta">
-                <div class="hero-stat">
-                    <div class="hero-stat-label">ยอดขายเดือนนี้</div>
-                    <div class="hero-stat-value">฿<?= formatCurrency($dashboardStats['sales_this_month']) ?></div>
-                </div>
-
-                <div class="hero-stat">
-                    <div class="hero-stat-label">การจองเดือนนี้</div>
-                    <div class="hero-stat-value"><?= formatNumber($dashboardStats['bookings_this_month']) ?></div>
-                </div>
-
-                <div class="hero-stat">
-                    <div class="hero-stat-label">สมาชิกทั้งหมด</div>
-                    <div class="hero-stat-value"><?= formatNumber($dashboardStats['total_members']) ?></div>
-                </div>
-            </div>
-        </div>
-    </section> -->
-
     <section class="metrics-grid">
         <article class="metric-card">
             <div class="metric-top">
@@ -898,10 +864,6 @@ adminPageStart('Dashboard');
                 <div class="metric-icon">
                     <i class='bx bx-package'></i>
                 </div>
-            </div>
-            <div class="metric-trend positive">
-                <i class='bx bx-user'></i>
-                <?= h($adminName !== '' ? $adminName : 'ผู้ดูแลระบบ') ?>
             </div>
         </article>
     </section>

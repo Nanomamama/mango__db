@@ -968,13 +968,6 @@ adminPageStart('จัดการสินค้า');
 ?>
 
 <div class="admin-local-page">
-    <!-- HEADER -->
-    <div class="header-card">
-        <div class="title-section">
-            <h1>จัดการสินค้า</h1>
-        </div>
-
-    </div>
 
     <!-- FILTER -->
     <div class="filter-section">
@@ -1069,7 +1062,7 @@ adminPageStart('จัดการสินค้า');
     }
 
     $sql = "SELECT * FROM products $where ORDER BY product_id DESC";
-    
+
     $stmt = $conn->prepare($sql);
     if (!empty($params)) {
         $stmt->bind_param($types, ...$params);
@@ -1123,7 +1116,7 @@ adminPageStart('จัดการสินค้า');
                             data-edit-url="edit_product.php?id=<?= (int) $row['product_id'] ?>">
                             <td data-label="รูปสินค้า">
                                 <?php if ($productImagePath !== ''): ?>
-                                    <img src="<?= htmlspecialchars($productImagePath, ENT_QUOTES, 'UTF-8') ?>" 
+                                    <img src="<?= htmlspecialchars($productImagePath, ENT_QUOTES, 'UTF-8') ?>"
                                         class="product-img"
                                         alt="<?= htmlspecialchars($row['product_name'], ENT_QUOTES, 'UTF-8') ?>"
                                         onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2265%22%20height%3D%2265%22%20viewBox%3D%220%200%2065%2065%22%3E%3Crect%20width%3D%2265%22%20height%3D%2265%22%20fill%3D%22%23f1f5f9%22%2F%3E%3Ctext%20x%3D%2232.5%22%20y%3D%2238%22%20text-anchor%3D%22middle%22%20fill%3D%22%2394a3b8%22%20font-size%3D%2210%22%3ENo%20Img%3C%2Ftext%3E%3C%2Fsvg%3E'">
@@ -1264,83 +1257,83 @@ adminPageStart('จัดการสินค้า');
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-document.querySelector('.page-content')?.classList.add('product-page-bg');
+    document.querySelector('.page-content')?.classList.add('product-page-bg');
 
-const productDetailModalElement = document.getElementById('productDetailModal');
-const productDetailModal = productDetailModalElement ? new bootstrap.Modal(productDetailModalElement) : null;
-const productDetailImage = document.getElementById('productDetailImage');
-const productDetailNoImage = document.getElementById('productDetailNoImage');
-const productDetailEditLink = document.getElementById('productDetailEditLink');
+    const productDetailModalElement = document.getElementById('productDetailModal');
+    const productDetailModal = productDetailModalElement ? new bootstrap.Modal(productDetailModalElement) : null;
+    const productDetailImage = document.getElementById('productDetailImage');
+    const productDetailNoImage = document.getElementById('productDetailNoImage');
+    const productDetailEditLink = document.getElementById('productDetailEditLink');
 
-if (productDetailImage && productDetailNoImage) {
-    productDetailImage.addEventListener('error', () => {
-        productDetailImage.removeAttribute('src');
-        productDetailImage.alt = '';
-        productDetailImage.classList.add('d-none');
-        productDetailNoImage.classList.remove('d-none');
-    });
-}
-
-function setText(id, value) {
-    const element = document.getElementById(id);
-    if (element) {
-        element.textContent = value || '-';
-    }
-}
-
-function openProductDetail(row) {
-    if (!productDetailModal) {
-        return;
+    if (productDetailImage && productDetailNoImage) {
+        productDetailImage.addEventListener('error', () => {
+            productDetailImage.removeAttribute('src');
+            productDetailImage.alt = '';
+            productDetailImage.classList.add('d-none');
+            productDetailNoImage.classList.remove('d-none');
+        });
     }
 
-    const data = row.dataset;
-    setText('productDetailTitle', data.productName || 'รายละเอียดสินค้า');
-    setText('productDetailId', `#${data.productId || '-'}`);
-    setText('productDetailCategory', data.category);
-    setText('productDetailPrice', data.price);
-    setText('productDetailUnit', data.unit);
-    setText('productDetailStatus', data.status);
-    setText('productDetailSeasonal', data.seasonal);
-    setText('productDetailDescription', data.description);
-
-    if (productDetailEditLink) {
-        productDetailEditLink.href = data.editUrl || '#';
+    function setText(id, value) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value || '-';
+        }
     }
 
-    if (data.image && productDetailImage && productDetailNoImage) {
-        productDetailImage.src = data.image;
-        productDetailImage.alt = data.productName || '';
-        productDetailImage.classList.remove('d-none');
-        productDetailNoImage.classList.add('d-none');
-    } else if (productDetailImage && productDetailNoImage) {
-        productDetailImage.removeAttribute('src');
-        productDetailImage.alt = '';
-        productDetailImage.classList.add('d-none');
-        productDetailNoImage.classList.remove('d-none');
-    }
-
-    productDetailModal.show();
-}
-
-document.querySelectorAll('.product-row-click').forEach((row) => {
-    row.addEventListener('click', (event) => {
-        if (event.target.closest('a, button, input, form, .action-group')) {
+    function openProductDetail(row) {
+        if (!productDetailModal) {
             return;
         }
-        openProductDetail(row);
-    });
 
-    row.addEventListener('keydown', (event) => {
-        if (event.key !== 'Enter' && event.key !== ' ') {
-            return;
+        const data = row.dataset;
+        setText('productDetailTitle', data.productName || 'รายละเอียดสินค้า');
+        setText('productDetailId', `#${data.productId || '-'}`);
+        setText('productDetailCategory', data.category);
+        setText('productDetailPrice', data.price);
+        setText('productDetailUnit', data.unit);
+        setText('productDetailStatus', data.status);
+        setText('productDetailSeasonal', data.seasonal);
+        setText('productDetailDescription', data.description);
+
+        if (productDetailEditLink) {
+            productDetailEditLink.href = data.editUrl || '#';
         }
-        event.preventDefault();
-        openProductDetail(row);
+
+        if (data.image && productDetailImage && productDetailNoImage) {
+            productDetailImage.src = data.image;
+            productDetailImage.alt = data.productName || '';
+            productDetailImage.classList.remove('d-none');
+            productDetailNoImage.classList.add('d-none');
+        } else if (productDetailImage && productDetailNoImage) {
+            productDetailImage.removeAttribute('src');
+            productDetailImage.alt = '';
+            productDetailImage.classList.add('d-none');
+            productDetailNoImage.classList.remove('d-none');
+        }
+
+        productDetailModal.show();
+    }
+
+    document.querySelectorAll('.product-row-click').forEach((row) => {
+        row.addEventListener('click', (event) => {
+            if (event.target.closest('a, button, input, form, .action-group')) {
+                return;
+            }
+            openProductDetail(row);
+        });
+
+        row.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') {
+                return;
+            }
+            event.preventDefault();
+            openProductDetail(row);
+        });
     });
-});
 </script>
 
-<?php 
+<?php
 $stmt->close();
 $conn->close();
 ?>

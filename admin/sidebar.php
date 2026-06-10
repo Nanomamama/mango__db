@@ -5,6 +5,8 @@
  * UI/UX Upgrade + Animation + Glassmorphism
  */
 
+
+
 declare(strict_types=1);
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -222,22 +224,25 @@ function adminPageStart(string $title): void
             }
 
             .logo-img {
-
-                text-align: center;
-
-                margin-bottom: 34px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 152px;
+                margin-bottom: 18px;
             }
 
             .logo-img img {
-
-                width: 145px;
-
+                display: block;
+                width: 100%;
+                max-width: 248px;
+                max-height: 148px;
+                height: auto;
+                object-fit: contain;
                 transition: .35s ease;
             }
 
             .logo-img img:hover {
-
-                transform: scale(1.04);
+                transform: scale(1.03);
             }
 
             /* =====================================================
@@ -742,6 +747,16 @@ function adminPageStart(string $title): void
                     width: 85%;
                 }
 
+                .logo-img {
+                    min-height: 132px;
+                    margin-bottom: 14px;
+                }
+
+                .logo-img img {
+                    max-width: 230px;
+                    max-height: 128px;
+                }
+
                 .topbar {
 
                     padding: 16px;
@@ -1080,7 +1095,7 @@ function adminPageStart(string $title): void
 
             <div class="logo-img">
                 <a href="./index.php">
-                    <img src="../user/image/logo-3.png" alt="Logo">
+                    <img src="./image/logo-69.png" alt="Logo">
                 </a>
             </div>
 
@@ -1246,6 +1261,7 @@ function adminPageStart(string $title): void
                         <i class="fas fa-external-link-alt"></i> ดูหน้าเว็บ
                     </a>
                 </div>
+                
             </header>
 
             <!-- Content -->

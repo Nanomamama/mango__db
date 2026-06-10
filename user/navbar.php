@@ -64,23 +64,36 @@ if (isset($_SESSION['member_id'])) {
     }
 
     /* Logo Classes */
+    .navbar-brand {
+      display: inline-flex;
+      align-items: center;
+      flex-shrink: 0;
+      padding: 0;
+      margin-right: 1.5rem;
+    }
+
     .logo {
-      display: inline-block;
-      transition: transform 0.3s ease;
+      display: block;
+      object-fit: contain;
+      object-position: center;
+      transition: transform 0.3s ease, filter 0.3s ease;
     }
 
     .logo:hover {
       transform: scale(1.05);
+      filter: drop-shadow(0 4px 10px rgba(1, 106, 112, 0.16));
     }
 
     .logo--navbar {
-      height: 50px;
-      width: auto;
+      width: clamp(145px, 13vw, 190px);
+      height: 58px;
+      max-width: 100%;
     }
 
     .logo--offcanvas {
-      height: 50px;
-      width: auto;
+      width: 220px;
+      height: 95px;
+      max-width: 72vw;
     }
 
     .navbar {
@@ -205,6 +218,18 @@ if (isset($_SESSION['member_id'])) {
       color: var(--white);
     }
 
+    .logout-btn {
+      background: #dc3545;
+      border-color: #dc3545;
+      color: #fff;
+    }
+
+    .logout-btn:hover {
+      background: #bb2d3b;
+      border-color: #b02a37;
+      color: #fff;
+    }
+
     /* Profile */
     .profile-link {
       display: flex;
@@ -255,6 +280,31 @@ if (isset($_SESSION['member_id'])) {
         padding: 0.4rem 1.2rem;
         font-size: 0.9rem;
       }
+
+      .logo--navbar {
+        width: 165px;
+        height: 56px;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .navbar {
+        min-height: 72px;
+      }
+
+      .navbar-brand {
+        margin-right: 0.75rem;
+      }
+
+      .logo--navbar {
+        width: 145px;
+        height: 50px;
+      }
+
+      .logo--offcanvas {
+        width: 190px;
+        height: 82px;
+      }
     }
 
     @media (min-width: 1200px) {
@@ -267,23 +317,21 @@ if (isset($_SESSION['member_id'])) {
 
 <body>
 
-  <!-- เปลี่ยนจาก fixed-top เป็น sticky-top -->
   <nav class="navbar navbar-expand-xl bg-white sticky-top">
     <div class="container">
       <a class="navbar-brand" href="../user/index.php">
-        <img src="../user/image/logo-3.png" alt="สวนลุงเผือก" class="logo logo--navbar">
+        <img src="../user/image/logo-navbar.png" alt="สวนลุงเผือก" class="logo logo--navbar" width="190" height="58" decoding="async">
       </a>
 
       <button class="navbar-toggler text-dark border-0 <?= $awaiting_qr_payment_count > 0 ? 'booking-menu-alert' : '' ?>" type="button" data-bs-toggle="offcanvas" data-bs-target="#navMenu" aria-label="เปิดเมนูนำทาง">
         <i class='bx bx-menu' style="font-size:30px;"></i>
         <?php if ($awaiting_qr_payment_count > 0): ?>
-          <!-- <span class="hamburger-alert-text">ได้รับ QR Code รอชำระเงิน</span> -->
         <?php endif; ?>
       </button>
 
       <div class="offcanvas offcanvas-end" tabindex="-1" id="navMenu">
         <div class="offcanvas-header">
-          <img src="../user/image/logo-3.png" alt="สวนลุงเผือก" class="logo logo--offcanvas">
+          <img src="../user/image/logo-navbar.png" alt="สวนลุงเผือก" class="logo logo--offcanvas" width="220" height="95" decoding="async">
           <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
         </div>
 
@@ -303,14 +351,14 @@ if (isset($_SESSION['member_id'])) {
             <li class="nav-item"><a class="nav-link" href="course.php">กิจกรรมอบรม</a></li>
             <li class="nav-item"><a class="nav-link" href="products.php">สั่งซื้อสินค้า</a></li>
 
-            <!-- <li class="nav-item"><a class="nav-link" href="#">ติดต่อเรา</a></li> -->
 
             <?php if (!isset($_SESSION['member_id'])): ?>
               <li class="nav-item mt-3 mt-xl-0">
-                <a href="member_login.php" class="cta-btns">เข้าสู่ระบบ</a>
-                <a href="register.php" class="cta-btn">สมัครสมาชิก</a>
+                <a href="member_login.php" class="cta-btns ">เข้าสู่ระบบ</a>
+                <a href="register.php" class="cta-btn ">สมัครสมาชิก</a>
               </li>
             <?php else: ?>
+              
               <li class="nav-item mt-3 mt-xl-0">
                 <a href="member_profile.php" class="profile-link">
                   <div class="profile-img-wrapper">
@@ -319,6 +367,13 @@ if (isset($_SESSION['member_id'])) {
                   <span>โปรไฟล์</span>
                 </a>
               </li>
+
+              <li class="nav-item mt-2 mt-xl-0 ms-xl-3">
+                <a href="member_logout.php" class="cta-btns logout-btn px-3 py-1">  
+                  ออกจากระบบ
+                </a>
+              </li>
+              
             <?php endif; ?>
           </ul>
         </div>
