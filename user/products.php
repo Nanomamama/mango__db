@@ -629,7 +629,7 @@ if (isset($_SESSION['member_id'])) {
             justify-content: center;
             gap: 6px;
             width: 100%;
-            margin-top: auto;
+            margin-top: 0.5rem;
         }
 
         .btn-add-cart:hover {

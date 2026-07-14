@@ -1153,11 +1153,11 @@ adminPageStart('จัดการสินค้า');
                             <td data-label="สถานะ">
                                 <?php if ($row['status'] == 'active'): ?>
                                     <span class="status-badge badge-active">
-                                        <i class="bi bi-check-circle-fill"></i> พร้อมขาย
+                                        <i class="bi bi-check-circle-fill"></i> เปิด
                                     </span>
                                 <?php else: ?>
                                     <span class="status-badge badge-inactive">
-                                        <i class="bi bi-x-circle-fill"></i> ปิดขาย
+                                        <i class="bi bi-x-circle-fill"></i> ปิด
                                     </span>
                                 <?php endif; ?>
                             </td>
@@ -1214,10 +1214,10 @@ adminPageStart('จัดการสินค้า');
                 </div>
                 <div>
                     <div class="product-detail-meta">
-                        <div class="product-detail-item">
+                        <!-- <div class="product-detail-item">
                             <span class="product-detail-label">รหัสสินค้า</span>
                             <span class="product-detail-value" id="productDetailId">-</span>
-                        </div>
+                        </div> -->
                         <div class="product-detail-item">
                             <span class="product-detail-label">หมวดหมู่</span>
                             <span class="product-detail-value" id="productDetailCategory">-</span>
