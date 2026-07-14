@@ -753,7 +753,7 @@ adminPageStart('รายงานการขายสินค้า');
             <a href="?start_date=<?= h($today) ?>&end_date=<?= h($today) ?>&group_by=day">วันนี้</a>
             <a href="?start_date=<?= h($monthStart) ?>&end_date=<?= h($today) ?>&group_by=day">เดือนนี้</a>
             <a href="?start_date=<?= h(date('Y-01-01')) ?>&end_date=<?= h($today) ?>&group_by=month">ปีนี้</a>
-            <a href="?start_date=<?= h(date('Y-m-d', strtotime('-11 months'))) ?>&end_date=<?= h($today) ?>&group_by=month">12 เดือนล่าสุด</a>
+            <!-- <a href="?start_date=<?= h(date('Y-m-d', strtotime('-11 months'))) ?>&end_date=<?= h($today) ?>&group_by=month">12 เดือนล่าสุด</a> -->
         </div>
     </section>
 

@@ -1081,7 +1081,7 @@ $heroVideoSrc = find_hero_video_source();
 
             <div class="hero-grid">
                 <div class="hero-copy reveal">
-                    <span class="location-kicker">พอเพียง ก็เพียงพอ แบ่งปัน</span>
+                    <!-- <span class="location-kicker">พอเพียง ก็เพียงพอ แบ่งปัน</span> -->
                     <h2 class="hero-title">ระบบจองคิวเยี่ยมชมศูนย์การเรียนรู้ <br>เศรษฐกิจพอเพียง <br>สวนลุงเผือก</h2>
                     <p class="hero-description">
                         เว็บไซต์ศูนย์การเรียนรู้เศรษฐกิจพอเพียงและเปิดให้เข้าศึกษาดูงาน <br>

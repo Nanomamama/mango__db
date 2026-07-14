@@ -29,6 +29,22 @@ if (!isset($conn) || $conn->connect_error) {
     exit('Database connection failed');
 }
 
+$itemsPerPage = 8;
+$currentPage = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
+$currentType = $_GET['type'] ?? 'all';
+$allowedTypes = ['all', 'seasonal', 'normal'];
+
+if (!in_array($currentType, $allowedTypes, true)) {
+    $currentType = 'all';
+}
+
+$typeWhereSql = '';
+if ($currentType === 'seasonal') {
+    $typeWhereSql = ' AND p.seasonal = 1';
+} elseif ($currentType === 'normal') {
+    $typeWhereSql = ' AND p.seasonal = 0';
+}
+
 // ตรวจสอบสถานะผู้ใช้ที่เข้าสู่ระบบ
 if (isset($_SESSION['member_id'])) {
     $member_id_for_status_check = $_SESSION['member_id'];
@@ -276,6 +292,50 @@ if (isset($_SESSION['member_id'])) {
             color: white;
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(53, 238, 255, 0.3);
+        }
+
+        .pill-btn {
+            text-decoration: none;
+        }
+
+        .product-pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 28px 0 10px;
+        }
+
+        .page-tab {
+            min-width: 42px;
+            height: 42px;
+            padding: 0 14px;
+            border-radius: 10px;
+            border: 1px solid #dce8e8;
+            background: #ffffff;
+            color: var(--primary-color);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-weight: 700;
+            text-decoration: none;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s ease;
+        }
+
+        .page-tab:hover,
+        .page-tab.active {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .page-tab.disabled {
+            pointer-events: none;
+            opacity: 0.45;
         }
 
         /* Product Card - Shopee Style */
@@ -1154,15 +1214,15 @@ LIMIT 10
         <!-- Category Pills -->
         <div class="category-pills">
             <div class="container">
-                <button class="pill-btn active" onclick="filterProducts(event,'all')">
+                <a class="pill-btn <?= $currentType === 'all' ? 'active' : '' ?>" href="products.php?type=all&page=1">
                     <i class="fas fa-th-large"></i> ทั้งหมด
-                </button>
-                <button class="pill-btn" onclick="filterProducts(event,'seasonal')">
+                </a>
+                <a class="pill-btn <?= $currentType === 'seasonal' ? 'active' : '' ?>" href="products.php?type=seasonal&page=1">
                     <i class="fas fa-star"></i> ตามฤดูกาล
-                </button>
-                <button class="pill-btn" onclick="filterProducts(event,'normal')">
+                </a>
+                <a class="pill-btn <?= $currentType === 'normal' ? 'active' : '' ?>" href="products.php?type=normal&page=1">
                     <i class="fas fa-leaf"></i> สินค้าทั่วไป
-                </button>
+                </a>
             </div>
         </div>
 
@@ -1173,6 +1233,26 @@ LIMIT 10
         <div class="row g-3" id="product-list">
 
             <?php
+
+            $countSql = "
+                SELECT COUNT(*) AS total
+                FROM products p
+                WHERE p.status = 'active'
+                $typeWhereSql
+            ";
+            $countResult = $conn->query($countSql);
+            $totalProducts = 0;
+
+            if ($countResult && $countRow = $countResult->fetch_assoc()) {
+                $totalProducts = (int) $countRow['total'];
+            }
+
+            $totalPages = max(1, (int) ceil($totalProducts / $itemsPerPage));
+            if ($currentPage > $totalPages) {
+                $currentPage = $totalPages;
+            }
+
+            $offset = ($currentPage - 1) * $itemsPerPage;
 
             $sql = "
             SELECT  p.*,
@@ -1193,17 +1273,23 @@ LIMIT 10
                     ON oi.order_id = o.order_id
 
             WHERE p.status = 'active'
+            $typeWhereSql
 
             GROUP BY p.product_id
 
-            ORDER BY p.product_id DESC ";
+            ORDER BY p.product_id DESC
+            LIMIT ? OFFSET ?";
 
             // เช็ก Query Error ก่อนใช้งาน
-            $result = $conn->query($sql);
+            $stmtProducts = $conn->prepare($sql);
+            $result = false;
 
-            if (!$result) {
+            if ($stmtProducts) {
+                $stmtProducts->bind_param('ii', $itemsPerPage, $offset);
+                $stmtProducts->execute();
+                $result = $stmtProducts->get_result();
+            } else {
                 error_log($conn->error);
-                $result = false;
             }
 
             if ($result && $result->num_rows > 0):
@@ -1314,6 +1400,43 @@ LIMIT 10
                 </div>
             <?php endif; ?>
         </div>
+
+        <?php
+        if (isset($stmtProducts) && $stmtProducts) {
+            $stmtProducts->close();
+        }
+
+        $pageUrl = static function (int $page) use ($currentType): string {
+            return 'products.php?' . http_build_query([
+                'type' => $currentType,
+                'page' => $page,
+            ]);
+        };
+        ?>
+
+        <?php if ($totalPages > 1): ?>
+            <nav class="product-pagination" aria-label="Product pages">
+                <a class="page-tab <?= $currentPage <= 1 ? 'disabled' : '' ?>"
+                    href="<?= $currentPage > 1 ? htmlspecialchars($pageUrl($currentPage - 1)) : '#' ?>"
+                    aria-label="หน้าก่อนหน้า">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+
+                <?php for ($page = 1; $page <= $totalPages; $page++): ?>
+                    <a class="page-tab <?= $page === $currentPage ? 'active' : '' ?>"
+                        href="<?= htmlspecialchars($pageUrl($page)) ?>"
+                        aria-label="หน้า <?= $page ?>">
+                        <?= $page ?>
+                    </a>
+                <?php endfor; ?>
+
+                <a class="page-tab <?= $currentPage >= $totalPages ? 'disabled' : '' ?>"
+                    href="<?= $currentPage < $totalPages ? htmlspecialchars($pageUrl($currentPage + 1)) : '#' ?>"
+                    aria-label="หน้าถัดไป">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </nav>
+        <?php endif; ?>
     </div>
 
     <!-- Floating Buttons -->

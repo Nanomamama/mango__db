@@ -53,7 +53,7 @@
         background: #ffffff;
         position: relative;
         overflow: hidden;
-        padding-top: 2rem;
+        padding-top: 0.5rem;
         margin-top: auto;
       }
 
@@ -115,6 +115,12 @@
           padding-bottom: 0px;
         }
       }
+
+      .footer__social h1 {
+        font-size: 2rem;
+        color: #0d6b63;
+        margin-top: 1rem;
+      }
     </style>
 </head>
 
@@ -122,10 +128,13 @@
   <footer class="footer">
     <div class="footer__container">
       <div class="footer__social">
-        <a href="#"><i class="ri-facebook-fill"></i></a>
-        <a href="#"><i class="ri-instagram-line"></i></a>
-        <a href="#"><i class="ri-youtube-fill"></i></a>
+        <a href="https://www.facebook.com/lungphuakgarden?locale=th_TH"><i class="ri-facebook-fill"></i></a>
+        <!-- <a href="#"><i class="ri-instagram-line"></i></a> -->
+        <a href="https://youtu.be/kN3y3sGhWso?si=Xj6-uL56qMdadHM6"><i class="ri-youtube-fill"></i></a>
         <a href="#"><i class="ri-tiktok-fill"></i></a>
+        <br>
+        <br>
+        <h1>พอเพียง ก็เพียงพอ แบ่งปัน</h1>
       </div>
 
       <hr>
@@ -133,9 +142,9 @@
       <div class="footer__bottom">
         <p>
           <a>© 2025, Nuengdiaw & Sukanda</a>
-          <a href="#">นโยบายความเป็นส่วนตัว</a> ·
-          <a href="#">นโยบายการคืนเงิน</a> ·
-          <a href="#">นโยบายการจัดส่ง</a> ·
+          <!-- <a href="#">นโยบายความเป็นส่วนตัว</a> · -->
+          <!-- <a href="#">นโยบายการคืนเงิน</a> · -->
+          <!-- <a href="#">นโยบายการจัดส่ง</a> · -->
           <a href="#">ข้อกำหนดในการใช้บริการ</a> ·
           <a href="#">ข้อมูลติดต่อ</a>
         </p>

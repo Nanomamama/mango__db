@@ -148,7 +148,7 @@ if (!empty($carousel_images)) {
     }
 
     ::-webkit-scrollbar-thumb {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      background: var(--gray);
       border-radius: 10px;
     }
 
@@ -220,31 +220,6 @@ if (!empty($carousel_images)) {
       position: relative;
 
       z-index: 2;
-    }
-
-    .hero-chip {
-
-      display: inline-flex;
-
-      align-items: center;
-
-      gap: 10px;
-
-      background: #e8faf7;
-
-      color: var(--sage);
-
-      padding: 10px 18px;
-
-      border-radius: 999px;
-
-      font-weight: 600;
-
-      margin-bottom: 24px;
-
-      font-size: .95rem;
-
-      box-shadow: var(--shadow-sm);
     }
 
 
@@ -1450,10 +1425,6 @@ if (!empty($carousel_images)) {
 
           <div class="hero-content">
 
-            <div class="hero-chip">
-              <i class="fas fa-seedling"></i>
-              ระบบประเมินความพึงพอใจกิจกรรม
-            </div>
 
             <h1 class="hero-title">
               ร่วมเรียนรู้<br>
@@ -1464,7 +1435,7 @@ if (!empty($carousel_images)) {
 
             <p class="hero-desc">
 
-              ระบบประเมินกิจกรรมและอบรมภายในสวน
+              ประเมินกิจกรรมอบรมภายในสวน
               เพื่อสะท้อนความคิดเห็น ความประทับใจ
               และช่วยพัฒนากิจกรรมให้ดียิ่งขึ้น
 

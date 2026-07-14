@@ -28,24 +28,7 @@
         filter: blur(8px);
     }
 
-    .location-showcase::before {
-        top: 72px;
-        left: -90px;
-        width: 240px;
-        height: 240px;
-        background: rgba(245, 185, 113, 0.18);
-        animation: locationFloat 9s ease-in-out infinite;
-    }
-
-    .location-showcase::after {
-        right: -70px;
-        bottom: 48px;
-        width: 220px;
-        height: 220px;
-        background: rgba(13, 107, 99, 0.16);
-        animation: locationFloat 11s ease-in-out infinite reverse;
-    }
-
+ 
     .location-shell {
         width: min(1180px, calc(100% - 32px));
         margin: 0 auto;

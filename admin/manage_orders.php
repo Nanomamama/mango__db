@@ -946,9 +946,8 @@ $adminPageExtraHead = <<<'HTML'
                 white-space: normal;
             }
         }
-</style>
 
-<style>
+        
     :root {
         --orders-primary: var(--green);
         --orders-primary-dark: var(--green-dark);
@@ -1134,15 +1133,7 @@ $adminPageExtraHead = <<<'HTML'
         gap: 10px;
     }
 
-    .btn-filter {
-        min-height: 42px;
-        padding: 9px 15px;
-        border: 1px solid var(--orders-border);
-        border-radius: 999px;
-        background: #f8fafc !important;
-        color: var(--orders-primary) !important;
-        font-weight: 700;
-    }
+   
 
     .btn-filter.active,
     .btn-filter:hover {
