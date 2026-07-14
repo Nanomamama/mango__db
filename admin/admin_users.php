@@ -398,40 +398,31 @@ adminPageStart('จัดการผู้ใช้');
 
     
     <div class="row mb-4">
-        <div class="col-md-3 col-sm-6">
+        <div class="col-md-4 col-sm-6">
             <div class="stats-card">
-                <div class="stats-icon">
+                <!-- <div class="stats-icon">
                     <i class="bi bi-people-fill"></i>
-                </div>
+                </div> -->
                 <div class="stats-value"><?= count($users) ?></div>
                 <div class="stats-label">ผู้ใช้ทั้งหมด</div>
             </div>
         </div>
-        <div class="col-md-3 col-sm-6">
+        <div class="col-md-4 col-sm-6">
             <div class="stats-card">
-                <div class="stats-icon text-success">
+                <!-- <div class="stats-icon text-success">
                     <i class="bi bi-person-check-fill"></i>
-                </div>
+                </div> -->
                 <div class="stats-value"><?= count(array_filter($users, function($u) { return isset($u['status']) && $u['status']; })) ?></div>
                 <div class="stats-label">ผู้ใช้ที่เปิดใช้งาน</div>
             </div>
         </div>
-        <div class="col-md-3 col-sm-6">
+        <div class="col-md-4 col-sm-6">
             <div class="stats-card">
-                <div class="stats-icon text-danger">
+                <!-- <div class="stats-icon text-danger">
                     <i class="bi bi-person-x-fill"></i>
-                </div>
+                </div> -->
                 <div class="stats-value"><?= count(array_filter($users, function($u) { return isset($u['status']) && !$u['status']; })) ?></div>
                 <div class="stats-label">ผู้ใช้ที่ปิดใช้งาน</div>
-            </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-            <div class="stats-card">
-                <div class="stats-icon text-warning">
-                    <i class="bi bi-clock-history"></i>
-                </div>
-                <div class="stats-value">5</div>
-                <div class="stats-label">ลงทะเบียนวันนี้</div>
             </div>
         </div>
     </div>
@@ -784,29 +775,66 @@ adminPageStart('จัดการผู้ใช้');
         });
     }
 
+    // === แก้ไขส่วนแสดงผลรายละเอียดสมาชิก (User Detail Modal) เป็นภาษาไทย ===
     document.querySelectorAll('.view-user-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const user = JSON.parse(this.getAttribute('data-user'));
             let html = '';
-            for (const key in user) {
-                let value = user[key] !== null ? user[key] : '';
-                let label = key;
-                switch(key) {
-                    case 'member_id': label = 'รหัสผู้ใช้'; break;
-                    case 'fullname': label = 'ชื่อ-นามสกุล'; break;
-                    case 'email': label = 'อีเมล'; break;
-                    case 'phone': label = 'เบอร์โทรศัพท์'; break;
-                    case 'status':
-                        label = 'สถานะ';
-                        value = value ? '<span class="status-badge status-active">เปิดใช้งาน</span>' : '<span class="status-badge status-inactive">ปิดใช้งาน</span>';
-                        break;
-                    case 'created_at': label = 'วันที่สมัคร'; break;
+            
+            // ลำดับคีย์ที่ต้องการให้แสดงผลเรียงตามการใช้งาน
+            const keyOrder = [
+                'member_id', 'fullname', 'address', 'province_id', 'district_id', 
+                'subdistrict_id', 'zipcode', 'phone', 'email', 'created_at', 
+                'status', 'verification_code', 'code_expire', 'pdpa_consent', 
+                'pdpa_consent_at', 'pdpa_consent_version'
+            ];
+
+            keyOrder.forEach(key => {
+                if (user.hasOwnProperty(key)) {
+                    let value = user[key];
+                    let label = key;
+                    let skipRow = false; // สำหรับดักซ่อนแถว
+
+                    switch(key) {
+                        case 'member_id': label = 'รหัสผู้ใช้ (ID)'; break;
+                        case 'fullname': label = 'ชื่อ-นามสกุล'; break;
+                        case 'address': label = 'ที่อยู่'; break;
+                        case 'province_id': label = 'รหัสจังหวัด'; break;
+                        case 'district_id': label = 'รหัสอำเภอ / เขต'; break;
+                        case 'subdistrict_id': label = 'รหัสตำบล / แขวง'; break;
+                        case 'zipcode': label = 'รหัสไปรษณีย์'; break;
+                        case 'email': label = 'อีเมล'; break;
+                        case 'phone': label = 'เบอร์โทรศัพท์'; break;
+                        case 'created_at': label = 'วันที่สมัครสมาชิก'; break;
+                        case 'verification_code': label = 'รหัสยืนยันตัวตน'; break;
+                        case 'code_expire': label = 'วันหมดอายุรหัสยืนยัน'; break;
+                        case 'pdpa_consent_at': label = 'วันเวลาที่ยินยอม PDPA'; break;
+                        case 'pdpa_consent_version': label = 'เวอร์ชันการยินยอม PDPA'; break;
+                        case 'status':
+                            label = 'สถานะบัญชี';
+                            value = value ? '<span class="status-badge status-active">เปิดใช้งาน</span>' : '<span class="status-badge status-inactive">ปิดใช้งาน</span>';
+                            break;
+                        case 'pdpa_consent':
+                            label = 'การยินยอม PDPA';
+                            value = (value == 1) ? '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i> ยินยอมแล้ว</span>' : '<span class="text-muted"><i class="bi bi-x-circle me-1"></i> ยังไม่ยินยอม</span>';
+                            break;
+                        default:
+                            skipRow = true; // คีย์อื่นๆ ที่ไม่อยู่ในเงื่อนไข หรือคีย์ password จะไม่ถูกนำมาแสดงผล
+                    }
+
+                    // จัดการค่า Null หรือช่องว่างให้แสดงเครื่องหมายขีด (-) ยกเว้นกรณีที่เป็นรูปแบบ HTML ของ status และ pdpa_consent
+                    if (key !== 'status' && key !== 'pdpa_consent') {
+                        value = (value !== null && value !== undefined && value !== '') ? value : '-';
+                    }
+
+                    if (!skipRow) {
+                        html += `<tr>
+                            <th style="width:200px; background-color: #f8f9fa;" class="text-secondary fw-bold">${label}</th>
+                            <td>${value}</td>
+                        </tr>`;
+                    }
                 }
-                html += `<tr>
-                    <th style="width:180px; background-color: #f8f9fa;">${label}</th>
-                    <td>${value}</td>
-                </tr>`;
-            }
+            });
             document.getElementById('userDetailTable').innerHTML = html;
         });
     });

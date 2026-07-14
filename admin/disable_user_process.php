@@ -76,11 +76,11 @@ try {
         $mail->SMTPSecure = "ssl";
         $mail->CharSet    = 'UTF-8';
 
-        $mail->setFrom('nanoone342@gmail.com', 'สวนแห่งการเรียนรู้'); // Replace with your actual email and name
+        $mail->setFrom('nanoone342@gmail.com', 'สวนลุงเผือก'); // Replace with your actual email and name
         $mail->addAddress($user_email, $user_fullname);
 
         $mail->isHTML(true);
-        $mail->Subject = "แจ้งปิดใช้งานบัญชีผู้ใช้ของคุณ - สวนแห่งการเรียนรู้";
+        $mail->Subject = "แจ้งปิดใช้งานบัญชีผู้ใช้ของคุณ - สวนลุงเผือก";
         $mail->Body = "
             <div style='font-family: \"Sarabun\", \"Kanit\", sans-serif; padding: 20px; background-color: #f4f7f6; line-height: 1.7;'>
                 <div style='max-width: 650px; margin: auto; background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); border-top: 5px solid #e74a3b;'>
@@ -89,7 +89,7 @@ try {
                         <p style='color: #555; font-size: 15px; margin-top: 5px;'>Account Deactivation Notice</p>
                     </div>
                     <p style='color: #333; font-size: 16px;'>เรียน คุณ " . htmlspecialchars($user_fullname) . ",</p>
-                    <p style='color: #333; font-size: 16px; text-indent: 2em;'>ทางสวนแห่งการเรียนรู้ขอแจ้งให้ท่านทราบว่า บัญชีผู้ใช้ของท่านได้ถูกปิดใช้งานเรียบร้อยแล้ว</p>
+                    <p style='color: #333; font-size: 16px; text-indent: 2em;'>ทางสวนลุงเผือกขอแจ้งให้ท่านทราบว่า บัญชีผู้ใช้ของท่านได้ถูกปิดใช้งานเรียบร้อยแล้ว</p>
                     <div style='margin: 30px 0; padding: 20px; background-color: #fffbe6; border-left: 4px solid #f59e0b; border-radius: 4px;'>
                         <h4 style='margin-top: 0; color: #d35400; font-size: 16px;'>เหตุผลในการปิดใช้งาน:</h4> 
                         <p style='margin-bottom: 0; color: #854d0e; font-size: 15px;'>" . nl2br(htmlspecialchars($reason)) . "</p>
@@ -98,7 +98,7 @@ try {
                     <p style='color: #333; font-size: 16px;'>ทางเราต้องขออภัยในความไม่สะดวกมา ณ ที่นี้</p>
                     <div style='margin-top: 40px; text-align: center; color: #888; font-size: 14px;'>
                         <p style='margin: 0;'>ขอแสดงความนับถือ</p>
-                        <p style='margin-top: 5px; color: #333; font-weight: 500;'>ฝ่ายบริการลูกค้า สวนแห่งการเรียนรู้</p>
+                        <p style='margin-top: 5px; color: #333; font-weight: 500;'>ฝ่ายบริการลูกค้า สวนลุงเผือก</p>
                     </div>
                 </div>
             </div>";

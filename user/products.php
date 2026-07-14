@@ -1,17 +1,18 @@
 <?php
-ini_set('session.use_only_cookies', 1);
-ini_set('session.use_strict_mode', 1);
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.use_strict_mode', 1);
 
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path' => '/',
-    'domain' => '',
-    'secure' => isset($_SERVER['HTTPS']),
-    'httponly' => true,
-    'samesite' => 'Lax'
-]);
-session_start();
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => isset($_SERVER['HTTPS']),
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    session_start();
 
+<<<<<<< HEAD
 if (!isset($_SESSION['regenerated'])) {
     session_regenerate_id(true);
     $_SESSION['regenerated'] = true;
@@ -62,8 +63,44 @@ if (isset($_SESSION['member_id'])) {
             }
         }
         $stmt_status->close();
+=======
+    if (!isset($_SESSION['regenerated'])) {
+        session_regenerate_id(true);
+        $_SESSION['regenerated'] = true;
     }
-}
+
+    require_once __DIR__ . '/../db/db.php';
+    // CSP Security Header
+    header("X-Frame-Options: SAMEORIGIN");
+    header("X-Content-Type-Options: nosniff");
+    header("Referrer-Policy: strict-origin-when-cross-origin");
+    header("Permissions-Policy: geolocation=(), microphone=()");
+
+    if (!isset($conn) || $conn->connect_error) {
+        http_response_code(500);
+        exit('Database connection failed');
+    }
+
+    // ตรวจสอบสถานะผู้ใช้ที่เข้าสู่ระบบ
+    if (isset($_SESSION['member_id'])) {
+        $member_id_for_status_check = $_SESSION['member_id'];
+        $stmt_status = $conn->prepare("SELECT status FROM members WHERE member_id = ?");
+        if ($stmt_status) {
+            $stmt_status->bind_param("i", $member_id_for_status_check);
+            $stmt_status->execute();
+            $result_status = $stmt_status->get_result();
+            if ($row_status = $result_status->fetch_assoc()) {
+                if ((int)$row_status['status'] === 0) {
+                    session_unset();
+                    session_destroy();
+                    header('Location: index.php?login_error=disabled');
+                    exit;
+                }
+            }
+            $stmt_status->close();
+        }
+>>>>>>> 64760e821cdd338542831b446a005b885efdd52b
+    }
 
 
 ?>
@@ -165,8 +202,8 @@ if (isset($_SESSION['member_id'])) {
 
             color: #ffffff;
 
-            
-            
+
+
         }
 
         /* Shine Effect */
@@ -1034,9 +1071,9 @@ if (isset($_SESSION['member_id'])) {
                 font-size: 1.2rem;
             }
 
-             .hero-title{
-        animation:none;
-    }
+            .hero-title {
+                animation: none;
+            }
         }
     </style>
 </head>
@@ -1084,7 +1121,7 @@ LIMIT 10
                         data-bs-wrap="true">
 
                         <!-- indicators -->
-                         
+
                         <div class="carousel-indicators">
 
                             <?php
@@ -1205,8 +1242,8 @@ LIMIT 10
                     <p><i class="fas fa-phone-alt"></i> ติดต่อกลับหากสินค้าไม่พอ</p>
                 </div>
                 <div class="col-md-4">
-                   <p><i class="fa-solid fa-check"></i> ติดตามสถานะการสั่งซื้อได้ทันที</p>
-                   <p><i class="fa-regular fa-circle-question"></i> สอบถามเพิ่มเติมทางข้อความ หรือโทร 089-8980821</p>
+                    <p><i class="fa-solid fa-check"></i> ติดตามสถานะการสั่งซื้อได้ทันที</p>
+                    <p><i class="fa-regular fa-circle-question"></i> สอบถามเพิ่มเติมทางข้อความ หรือโทร 089-8980821</p>
                 </div>
             </div>
         </div>
