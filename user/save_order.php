@@ -32,6 +32,40 @@ function generate_order_code(mysqli $conn): string
     return $orderCode;
 }
 
+function save_delivery_location(
+    mysqli $conn,
+    ?int $memberId,
+    float $latitude,
+    float $longitude,
+    string $addressNote
+): void {
+    $ipAddress = substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45);
+    $userAgent = substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
+
+    $stmt = $conn->prepare("
+        INSERT INTO delivery_locations (
+            member_id,
+            latitude,
+            longitude,
+            address_note,
+            ip_address,
+            user_agent
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+    ");
+    $stmt->bind_param(
+        'iddsss',
+        $memberId,
+        $latitude,
+        $longitude,
+        $addressNote,
+        $ipAddress,
+        $userAgent
+    );
+    $stmt->execute();
+    $stmt->close();
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: products.php');
     exit;
@@ -45,6 +79,8 @@ $customerAddress = trim($_POST['customer_address'] ?? '');
 $receiveType = $_POST['receive_type'] ?? '';
 $receiveDatetimeRaw = trim($_POST['receive_datetime'] ?? '');
 $cartJson = $_POST['cart_data'] ?? '';
+$deliveryLatitudeRaw = trim((string) ($_POST['delivery_latitude'] ?? ''));
+$deliveryLongitudeRaw = trim((string) ($_POST['delivery_longitude'] ?? ''));
 
 if ($customerName === '' || $customerPhone === '') {
     redirect_with_error('กรุณากรอกชื่อและเบอร์โทรศัพท์ให้ครบถ้วน');
@@ -56,6 +92,21 @@ if (!in_array($receiveType, ['pickup', 'delivery'], true)) {
 
 if ($receiveType === 'delivery' && $customerAddress === '') {
     redirect_with_error('กรุณากรอกรายละเอียดที่อยู่สำหรับจัดส่ง');
+}
+
+$deliveryLatitude = null;
+$deliveryLongitude = null;
+if ($receiveType === 'delivery') {
+    if ($deliveryLatitudeRaw === '' || $deliveryLongitudeRaw === '') {
+        redirect_with_error('กรุณาปักหมุดตำแหน่งจัดส่งบนแผนที่');
+    }
+
+    $deliveryLatitude = (float) $deliveryLatitudeRaw;
+    $deliveryLongitude = (float) $deliveryLongitudeRaw;
+
+    if ($deliveryLatitude < -90 || $deliveryLatitude > 90 || $deliveryLongitude < -180 || $deliveryLongitude > 180) {
+        redirect_with_error('พิกัดตำแหน่งจัดส่งไม่ถูกต้อง');
+    }
 }
 
 $receiveDatetime = DateTime::createFromFormat('Y-m-d H:i', $receiveDatetimeRaw);
@@ -203,6 +254,10 @@ try {
         $itemStmt->execute();
     }
     $itemStmt->close();
+
+    if ($receiveType === 'delivery' && $deliveryLatitude !== null && $deliveryLongitude !== null) {
+        save_delivery_location($conn, $memberId, $deliveryLatitude, $deliveryLongitude, $customerAddress);
+    }
 
     $conn->commit();
 } catch (Throwable $e) {

@@ -31,6 +31,7 @@ unset($_SESSION['order_error']);
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Mitr:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
@@ -912,6 +913,57 @@ unset($_SESSION['order_error']);
         }
 
         /* ===== RESPONSIVE ===== */
+        .delivery-map-box {
+            display: none;
+            margin-top: 12px;
+            padding: 12px;
+            border: 1px solid rgba(1, 106, 112, .18);
+            border-radius: var(--radius-sm);
+            background: #f8fffd;
+        }
+
+        .delivery-map-box.is-visible {
+            display: block;
+        }
+
+        #deliveryMap {
+            width: 100%;
+            height: 260px;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid rgba(1, 106, 112, .16);
+        }
+
+        .delivery-map-status {
+            margin-top: 10px;
+            padding: 9px 10px;
+            border-radius: 10px;
+            background: #eefaf8;
+            color: var(--sage);
+            font-weight: 700;
+            line-height: 1.45;
+        }
+
+        .delivery-map-status.is-error {
+            background: #fff1f1;
+            color: #c62828;
+        }
+
+        .delivery-coordinate {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+            font-size: .82rem;
+            color: var(--text-muted);
+        }
+
+        .delivery-coordinate strong {
+            display: block;
+            color: var(--text);
+            overflow-wrap: anywhere;
+        }
+
         @media (max-width: 991px) {
 
             .cart-col-header {
@@ -1003,7 +1055,6 @@ unset($_SESSION['order_error']);
         .receive-grid {
             grid-template-columns: 1fr;
         }
-
 
         @media (max-width: 768px) {
             .pg-title {
@@ -1140,7 +1191,10 @@ unset($_SESSION['order_error']);
                                     <label class="form-label"><i class="fas fa-phone" style="color:var(--sage);margin-right:6px"></i>เบอร์โทรศัพท์</label>
                                     <input type="tel" name="customer_phone" class="form-control"
                                         value="<?= htmlspecialchars($member_phone) ?>"
-                                        placeholder="เช่น 08X-XXX-XXXX">
+                                        placeholder="เช่น 08XXXXXXXX"
+                                        inputmode="numeric"
+                                        maxlength="10"
+                                        pattern="[0-9]{10}">
                                 </div>
 
                                 <!-- RECEIVE TYPE -->
@@ -1173,6 +1227,16 @@ unset($_SESSION['order_error']);
                                     </label>
                                     <textarea class="form-control" name="customer_address" id="customer_address"
                                         placeholder="หมายเหตุเพิ่มเติม" rows="3"></textarea>
+                                    <div class="delivery-map-box" id="deliveryMapBox">
+                                        <div id="deliveryMap"></div>
+                                        <div class="delivery-map-status" id="deliveryMapStatus">เลือกตำแหน่งจัดส่งบนแผนที่</div>
+                                        <div class="delivery-coordinate">
+                                            <div>ละติจูด<strong id="deliveryLatText">-</strong></div>
+                                            <div>ลองจิจูด<strong id="deliveryLngText">-</strong></div>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="delivery_latitude" id="delivery_latitude">
+                                    <input type="hidden" name="delivery_longitude" id="delivery_longitude">
                                 </div>
 
                                 <!-- DATE -->
@@ -1263,9 +1327,15 @@ unset($_SESSION['order_error']);
     <?php include 'footer.php'; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
     <script>
         let cart = [];
         let submittingAfterServerSync = false;
+        let deliveryMap = null;
+        let deliveryArea = null;
+        let deliveryMarker = null;
+        let deliveryMapLoaded = false;
 
         try {
             cart = JSON.parse(localStorage.getItem("cart")) || [];
@@ -1537,12 +1607,114 @@ unset($_SESSION['order_error']);
             localStorage.setItem("cart", JSON.stringify(cart));
         }
 
+        function setDeliveryMapStatus(message, isError = false) {
+            const status = document.getElementById('deliveryMapStatus');
+            if (!status) return;
+            status.textContent = message;
+            status.classList.toggle('is-error', isError);
+        }
+
+        function clearDeliveryLocation() {
+            document.getElementById('delivery_latitude').value = '';
+            document.getElementById('delivery_longitude').value = '';
+            document.getElementById('deliveryLatText').textContent = '-';
+            document.getElementById('deliveryLngText').textContent = '-';
+            if (deliveryMarker && deliveryMap) {
+                deliveryMap.removeLayer(deliveryMarker);
+            }
+            deliveryMarker = null;
+        }
+
+        function initDeliveryMap() {
+            if (deliveryMapLoaded || !document.getElementById('deliveryMap')) {
+                return;
+            }
+
+            deliveryMapLoaded = true;
+            deliveryMap = L.map('deliveryMap').setView([17.936707, 101.738149], 14);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(deliveryMap);
+
+            fetch('Map/DeliveryArea.geojson')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('load failed');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    deliveryArea = data;
+                    const polygon = L.geoJSON(data, {
+                        style: {
+                            color: '#28a745',
+                            weight: 3,
+                            fillColor: '#28a745',
+                            fillOpacity: 0.25
+                        }
+                    }).addTo(deliveryMap);
+
+                    deliveryMap.fitBounds(polygon.getBounds());
+                    setDeliveryMapStatus('แตะตำแหน่งภายในพื้นที่สีเขียวเพื่อปักหมุดจัดส่ง');
+                })
+                .catch(() => {
+                    setDeliveryMapStatus('โหลดพื้นที่จัดส่งไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', true);
+                });
+
+            deliveryMap.on('click', event => {
+                if (!deliveryArea) {
+                    setDeliveryMapStatus('กำลังโหลดพื้นที่จัดส่ง กรุณารอสักครู่', true);
+                    return;
+                }
+
+                const point = turf.point([event.latlng.lng, event.latlng.lat]);
+                const inside = turf.booleanPointInPolygon(point, deliveryArea.features[0]);
+
+                if (!inside) {
+                    clearDeliveryLocation();
+                    setDeliveryMapStatus('ตำแหน่งนี้อยู่นอกพื้นที่จัดส่ง กรุณาเลือกในพื้นที่สีเขียว', true);
+                    return;
+                }
+
+                if (deliveryMarker) {
+                    deliveryMap.removeLayer(deliveryMarker);
+                }
+
+                deliveryMarker = L.marker(event.latlng).addTo(deliveryMap);
+                document.getElementById('delivery_latitude').value = event.latlng.lat.toFixed(7);
+                document.getElementById('delivery_longitude').value = event.latlng.lng.toFixed(7);
+                document.getElementById('deliveryLatText').textContent = event.latlng.lat.toFixed(7);
+                document.getElementById('deliveryLngText').textContent = event.latlng.lng.toFixed(7);
+                setDeliveryMapStatus('ปักหมุดตำแหน่งจัดส่งแล้ว');
+            });
+        }
+
+        function toggleDeliveryMap(type) {
+            const mapBox = document.getElementById('deliveryMapBox');
+            if (!mapBox) return;
+
+            if (type === 'delivery') {
+                mapBox.classList.add('is-visible');
+                initDeliveryMap();
+                setTimeout(() => {
+                    if (deliveryMap) {
+                        deliveryMap.invalidateSize();
+                    }
+                }, 80);
+            } else {
+                mapBox.classList.remove('is-visible');
+                clearDeliveryLocation();
+            }
+        }
+
         function selectReceiveType(type) {
             document.querySelectorAll('.receive-card').forEach(c => c.classList.remove('active'));
             const inp = document.querySelector(`input[value="${type}"]`);
             inp.closest('.receive-card').classList.add('active');
             inp.checked = true;
             toggleAddressField(type);
+            toggleDeliveryMap(type);
             syncCartWithServer(false);
         }
 
@@ -1569,6 +1741,7 @@ unset($_SESSION['order_error']);
             const type = document.querySelector('input[name="receive_type"]:checked')?.value || '';
             const name = document.querySelector('input[name="customer_name"]').value.trim();
             const phone = document.querySelector('input[name="customer_phone"]').value.trim();
+            const phoneDigits = phone.replace(/\D/g, '');
             const address = document.getElementById("customer_address").value.trim();
 
             if (cart.length === 0) {
@@ -1600,6 +1773,22 @@ unset($_SESSION['order_error']);
                     icon: 'error',
                     title: 'ระบุที่อยู่',
                     text: 'กรุณากรอกที่อยู่สำหรับจัดส่ง'
+                });
+                return false;
+            }
+            if (phoneDigits.length !== 10) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เบอร์โทรไม่ถูกต้อง',
+                    text: 'กรุณากรอกเบอร์โทรศัพท์ให้ครบ 10 หลัก'
+                });
+                return false;
+            }
+            if (type === 'delivery' && (!document.getElementById('delivery_latitude').value || !document.getElementById('delivery_longitude').value)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ยังไม่ได้ปักหมุด',
+                    text: 'กรุณาปักหมุดตำแหน่งจัดส่งบนแผนที่'
                 });
                 return false;
             }
