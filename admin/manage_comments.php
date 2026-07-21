@@ -358,6 +358,9 @@ $adminPageExtraHead = <<<'HTML'
         border-radius: var(--comment-radius);
         font-size: .82rem;
         font-weight: 700;
+        white-space: nowrap;
+        word-break: keep-all;
+        overflow-wrap: normal;
     }
 
     .btn-comment-view {
@@ -370,6 +373,8 @@ $adminPageExtraHead = <<<'HTML'
         border: 1px solid rgba(239, 68, 68, .18);
         background: rgba(239, 68, 68, .09);
         color: var(--comment-red);
+        font-size: 1rem;
+        
     }
 
     .comment-full-text {
