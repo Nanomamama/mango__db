@@ -218,6 +218,35 @@ try {
         $res['sendEmail_exception'] = $e->getMessage();
     }
 
+    // Send LINE Notification (best-effort)
+    try {
+        $message = "🌱 มีรายการจองเข้าชมสวนใหม่ (สมาชิก)\n";
+        $message .= "-----------------------------\n";
+        $message .= "รหัสการจอง: {$booking_code}\n";
+        $message .= "ชื่อสมาชิก: {$guest_name}\n";
+        $message .= "เบอร์โทร: " . ($guest_phone !== '' ? $guest_phone : '-') . "\n";
+        $message .= "วันที่เข้าชม: {$booking_date}\n";
+        $message .= "เวลา: {$booking_time} น.\n";
+        $message .= "จำนวนผู้เข้าชม: {$visitor_count} ท่าน\n";
+        $message .= "ประเภท: " . ($booking_type === 'private' ? 'ส่วนบุคคล' : 'องค์กร/หมู่คณะ') . "\n";
+        $message .= "มื้ออาหารกลางวัน: " . ($lunch_request ? 'รับ' : 'ไม่รับ') . "\n";
+        $message .= "ราคารวม: " . number_format($price_total, 2) . " บาท\n";
+        $message .= "มัดจำ: " . number_format($deposit_amount, 2) . " บาท\n";
+        $message .= "-----------------------------\n";
+        $message .= "ตรวจสอบการจอง: https://khamaon.com/mango/admin/booking_list.php";
+
+        $lineNotifyFile = __DIR__ . '/../admin/line_notify.php';
+        if (is_file($lineNotifyFile)) {
+            ob_start();
+            include $lineNotifyFile;
+            ob_end_clean();
+            $res['lineNotify_status'] = 'success';
+        }
+    } catch (Exception $e) {
+        error_log('saveBooking LINE notify error: ' . $e->getMessage());
+        $res['lineNotify_exception'] = $e->getMessage();
+    }
+
     echo json_encode($res);
     exit;
 
