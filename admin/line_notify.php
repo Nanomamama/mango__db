@@ -2,6 +2,7 @@
 /**
  * LINE Notification Service Handler
  * Supports LINE Messaging API (Push Message) and Standard LINE Notify API.
+ * Supports text messages and image attachments with HTTP/HTTPS fallback handling.
  */
 
 if (!function_exists('app_env')) {
@@ -13,15 +14,22 @@ if (!function_exists('app_env')) {
 
 if (!function_exists('send_line_message')) {
     /**
-     * Send message via LINE Messaging API or LINE Notify
+     * Send message and optional image via LINE Messaging API or LINE Notify
      * 
      * @param string $msgText Message content
+     * @param string|null $imageUrl Public image URL (HTTPS required for LINE Messaging API)
+     * @param string|null $imagePath Local image file path (for LINE Notify)
      * @param string|null $token Optional access token override
      * @param string|null $targetUserId Optional user ID override
      * @return bool Success status
      */
-    function send_line_message(string $msgText, ?string $token = null, ?string $targetUserId = null): bool
-    {
+    function send_line_message(
+        string $msgText, 
+        ?string $imageUrl = null, 
+        ?string $imagePath = null, 
+        ?string $token = null, 
+        ?string $targetUserId = null
+    ): bool {
         if (trim($msgText) === '') {
             return false;
         }
@@ -45,22 +53,31 @@ if (!function_exists('send_line_message')) {
         if (!empty($notifyToken)) {
             $ch = curl_init("https://notify-api.line.me/api/notify");
             curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Content-Type: application/x-www-form-urlencoded',
                 'Authorization: Bearer ' . $notifyToken
             ]);
             curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query(['message' => $msgText]));
+
+            $postData = ['message' => $msgText];
+            if (!empty($imagePath) && is_file($imagePath)) {
+                $postData['imageFile'] = new CURLFile($imagePath);
+            } elseif (!empty($imageUrl)) {
+                $postData['imageFullsize'] = $imageUrl;
+                $postData['imageThumbnail'] = $imageUrl;
+            }
+
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 8);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
             $result = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $err = curl_error($ch);
             curl_close($ch);
 
-            if ($err) {
-                error_log('LINE Notify API Error: ' . $err);
+            if ($err || $httpCode !== 200) {
+                error_log("LINE Notify Error [HTTP {$httpCode}]: " . ($err ?: $result));
                 return false;
             }
             return true;
@@ -77,45 +94,74 @@ if (!function_exists('send_line_message')) {
             return false;
         }
 
-        $data = [
-            "to" => $userId,
-            "messages" => [
-                [
-                    "type" => "text",
-                    "text" => $msgText
-                ]
-            ]
-        ];
+        // Closure to send a push message array via LINE Messaging API
+        $sendPush = function(array $msgArray) use ($userId, $accessToken): bool {
+            $data = [
+                "to" => $userId,
+                "messages" => $msgArray
+            ];
 
-        $ch = curl_init("https://api.line.me/v2/bot/message/push");
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json',
-            'Authorization: Bearer ' . $accessToken
-        ]);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data, JSON_UNESCAPED_UNICODE));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            $ch = curl_init("https://api.line.me/v2/bot/message/push");
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $accessToken
+            ]);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data, JSON_UNESCAPED_UNICODE));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 8);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
-        $result = curl_exec($ch);
-        $err = curl_error($ch);
-        curl_close($ch);
+            $result = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $err = curl_error($ch);
+            curl_close($ch);
 
-        if ($err) {
-            error_log('LINE Messaging API Error: ' . $err);
-            return false;
+            if ($err || $httpCode !== 200) {
+                error_log("LINE Messaging API Push Error [HTTP {$httpCode}]: " . ($err ?: $result));
+                return false;
+            }
+            return true;
+        };
+
+        // LINE Messaging API requires HTTPS for image messages
+        $isHttpsImage = (!empty($imageUrl) && str_starts_with(strtolower($imageUrl), 'https://'));
+
+        // Prepare text content
+        $textPayload = $msgText;
+        if (!empty($imageUrl) && !$isHttpsImage) {
+            // Fallback for non-HTTPS URL (e.g. localhost or http): attach image URL into text message
+            $textPayload .= "\n📷 ดูรูปสลิป: " . $imageUrl;
         }
 
-        return true;
+        // Send main text message first (guaranteed delivery)
+        $textSent = $sendPush([
+            [
+                "type" => "text",
+                "text" => $textPayload
+            ]
+        ]);
+
+        // Send HTTPS image message separately if available
+        if ($isHttpsImage) {
+            $sendPush([
+                [
+                    "type" => "image",
+                    "originalContentUrl" => $imageUrl,
+                    "previewImageUrl" => $imageUrl
+                ]
+            ]);
+        }
+
+        return $textSent;
     }
 }
 
 // Global execution for backward compatibility (e.g., when file is included via `include 'line_notify.php'`)
-if (!isset($message)) {
-    $message = "📦 มีคำสั่งซื้อใหม่";
+if (isset($message)) {
+    $imgUrl = $imageUrl ?? null;
+    $imgPath = $imagePath ?? null;
+    send_line_message($message, $imgUrl, $imgPath);
 }
-
-send_line_message($message);
 ?>

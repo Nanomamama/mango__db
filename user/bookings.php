@@ -1977,7 +1977,10 @@ if ($is_member) {
                                     payment_qr_path: isOwnBooking ? (b.payment_qr_path || '') : '',
                                     id: isOwnBooking ? b.bookings_id : null, // เพิ่ม ID ของการจอง
                                     time: isOwnBooking ? (b.time || b.booking_time || b.bookingTime || '') : '',
-                                    visitor_count: isOwnBooking ? (b.visitor_count ? parseInt(b.visitor_count) : (b.visitorCount ? parseInt(b.visitorCount) : 0)) : 0
+                                    visitor_count: isOwnBooking ? (b.visitor_count ? parseInt(b.visitor_count) : (b.visitorCount ? parseInt(b.visitorCount) : 0)) : 0,
+                                    deposit_amount: isOwnBooking ? (b.deposit_amount !== null && typeof b.deposit_amount !== 'undefined' ? parseFloat(b.deposit_amount) : 0) : 0,
+                                    price_total: isOwnBooking ? (b.price_total !== null && typeof b.price_total !== 'undefined' ? parseFloat(b.price_total) : 0) : 0,
+                                    balance_amount: isOwnBooking ? (b.balance_amount !== null && typeof b.balance_amount !== 'undefined' ? parseFloat(b.balance_amount) : 0) : 0
                                 };
                             });
 
@@ -2176,6 +2179,37 @@ if ($is_member) {
             }
         }
 
+        function getBookingAmount(b) {
+            if (!b) return 0;
+            let deposit = 0;
+            if (typeof b.deposit_amount !== 'undefined' && b.deposit_amount !== null && Number(b.deposit_amount) > 0) {
+                deposit = Number(b.deposit_amount);
+            } else if (typeof b.paid_amount !== 'undefined' && b.paid_amount !== null && Number(b.paid_amount) > 0) {
+                deposit = Number(b.paid_amount);
+            }
+
+            let total = 0;
+            if (typeof b.price_total !== 'undefined' && b.price_total !== null && Number(b.price_total) > 0) {
+                total = Number(b.price_total);
+            } else if (typeof b.total_amount !== 'undefined' && b.total_amount !== null && Number(b.total_amount) > 0) {
+                total = Number(b.total_amount);
+            }
+
+            let displayAmt = deposit > 0 ? deposit : total;
+
+            if (displayAmt <= 0 && b.visitor_count) {
+                const pricePerPerson = 150;
+                const instructorFee = 1800;
+                const venueFee = 3000;
+                const depositRate = 0.3;
+                const entranceFee = (parseInt(b.visitor_count) || 0) * pricePerPerson;
+                const calcTotal = entranceFee + instructorFee + venueFee;
+                displayAmt = Math.round(calcTotal * depositRate);
+            }
+
+            return displayAmt;
+        }
+
         function populateLists() {
             const pendingList = document.getElementById('pendingList');
             const confirmedList = document.getElementById('confirmedList');
@@ -2230,9 +2264,12 @@ if ($is_member) {
                         }
                     }
 
+                    const displayAmt = getBookingAmount(b);
+                    const amountText = displayAmt > 0 ? ` <span class="text-success fw-bold ms-1" style="font-size:0.9rem;">(มัดจำ ${displayAmt.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท)</span>` : '';
+
                     li.innerHTML = `
                         <div>
-                            <div class="booking-name">${escapeHtml(b.name)}</div>
+                            <div class="booking-name">${escapeHtml(b.name)}${amountText}</div>
                             <div class="booking-date">${formatThaiDateShort(b.date)}</div>
                         </div>
                         <div>${actionHtml}</div>
@@ -2253,9 +2290,12 @@ if ($is_member) {
                 confirmed.forEach(b => {
                     const li = document.createElement('li');
                     li.className = 'list-group-item d-flex justify-content-between align-items-center py-2';
+                    const displayAmt = getBookingAmount(b);
+                    const amountText = displayAmt > 0 ? ` <span class="text-success fw-bold ms-1" style="font-size:0.9rem;">(มัดจำ ${displayAmt.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท)</span>` : '';
+
                     li.innerHTML = `
                         <div>
-                            <div class="booking-name">${escapeHtml(b.name)}</div>
+                            <div class="booking-name">${escapeHtml(b.name)}${amountText}</div>
                             <div class="booking-date">${formatThaiDateShort(b.date)}</div>
                         </div>
                         <span class="badge-modern bg-success">ยืนยัน</span>`;

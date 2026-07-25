@@ -76,7 +76,18 @@ if ($detected_mime !== '' && !in_array($detected_mime, $allowed_mimes, true)) {
 
 // ตรวจสอบว่าเป็นเจ้าของการจองจริง
 $stmt_check = $conn->prepare("
-    SELECT b.bookings_id, b.booking_code, b.guest_name, b.status AS booking_status, m.status AS member_status
+    SELECT 
+        b.bookings_id, 
+        b.booking_code, 
+        b.guest_name, 
+        b.guest_phone,
+        b.booking_date, 
+        b.booking_time, 
+        b.visitor_count, 
+        b.deposit_amount, 
+        b.price_total,
+        b.status AS booking_status, 
+        m.status AS member_status
     FROM bookings b
     INNER JOIN members m ON m.member_id = b.member_id
     WHERE b.bookings_id = ? AND b.member_id = ?
@@ -102,16 +113,6 @@ if (!in_array((string)($booking_details['booking_status'] ?? ''), ['pending', 'a
     echo json_encode(['success' => false, 'message' => 'booking cannot accept slip upload']);
     exit;
 }
-
-function sendAdminSlipNotification($booking_id, $booking_code, $guest_name, $slip_path, $slip_filename) {
-    $adminMail = new PHPMailer(true);
-    try {
-        // ... (โค้ด PHPMailer ที่เหลืออยู่ด้านล่าง)
-    } catch (Exception $e) {
-        // ไม่ต้องหยุดการทำงานของสคริปต์หลัก แค่บันทึก error
-        error_log("Mailer Error: {$adminMail->ErrorInfo}");
-    }
-}
 $stmt_check->close();
 
 // กำหนด path และชื่อไฟล์ใหม่
@@ -131,7 +132,7 @@ if (move_uploaded_file($slip_file['tmp_name'], $upload_path)) {
         $status_after = 'awaiting_payment';
         $stmt_update->bind_param("ssii", $new_filename, $status_after, $booking_id, $member_id);
 
-        // ส่งอีเมลแจ้งเตือน Admin
+        // 1. ส่งอีเมลแจ้งเตือน Admin
         try {
             $adminMail = new PHPMailer(true);
             $adminMail->isSMTP();
@@ -163,8 +164,7 @@ if (move_uploaded_file($slip_file['tmp_name'], $upload_path)) {
                         </ul>
                         <p style='margin-bottom: 15px; font-weight: bold; color: #016A70; text-align: center;'>สลิปการโอนเงิน</p>
                         <img src='cid:slip_image' alt='Payment Slip' style='max-width: 100%; height: auto; display: block; margin: 0 auto; border: 1px solid #eee; border-radius: 4px;'>
-                        </ul>
-                        <p>กรุณาตรวจสอบความถูกต้องของสลิป (แนบในอีเมลนี้) และดำเนินการอนุมัติการจองในระบบต่อไป</p>
+                        <p>กรุณาตรวจสอบความถูกต้องของสลิป และดำเนินการอนุมัติการจองในระบบต่อไป</p>
                         <hr>
                         <p style='font-size: 0.9em; color: #777;'>อีเมลนี้ถูกส่งจากระบบอัตโนมัติ</p>
                     </div>
@@ -174,10 +174,56 @@ if (move_uploaded_file($slip_file['tmp_name'], $upload_path)) {
             $adminMail->send();
         } catch (Exception $e) {
             // หากส่งอีเมลไม่สำเร็จ ไม่ต้องหยุดการทำงาน แค่บันทึก log ไว้
-            error_log("Slip Upload Mailer Error: " . $adminMail->ErrorInfo);
+            error_log("Slip Upload Mailer Error: " . $e->getMessage());
         }
 
         if ($stmt_update->execute() && $stmt_update->affected_rows === 1) {
+            // 2. ส่งการแจ้งเตือนสลิปชำระเงินมัดจำเข้า LINE (พร้อมรูปภาพสลิป)
+            try {
+                $bCode = $booking_details['booking_code'] ?? $booking_id;
+                $gName = $booking_details['guest_name'] ?? 'N/A';
+                $gPhone = !empty($booking_details['guest_phone']) ? $booking_details['guest_phone'] : '-';
+                $bDate = $booking_details['booking_date'] ?? '-';
+                $bTime = !empty($booking_details['booking_time']) ? substr($booking_details['booking_time'], 0, 5) . ' น.' : '-';
+                $vCount = $booking_details['visitor_count'] ?? 1;
+                
+        $deposit = isset($booking_details['deposit_amount']) ? number_format((float)$booking_details['deposit_amount'], 2) : '0.00';
+        $total = isset($booking_details['price_total']) ? number_format((float)$booking_details['price_total'], 2) : '0.00';
+        // Calculate remaining balance (price_total - deposit_amount)
+        $balance = number_format((float)($booking_details['price_total'] ?? 0) - (float)($booking_details['deposit_amount'] ?? 0), 2);
+
+        $lineMsg = "🧾 มีการแนบสลิปชำระเงินมัดจำใหม่!\n";
+        $lineMsg .= "-----------------------------\n";
+        $lineMsg .= "รหัสการจอง: {$bCode}\n";
+        $lineMsg .= "ชื่อผู้จอง: {$gName}\n";
+        $lineMsg .= "เบอร์โทร: {$gPhone}\n";
+        $lineMsg .= "วันที่เข้าชม: {$bDate}\n";
+        $lineMsg .= "เวลา: {$bTime}\n";
+        $lineMsg .= "จำนวนผู้เข้าชม: {$vCount} ท่าน\n";
+        $lineMsg .= "ยอดมัดจำ: {$deposit} บาท (ยอดรวม {$total} บาท)\n";
+        $lineMsg .= "ยอดคงเหลือ: {$balance} บาท\n";
+        $lineMsg .= "-----------------------------\n";
+        $lineMsg .= "ตรวจสอบสลิป: https://khamaon.com/mango/admin/booking_list.php";
+
+                // URL รูปภาพสลิปสำหรับ LINE Messaging API
+                $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                $host = $_SERVER['HTTP_HOST'] ?? 'khamaon.com';
+                $publicImageUrl = "{$protocol}://{$host}/mango/user/Paymentslip-Gardenreservation/" . rawurlencode($new_filename);
+                $localImagePath = $upload_path;
+
+                $lineNotifyFile = __DIR__ . '/../admin/line_notify.php';
+                if (is_file($lineNotifyFile)) {
+                    ob_start();
+                    $message = $lineMsg;
+                    $imageUrl = $publicImageUrl;
+                    $imagePath = $localImagePath;
+                    include $lineNotifyFile;
+                    ob_end_clean();
+                }
+            } catch (Exception $e) {
+                error_log("Slip Upload LINE Notification Error: " . $e->getMessage());
+            }
+
             echo json_encode(['success' => true, 'message' => 'อัปโหลดสลิปสำเร็จ', 'status' => $status_after]);
         } else {
             error_log('upload_slip: DB update failed: ' . $conn->error);

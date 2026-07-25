@@ -330,6 +330,18 @@ if ($r) {
     }
 }
 
+$sql = "
+SELECT COALESCE(SUM(balance_amount), 0) AS total_balance
+FROM bookings
+WHERE status = 'confirmed'
+";
+
+$result = safeQuery($conn, $sql);
+if ($result) {
+    $row = $result->fetch_assoc();
+    $dashboardStats['total_balance'] = (float) ($row['total_balance'] ?? 0);
+}
+
 $r = safeQuery(
     $conn,
     "SELECT bookings_id, booking_code, guest_name, created_at, booking_date, booking_time, status
@@ -858,11 +870,11 @@ adminPageStart('Dashboard');
         <article class="metric-card">
             <div class="metric-top">
                 <div>
-                    <div class="metric-label">สินค้าเปิดใช้งาน</div>
-                    <div class="metric-value"><?= formatNumber($dashboardStats['active_products']) ?></div>
+                    <div class="metric-label">ยอดเงินจากการจองที่ยืนยันแล้ว</div>
+                    <div class="metric-value"><?= formatCurrency($dashboardStats['total_balance']) ?></div>
                 </div>
                 <div class="metric-icon">
-                    <i class='bx bx-package'></i>
+                    <i class='bx bx-wallet'></i>
                 </div>
             </div>
         </article>
