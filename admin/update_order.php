@@ -1,6 +1,7 @@
 <?php
 require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
+require_once __DIR__ . '/../user/line_service.php';
 
 $id = isset($_REQUEST['id']) ? (int) $_REQUEST['id'] : 0;
 $status = $_REQUEST['s'] ?? '';
@@ -38,9 +39,11 @@ if ($status == 'completed') {
     ");
     $stmt->bind_param("di", $total, $id);
     $stmt->execute();
+    line_send_order_status($conn, $id, 'completed');
     header("Location: manage_orders.php");
     exit;
 }
 
 $stmt->execute();
+line_send_order_status($conn, $id, $status, $note);
 header("Location: manage_orders.php");

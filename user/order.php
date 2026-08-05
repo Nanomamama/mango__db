@@ -1,23 +1,37 @@
 <?php
 session_start();
 require_once __DIR__ . '/../db/db.php';
+require_once __DIR__ . '/line_service.php';
 
 
 $member_id = $_SESSION['member_id'] ?? null;
 $member_name = '';
 $member_phone = '';
+$member_line_user_id = '';
+$member_line_display_name = '';
 
 if ($member_id) {
-    $m = $conn->prepare("SELECT fullname, phone FROM members WHERE member_id=?");
+    $m = $conn->prepare("SELECT fullname, phone, line_user_id, line_display_name FROM members WHERE member_id=?");
     $m->bind_param("i", $member_id);
     $m->execute();
     $mem = $m->get_result()->fetch_assoc();
     $member_name = $mem['fullname'] ?? '';
     $member_phone = $mem['phone'] ?? '';
+    $member_line_user_id = $mem['line_user_id'] ?? '';
+    $member_line_display_name = $mem['line_display_name'] ?? '';
 }
 
 $order_error = $_SESSION['order_error'] ?? '';
 unset($_SESSION['order_error']);
+
+$line_link_success = $_SESSION['line_link_success'] ?? '';
+$line_link_error = $_SESSION['line_link_error'] ?? '';
+unset($_SESSION['line_link_success'], $_SESSION['line_link_error']);
+
+$guest_line_user_id = $_SESSION['guest_line_user_id'] ?? '';
+$guest_line_display_name = $_SESSION['guest_line_display_name'] ?? '';
+$order_line_user_id = $member_id ? ($member_line_user_id ?: $guest_line_user_id) : $guest_line_user_id;
+$order_line_display_name = $member_id ? ($member_line_display_name ?: $guest_line_display_name) : $guest_line_display_name;
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -1178,6 +1192,66 @@ unset($_SESSION['order_error']);
                                     </div>
                                 </div>
 
+                                <?php if ($line_link_success !== '' || $line_link_error !== ''): ?>
+                                    <div class="mb-field">
+                                        <?php if ($line_link_success !== ''): ?>
+                                            <div class="alert alert-success py-2 mb-2"><?= htmlspecialchars($line_link_success, ENT_QUOTES, 'UTF-8') ?></div>
+                                        <?php endif; ?>
+                                        <?php if ($line_link_error !== ''): ?>
+                                            <div class="alert alert-danger py-2 mb-2"><?= htmlspecialchars($line_link_error, ENT_QUOTES, 'UTF-8') ?></div>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+
+                                <div class="mb-field">
+                                    <div style="background:#f7fff9;border:1px solid #9be7b2;border-radius:12px;padding:14px;">
+                                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;color:#0f5132;">
+                                            <i class="fab fa-line" style="font-size:1.45rem;color:#06c755;"></i>
+                                            <div>
+                                                <strong>รับแจ้งเตือนคำสั่งซื้อผ่าน LINE</strong>
+                                                <div class="small text-muted">เพิ่มเพื่อน OA และเชื่อมต่อ LINE เพื่อรับสถานะออเดอร์</div>
+                                            </div>
+                                        </div>
+
+                                        <?php if (!empty($order_line_user_id)): ?>
+                                            <div class="bg-white rounded-3 p-3" style="border:1px solid #8ee68e;color:#147a14;">
+                                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                    <i class="fas fa-check-circle"></i>
+                                                    <strong>เชื่อมต่อ LINE แล้ว</strong>
+                                                    <?php if (!empty($order_line_display_name)): ?>
+                                                        <span>: <?= htmlspecialchars($order_line_display_name, ENT_QUOTES, 'UTF-8') ?></span>
+                                                    <?php endif; ?>
+                                                    <span class="small ms-auto">ระบบจะแจ้งเตือนเมื่อสถานะคำสั่งซื้อเปลี่ยน</span>
+                                                </div>
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="d-grid gap-2">
+                                                <div class="bg-white border rounded-3 p-3 d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                                                    <div>
+                                                        <strong class="d-block text-dark">1. เพิ่มเพื่อน LINE OA</strong>
+                                                        <span class="small text-muted">เปิด LINE เพื่อเพิ่ม Official Account เป็นเพื่อน</span>
+                                                    </div>
+                                                    <a href="<?= htmlspecialchars(line_bot_add_friend_url(), ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="btn btn-sm text-white" style="background:#06c755;border-color:#06c755;" onclick="showLineConnectStepOrder();">
+                                                        <i class="fab fa-line me-1"></i> เพิ่มเพื่อน OA
+                                                    </a>
+                                                </div>
+
+                                                <div id="lineConnectStepOrder" class="bg-white rounded-3 p-3" style="display:none;border:1px solid #016A70;">
+                                                    <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                                                        <div>
+                                                            <strong class="d-block" style="color:#016A70;">2. เชื่อมต่อบัญชี LINE</strong>
+                                                            <span class="small text-muted">เพิ่มเพื่อนแล้ว กดปุ่มนี้เพื่อรับแจ้งเตือนคำสั่งซื้อ</span>
+                                                        </div>
+                                                        <a href="<?= htmlspecialchars(line_guest_order_link_url(), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm text-white" style="background:#016A70;border-color:#016A70;">
+                                                            <i class="fab fa-line me-1"></i> เชื่อมต่อ LINE
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+
                                 <!-- NAME -->
                                 <div class="mb-field">
                                     <label class="form-label"><i class="fas fa-user" style="color:var(--sage);margin-right:6px"></i>ชื่อผู้สั่งซื้อ</label>
@@ -1832,6 +1906,13 @@ unset($_SESSION['order_error']);
             toggleAddressField('pickup');
             syncCartWithServer(true);
 
+            try {
+                if (localStorage.getItem('line_friend_added_order') === '1') {
+                    const step = document.getElementById('lineConnectStepOrder');
+                    if (step) step.style.display = 'block';
+                }
+            } catch (error) {}
+
             <?php if ($order_error !== ''): ?>
                 Swal.fire({
                     icon: 'error',
@@ -1843,6 +1924,18 @@ unset($_SESSION['order_error']);
 
         let selectedDate = "",
             selectedTime = "";
+
+        function showLineConnectStepOrder() {
+            try {
+                localStorage.setItem('line_friend_added_order', '1');
+            } catch (error) {}
+
+            const step = document.getElementById('lineConnectStepOrder');
+            if (step) {
+                step.style.display = 'block';
+                setTimeout(() => step.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+            }
+        }
 
         function openDateModal() {
             new bootstrap.Modal(document.getElementById('dateModal')).show();

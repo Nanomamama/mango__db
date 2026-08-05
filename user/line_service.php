@@ -29,6 +29,11 @@ function line_link_url(string $redirect = 'profile'): string
     return line_user_url('line_login.php?' . http_build_query(['redirect' => $redirect]));
 }
 
+function line_guest_order_link_url(): string
+{
+    return line_user_url('line_guest_login.php?' . http_build_query(['redirect' => 'order']));
+}
+
 function line_bot_add_friend_url(): string
 {
     $configuredUrl = trim((string) app_env('LINE_BOT_ADD_FRIEND_URL', ''));
@@ -264,4 +269,99 @@ function line_send_booking_slip_received(mysqli $conn, int $bookingId): bool
     $message .= "\n\nตรวจสอบการจอง: " . line_user_url('member_profile.php');
 
     return line_push_message((string) $booking['line_user_id'], $message);
+}
+
+function line_order_status_label(string $status): string
+{
+    $labels = [
+        'pending' => 'รอยืนยันคำสั่งซื้อ',
+        'approved' => 'ยืนยันคำสั่งซื้อแล้ว',
+        'rejected' => 'ปฏิเสธคำสั่งซื้อ',
+        'completed' => 'เสร็จสิ้นแล้ว',
+    ];
+
+    return $labels[$status] ?? $status;
+}
+
+function line_order_receive_type_label(?string $receiveType): string
+{
+    return $receiveType === 'delivery' ? 'จัดส่งถึงบ้าน' : 'รับที่สวน';
+}
+
+function line_format_order_receive_datetime(?string $datetime): string
+{
+    if (empty($datetime) || strtotime($datetime) === false) {
+        return '-';
+    }
+
+    return date('d/m/Y H:i', strtotime($datetime)) . ' น.';
+}
+
+function line_send_order_created(
+    string $lineUserId,
+    string $orderCode,
+    float $totalAmount,
+    string $receiveType,
+    ?string $receiveDatetime
+): bool {
+    if (!line_can_push_to_user($lineUserId)) {
+        return false;
+    }
+
+    $message = "รับคำสั่งซื้อเรียบร้อยแล้ว\n";
+    $message .= "เลขที่คำสั่งซื้อ: {$orderCode}\n";
+    $message .= "ยอดรวม: " . number_format($totalAmount, 2) . " บาท\n";
+    $message .= "วิธีรับสินค้า: " . line_order_receive_type_label($receiveType) . "\n";
+    $message .= "วันเวลารับ/จัดส่ง: " . line_format_order_receive_datetime($receiveDatetime) . "\n";
+    $message .= "สถานะ: " . line_order_status_label('pending') . "\n\n";
+    $message .= "ตรวจสอบคำสั่งซื้อ: " . line_user_url('order_status.php');
+
+    return line_push_message($lineUserId, $message);
+}
+
+function line_send_order_status(mysqli $conn, int $orderId, string $status, ?string $note = null): bool
+{
+    $sql = "
+        SELECT
+            o.order_code,
+            o.total_amount,
+            o.receive_type,
+            o.receive_datetime,
+            o.admin_note,
+            COALESCE(NULLIF(o.line_user_id, ''), NULLIF(m.line_user_id, '')) AS line_user_id
+        FROM orders o
+        LEFT JOIN members m ON m.member_id = o.member_id
+        WHERE o.order_id = ?
+        LIMIT 1
+    ";
+
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        return false;
+    }
+
+    $stmt->bind_param('i', $orderId);
+    $stmt->execute();
+    $order = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!$order || empty($order['line_user_id']) || !line_can_push_to_user((string) $order['line_user_id'])) {
+        return false;
+    }
+
+    $message = "แจ้งเตือนสถานะคำสั่งซื้อ\n";
+    $message .= "เลขที่คำสั่งซื้อ: " . ($order['order_code'] ?? '-') . "\n";
+    $message .= "ยอดรวม: " . number_format((float) ($order['total_amount'] ?? 0), 2) . " บาท\n";
+    $message .= "วิธีรับสินค้า: " . line_order_receive_type_label($order['receive_type'] ?? null) . "\n";
+    $message .= "วันเวลารับ/จัดส่ง: " . line_format_order_receive_datetime($order['receive_datetime'] ?? null) . "\n";
+    $message .= "สถานะ: " . line_order_status_label($status);
+
+    $rejectNote = trim((string) ($note ?? $order['admin_note'] ?? ''));
+    if ($status === 'rejected' && $rejectNote !== '') {
+        $message .= "\nเหตุผล: " . $rejectNote;
+    }
+
+    $message .= "\n\nตรวจสอบคำสั่งซื้อ: " . line_user_url('order_status.php');
+
+    return line_push_message((string) $order['line_user_id'], $message);
 }

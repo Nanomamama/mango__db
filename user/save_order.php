@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . '/../db/db.php';
+require_once __DIR__ . '/line_service.php';
 
 const MAX_CART_ITEMS = 50;
 const MAX_ITEM_QUANTITY = 99;
@@ -73,6 +74,43 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $sessionMemberId = isset($_SESSION['member_id']) ? (int) $_SESSION['member_id'] : null;
 $memberId = $sessionMemberId ?: null;
+$orderLineUserId = '';
+$orderLineDisplayName = '';
+$orderLineLinkedAt = null;
+$usedGuestLineSession = false;
+
+if ($memberId) {
+    $lineStmt = $conn->prepare('SELECT line_user_id, line_display_name, line_linked_at FROM members WHERE member_id = ? LIMIT 1');
+    if ($lineStmt) {
+        $lineStmt->bind_param('i', $memberId);
+        $lineStmt->execute();
+        $lineMember = $lineStmt->get_result()->fetch_assoc();
+        $lineStmt->close();
+
+        $orderLineUserId = trim((string) ($lineMember['line_user_id'] ?? ''));
+        $orderLineDisplayName = trim((string) ($lineMember['line_display_name'] ?? ''));
+        $orderLineLinkedAt = $lineMember['line_linked_at'] ?? null;
+    }
+} else {
+    $orderLineUserId = trim((string) ($_SESSION['guest_line_user_id'] ?? ''));
+    $orderLineDisplayName = trim((string) ($_SESSION['guest_line_display_name'] ?? ''));
+    $orderLineLinkedAt = $_SESSION['guest_line_linked_at'] ?? null;
+    $usedGuestLineSession = $orderLineUserId !== '';
+}
+
+if ($orderLineUserId === '' && !empty($_SESSION['guest_line_user_id'])) {
+    $orderLineUserId = trim((string) ($_SESSION['guest_line_user_id'] ?? ''));
+    $orderLineDisplayName = trim((string) ($_SESSION['guest_line_display_name'] ?? ''));
+    $orderLineLinkedAt = $_SESSION['guest_line_linked_at'] ?? null;
+    $usedGuestLineSession = $orderLineUserId !== '';
+}
+
+if ($orderLineUserId === '') {
+    $orderLineUserId = null;
+    $orderLineDisplayName = null;
+    $orderLineLinkedAt = null;
+}
+
 $customerName = trim($_POST['customer_name'] ?? '');
 $customerPhone = preg_replace('/[^0-9]/', '', trim($_POST['customer_phone'] ?? ''));
 $customerAddress = trim($_POST['customer_address'] ?? '');
@@ -204,6 +242,9 @@ try {
         INSERT INTO orders (
             order_code,
             member_id,
+            line_user_id,
+            line_display_name,
+            line_linked_at,
             customer_name,
             customer_phone,
             customer_address,
@@ -213,12 +254,15 @@ try {
             order_date,
             total_amount
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)
     ");
     $orderStmt->bind_param(
-        'sissssssd',
+        'sisssssssssd',
         $orderCode,
         $memberId,
+        $orderLineUserId,
+        $orderLineDisplayName,
+        $orderLineLinkedAt,
         $customerName,
         $customerPhone,
         $customerAddress,
@@ -263,6 +307,16 @@ try {
 } catch (Throwable $e) {
     $conn->rollback();
     redirect_with_error('ไม่สามารถบันทึกคำสั่งซื้อได้ กรุณาลองใหม่อีกครั้ง');
+}
+
+if (!empty($orderLineUserId)) {
+    line_send_order_created(
+        (string) $orderLineUserId,
+        $orderCode,
+        $totalAmount,
+        $receiveType,
+        $receiveDatetimeValue
+    );
 }
 
 // ===============================
@@ -330,6 +384,10 @@ if (is_file($lineNotifyFile)) {
     ob_start();
     include $lineNotifyFile;
     ob_end_clean();
+}
+
+if ($usedGuestLineSession) {
+    unset($_SESSION['guest_line_user_id'], $_SESSION['guest_line_display_name'], $_SESSION['guest_line_linked_at']);
 }
 
 header('Location: success.php?code=' . urlencode($orderCode));
