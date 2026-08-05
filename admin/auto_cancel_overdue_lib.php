@@ -4,6 +4,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
 require_once __DIR__ . '/../config/env.php';
+require_once __DIR__ . '/../user/line_service.php';
 require_once __DIR__ . '/../user/PHPMailer/PHPMailer.php';
 require_once __DIR__ . '/../user/PHPMailer/SMTP.php';
 require_once __DIR__ . '/../user/PHPMailer/Exception.php';
@@ -144,6 +145,7 @@ if (!function_exists('auto_cancel_overdue_bookings')) {
 
             $summary['cancelled']++;
             $log("Cancelled booking {$bookingCode}.");
+            line_send_booking_status($conn, $bookingId, 'cancelled', 'payment_timeout');
 
             if (auto_cancel_send_timeout_email($booking)) {
                 $emailStmt->bind_param('i', $bookingId);

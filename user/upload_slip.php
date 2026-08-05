@@ -10,6 +10,7 @@ require_once "PHPMailer/Exception.php";
 
 require_once __DIR__ . '/../db/db.php';
 require_once __DIR__ . '/../config/env.php';
+require_once __DIR__ . '/line_service.php';
 
 date_default_timezone_set('Asia/Bangkok');
 
@@ -178,6 +179,7 @@ if (move_uploaded_file($slip_file['tmp_name'], $upload_path)) {
         }
 
         if ($stmt_update->execute() && $stmt_update->affected_rows === 1) {
+            line_send_booking_slip_received($conn, $booking_id);
             // 2. ส่งการแจ้งเตือนสลิปชำระเงินมัดจำเข้า LINE (พร้อมรูปภาพสลิป)
             try {
                 $bCode = $booking_details['booking_code'] ?? $booking_id;

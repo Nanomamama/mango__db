@@ -83,6 +83,8 @@ function bookingStatusBadge(string $status): array
         'pending' => ['label' => 'รอยืนยัน', 'class' => 'badge-pending'],
         'awaiting_payment' => ['label' => 'รอชำระเงิน', 'class' => 'badge-info'],
         'confirmed' => ['label' => 'ยืนยันแล้ว', 'class' => 'badge-approved'],
+        'completed' => ['label' => 'เสร็จสิ้น', 'class' => 'badge-finished'],
+        'no_show' => ['label' => 'ไม่มา/ยึดมัดจำ', 'class' => 'badge-noshow'],
         'cancelled' => ['label' => 'ยกเลิก', 'class' => 'badge-rejected'],
         default => ['label' => $status, 'class' => 'badge-muted'],
     };
@@ -120,6 +122,8 @@ $dashboardStats = [
     'total_booking_value' => 0.0,
     'deposit_total' => 0.0,
     'balance_total' => 0.0,
+    'actual_received_total' => 0.0,
+    'total_bookings' => 0,
     'confirmed_bookings' => 0,
 ];
 
@@ -134,6 +138,7 @@ $bookingStatusLabels = [];
 $bookingStatusDatasets = [];
 $recentOrders = [];
 $recentBookings = [];
+$bookingFinanceRows = [];
 
 $r = safeQuery(
     $conn,
@@ -176,10 +181,18 @@ $r = safeQuery(
             WHEN status IN ('pending', 'awaiting_payment')
             THEN balance_amount ELSE 0 END), 0) AS pending_balance,
         SUM(status IN ('pending', 'awaiting_payment')) AS pending_booking_count,
-        COALESCE(SUM(CASE WHEN status = 'confirmed' THEN price_total ELSE 0 END), 0) AS total_booking_value,
-        COALESCE(SUM(CASE WHEN status = 'confirmed' THEN deposit_amount ELSE 0 END), 0) AS deposit_total,
+        COUNT(*) AS total_bookings,
+        COALESCE(SUM(price_total), 0) AS total_booking_value,
+        COALESCE(SUM(CASE WHEN status IN ('confirmed', 'completed', 'no_show') THEN deposit_amount ELSE 0 END), 0) AS deposit_total,
         COALESCE(SUM(CASE WHEN status = 'confirmed' THEN balance_amount ELSE 0 END), 0) AS balance_total,
+        COALESCE(SUM(CASE
+            WHEN status = 'completed' THEN price_total
+            WHEN status IN ('confirmed', 'no_show') THEN deposit_amount
+            ELSE 0
+        END), 0) AS actual_received_total,
         SUM(status = 'confirmed') AS confirmed_bookings,
+        SUM(status = 'completed') AS completed_bookings,
+        SUM(status = 'no_show') AS no_show_bookings,
         SUM(status = 'pending') AS booking_pending,
         SUM(status = 'awaiting_payment') AS booking_awaiting_payment,
         SUM(status = 'cancelled') AS booking_cancelled
@@ -193,15 +206,19 @@ if ($r && $row = $r->fetch_assoc()) {
     $dashboardStats['total_booking_value'] = (float) ($row['total_booking_value'] ?? 0);
     $dashboardStats['deposit_total'] = (float) ($row['deposit_total'] ?? 0);
     $dashboardStats['balance_total'] = (float) ($row['balance_total'] ?? 0);
+    $dashboardStats['actual_received_total'] = (float) ($row['actual_received_total'] ?? 0);
+    $dashboardStats['total_bookings'] = (int) ($row['total_bookings'] ?? 0);
     $dashboardStats['confirmed_bookings'] = (int) ($row['confirmed_bookings'] ?? 0);
     $bookingStatusTotals = [
         (int) ($row['booking_pending'] ?? 0),
         (int) ($row['booking_awaiting_payment'] ?? 0),
         (int) ($row['confirmed_bookings'] ?? 0),
+        (int) ($row['completed_bookings'] ?? 0),
+        (int) ($row['no_show_bookings'] ?? 0),
         (int) ($row['booking_cancelled'] ?? 0),
     ];
 } else {
-    $bookingStatusTotals = [0, 0, 0, 0];
+    $bookingStatusTotals = [0, 0, 0, 0, 0, 0];
 }
 
 $r = safeQuery($conn, "SELECT COUNT(*) AS cnt FROM products WHERE status = 'active'");
@@ -275,6 +292,8 @@ $bookingStatusMap = [
     'pending' => ['label' => 'รอยืนยัน', 'color' => '#f59e0b'],
     'awaiting_payment' => ['label' => 'รอชำระเงิน', 'color' => '#3b82f6'],
     'confirmed' => ['label' => 'ยืนยันแล้ว', 'color' => '#10b981'],
+    'completed' => ['label' => 'เสร็จสิ้น', 'color' => '#14b8a6'],
+    'no_show' => ['label' => 'ไม่มา/ยึดมัดจำ', 'color' => '#78716c'],
     'cancelled' => ['label' => 'ยกเลิก', 'color' => '#ef4444'],
 ];
 
@@ -352,6 +371,43 @@ $r = safeQuery(
 if ($r) {
     while ($row = $r->fetch_assoc()) {
         $recentBookings[] = $row;
+    }
+}
+
+$r = safeQuery(
+    $conn,
+    "SELECT bookings_id, booking_code, guest_name, created_at, booking_date, booking_time,
+            status, price_total, deposit_amount, balance_amount
+     FROM bookings
+     ORDER BY created_at DESC, bookings_id DESC"
+);
+if ($r) {
+    while ($row = $r->fetch_assoc()) {
+        $badge = bookingStatusBadge((string) ($row['status'] ?? ''));
+        $bookingStatus = (string) ($row['status'] ?? '');
+        $priceTotal = (float) ($row['price_total'] ?? 0);
+        $depositAmount = (float) ($row['deposit_amount'] ?? 0);
+        $actualReceivedAmount = 0.0;
+        if ($bookingStatus === 'completed') {
+            $actualReceivedAmount = $priceTotal;
+        } elseif ($bookingStatus === 'confirmed' || $bookingStatus === 'no_show') {
+            $actualReceivedAmount = $depositAmount;
+        }
+        $bookingFinanceRows[] = [
+            'id' => (int) ($row['bookings_id'] ?? 0),
+            'code' => (string) ($row['booking_code'] ?? '-'),
+            'guest' => (string) ($row['guest_name'] ?? '-'),
+            'created_at' => formatThaiDateTime((string) ($row['created_at'] ?? '')),
+            'booking_date' => formatThaiDate((string) ($row['booking_date'] ?? '')),
+            'booking_time' => !empty($row['booking_time']) ? substr((string) $row['booking_time'], 0, 5) : '',
+            'status' => $bookingStatus,
+            'status_label' => $badge['label'],
+            'status_class' => $badge['class'],
+            'price_total' => $priceTotal,
+            'deposit_amount' => $depositAmount,
+            'balance_amount' => (float) ($row['balance_amount'] ?? 0),
+            'actual_received_amount' => $actualReceivedAmount,
+        ];
     }
 }
 
@@ -566,6 +622,244 @@ adminPageStart('Dashboard');
         gap: 24px;
     }
 
+    .booking-finance-panel {
+        display: grid;
+        gap: 18px;
+    }
+
+    .booking-finance-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+    }
+
+    .booking-finance-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .booking-finance-card {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        min-height: 132px;
+        padding: 18px;
+        border: 1px solid #edf2f7;
+        border-radius: 18px;
+        background: var(--dashboard-surface-soft);
+    }
+
+    .booking-finance-label {
+        color: var(--dashboard-text-soft);
+        font-size: 0.94rem;
+        font-weight: 600;
+    }
+
+    .booking-finance-value {
+        margin-top: 10px;
+        color: var(--dashboard-text);
+        font-size: 1.7rem;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+
+    .booking-finance-note {
+        margin-top: 10px;
+        color: var(--dashboard-text-soft);
+        font-size: 0.88rem;
+    }
+
+    .booking-finance-detail-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin-top: 14px;
+        padding: 8px 12px;
+        border: 1px solid rgba(1, 106, 112, 0.16);
+        border-radius: 11px;
+        background: #ffffff;
+        color: var(--dashboard-primary);
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.2s ease;
+    }
+
+    .booking-finance-detail-btn:hover {
+        border-color: var(--dashboard-primary);
+        background: rgba(1, 106, 112, 0.08);
+    }
+
+    .booking-finance-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+        font-size: 1.35rem;
+    }
+
+    .booking-finance-icon.total {
+        background: rgba(59, 130, 246, 0.12);
+        color: #1d4ed8;
+    }
+
+    .booking-finance-icon.deposit {
+        background: rgba(22, 163, 74, 0.12);
+        color: #166534;
+    }
+
+    .booking-finance-icon.balance {
+        background: rgba(245, 158, 11, 0.14);
+        color: #92400e;
+    }
+
+    .finance-modal-summary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 16px;
+    }
+
+    .finance-modal-stat {
+        padding: 14px;
+        border: 1px solid var(--dashboard-border);
+        border-radius: 14px;
+        background: var(--dashboard-surface-soft);
+    }
+
+    .finance-modal-stat span {
+        display: block;
+        color: var(--dashboard-text-soft);
+        font-size: 0.86rem;
+        font-weight: 600;
+    }
+
+    .finance-modal-stat strong {
+        display: block;
+        margin-top: 6px;
+        color: var(--dashboard-text);
+        font-size: 1.35rem;
+    }
+
+    .finance-detail-table {
+        min-width: 820px;
+    }
+
+    .finance-amount-cell {
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .dashboard-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        display: grid;
+        place-items: center;
+        padding: 22px;
+    }
+
+    .dashboard-modal[hidden] {
+        display: none;
+    }
+
+    .dashboard-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        border: 0;
+        background: rgba(15, 23, 42, 0.52);
+        cursor: pointer;
+    }
+
+    .dashboard-modal-dialog {
+        position: relative;
+        z-index: 1;
+        width: min(1180px, 100%);
+        max-height: min(760px, calc(100vh - 44px));
+        overflow: hidden;
+        border-radius: 20px;
+        background: #ffffff;
+        box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+    }
+
+    .dashboard-modal-header,
+    .dashboard-modal-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--dashboard-border);
+    }
+
+    .dashboard-modal-footer {
+        border-top: 1px solid var(--dashboard-border);
+        border-bottom: none;
+        justify-content: flex-end;
+    }
+
+    .dashboard-modal-title {
+        margin: 0;
+        color: var(--dashboard-text);
+        font-size: 1.1rem;
+        font-weight: 800;
+    }
+
+    .dashboard-modal-desc {
+        margin-top: 4px;
+        color: var(--dashboard-text-soft);
+        font-size: 0.9rem;
+    }
+
+    .dashboard-modal-body {
+        overflow: auto;
+        padding: 20px;
+    }
+
+    .dashboard-modal-close,
+    .dashboard-modal-secondary {
+        border: 1px solid var(--dashboard-border);
+        background: #ffffff;
+        color: var(--dashboard-text);
+        cursor: pointer;
+        transition: 0.2s ease;
+    }
+
+    .dashboard-modal-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        font-size: 1.25rem;
+    }
+
+    .dashboard-modal-secondary {
+        min-height: 42px;
+        padding: 0 16px;
+        border-radius: 12px;
+        font: inherit;
+        font-weight: 700;
+    }
+
+    .dashboard-modal-close:hover,
+    .dashboard-modal-secondary:hover {
+        border-color: var(--dashboard-primary);
+        color: var(--dashboard-primary);
+        background: rgba(1, 106, 112, 0.08);
+    }
+
     .panel {
         padding: 22px;
     }
@@ -755,6 +1049,16 @@ adminPageStart('Dashboard');
         color: #166534;
     }
 
+    .badge-finished {
+        background: rgba(20, 184, 166, 0.14);
+        color: #0f766e;
+    }
+
+    .badge-noshow {
+        background: rgba(120, 113, 108, 0.16);
+        color: #57534e;
+    }
+
     .badge-rejected {
         background: rgba(239, 68, 68, 0.12);
         color: #991b1b;
@@ -781,6 +1085,7 @@ adminPageStart('Dashboard');
         }
 
         .dashboard-columns,
+        .booking-finance-grid,
         .table-grid,
         .hero-grid {
             grid-template-columns: 1fr;
@@ -809,6 +1114,14 @@ adminPageStart('Dashboard');
 
         .panel-header {
             flex-direction: column;
+        }
+
+        .booking-finance-header {
+            flex-direction: column;
+        }
+
+        .finance-modal-summary {
+            grid-template-columns: 1fr;
         }
 
         .chart-box {
@@ -878,6 +1191,81 @@ adminPageStart('Dashboard');
                 </div>
             </div>
         </article>
+    </section>
+
+    <section class="panel booking-finance-panel">
+        <div class="booking-finance-header">
+            <div>
+                <h2 class="panel-title">สรุปยอดเงินรายการจองทั้งหมด</h2>
+                <p class="panel-desc">รวมยอดจากรายการจองทั้งหมดในระบบ แยกเป็นยอดรวม เงินมัดจำ และเงินคงเหลือ</p>
+            </div>
+            <a class="panel-action-link" href="booking_list.php">
+                <i class='bx bx-list-ul'></i>
+                ดูรายละเอียด
+            </a>
+        </div>
+
+        <div class="booking-finance-grid">
+            <article class="booking-finance-card">
+                <div>
+                    <div class="booking-finance-label">ยอดรวม</div>
+                    <div class="booking-finance-value">฿<?= formatCurrency($dashboardStats['total_booking_value']) ?></div>
+                    <div class="booking-finance-note"><?= formatNumber($dashboardStats['total_bookings']) ?> รายการจองทั้งหมด</div>
+                    <button class="booking-finance-detail-btn" type="button" data-finance-type="total">
+                        <i class='bx bx-search'></i>
+                        ดูรายการที่คำนวณ
+                    </button>
+                </div>
+                <div class="booking-finance-icon total">
+                    <i class='bx bx-receipt'></i>
+                </div>
+            </article>
+
+            <article class="booking-finance-card">
+                <div>
+                    <div class="booking-finance-label">ยอดรับจริง</div>
+                    <div class="booking-finance-value">฿<?= formatCurrency($dashboardStats['actual_received_total']) ?></div>
+                    <div class="booking-finance-note">เสร็จสิ้นนับเต็มจำนวน, ไม่มา/ยึดมัดจำนับเฉพาะมัดจำ</div>
+                    <button class="booking-finance-detail-btn" type="button" data-finance-type="actual">
+                        <i class='bx bx-search'></i>
+                        ดูรายการที่คำนวณ
+                    </button>
+                </div>
+                <div class="booking-finance-icon deposit">
+                    <i class='bx bx-money-withdraw'></i>
+                </div>
+            </article>
+
+            <article class="booking-finance-card">
+                <div>
+                    <div class="booking-finance-label">เงินมัดจำ</div>
+                    <div class="booking-finance-value">฿<?= formatCurrency($dashboardStats['deposit_total']) ?></div>
+                    <div class="booking-finance-note">ยอดมัดจำที่บันทึกไว้ในรายการจอง</div>
+                    <button class="booking-finance-detail-btn" type="button" data-finance-type="deposit">
+                        <i class='bx bx-search'></i>
+                        ดูรายการที่คำนวณ
+                    </button>
+                </div>
+                <div class="booking-finance-icon deposit">
+                    <i class='bx bx-credit-card'></i>
+                </div>
+            </article>
+
+            <article class="booking-finance-card">
+                <div>
+                    <div class="booking-finance-label">เงินคงเหลือ</div>
+                    <div class="booking-finance-value">฿<?= formatCurrency($dashboardStats['balance_total']) ?></div>
+                    <div class="booking-finance-note">ยอดคงเหลือที่ต้องชำระจากรายการจอง</div>
+                    <button class="booking-finance-detail-btn" type="button" data-finance-type="balance">
+                        <i class='bx bx-search'></i>
+                        ดูรายการที่คำนวณ
+                    </button>
+                </div>
+                <div class="booking-finance-icon balance">
+                    <i class='bx bx-wallet'></i>
+                </div>
+            </article>
+        </div>
     </section>
 
     <section class="dashboard-columns">
@@ -1021,6 +1409,47 @@ adminPageStart('Dashboard');
     </section>
 </div>
 
+<div class="dashboard-modal" id="bookingFinanceModal" role="dialog" aria-modal="true" aria-labelledby="bookingFinanceModalLabel" hidden>
+    <button class="dashboard-modal-backdrop" type="button" data-finance-modal-close aria-label="ปิด"></button>
+    <div class="dashboard-modal-dialog">
+        <div class="dashboard-modal-header">
+            <div>
+                <h5 class="dashboard-modal-title" id="bookingFinanceModalLabel">รายการจองที่นำมาคำนวณ</h5>
+                <div class="dashboard-modal-desc" id="bookingFinanceModalDesc">รายละเอียดรายการจองทั้งหมด</div>
+            </div>
+            <button type="button" class="dashboard-modal-close" data-finance-modal-close aria-label="ปิด">
+                <i class='bx bx-x'></i>
+            </button>
+        </div>
+        <div class="dashboard-modal-body">
+            <div class="finance-modal-summary">
+                <div class="finance-modal-stat">
+                    <span>จำนวนรายการ</span>
+                    <strong id="bookingFinanceModalCount">0</strong>
+                </div>
+                <div class="finance-modal-stat">
+                    <span id="bookingFinanceModalAmountLabel">ยอดรวม</span>
+                    <strong id="bookingFinanceModalAmount">฿0.00</strong>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table finance-detail-table" id="bookingFinanceModalTable">
+                    <thead id="bookingFinanceModalHead"></thead>
+                    <tbody id="bookingFinanceModalRows"></tbody>
+                </table>
+            </div>
+            <div class="empty-state" id="bookingFinanceModalEmpty" hidden>ยังไม่มีรายการจองสำหรับยอดนี้</div>
+        </div>
+        <div class="dashboard-modal-footer">
+            <a class="panel-action-link" href="booking_list.php">
+                <i class='bx bx-list-ul'></i>
+                เปิดหน้ารายการจอง
+            </a>
+            <button type="button" class="dashboard-modal-secondary" data-finance-modal-close>ปิด</button>
+        </div>
+    </div>
+</div>
+
 <script>
     document.querySelector('.page-content')?.classList.add('dashboard-page');
 
@@ -1029,10 +1458,170 @@ adminPageStart('Dashboard');
     const bookingTotals = <?= json_encode($bookingStatusTotals, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     const bookingStatusDatasets = <?= json_encode($bookingStatusDatasets, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     const bookingStatusLabels = <?= json_encode($bookingStatusLabels, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    const bookingFinanceRows = <?= json_encode($bookingFinanceRows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 
     const salesCtx = document.getElementById('salesChart');
     const bookingCtx = document.getElementById('bookingChart');
     const chartButtons = document.querySelectorAll('.chart-btn');
+    const financeModalEl = document.getElementById('bookingFinanceModal');
+    const financeModalTitle = document.getElementById('bookingFinanceModalLabel');
+    const financeModalDesc = document.getElementById('bookingFinanceModalDesc');
+    const financeModalCount = document.getElementById('bookingFinanceModalCount');
+    const financeModalAmountLabel = document.getElementById('bookingFinanceModalAmountLabel');
+    const financeModalAmount = document.getElementById('bookingFinanceModalAmount');
+    const financeModalTable = document.getElementById('bookingFinanceModalTable');
+    const financeModalHead = document.getElementById('bookingFinanceModalHead');
+    const financeModalRows = document.getElementById('bookingFinanceModalRows');
+    const financeModalEmpty = document.getElementById('bookingFinanceModalEmpty');
+
+    const financeConfig = {
+        total: {
+            title: 'รายการจองที่นำมาคำนวณยอดรวม',
+            desc: 'แสดงรายการจองที่มียอดรวม และถูกนำไปรวมในตัวเลขยอดรวม',
+            label: 'ยอดรวม',
+            field: 'price_total',
+            columns: [
+                { label: 'รหัส', render: (row) => `<span class="code-pill">${dashboardEscapeHtml(row.code)}</span>` },
+                { label: 'ผู้จอง', render: (row) => dashboardEscapeHtml(row.guest || '-') },
+                { label: 'วันที่จอง', render: (row) => dashboardEscapeHtml(row.created_at || '-') },
+                { label: 'วันใช้งาน', render: renderVisitDate },
+                { label: 'สถานะ', render: renderStatusBadge },
+                { label: 'ยอดรวม', render: (row) => `<span class="finance-amount-cell">${formatMoney(row.price_total)}</span>` },
+                { label: 'เงินมัดจำ', render: (row) => `<span class="finance-amount-cell">${formatMoney(row.deposit_amount)}</span>` },
+                { label: 'เงินคงเหลือ', render: (row) => `<span class="finance-amount-cell">${formatMoney(row.balance_amount)}</span>` }
+            ]
+        },
+        actual: {
+            title: 'รายการจองที่นำมาคำนวณยอดรับจริง',
+            desc: 'เสร็จสิ้นนับเต็มจำนวน ส่วนไม่มา/ยึดมัดจำและยืนยันแล้วนับเฉพาะเงินมัดจำ',
+            label: 'ยอดรับจริง',
+            field: 'actual_received_amount',
+            columns: [
+                { label: 'รหัส', render: (row) => `<span class="code-pill">${dashboardEscapeHtml(row.code)}</span>` },
+                { label: 'ผู้จอง', render: (row) => dashboardEscapeHtml(row.guest || '-') },
+                { label: 'วันใช้งาน', render: renderVisitDate },
+                { label: 'สถานะ', render: renderStatusBadge },
+                { label: 'ยอดรวม', render: (row) => `<span class="finance-amount-cell">${formatMoney(row.price_total)}</span>` },
+                { label: 'มัดจำ', render: (row) => `<span class="finance-amount-cell">${formatMoney(row.deposit_amount)}</span>` },
+                { label: 'คงเหลือ', render: (row) => `<span class="finance-amount-cell">${formatMoney(row.balance_amount)}</span>` },
+                { label: 'ยอดรับจริง', render: (row) => `<span class="finance-amount-cell">${formatMoney(row.actual_received_amount)}</span>` }
+            ]
+        },
+        deposit: {
+            title: 'รายการจองที่นำมาคำนวณเงินมัดจำ',
+            desc: 'แสดงรายการจองที่มีเงินมัดจำ และถูกนำไปรวมในตัวเลขเงินมัดจำ',
+            label: 'เงินมัดจำ',
+            field: 'deposit_amount',
+            filter: (row) => ['confirmed', 'completed', 'no_show'].includes(row.status),
+            columns: [
+                { label: 'รหัส', render: (row) => `<span class="code-pill">${dashboardEscapeHtml(row.code)}</span>` },
+                { label: 'ผู้จอง', render: (row) => dashboardEscapeHtml(row.guest || '-') },
+                { label: 'วันใช้งาน', render: renderVisitDate },
+                { label: 'สถานะ', render: renderStatusBadge },
+                { label: 'เงินมัดจำ', render: (row) => `<span class="finance-amount-cell">${formatMoney(row.deposit_amount)}</span>` }
+            ]
+        },
+        balance: {
+            title: 'รายการจองที่นำมาคำนวณเงินคงเหลือ',
+            desc: 'แสดงรายการจองที่มีเงินคงเหลือ และถูกนำไปรวมในตัวเลขเงินคงเหลือ',
+            label: 'เงินคงเหลือ',
+            field: 'balance_amount',
+            filter: (row) => row.status === 'confirmed',
+            columns: [
+                { label: 'รหัส', render: (row) => `<span class="code-pill">${dashboardEscapeHtml(row.code)}</span>` },
+                { label: 'ผู้จอง', render: (row) => dashboardEscapeHtml(row.guest || '-') },
+                { label: 'วันใช้งาน', render: renderVisitDate },
+                { label: 'สถานะ', render: renderStatusBadge },
+                { label: 'เงินคงเหลือ', render: (row) => `<span class="finance-amount-cell">${formatMoney(row.balance_amount)}</span>` }
+            ]
+        }
+    };
+
+    function dashboardEscapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function formatMoney(value) {
+        return '฿' + Number(value || 0).toLocaleString('th-TH', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    function renderVisitDate(row) {
+        return `${dashboardEscapeHtml(row.booking_date)}${row.booking_time ? ' ' + dashboardEscapeHtml(row.booking_time) : ''}`;
+    }
+
+    function renderStatusBadge(row) {
+        return `<span class="status-badge ${dashboardEscapeHtml(row.status_class)}">${dashboardEscapeHtml(row.status_label)}</span>`;
+    }
+
+    function openFinanceModal() {
+        if (!financeModalEl) {
+            return;
+        }
+
+        financeModalEl.hidden = false;
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeFinanceModal() {
+        if (!financeModalEl) {
+            return;
+        }
+
+        financeModalEl.hidden = true;
+        document.body.style.overflow = '';
+    }
+
+    function renderFinanceRows(type) {
+        const config = financeConfig[type] || financeConfig.total;
+        const rows = bookingFinanceRows.filter((row) => {
+            const hasAmount = Number(row[config.field] || 0) > 0;
+            return hasAmount && (typeof config.filter !== 'function' || config.filter(row));
+        });
+        const amount = rows.reduce((sum, row) => sum + Number(row[config.field] || 0), 0);
+
+        financeModalTitle.textContent = config.title;
+        financeModalDesc.textContent = config.desc;
+        financeModalCount.textContent = rows.length.toLocaleString('th-TH');
+        financeModalAmountLabel.textContent = config.label;
+        financeModalAmount.textContent = formatMoney(amount);
+        financeModalHead.innerHTML = `<tr>${config.columns.map((column) => `<th>${dashboardEscapeHtml(column.label)}</th>`).join('')}</tr>`;
+
+        financeModalRows.innerHTML = rows.map((row) => {
+            return `
+                <tr>
+                    ${config.columns.map((column) => `<td>${column.render(row)}</td>`).join('')}
+                </tr>
+            `;
+        }).join('');
+
+        financeModalEmpty.hidden = rows.length > 0;
+        financeModalTable.hidden = rows.length === 0;
+    }
+
+    document.querySelectorAll('.booking-finance-detail-btn').forEach((button) => {
+        button.addEventListener('click', () => {
+            renderFinanceRows(button.dataset.financeType || 'total');
+            openFinanceModal();
+        });
+    });
+
+    document.querySelectorAll('[data-finance-modal-close]').forEach((button) => {
+        button.addEventListener('click', closeFinanceModal);
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && financeModalEl && !financeModalEl.hidden) {
+            closeFinanceModal();
+        }
+    });
 
     const salesChart = new Chart(salesCtx, {
         type: 'line',

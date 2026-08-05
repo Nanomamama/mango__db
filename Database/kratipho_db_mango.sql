@@ -42,7 +42,7 @@ CREATE TABLE `bookings` (
   `deposit_amount` decimal(10,2) DEFAULT 0.00,
   `balance_amount` decimal(10,2) DEFAULT 0.00,
   `booking_type` varchar(50) NOT NULL DEFAULT 'private',
-  `status` enum('pending','awaiting_payment','confirmed','cancelled') DEFAULT 'pending',
+  `status` enum('pending','awaiting_payment','confirmed','completed','no_show','cancelled') DEFAULT 'pending',
   `is_member_booking` tinyint(1) DEFAULT 0,
   `attachment_path` varchar(500) DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp(),

@@ -1,6 +1,11 @@
 <?php
 session_start();
 require_once __DIR__ . '/../db/db.php';
+require_once __DIR__ . '/line_service.php';
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
 // ตรวจสอบการเข้าสู่ระบบ
 if (!isset($_SESSION['member_id'])) {
@@ -10,10 +15,10 @@ if (!isset($_SESSION['member_id'])) {
 
 // ดึงข้อมูลสมาชิก
 $member_id = $_SESSION['member_id'];
-$stmt = $conn->prepare("SELECT fullname, address, province_id, district_id, subdistrict_id, zipcode, phone, email, created_at, status FROM members WHERE member_id = ?");
+$stmt = $conn->prepare("SELECT fullname, address, province_id, district_id, subdistrict_id, zipcode, phone, email, created_at, status, line_user_id, line_display_name, line_linked_at FROM members WHERE member_id = ?");
 $stmt->bind_param("i", $member_id);
 $stmt->execute();
-$stmt->bind_result($fullname, $address, $province_id, $district_id, $subdistrict_id, $zipcode, $phone, $email, $created_at, $member_status);
+$stmt->bind_result($fullname, $address, $province_id, $district_id, $subdistrict_id, $zipcode, $phone, $email, $created_at, $member_status, $line_user_id, $line_display_name, $line_linked_at);
 $stmt->fetch();
 $stmt->close();
 
@@ -28,6 +33,9 @@ $phone = $phone ?? '';
 $email = $email ?? '';
 $created_at = $created_at ?? date('Y-m-d H:i:s');
 $member_status = $member_status ?? 0;
+$line_user_id = $line_user_id ?? '';
+$line_display_name = $line_display_name ?? '';
+$line_linked_at = $line_linked_at ?? null;
 
 // ตรวจสอบสถานะผู้ใช้ที่เข้าสู่ระบบ
     if (isset($_SESSION['member_id'])) {
@@ -150,6 +158,10 @@ function memberBookingStatusLabel($status)
             return ['label' => 'รอชำระเงิน/ตรวจสลิป', 'style' => 'background:#e6f4ff;border-color:#91caff;color:#0958d9;'];
         case 'confirmed':
             return ['label' => 'ยืนยันแล้ว', 'style' => 'background:#f6ffed;border-color:#b7eb8f;color:#237804;'];
+        case 'completed':
+            return ['label' => 'เสร็จสิ้น', 'style' => 'background:#e6fffb;border-color:#87e8de;color:#006d75;'];
+        case 'no_show':
+            return ['label' => 'ไม่มา/ยึดมัดจำ', 'style' => 'background:#f5f5f4;border-color:#d6d3d1;color:#57534e;'];
         case 'cancelled':
             return ['label' => 'ยกเลิกแล้ว', 'style' => 'background:#fff2f0;border-color:#ffccc7;color:#cf1322;'];
         default:
@@ -1052,6 +1064,93 @@ if ($stmt2) {
                         <?php endif; ?>
                     </div>
 
+                    <div style="margin-top: 14px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                        <?php if (!empty($line_user_id)): ?>
+                            <span class="ant-tag ant-tag-green" style="background:#eaffea;border-color:#8ee68e;color:#147a14;">
+                                <i class='bx bx-check-circle'></i>
+                                เชื่อมต่อ LINE แล้ว<?php echo $line_display_name !== '' ? ': ' . htmlspecialchars($line_display_name) : ''; ?>
+                            </span>
+                            <form method="post" action="line_unlink.php" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES); ?>">
+                                <button type="submit" class="ant-btn ant-btn-default" style="height:28px;padding:2px 10px;" onclick="return confirm('ยกเลิกการเชื่อมต่อ LINE ใช่หรือไม่?');">
+                                    <i class='bx bx-link-external'></i> ยกเลิกการเชื่อมต่อ
+                                </button>
+                            </form>
+                        <?php else: ?>
+                            <div style="width:min(520px,100%);background:#f7fff9;border:1px solid #9be7b2;border-radius:10px;padding:14px;text-align:left;">
+                                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;color:#0f5132;">
+                                    <i class='bx bxl-line' style="font-size:24px;color:#06c755;"></i>
+                                    <div>
+                                        <strong>รับแจ้งเตือนผ่าน LINE</strong>
+                                        <div style="font-size:13px;color:#667085;">เพิ่มเพื่อนก่อน แล้วเชื่อมต่อบัญชีสมาชิกต่อทันที</div>
+                                    </div>
+                                </div>
+
+                                <div style="display:grid;gap:10px;">
+                                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid #d8f5dd;border-radius:8px;padding:10px;">
+                                        <div>
+                                            <strong style="display:block;color:#123;">1. เพิ่มเพื่อน LINE OA</strong>
+                                            <span style="font-size:13px;color:#667085;">เปิด LINE เพื่อเพิ่ม Official Account เป็นเพื่อน</span>
+                                        </div>
+                                        <a href="<?php echo htmlspecialchars(line_bot_add_friend_url(), ENT_QUOTES); ?>" target="_blank" rel="noopener" class="ant-btn ant-btn-primary" style="height:32px;background:#06c755;border-color:#06c755;" onclick="showLineConnectStep('profile');">
+                                            <i class='bx bx-message-rounded-dots'></i> เพิ่มเพื่อน OA
+                                        </a>
+                                    </div>
+
+                                    <div id="lineConnectStepProfile" style="display:none;background:#fff;border:1px solid #016A70;border-radius:8px;padding:10px;">
+                                        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                                            <div>
+                                                <strong style="display:block;color:#016A70;">2. เชื่อมต่อบัญชี LINE</strong>
+                                                <span style="font-size:13px;color:#667085;">เพิ่มเพื่อนแล้ว กดปุ่มนี้เพื่อผูกกับบัญชีสมาชิก</span>
+                                            </div>
+                                            <a href="<?php echo htmlspecialchars(line_link_url('profile'), ENT_QUOTES); ?>" class="ant-btn ant-btn-primary" style="height:32px;background:#016A70;border-color:#016A70;">
+                                                <i class='bx bx-link'></i> เชื่อมต่อ LINE
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <?php if (!empty($_SESSION['line_link_success']) || !empty($_SESSION['line_link_error'])): ?>
+                        <div style="margin: 12px auto 0; max-width: 520px;">
+                            <?php if (!empty($_SESSION['line_link_success'])): ?>
+                                <div style="background:#f6ffed;border:1px solid #b7eb8f;color:#237804;border-radius:6px;padding:8px 12px;">
+                                    <?php echo htmlspecialchars($_SESSION['line_link_success']); unset($_SESSION['line_link_success']); ?>
+                                </div>
+                            <?php endif; ?>
+                            <?php if (!empty($_SESSION['line_link_error'])): ?>
+                                <div style="background:#fff2f0;border:1px solid #ffccc7;color:#cf1322;border-radius:6px;padding:8px 12px;">
+                                    <?php echo htmlspecialchars($_SESSION['line_link_error']); unset($_SESSION['line_link_error']); ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <script>
+                        function showLineConnectStep(context) {
+                            try {
+                                localStorage.setItem('line_friend_added_' + context, '1');
+                            } catch (error) {}
+
+                            const step = document.getElementById('lineConnectStepProfile');
+                            if (step) {
+                                step.style.display = 'block';
+                                setTimeout(() => step.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+                            }
+                        }
+
+                        document.addEventListener('DOMContentLoaded', function () {
+                            try {
+                                if (localStorage.getItem('line_friend_added_profile') === '1') {
+                                    const step = document.getElementById('lineConnectStepProfile');
+                                    if (step) step.style.display = 'block';
+                                }
+                            } catch (error) {}
+                        });
+                    </script>
+
                     <div class="profile-stats">
                         <div class="profile-stat-item">
                             <div class="profile-stat-value"><?php echo htmlspecialchars((int)$booking_count); ?></div>
@@ -1644,6 +1743,8 @@ if ($stmt2) {
                 pending: 'background:#fffbe6;border-color:#ffe58f;color:#ad6800;',
                 awaiting_payment: 'background:#e6f4ff;border-color:#91caff;color:#0958d9;',
                 confirmed: 'background:#f6ffed;border-color:#b7eb8f;color:#237804;',
+                completed: 'background:#e6fffb;border-color:#87e8de;color:#006d75;',
+                no_show: 'background:#f5f5f4;border-color:#d6d3d1;color:#57534e;',
                 cancelled: 'background:#fff2f0;border-color:#ffccc7;color:#cf1322;'
             };
 
@@ -1750,7 +1851,7 @@ if ($stmt2) {
                 // determine step index: 0=submitted,1=in progress,2=completed
                 let step = 0;
                 if (b.status === 'awaiting_payment') step = 1;
-                else if (b.status === 'confirmed') step = 2;
+                else if (b.status === 'confirmed' || b.status === 'completed' || b.status === 'no_show') step = 2;
                 else if (b.status === 'cancelled') step = 1;
 
                 let html = '';
@@ -1760,7 +1861,7 @@ if ($stmt2) {
                 html += `<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">`;
                 html += `<div>`;
                 html += `<div style="font-weight:700; font-size:1.05rem;">${escapeHtml(b.name || b.guest_name || '-')}</div>`;
-                if ((b.code || b.booking_code) && b.status === 'confirmed') html += `<div class="text-muted">รหัสการจอง: ${escapeHtml(b.code || b.booking_code)}</div>`;
+                if ((b.code || b.booking_code) && ['confirmed', 'completed', 'no_show'].includes(b.status)) html += `<div class="text-muted">รหัสการจอง: ${escapeHtml(b.code || b.booking_code)}</div>`;
                 html += `<div class="text-muted">วันที่ ${escapeHtml(b.date)} ${b.time ? 'เวลา ' + escapeHtml(b.time) + ' น.' : ''}</div>`;
                 html += `</div>`;
                 html += `<div>${getStatusTag(b)}</div>`;

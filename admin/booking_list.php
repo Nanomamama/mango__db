@@ -2,6 +2,7 @@
 require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
 require_once __DIR__ . '/../config/env.php';
+require_once __DIR__ . '/../user/line_service.php';
 require_once __DIR__ . '/auto_cancel_overdue_lib.php';
 require_once 'sidebar.php';
 
@@ -103,6 +104,41 @@ function payment_due_at_for_qr(): string
     // 3 วัน
     return (new DateTimeImmutable('+3 days'))->format('Y-m-d H:i:s');
 }
+
+function ensure_booking_status_values(mysqli $conn): void
+{
+    $result = $conn->query("SHOW COLUMNS FROM bookings LIKE 'status'");
+    if (!$result) {
+        return;
+    }
+
+    $column = $result->fetch_assoc();
+    $columnType = (string)($column['Type'] ?? '');
+    if (strpos($columnType, "'completed'") !== false && strpos($columnType, "'no_show'") !== false) {
+        return;
+    }
+
+    $conn->query("ALTER TABLE bookings CHANGE status status ENUM('pending','awaiting_payment','confirmed','completed','no_show','cancelled') DEFAULT 'pending'");
+}
+
+function booking_actual_received_amount(array $booking): float
+{
+    $status = (string)($booking['status'] ?? '');
+    $priceTotal = (float)($booking['price_total'] ?? 0);
+    $depositAmount = (float)($booking['deposit_amount'] ?? 0);
+
+    if ($status === 'completed') {
+        return $priceTotal;
+    }
+
+    if ($status === 'confirmed' || $status === 'no_show') {
+        return $depositAmount;
+    }
+
+    return 0.0;
+}
+
+ensure_booking_status_values($conn);
 
 // จัดการการอัปเดตสถานะการจอง
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'], $_POST['csrf_token'])) {
@@ -245,6 +281,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
                             } else {
                                 $response = ['success' => true, 'message' => 'ส่งอีเมลพร้อม QR Code สำเร็จ'];
                             }
+                            if ($stmt_update->affected_rows === 1) {
+                                line_send_booking_status($conn, $id, 'awaiting_payment');
+                            }
                             $stmt_update->close();
                         } else {
                             $response = ['success' => false, 'message' => 'Cannot prepare QR status update.'];
@@ -283,6 +322,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
         $success = $stmt->execute();
 
         if ($success) {
+            line_send_booking_status($conn, $id, 'confirmed');
             // ดึงข้อมูลการจองเพื่อส่งอีเมล
             $stmt_details = $conn->prepare("SELECT guest_name, guest_email, booking_code, booking_date, booking_time, visitor_count, booking_type, lunch_request, price_total, deposit_amount, balance_amount FROM bookings WHERE bookings_id = ?");
             $stmt_details->bind_param("i", $id);
@@ -428,6 +468,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
         $success = $stmt->execute();
 
         if ($success) {
+            line_send_booking_status($conn, $id, 'cancelled', $cancel_reason);
             // ดึงข้อมูลการจองเพื่อส่งอีเมลแจ้งยกเลิก
             $stmt_details = $conn->prepare("SELECT guest_name, guest_email, booking_code, booking_date FROM bookings WHERE bookings_id = ?");
             $stmt_details->bind_param("i", $id);
@@ -489,6 +530,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
                 }
             }
         }
+    } elseif ($action === 'complete') {
+        $stmt = $conn->prepare("UPDATE bookings SET status='completed', updated_at=NOW() WHERE bookings_id=? AND status='confirmed'");
+        $stmt->bind_param("i", $id);
+        $success = $stmt->execute() && $stmt->affected_rows === 1;
+    } elseif ($action === 'no_show') {
+        $stmt = $conn->prepare("UPDATE bookings SET status='no_show', updated_at=NOW() WHERE bookings_id=? AND status='confirmed'");
+        $stmt->bind_param("i", $id);
+        $success = $stmt->execute() && $stmt->affected_rows === 1;
     } elseif ($action === 'delete') {
         $stmt = $conn->prepare("DELETE FROM bookings WHERE bookings_id=?");
         $stmt->bind_param("i", $id);
@@ -525,10 +574,14 @@ $stats = [
     'awaiting_payment' => 0,
     'awaiting_slip_check' => 0,
     'confirmed' => 0,
+    'completed' => 0,
+    'no_show' => 0,
     'cancelled' => 0,
+    'actual_received' => 0,
     'total' => count($bookings)
 ];
 foreach ($bookings as $b) {
+    $stats['actual_received'] += booking_actual_received_amount($b);
     // Check for awaiting slip check first
     if (($b['status'] === 'pending' || $b['status'] === 'awaiting_payment') && !empty($b['payment_slip'])) {
         $stats['awaiting_slip_check']++;
@@ -538,6 +591,10 @@ foreach ($bookings as $b) {
         $stats['awaiting_payment']++;
     } elseif ($b['status'] === 'confirmed') {
         $stats['confirmed']++;
+    } elseif ($b['status'] === 'completed') {
+        $stats['completed']++;
+    } elseif ($b['status'] === 'no_show') {
+        $stats['no_show']++;
     } elseif ($b['status'] === 'cancelled') {
         $stats['cancelled']++;
     }
@@ -760,6 +817,16 @@ adminPageStart('จัดการรายการจอง');
         color: #166534;
     }
 
+    .status-completed {
+        background: rgba(20, 184, 166, 0.14);
+        color: #0f766e;
+    }
+
+    .status-no_show {
+        background: rgba(120, 113, 108, 0.16);
+        color: #57534e;
+    }
+
     .status-cancelled {
         background: rgba(239, 68, 68, 0.12);
         color: #991b1b;
@@ -833,6 +900,26 @@ adminPageStart('จัดการรายการจอง');
         color: white;
     }
 
+    .btn-complete {
+        background: rgba(20, 184, 166, 0.12);
+        color: #0f766e;
+    }
+
+    .btn-complete:hover {
+        background: #0f766e;
+        color: white;
+    }
+
+    .btn-no-show {
+        background: rgba(120, 113, 108, 0.14);
+        color: #57534e;
+    }
+
+    .btn-no-show:hover {
+        background: #57534e;
+        color: white;
+    }
+
     .btn-cancel {
         background: rgba(231, 76, 60, 0.1);
         color: #c0392b;
@@ -896,6 +983,15 @@ adminPageStart('จัดการรายการจอง');
         height: 150px;
         background-color: #f0f2f5;
         border-radius: 8px;
+    }
+
+    .booking-income-summary {
+        border: 1px solid rgba(1, 106, 112, 0.16);
+        background: #ffffff;
+        border-left: 4px solid var(--green);
+        border-radius: 12px;
+        box-shadow: var(--shadow-sm);
+        padding: 1rem 1.25rem;
     }
 
     @media (max-width: 576px) {
@@ -1223,34 +1319,56 @@ adminPageStart('จัดการรายการจอง');
 
     <!-- Stats -->
     <div class="row g-2 g-md-3 mb-3 mb-md-4">
-        <div class="col-6 col-sm-3">
+        <div class="col-6 col-lg-2">
             <div class="stats-card">
                 <div class="stats-icon text-primary"><i class="bi bi-list-ul"></i></div>
                 <div class="stats-value"><?= $stats['total'] ?></div>
                 <div class="text-muted">ทั้งหมด</div>
             </div>
         </div>
-        <div class="col-6 col-sm-3">
+        <div class="col-6 col-lg-2">
             <div class="stats-card">
                 <div class="stats-icon text-warning"><i class="bi bi-clock-history"></i></div>
                 <div class="stats-value"><?= $stats['pending'] + $stats['awaiting_payment'] + $stats['awaiting_slip_check'] ?></div>
                 <div class="text-muted">รอยืนยัน</div>
             </div>
         </div>
-        <div class="col-6 col-sm-3">
+        <div class="col-6 col-lg-2">
             <div class="stats-card">
                 <div class="stats-icon text-success"><i class="bi bi-check-circle"></i></div>
                 <div class="stats-value"><?= $stats['confirmed'] ?></div>
                 <div class="text-muted">ยืนยันแล้ว</div>
             </div>
         </div>
-        <div class="col-6 col-sm-3">
+        <div class="col-6 col-lg-2">
+            <div class="stats-card">
+                <div class="stats-icon text-info"><i class="bi bi-flag-fill"></i></div>
+                <div class="stats-value"><?= $stats['completed'] ?></div>
+                <div class="text-muted">เสร็จสิ้น</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="stats-card">
+                <div class="stats-icon text-secondary"><i class="bi bi-person-x"></i></div>
+                <div class="stats-value"><?= $stats['no_show'] ?></div>
+                <div class="text-muted">ไม่มา/ยึดมัดจำ</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
             <div class="stats-card">
                 <div class="stats-icon text-danger"><i class="bi bi-x-circle"></i></div>
                 <div class="stats-value"><?= $stats['cancelled'] ?></div>
                 <div class="text-muted">ยกเลิกแล้ว</div>
             </div>
         </div>
+    </div>
+
+    <div class="booking-income-summary d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3 mb-md-4">
+        <div>
+            <div class="fw-semibold text-dark">ยอดรับจริงรวม</div>
+            <div class="text-muted small">เสร็จสิ้นนับเต็มจำนวน, ไม่มา/ยึดมัดจำนับเฉพาะมัดจำ</div>
+        </div>
+        <div class="fs-4 fw-bold text-primary">฿<?= number_format($stats['actual_received'], 2) ?></div>
     </div>
 
     <!-- Filter Buttons -->
@@ -1282,6 +1400,18 @@ adminPageStart('จัดการรายการจอง');
                 <i class="bi bi-check2-circle me-1"></i> ยืนยันแล้ว
                 <?php if ($stats['confirmed'] > 0): ?>
                     <span class="badge rounded-pill bg-success ms-1"><?= $stats['confirmed'] ?></span>
+                <?php endif; ?>
+            </button>
+            <button type="button" class="btn btn-light filter-btn" data-filter="completed">
+                <i class="bi bi-flag-fill me-1"></i> เสร็จสิ้น
+                <?php if ($stats['completed'] > 0): ?>
+                    <span class="badge rounded-pill bg-info text-dark ms-1"><?= $stats['completed'] ?></span>
+                <?php endif; ?>
+            </button>
+            <button type="button" class="btn btn-light filter-btn" data-filter="no_show">
+                <i class="bi bi-person-x me-1"></i> ไม่มา/ยึดมัดจำ
+                <?php if ($stats['no_show'] > 0): ?>
+                    <span class="badge rounded-pill bg-secondary ms-1"><?= $stats['no_show'] ?></span>
                 <?php endif; ?>
             </button>
             <button type="button" class="btn btn-light filter-btn" data-filter="cancelled">
@@ -1380,6 +1510,12 @@ adminPageStart('จัดการรายการจอง');
                             } elseif ($booking['status'] == 'confirmed') {
                                 $display_status_text = 'ยืนยันแล้ว';
                                 $display_status_icon = 'bi-check-circle-fill';
+                            } elseif ($booking['status'] == 'completed') {
+                                $display_status_text = 'เสร็จสิ้น';
+                                $display_status_icon = 'bi-flag-fill';
+                            } elseif ($booking['status'] == 'no_show') {
+                                $display_status_text = 'ไม่มา/ยึดมัดจำ';
+                                $display_status_icon = 'bi-person-x-fill';
                             } elseif ($booking['status'] == 'cancelled') {
                                 $display_status_text = 'ยกเลิกแล้ว';
                                 $display_status_icon = 'bi-x-circle-fill';
@@ -1411,6 +1547,18 @@ adminPageStart('จัดการรายการจอง');
                             <div class="mb-3">
                                 <span class="info-label"><i class="bi bi-currency-dollar me-2"></i>ยอดรวม:</span>
                                 <span class="info-value fw-bold text-dark">฿<?= number_format($booking['price_total'], 2) ?></span>
+                            </div>
+                            <div class="mb-2">
+                                <span class="info-label"><i class="bi bi-wallet2 me-2"></i>มัดจำ:</span>
+                                <span class="info-value text-success">฿<?= number_format($booking['deposit_amount'], 2) ?></span>
+                            </div>
+                            <div class="mb-2">
+                                <span class="info-label"><i class="bi bi-cash-coin me-2"></i>คงเหลือ:</span>
+                                <span class="info-value text-danger">฿<?= number_format($booking['balance_amount'], 2) ?></span>
+                            </div>
+                            <div class="mb-3">
+                                <span class="info-label"><i class="bi bi-safe2 me-2"></i>รับจริง:</span>
+                                <span class="info-value fw-bold text-primary">฿<?= number_format(booking_actual_received_amount($booking), 2) ?></span>
                             </div>
 
                             <div class="mb-3">
@@ -1444,7 +1592,16 @@ adminPageStart('จัดการรายการจอง');
                                     </button>
                                 <?php endif; ?>
 
-                                <?php if ($booking['status'] != 'confirmed' && $booking['status'] != 'cancelled'): ?>
+                                <?php if ($booking['status'] == 'confirmed'): ?>
+                                    <button class="action-btn btn-complete" onclick="showConfirmationModal(<?= $booking['bookings_id'] ?>, 'complete', 'ยืนยันว่ากลุ่มนี้มาที่สวน ทำกิจกรรมเสร็จ และชำระเงินคงเหลือครบแล้วใช่หรือไม่?', this)">
+                                        <i class="bi bi-flag-fill me-1"></i> เสร็จสิ้น
+                                    </button>
+                                    <button class="action-btn btn-no-show" onclick="showConfirmationModal(<?= $booking['bookings_id'] ?>, 'no_show', 'ยืนยันว่าผู้จองไม่มา และให้ยึดเฉพาะเงินมัดจำใช่หรือไม่?', this)">
+                                        <i class="bi bi-person-x me-1"></i> ไม่มา
+                                    </button>
+                                <?php endif; ?>
+
+                                <?php if (!in_array($booking['status'], ['confirmed', 'completed', 'no_show', 'cancelled'], true)): ?>
                                     <button class="action-btn btn-cancel" onclick="showConfirmationModal(<?= $booking['bookings_id'] ?>, 'cancel', 'ต้องการยกเลิกการจองนี้ใช่หรือไม่?', this)">
                                         <i class="bi bi-x-lg me-1"></i> ยกเลิก
                                     </button>
@@ -1584,7 +1741,9 @@ adminPageStart('จัดการรายการจอง');
     const qrCodeModal = new bootstrap.Modal(qrCodeModalEl);
     const actionLoadingLabels = {
         confirm: 'กำลังยืนยัน...',
-        cancel: 'กำลังยกเลิก...'
+        cancel: 'กำลังยกเลิก...',
+        complete: 'กำลังปิดรายการ...',
+        no_show: 'กำลังบันทึกไม่มา...'
     };
     let activeActionButtons = [];
 
@@ -1684,10 +1843,12 @@ adminPageStart('จัดการรายการจอง');
         const modalBody = document.getElementById('actionConfirmModalBody');
         const modalLabel = document.getElementById('actionConfirmModalLabel');
 
-        if (action === 'confirm') {
+        if (action === 'confirm' || action === 'complete' || action === 'no_show') {
             modalBody.textContent = message;
-            modalLabel.textContent = 'ยืนยันการจอง';
-            confirmActionButton.className = 'btn btn-success';
+            modalLabel.textContent = action === 'complete'
+                ? 'ยืนยันเสร็จสิ้น'
+                : (action === 'no_show' ? 'ยืนยันไม่มา/ยึดมัดจำ' : 'ยืนยันการจอง');
+            confirmActionButton.className = action === 'no_show' ? 'btn btn-secondary' : 'btn btn-success';
             restoreButton(confirmActionButton);
 
             confirmActionButton.onclick = () => {
@@ -1899,9 +2060,27 @@ adminPageStart('จัดการรายการจอง');
             'pending': 'รอยืนยัน',
             'awaiting_payment': 'ส่ง QR Code แล้ว',
             'confirmed': 'ยืนยันแล้ว',
+            'completed': 'เสร็จสิ้น',
+            'no_show': 'ไม่มา/ยึดมัดจำ',
             'cancelled': 'ยกเลิกแล้ว'
         };
         return statuses[status] || status;
+    }
+
+    function actualReceivedAmount(data) {
+        const status = String(data.status || '');
+        const total = Number.parseFloat(data.price_total) || 0;
+        const deposit = Number.parseFloat(data.deposit_amount) || 0;
+
+        if (status === 'completed') {
+            return total;
+        }
+
+        if (status === 'confirmed' || status === 'no_show') {
+            return deposit;
+        }
+
+        return 0;
     }
 
     function escapeHtml(value) {
@@ -1927,6 +2106,7 @@ adminPageStart('จัดการรายการจอง');
         }
         const slipUrl = data.payment_slip ? bookingDownloadUrl('slip', data.payment_slip) : '';
         const docUrl = data.attachment_path ? bookingDownloadUrl('doc', data.attachment_path) : '';
+        const actualReceived = actualReceivedAmount(data);
         modalBody.innerHTML = `
                 <div class="text-center mb-4">
                     <div class="display-6 fw-bold text-primary">#${escapeHtml(data.booking_code)}</div>
@@ -1941,6 +2121,7 @@ adminPageStart('จัดการรายการจอง');
                     <div class="col-6"><small class="text-muted d-block">ยอดรวม</small> <strong class="text-dark">฿${parseFloat(data.price_total).toLocaleString()}</strong></div>
                     <div class="col-6"><small class="text-muted d-block">เงินมัดจำ</small> <strong class="text-success">฿${parseFloat(data.deposit_amount).toLocaleString()}</strong></div>
                     <div class="col-6"><small class="text-muted d-block">เงินคงเหลือ</small> <strong class="text-danger">฿${parseFloat(data.balance_amount).toLocaleString()}</strong></div>
+                    <div class="col-6"><small class="text-muted d-block">ยอดรับจริง</small> <strong class="text-primary">฿${actualReceived.toLocaleString()}</strong></div>
                     <div class="col-12"><small class="text-muted d-block">หลักฐานการชำระเงิน</small> 
                         ${data.payment_slip ? `<a href="${slipUrl}" target="_blank" class="btn btn-sm btn-outline-primary mt-1 w-100">ดูสลิป</a>` : '<span class="text-danger">ยังไม่มีสลิป</span>'}
                     </div>

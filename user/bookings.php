@@ -7,6 +7,7 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 $csrf_token = $_SESSION['csrf_token'];
+require_once __DIR__ . '/line_service.php';
 require_once __DIR__ . '/../db/db.php'; // ตรวจสอบให้แน่ใจว่ามีการเชื่อมต่อฐานข้อมูล
 
 // ตรวจสอบสถานะผู้ใช้ที่เข้าสู่ระบบ
@@ -36,12 +37,15 @@ $is_member = isset($_SESSION['member_id']);
 $member_data = [
     'fullname' => '',
     'email' => '',
-    'phone' => ''
+    'phone' => '',
+    'line_user_id' => '',
+    'line_display_name' => '',
+    'line_linked_at' => null
 ];
 
 if ($is_member) {
     $member_id = $_SESSION['member_id'];
-    $stmt = $conn->prepare("SELECT fullname, email, phone FROM members WHERE member_id = ?");
+    $stmt = $conn->prepare("SELECT fullname, email, phone, line_user_id, line_display_name, line_linked_at FROM members WHERE member_id = ?");
     if ($stmt) {
         $stmt->bind_param("i", $member_id);
         $stmt->execute();
@@ -1353,6 +1357,96 @@ if ($is_member) {
                             <i class="fas fa-info-circle me-2"></i>
                             คุณกำลังจองเข้าชมสวนในวันที่ <strong id="formSelectedDate"></strong>
                         </div>
+
+                        <?php if (!empty($_SESSION['line_link_success']) || !empty($_SESSION['line_link_error'])): ?>
+                            <div class="mb-3">
+                                <?php if (!empty($_SESSION['line_link_success'])): ?>
+                                    <div class="alert alert-success mb-2">
+                                        <?= htmlspecialchars($_SESSION['line_link_success'], ENT_QUOTES, 'UTF-8'); unset($_SESSION['line_link_success']); ?>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if (!empty($_SESSION['line_link_error'])): ?>
+                                    <div class="alert alert-danger mb-2">
+                                        <?= htmlspecialchars($_SESSION['line_link_error'], ENT_QUOTES, 'UTF-8'); unset($_SESSION['line_link_error']); ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ($is_member): ?>
+                            <?php if (!empty($member_data['line_user_id'])): ?>
+                                <div class="alert mb-3" style="background:#f0fff4;border:1px solid #8ee68e;color:#147a14;border-radius:10px;">
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <i class="fab fa-line" style="font-size:1.35rem;"></i>
+                                        <strong>เชื่อมต่อ LINE แล้ว</strong>
+                                        <?php if (!empty($member_data['line_display_name'])): ?>
+                                            <span>: <?= htmlspecialchars($member_data['line_display_name'], ENT_QUOTES, 'UTF-8') ?></span>
+                                        <?php endif; ?>
+                                        <span class="ms-auto small">ระบบจะแจ้งเตือนเมื่อสถานะการจองเปลี่ยน</span>
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <div class="alert mb-3" style="background:#f7fff9;border:1px solid #06c755;color:#0f5132;border-radius:10px;">
+                                    <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-3">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="fab fa-line" style="font-size:1.45rem;color:#06c755;"></i>
+                                            <div>
+                                                <strong>ผูกบัญชีกับ LINE เพื่อรับแจ้งเตือน</strong>
+                                                <div class="small text-muted">เพิ่มเพื่อนก่อน แล้วเชื่อมต่อบัญชีสมาชิกต่อทันที</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-2">
+                                        <div class="col-12 col-lg-6">
+                                            <div class="h-100 bg-white border rounded-3 p-3 d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                                                <div>
+                                                    <strong class="d-block text-dark">1. เพิ่มเพื่อน LINE OA</strong>
+                                                    <span class="small text-muted">เปิด LINE เพื่อเพิ่ม Official Account เป็นเพื่อน</span>
+                                                </div>
+                                                <a href="<?= htmlspecialchars(line_bot_add_friend_url(), ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="btn btn-sm text-white" style="background:#06c755;border-color:#06c755;" onclick="showLineConnectStepBookings();">
+                                                    <i class="fab fa-line me-1"></i> เพิ่มเพื่อน OA
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-lg-6" id="lineConnectStepBookings" style="display:none;">
+                                            <div class="h-100 bg-white rounded-3 p-3 d-flex align-items-center justify-content-between gap-3 flex-wrap" style="border:1px solid #016A70;">
+                                                <div>
+                                                    <strong class="d-block" style="color:#016A70;">2. เชื่อมต่อบัญชี LINE</strong>
+                                                    <span class="small text-muted">เพิ่มเพื่อนแล้ว กดปุ่มนี้เพื่อรับแจ้งเตือนการจอง</span>
+                                                </div>
+                                                <a href="<?= htmlspecialchars(line_link_url('bookings'), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm text-white" style="background:#016A70;border-color:#016A70;">
+                                                    <i class="fab fa-line me-1"></i> เชื่อมต่อ LINE
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        <?php endif; ?>
+
+                        <script>
+                            function showLineConnectStepBookings() {
+                                try {
+                                    localStorage.setItem('line_friend_added_bookings', '1');
+                                } catch (error) {}
+
+                                const step = document.getElementById('lineConnectStepBookings');
+                                if (step) {
+                                    step.style.display = 'block';
+                                    setTimeout(() => step.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+                                }
+                            }
+
+                            document.addEventListener('DOMContentLoaded', function () {
+                                try {
+                                    if (localStorage.getItem('line_friend_added_bookings') === '1') {
+                                        const step = document.getElementById('lineConnectStepBookings');
+                                        if (step) step.style.display = 'block';
+                                    }
+                                } catch (error) {}
+                            });
+                        </script>
 
                         <form id="bookingForm" enctype="multipart/form-data" novalidate>
                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8') ?>">

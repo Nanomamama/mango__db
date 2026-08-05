@@ -9,6 +9,7 @@ set_time_limit(60);
 
 // include booking helpers
 require_once __DIR__ . '/booking_utils.php';
+require_once __DIR__ . '/line_service.php';
 
 // Load DB config
 $dbConfig = [
@@ -54,7 +55,7 @@ function requirePostCsrf(): void {
     }
 }
 function getActiveMember(PDO $pdo, int $member_id): array {
-    $stmt = $pdo->prepare('SELECT fullname, email, phone, status FROM members WHERE member_id = :member_id LIMIT 1');
+    $stmt = $pdo->prepare('SELECT fullname, email, phone, status, line_user_id FROM members WHERE member_id = :member_id LIMIT 1');
     $stmt->execute([':member_id' => $member_id]);
     $member = $stmt->fetch();
     if (!$member || (int)($member['status'] ?? 0) !== 1) {
@@ -190,6 +191,18 @@ try {
 
     $res = ['status'=>'success','booking_id'=>$id,'booking_code'=>$booking_code, 'booking_type_saved'=>$booking_type];
     if ($attachment_path) $res['attachment_path']=$attachment_path;
+
+    if (!empty($member['line_user_id'])) {
+        $res['line_user_notify'] = line_send_member_booking_created(
+            (string) $member['line_user_id'],
+            $booking_code,
+            $booking_date,
+            $booking_time,
+            $visitor_count
+        ) ? 'sent' : 'failed';
+    } else {
+        $res['line_user_notify'] = 'skipped_not_linked';
+    }
 
     // Fetch inserted row for verification
     try {

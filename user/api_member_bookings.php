@@ -41,6 +41,10 @@ function bookingStatusLabel(string $status, ?string $paymentSlip): string
             return $paymentSlip ? 'รอตรวจสอบสลิป' : 'รอชำระเงิน';
         case 'confirmed':
             return 'ยืนยันแล้ว';
+        case 'completed':
+            return 'เสร็จสิ้น';
+        case 'no_show':
+            return 'ไม่มา/ยึดมัดจำ';
         case 'cancelled':
             return 'ยกเลิกแล้ว';
         default:
