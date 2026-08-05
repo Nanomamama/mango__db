@@ -2,6 +2,177 @@
 session_start();
 require_once __DIR__ . '/../db/db.php';
 
+$member_id = $_SESSION['member_id'] ?? null;
+
+$rate = &$_SESSION['order_search_rate'];
+/*
+|--------------------------------------------------------------------------
+| IP Rate Limit
+| 5 ครั้ง / 10 นาที
+| เกินแล้วล็อก 15 นาที
+|--------------------------------------------------------------------------
+*/
+
+$RATE_LIMIT_MAX = 5;
+$RATE_LIMIT_WINDOW = 10 * 60; // 10 นาที
+$RATE_LIMIT_BLOCK = 15 * 60;  // 15 นาที
+
+$client_ip = $_SERVER['REMOTE_ADDR'] ?? '';
+
+$search_blocked = false;
+$rate_error = '';
+
+$now = time();
+
+/*
+|--------------------------------------------------------------------------
+| ดึงข้อมูล Rate Limit ของ IP นี้
+|--------------------------------------------------------------------------
+*/
+
+$rateStmt = $conn->prepare("
+    SELECT
+        id,
+        attempts,
+        window_start,
+        blocked_until
+    FROM order_search_rate_limit
+    WHERE ip_address = ?
+    LIMIT 1
+");
+
+$rateStmt->bind_param("s", $client_ip);
+$rateStmt->execute();
+
+$rateData = $rateStmt
+    ->get_result()
+    ->fetch_assoc();
+
+
+/*
+|--------------------------------------------------------------------------
+| IP นี้เคยค้นหาแล้ว
+|--------------------------------------------------------------------------
+*/
+
+if ($rateData) {
+
+    /*
+    |--------------------------------------------------------------------------
+    | ตรวจสอบว่ากำลังถูก Block หรือไม่
+    |--------------------------------------------------------------------------
+    */
+
+    if (!empty($rateData['blocked_until'])) {
+
+        $blockedUntil =
+            strtotime($rateData['blocked_until']);
+
+        if ($blockedUntil > $now) {
+
+            $remaining = ceil(
+                ($blockedUntil - $now) / 60
+            );
+
+            $search_blocked = true;
+
+            $rate_error =
+                "ค้นหามากเกินไป กรุณารอประมาณ "
+                . $remaining
+                . " นาทีแล้วลองใหม่";
+        }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ถ้าไม่ได้ Block → ตรวจสอบ Window 10 นาที
+    |--------------------------------------------------------------------------
+    */
+
+    if (!$search_blocked) {
+
+        $windowStart =
+            strtotime($rateData['window_start']);
+
+        /*
+        | 10 นาทีผ่านไปแล้ว → Reset
+        */
+
+        if (($now - $windowStart) >= $RATE_LIMIT_WINDOW) {
+
+            $resetStmt = $conn->prepare("
+                UPDATE order_search_rate_limit
+                SET
+                    attempts = 0,
+                    window_start = NOW(),
+                    blocked_until = NULL
+                WHERE ip_address = ?
+            ");
+
+            $resetStmt->bind_param(
+                "s",
+                $client_ip
+            );
+
+            $resetStmt->execute();
+
+            $rateData['attempts'] = 0;
+        }
+    }
+} else {
+
+    /*
+    |--------------------------------------------------------------------------
+    | IP นี้ยังไม่เคยค้นหา → สร้างข้อมูล
+    |--------------------------------------------------------------------------
+    */
+
+    $insertStmt = $conn->prepare("
+        INSERT INTO order_search_rate_limit
+        (
+            ip_address,
+            attempts,
+            window_start,
+            blocked_until
+        )
+        VALUES (?, 0, NOW(), NULL)
+    ");
+
+    $insertStmt->bind_param(
+        "s",
+        $client_ip
+    );
+
+    $insertStmt->execute();
+
+    $rateData = [
+        'attempts' => 0,
+        'blocked_until' => null
+    ];
+}
+
+// ถ้ายังอยู่ในช่วงล็อก
+if ($rate['blocked_until'] > $now) {
+
+    $remaining = ceil(($rate['blocked_until'] - $now) / 60);
+
+    $error = "ค้นหามากเกินไป กรุณารอประมาณ {$remaining} นาทีแล้วลองใหม่";
+    $search_blocked = true;
+} else {
+
+    $search_blocked = false;
+
+    // ล้างประวัติที่เกิน 10 นาที
+    $rate['attempts'] = array_values(
+        array_filter(
+            $rate['attempts'],
+            fn($timestamp) => ($now - $timestamp) < $RATE_LIMIT_WINDOW
+        )
+    );
+}
+
+//-----------------------------------------------------------------------------
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('Expires: 0');
@@ -11,8 +182,10 @@ $orders = [];
 $search_performed = false;
 $error = '';
 $success = '';
+$search_blocked = false;
 
 $keyword = trim($_GET['keyword'] ?? '');
+
 /* ── Member: ดึงออเดอร์ตัวเองทั้งหมด ── */
 if ($member_id) {
     $stmt = $conn->prepare("
@@ -34,65 +207,191 @@ if (
     isset($_GET['keyword']) &&
     $keyword !== ''
 ) {
-    $search_performed = true;
 
-    $sql = "
-        SELECT
-            o.*,
-            COALESCE(o.total_amount, 0) AS order_total
-        FROM orders o
-        WHERE 1
-    ";
+    /*
+    |--------------------------------------------------------------------------
+    | IP ถูก Block
+    |--------------------------------------------------------------------------
+    */
 
-    $params = [];
-    $types = '';
+    if ($search_blocked) {
 
-    $keywordPhone = preg_replace('/[^0-9]/', '', $keyword);
+        $error = $rate_error;
+    } else {
 
-    /* ถ้ามีตัวเลข => ค้นหาเบอร์ */
-    if ($keywordPhone !== '') {
+        /*
+        |--------------------------------------------------------------------------
+        | ตรวจจำนวนครั้ง
+        |--------------------------------------------------------------------------
+        */
 
-        if (strlen($keywordPhone) < 9) {
-            $error = "กรุณากรอกเบอร์โทรศัพท์ให้ครบถ้วน";
+        if ($rateData['attempts'] >= $RATE_LIMIT_MAX) {
+
+            /*
+            | ล็อก IP 15 นาที
+            */
+
+            $blockedUntil = date(
+                'Y-m-d H:i:s',
+                time() + $RATE_LIMIT_BLOCK
+            );
+
+            $blockStmt = $conn->prepare("
+                UPDATE order_search_rate_limit
+                SET blocked_until = ?
+                WHERE ip_address = ?
+            ");
+
+            $blockStmt->bind_param(
+                "ss",
+                $blockedUntil,
+                $client_ip
+            );
+
+            $blockStmt->execute();
+
+            $search_blocked = true;
+
+            $error =
+                "ค้นหามากเกินไป กรุณารอ 15 นาทีแล้วลองใหม่";
         } else {
-            $sql .= " AND o.customer_phone = ? ";
-            $params[] = $keywordPhone;
-            $types .= 's';
-        }
-    }
 
-    /* ถ้ามีข้อความ => ค้นหาชื่อ */ else {
+            /*
+            |--------------------------------------------------------------------------
+            | เพิ่มจำนวนครั้งของ IP
+            |--------------------------------------------------------------------------
+            */
 
-        preg_match_all('/./u', $keyword, $keywordChars);
-        $keywordLength = !empty($keywordChars[0]) ? count($keywordChars[0]) : strlen($keyword);
+            $countStmt = $conn->prepare("
+                UPDATE order_search_rate_limit
+                SET attempts = attempts + 1
+                WHERE ip_address = ?
+            ");
 
-        if ($keywordLength < 2) {
-            $error = "กรุณากรอกชื่อให้ครบถ้วน";
-        } else {
-            $sql .= " AND o.customer_name = ? ";
-            $params[] = $keyword;
-            $types .= 's';
-        }
-    }
+            $countStmt->bind_param(
+                "s",
+                $client_ip
+            );
+
+            $countStmt->execute();
 
 
-    if ($types !== '') {
-        $sql .= "
+            /*
+            |--------------------------------------------------------------------------
+            | เริ่มค้นหาคำสั่งซื้อ
+            |--------------------------------------------------------------------------
+            */
+
+            $search_performed = true;
+
+
+            // ===== โค้ดค้นหาเริ่มตรงนี้ =====
+
+            $sql = "
+            SELECT
+                o.*,
+                COALESCE(o.total_amount, 0) AS order_total
+            FROM orders o
+            WHERE 1
+        ";
+
+            $params = [];
+            $types = '';
+
+            $keywordPhone = preg_replace('/[^0-9]/', '', $keyword);
+
+
+            /* ถ้ามีตัวเลข => ค้นหาเบอร์ */
+            if ($keywordPhone !== '') {
+
+                if (strlen($keywordPhone) < 9) {
+                    $error = "กรุณากรอกเบอร์โทรศัพท์ให้ครบถ้วน";
+                } else {
+                    $sql .= " AND o.customer_phone = ? ";
+                    $params[] = $keywordPhone;
+                    $types .= 's';
+                }
+            }
+
+            /* ถ้ามีข้อความ => ค้นหาชื่อ */ else {
+
+                preg_match_all('/./u', $keyword, $keywordChars);
+                $keywordLength = !empty($keywordChars[0]) ? count($keywordChars[0]) : strlen($keyword);
+
+                if ($keywordLength < 2) {
+                    $error = "กรุณากรอกชื่อให้ครบถ้วน";
+                } else {
+                    $sql .= " AND o.customer_name = ? ";
+                    $params[] = $keyword;
+                    $types .= 's';
+                }
+            }
+
+
+            if ($types !== '') {
+                $sql .= "
             ORDER BY o.order_date DESC
         ";
 
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param($types, ...$params);
-        $stmt->execute();
-        $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param($types, ...$params);
+                $stmt->execute();
+                $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-        if (!empty($orders)) {
-            $success = "พบคำสั่งซื้อ " . count($orders) . " รายการ";
-        } else {
-            $error = "ไม่พบคำสั่งซื้อ";
+                if (!empty($orders)) {
+                    $success = "พบคำสั่งซื้อ " . count($orders) . " รายการ";
+                } else {
+                    $error = "ไม่พบคำสั่งซื้อ";
+                }
+            }
         }
     }
 }
+    
+    // ปิดบังชื่อ
+    function maskName($name)
+    {
+        $name = trim($name);
+
+        if ($name === '') {
+            return '-';
+        }
+
+        // แยกชื่อแต่ละคำด้วยช่องว่าง
+        $words = preg_split('/\s+/u', $name, -1, PREG_SPLIT_NO_EMPTY);
+
+        $maskedWords = [];
+
+        foreach ($words as $word) {
+            $chars = preg_split('//u', $word, -1, PREG_SPLIT_NO_EMPTY);
+
+            // ถ้ามี 1 ตัว
+            if (count($chars) <= 1) {
+                $maskedWords[] = $chars[0] . '**';
+                continue;
+            }
+
+            // แสดง 2 ตัวแรก ที่เหลือปิดบัง
+            $maskedWords[] = $chars[0] . $chars[1] . str_repeat('*', count($chars) - 2);
+        }
+
+        return implode(' ', $maskedWords);
+    }
+
+
+    // ปิดบังเบอร์โทร
+    function maskPhone($phone)
+    {
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        if (strlen($phone) < 7) {
+            return '***';
+        }
+
+        // แสดง 2 ตัวแรก + *** + 2 ตัวท้าย
+        return substr($phone, 0, 2) . '***' . substr($phone, -2);
+    }
+
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -1090,18 +1389,19 @@ if (
 
                         <!-- CUSTOMER -->
                         <div class="customer-grid">
+
                             <div class="customer-item">
                                 <div class="customer-label">ลูกค้า</div>
                                 <div class="customer-value">
                                     <i class="fas fa-user-circle"></i>
-                                    <?= htmlspecialchars($o['customer_name']) ?>
+                                    <?= htmlspecialchars(maskName($o['customer_name'])) ?>
                                 </div>
                             </div>
                             <div class="customer-item">
                                 <div class="customer-label">เบอร์โทร</div>
                                 <div class="customer-value">
                                     <i class="fas fa-phone"></i>
-                                    <?= htmlspecialchars($o['customer_phone']) ?>
+                                    <?= htmlspecialchars(maskPhone($o['customer_phone'])) ?>
                                 </div>
                             </div>
                             <div class="customer-item">
