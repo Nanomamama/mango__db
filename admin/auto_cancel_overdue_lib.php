@@ -59,6 +59,35 @@ if (!function_exists('auto_cancel_send_timeout_email')) {
 }
 
 if (!function_exists('auto_cancel_overdue_bookings')) {
+    function auto_cancel_insert_status_log(mysqli $conn, int $booking_id, string $new_status, string $action, string $note): void
+    {
+        $tableCheck = $conn->query("
+            SELECT COUNT(*) AS table_count
+            FROM information_schema.TABLES
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'booking_status_logs'
+        ");
+        $row = $tableCheck ? $tableCheck->fetch_assoc() : null;
+        if (!$row || (int)($row['table_count'] ?? 0) === 0) {
+            error_log('booking_status_logs table not found; skipped auto-cancel status log.');
+            return;
+        }
+
+        $oldStatus = 'awaiting_payment';
+        $stmt = $conn->prepare("
+            INSERT INTO booking_status_logs
+                (booking_id, old_status, new_status, action, note, changed_by_admin_id, created_at)
+            VALUES (?, ?, ?, ?, ?, NULL, NOW())
+        ");
+        if (!$stmt) {
+            return;
+        }
+
+        $stmt->bind_param('issss', $booking_id, $oldStatus, $new_status, $action, $note);
+        $stmt->execute();
+        $stmt->close();
+    }
+
     function auto_cancel_overdue_bookings(mysqli $conn, ?callable $logger = null): array
     {
         $log = static function (string $message) use ($logger): void {
@@ -145,6 +174,7 @@ if (!function_exists('auto_cancel_overdue_bookings')) {
 
             $summary['cancelled']++;
             $log("Cancelled booking {$bookingCode}.");
+            auto_cancel_insert_status_log($conn, $bookingId, 'cancelled', 'auto_cancel_payment_timeout', 'Payment deadline passed without slip upload.');
             line_send_booking_status($conn, $bookingId, 'cancelled', 'payment_timeout');
 
             if (auto_cancel_send_timeout_email($booking)) {

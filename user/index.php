@@ -132,7 +132,7 @@ function find_hero_video_source()
         ['dir' => __DIR__ . '/../uploads', 'url' => '../uploads'],
     ];
 
-    $fileNames = ['background-video2.mp4', 'background-video.mp4'];
+    $fileNames = ['background-video3.mp4', 'background-video2.mp4', 'background-video.mp4'];
 
     foreach ($locations as $location) {
         foreach ($fileNames as $fileName) {
@@ -245,7 +245,7 @@ $heroVideoSrc = find_hero_video_source();
       "name": "วิดีโอแนะนำสวนลุงเผือก",
       "description": "วิดีโอพื้นหลังแนะนำศูนย์การเรียนรู้เศรษฐกิจพอเพียง สวนลุงเผือก อำเภอเชียงคาน จังหวัดเลย",
       "thumbnailUrl": "https://khamaon.com/mango/logo/logo_01.png",
-      "contentUrl": "https://khamaon.com/mango/video/background-video2.mp4",
+      "contentUrl": "https://khamaon.com/mango/video/background-video3.mp4",
       "uploadDate": "2025-01-01",
       "publisher": {
         "@type": "Organization",

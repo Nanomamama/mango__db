@@ -11,6 +11,8 @@ require_once "PHPMailer/Exception.php";
 require_once __DIR__ . '/../db/db.php';
 require_once __DIR__ . '/../config/env.php';
 require_once __DIR__ . '/line_service.php';
+require_once __DIR__ . '/booking_status_log.php';
+require_once __DIR__ . '/../admin/booking_notification_lib.php';
 
 date_default_timezone_set('Asia/Bangkok');
 
@@ -179,6 +181,15 @@ if (move_uploaded_file($slip_file['tmp_name'], $upload_path)) {
         }
 
         if ($stmt_update->execute() && $stmt_update->affected_rows === 1) {
+            booking_status_log_insert_mysqli(
+                $conn,
+                $booking_id,
+                (string)($booking_details['booking_status'] ?? 'pending'),
+                $status_after,
+                'slip_uploaded',
+                'Payment slip uploaded: ' . $new_filename
+            );
+            admin_booking_notification_insert_mysqli($conn, 'payment_submitted', $booking_id);
             line_send_booking_slip_received($conn, $booking_id);
             // 2. ส่งการแจ้งเตือนสลิปชำระเงินมัดจำเข้า LINE (พร้อมรูปภาพสลิป)
             try {

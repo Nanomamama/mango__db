@@ -10,6 +10,8 @@ set_time_limit(60);
 // include booking helpers
 require_once __DIR__ . '/booking_utils.php';
 require_once __DIR__ . '/line_service.php';
+require_once __DIR__ . '/booking_status_log.php';
+require_once __DIR__ . '/../admin/booking_notification_lib.php';
 
 // Load DB config
 $dbConfig = [
@@ -112,6 +114,13 @@ if ($guest_phone !== '' && !preg_match('/^[0-9]{10}$/', $guest_phone)) $errors[]
 if ($visitor_count < 1 || $visitor_count > 500) $errors[] = 'visitor_count is invalid';
 if (!empty($errors)) errorJson(422, ['status'=>'error','errors'=>$errors]);
 
+$adminNotificationsReady = false;
+try {
+    $adminNotificationsReady = admin_booking_notifications_ensure_pdo($pdo);
+} catch (Throwable $e) {
+    error_log('admin notification table ensure failed: ' . $e->getMessage());
+}
+
 // Duplicate check (transactional to reduce race conditions)
 try {
     $pdo->beginTransaction();
@@ -187,6 +196,21 @@ try {
     ]);
 
     $id = $pdo->lastInsertId();
+    booking_status_log_insert_pdo(
+        $pdo,
+        (int)$id,
+        null,
+        'pending',
+        'booking_created',
+        'Member created booking #' . $booking_code
+    );
+    if ($adminNotificationsReady) {
+        try {
+            admin_booking_notification_insert_pdo($pdo, 'booking_created', (int)$id);
+        } catch (Throwable $e) {
+            error_log('admin booking notification insert failed: ' . $e->getMessage());
+        }
+    }
     if ($pdo->inTransaction()) $pdo->commit();
 
     $res = ['status'=>'success','booking_id'=>$id,'booking_code'=>$booking_code, 'booking_type_saved'=>$booking_type];

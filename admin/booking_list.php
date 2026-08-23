@@ -3,6 +3,7 @@ require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
 require_once __DIR__ . '/../config/env.php';
 require_once __DIR__ . '/../user/line_service.php';
+require_once __DIR__ . '/../user/booking_utils.php';
 require_once __DIR__ . '/auto_cancel_overdue_lib.php';
 require_once 'sidebar.php';
 
@@ -138,6 +139,154 @@ function booking_actual_received_amount(array $booking): float
     return 0.0;
 }
 
+function booking_table_exists(mysqli $conn, string $table): bool
+{
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) AS table_count
+        FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+    ");
+    if (!$stmt) {
+        return false;
+    }
+
+    $stmt->bind_param("s", $table);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $exists = ((int)($row['table_count'] ?? 0)) > 0;
+    $stmt->close();
+
+    return $exists;
+}
+
+function booking_database_context(mysqli $conn): string
+{
+    $database = 'unknown';
+    $host = 'unknown';
+
+    $dbResult = $conn->query("SELECT DATABASE() AS current_database");
+    if ($dbResult) {
+        $row = $dbResult->fetch_assoc();
+        $database = (string)($row['current_database'] ?? 'unknown');
+        $dbResult->close();
+    }
+
+    $hostResult = $conn->query("SELECT @@hostname AS db_host");
+    if ($hostResult) {
+        $row = $hostResult->fetch_assoc();
+        $host = (string)($row['db_host'] ?? 'unknown');
+        $hostResult->close();
+    }
+
+    return 'database=' . $database . ', db_host=' . $host;
+}
+
+function booking_column_exists(mysqli $conn, string $column): bool
+{
+    $stmt = $conn->prepare("SHOW COLUMNS FROM bookings LIKE ?");
+    if (!$stmt) {
+        return false;
+    }
+
+    $stmt->bind_param("s", $column);
+    $stmt->execute();
+    $exists = $stmt->get_result()->num_rows > 0;
+    $stmt->close();
+
+    return $exists;
+}
+
+function booking_status_for_log(mysqli $conn, int $booking_id): ?string
+{
+    $stmt = $conn->prepare("SELECT status FROM bookings WHERE bookings_id = ? LIMIT 1");
+    if (!$stmt) {
+        return null;
+    }
+
+    $stmt->bind_param("i", $booking_id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    return isset($row['status']) ? (string)$row['status'] : null;
+}
+
+function booking_edit_date_taken(mysqli $conn, int $booking_id, string $booking_date): bool
+{
+    $stmt = $conn->prepare("
+        SELECT bookings_id
+        FROM bookings
+        WHERE booking_date = ?
+          AND bookings_id <> ?
+          AND status IN ('pending','awaiting_payment','confirmed')
+        LIMIT 1
+    ");
+    if (!$stmt) {
+        return true;
+    }
+
+    $stmt->bind_param("si", $booking_date, $booking_id);
+    $stmt->execute();
+    $taken = $stmt->get_result()->num_rows > 0;
+    $stmt->close();
+
+    return $taken;
+}
+
+function booking_edit_note(array $old_booking, string $new_date, string $new_time, int $new_visitors, array $totals): string
+{
+    $old_date = (string)($old_booking['booking_date'] ?? '-');
+    $old_time = substr((string)($old_booking['booking_time'] ?? '-'), 0, 5);
+    $old_visitors = (int)($old_booking['visitor_count'] ?? 0);
+
+    return sprintf(
+        'Booking edited by admin. Date: %s -> %s; Time: %s -> %s; Visitors: %d -> %d; Total: %.2f; Deposit: %.2f; Balance: %.2f',
+        $old_date,
+        $new_date,
+        $old_time,
+        $new_time,
+        $old_visitors,
+        $new_visitors,
+        (float)$totals['price_total'],
+        (float)$totals['deposit_amount'],
+        (float)$totals['balance_amount']
+    );
+}
+
+function insert_booking_status_log(mysqli $conn, int $booking_id, ?string $old_status, string $new_status, string $action, ?string $note = null): array
+{
+    if (!booking_table_exists($conn, 'booking_status_logs')) {
+        $message = 'booking_status_logs table not found in ' . booking_database_context($conn) . '; skipped booking status log.';
+        error_log($message);
+        return ['success' => false, 'message' => $message];
+    }
+
+    $admin_id = isset($_SESSION['admin_id']) ? (int)$_SESSION['admin_id'] : null;
+    $stmt = $conn->prepare("
+        INSERT INTO booking_status_logs
+            (booking_id, old_status, new_status, action, note, changed_by_admin_id, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, NOW())
+    ");
+
+    if (!$stmt) {
+        $message = 'booking status log prepare failed: ' . $conn->error;
+        error_log($message);
+        return ['success' => false, 'message' => $message];
+    }
+
+    $stmt->bind_param("issssi", $booking_id, $old_status, $new_status, $action, $note, $admin_id);
+    if (!$stmt->execute()) {
+        $message = 'booking status log insert failed: ' . $stmt->error;
+        error_log($message);
+        $stmt->close();
+        return ['success' => false, 'message' => $message];
+    }
+    $stmt->close();
+
+    return ['success' => true, 'message' => 'booking status log inserted'];
+}
+
 ensure_booking_status_values($conn);
 
 // จัดการการอัปเดตสถานะการจอง
@@ -158,7 +307,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
         $response = ['success' => false, 'message' => 'ข้อมูลไม่ถูกต้อง'];
 
         if ($id > 0 && $qr_file && $qr_file['error'] === UPLOAD_ERR_OK) {
-            $stmt_details = $conn->prepare("SELECT guest_name, guest_email, booking_code, deposit_amount, visitor_count FROM bookings WHERE bookings_id = ? AND status = 'pending'");
+            $stmt_details = $conn->prepare("SELECT guest_name, guest_email, booking_code, deposit_amount, visitor_count, status FROM bookings WHERE bookings_id = ? AND status IN ('pending','awaiting_payment') AND (payment_slip IS NULL OR payment_slip = '')");
             $stmt_details->bind_param("i", $id);
             $stmt_details->execute();
             $booking = $stmt_details->get_result()->fetch_assoc();
@@ -271,7 +420,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 
                     if ($mail->send()) {
                         // Update status to 'awaiting_payment' after sending QR
-                        $stmt_update = $conn->prepare("UPDATE bookings SET payment_qr_path = ?, status = 'awaiting_payment', qr_sent_at = NOW(), payment_due_at = ?, payment_submitted_at = NULL, cancelled_at = NULL, cancel_reason = NULL, cancellation_email_sent_at = NULL, updated_at = NOW() WHERE bookings_id = ? AND status = 'pending'");
+                        $old_status = (string)($booking['status'] ?? 'pending');
+                        $stmt_update = $conn->prepare("UPDATE bookings SET payment_qr_path = ?, status = 'awaiting_payment', qr_sent_at = NOW(), payment_due_at = ?, payment_submitted_at = NULL, cancelled_at = NULL, cancel_reason = NULL, cancellation_email_sent_at = NULL, updated_at = NOW() WHERE bookings_id = ? AND status IN ('pending','awaiting_payment') AND (payment_slip IS NULL OR payment_slip = '')");
                         if ($stmt_update) {
                             $stmt_update->bind_param("ssi", $saved_qr['filename'], $payment_due_at, $id);
                             $stmt_update->execute();
@@ -282,6 +432,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
                                 $response = ['success' => true, 'message' => 'ส่งอีเมลพร้อม QR Code สำเร็จ'];
                             }
                             if ($stmt_update->affected_rows === 1) {
+                                $log_result = insert_booking_status_log($conn, $id, $old_status, 'awaiting_payment', $old_status === 'awaiting_payment' ? 'resend_qr' : 'send_qr', 'QR email sent; payment due at ' . $payment_due_at);
+                                $response['log_success'] = $log_result['success'];
+                                $response['log_message'] = $log_result['message'];
+                                if (!$log_result['success']) {
+                                    $response['message'] .= ' แต่บันทึกไทม์ไลน์ไม่สำเร็จ: ' . $log_result['message'];
+                                }
                                 line_send_booking_status($conn, $id, 'awaiting_payment');
                             }
                             $stmt_update->close();
@@ -302,7 +458,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
                     error_log("QR Mailer Error for booking ID $id: " . $e->getMessage());
                 }
             } else {
-                $response = ['success' => false, 'message' => 'ไม่พบข้อมูลการจอง หรือไม่มีอีเมลลูกค้า'];
+                $response = ['success' => false, 'message' => 'ไม่พบข้อมูลการจอง ไม่มีอีเมลลูกค้า หรือรายการนี้ไม่อยู่ในสถานะที่ส่ง QR ได้'];
             }
         } else {
             $response = ['success' => false, 'message' => 'กรุณาแนบไฟล์ QR Code'];
@@ -314,14 +470,136 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
 
     $id = (int) $_POST['id'];
     $success = false;
+    $message = '';
+    $log_success = null;
+    $log_message = '';
     $rejection_reason = $_POST['reason'] ?? null;
 
-    if ($action === 'confirm') {
-        $stmt = $conn->prepare("UPDATE bookings SET status='confirmed', updated_at=NOW() WHERE bookings_id=?");
-        $stmt->bind_param("i", $id);
-        $success = $stmt->execute();
+    if ($action === 'edit_booking') {
+        $old_status = booking_status_for_log($conn, $id);
+        $booking_date = trim((string)($_POST['booking_date'] ?? ''));
+        $booking_time = trim((string)($_POST['booking_time'] ?? ''));
+        $visitor_count = (int)($_POST['visitor_count'] ?? 0);
+        $allowed_times = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00'];
+        $errors = [];
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $booking_date)) {
+            $errors[] = 'วันที่ไม่ถูกต้อง';
+        } else {
+            [$year, $month, $day] = array_map('intval', explode('-', $booking_date));
+            if (!checkdate($month, $day, $year) || strtotime($booking_date) < strtotime(date('Y-m-d'))) {
+                $errors[] = 'วันที่ต้องเป็นวันนี้หรือวันอนาคต';
+            }
+        }
+
+        if (!in_array($booking_time, $allowed_times, true)) {
+            $errors[] = 'เวลาไม่ถูกต้อง';
+        }
+
+        if ($visitor_count < 1 || $visitor_count > 500) {
+            $errors[] = 'จำนวนคนต้องอยู่ระหว่าง 1-500 คน';
+        }
+
+        if (empty($errors) && booking_edit_date_taken($conn, $id, $booking_date)) {
+            $errors[] = 'วันที่นี้มีการจองที่ยังใช้งานอยู่แล้ว';
+        }
+
+        if (!empty($errors)) {
+            $message = implode(', ', $errors);
+        } else {
+            $stmt_current = $conn->prepare("SELECT bookings_id, booking_date, booking_time, visitor_count, status FROM bookings WHERE bookings_id = ? LIMIT 1");
+            if ($stmt_current) {
+                $stmt_current->bind_param("i", $id);
+                $stmt_current->execute();
+                $current_booking = $stmt_current->get_result()->fetch_assoc();
+                $stmt_current->close();
+            } else {
+                $current_booking = null;
+            }
+
+            if (!$current_booking) {
+                $message = 'ไม่พบข้อมูลการจอง';
+            } elseif (in_array((string)$current_booking['status'], ['completed', 'no_show', 'cancelled'], true)) {
+                $message = 'แก้ไขไม่ได้: รายการนี้ปิดงาน ไม่มา หรือยกเลิกแล้ว';
+            } else {
+                $totals = calculate_booking_totals($visitor_count);
+                $stmt = $conn->prepare("
+                    UPDATE bookings
+                    SET booking_date = ?,
+                        booking_time = ?,
+                        visitor_count = ?,
+                        price_total = ?,
+                        deposit_amount = ?,
+                        balance_amount = ?,
+                        updated_at = NOW()
+                    WHERE bookings_id = ?
+                      AND status NOT IN ('completed','no_show','cancelled')
+                ");
+                if ($stmt) {
+                    $stmt->bind_param(
+                        "ssidddi",
+                        $booking_date,
+                        $booking_time,
+                        $visitor_count,
+                        $totals['price_total'],
+                        $totals['deposit_amount'],
+                        $totals['balance_amount'],
+                        $id
+                    );
+                    $success = $stmt->execute() && $stmt->affected_rows >= 0;
+                    $stmt->close();
+                }
+
+                if ($success) {
+                    $message = 'แก้ไขการจองเรียบร้อยแล้ว';
+                    $log_result = insert_booking_status_log(
+                        $conn,
+                        $id,
+                        $old_status,
+                        (string)$current_booking['status'],
+                        'edit_booking',
+                        booking_edit_note($current_booking, $booking_date, $booking_time, $visitor_count, $totals)
+                    );
+                    $log_success = $log_result['success'];
+                    $log_message = $log_result['message'];
+                    if (!$log_success) {
+                        $message .= ' แต่บันทึกไทม์ไลน์ไม่สำเร็จ: ' . $log_message;
+                    }
+                } else {
+                    $message = 'แก้ไขไม่ได้: รายการนี้อาจถูกเปลี่ยนสถานะไปแล้ว';
+                }
+            }
+        }
+    } elseif ($action === 'confirm') {
+        $old_status = booking_status_for_log($conn, $id);
+        $payment_received_amount = isset($_POST['payment_received_amount']) ? (float)$_POST['payment_received_amount'] : 0.0;
+        $payment_note = trim((string)($_POST['payment_note'] ?? ''));
+        $admin_id = isset($_SESSION['admin_id']) ? (int)$_SESSION['admin_id'] : 0;
+
+        if ($payment_received_amount <= 0) {
+            $message = 'กรุณาระบุยอดเงินที่ตรวจสอบแล้ว';
+        } elseif (
+            booking_column_exists($conn, 'payment_verified_at') &&
+            booking_column_exists($conn, 'payment_verified_by') &&
+            booking_column_exists($conn, 'payment_received_amount') &&
+            booking_column_exists($conn, 'payment_note')
+        ) {
+            $stmt = $conn->prepare("UPDATE bookings SET status='confirmed', payment_verified_at=NOW(), payment_verified_by=?, payment_received_amount=?, payment_note=?, updated_at=NOW() WHERE bookings_id=? AND status IN ('pending','awaiting_payment') AND payment_slip IS NOT NULL AND payment_slip <> ''");
+            $stmt->bind_param("idsi", $admin_id, $payment_received_amount, $payment_note, $id);
+            $success = $stmt->execute() && $stmt->affected_rows === 1;
+        } else {
+            $stmt = $conn->prepare("UPDATE bookings SET status='confirmed', updated_at=NOW() WHERE bookings_id=? AND status IN ('pending','awaiting_payment') AND payment_slip IS NOT NULL AND payment_slip <> ''");
+            $stmt->bind_param("i", $id);
+            $success = $stmt->execute() && $stmt->affected_rows === 1;
+        }
 
         if ($success) {
+            $log_result = insert_booking_status_log($conn, $id, $old_status, 'confirmed', 'confirm', 'Payment verified amount: ' . number_format($payment_received_amount, 2) . ($payment_note !== '' ? '; note: ' . $payment_note : ''));
+            $log_success = $log_result['success'];
+            $log_message = $log_result['message'];
+            if (!$log_success) {
+                $message = 'ยืนยันสำเร็จ แต่บันทึกไทม์ไลน์ไม่สำเร็จ: ' . $log_message;
+            }
             line_send_booking_status($conn, $id, 'confirmed');
             // ดึงข้อมูลการจองเพื่อส่งอีเมล
             $stmt_details = $conn->prepare("SELECT guest_name, guest_email, booking_code, booking_date, booking_time, visitor_count, booking_type, lunch_request, price_total, deposit_amount, balance_amount FROM bookings WHERE bookings_id = ?");
@@ -460,14 +738,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
                     error_log("Confirmation Mailer Error for booking ID $id: " . $e->getMessage());
                 }
             }
+        } elseif ($message === '') {
+            $message = 'ยืนยันไม่ได้: รายการนี้อาจไม่มีสลิป หรือสถานะถูกเปลี่ยนไปแล้ว';
         }
     } elseif ($action === 'cancel') {
-        $stmt = $conn->prepare("UPDATE bookings SET status='cancelled', cancelled_at=NOW(), cancel_reason=?, updated_at=NOW() WHERE bookings_id=?");
+        $old_status = booking_status_for_log($conn, $id);
+        $stmt = $conn->prepare("UPDATE bookings SET status='cancelled', cancelled_at=NOW(), cancel_reason=?, updated_at=NOW() WHERE bookings_id=? AND status NOT IN ('completed','no_show','cancelled')");
         $cancel_reason = !empty($rejection_reason) ? $rejection_reason : 'admin_cancelled';
         $stmt->bind_param("si", $cancel_reason, $id);
-        $success = $stmt->execute();
+        $success = $stmt->execute() && $stmt->affected_rows === 1;
 
         if ($success) {
+            $log_result = insert_booking_status_log($conn, $id, $old_status, 'cancelled', 'cancel', $cancel_reason);
+            $log_success = $log_result['success'];
+            $log_message = $log_result['message'];
+            if (!$log_success) {
+                $message = 'ยกเลิกสำเร็จ แต่บันทึกไทม์ไลน์ไม่สำเร็จ: ' . $log_message;
+            }
             line_send_booking_status($conn, $id, 'cancelled', $cancel_reason);
             // ดึงข้อมูลการจองเพื่อส่งอีเมลแจ้งยกเลิก
             $stmt_details = $conn->prepare("SELECT guest_name, guest_email, booking_code, booking_date FROM bookings WHERE bookings_id = ?");
@@ -529,23 +816,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
                     error_log("Cancellation Mailer Error for booking ID $id: " . $e->getMessage());
                 }
             }
+        } else {
+            $message = 'ยกเลิกไม่ได้: รายการนี้อาจปิดงาน ยกเลิก หรือเปลี่ยนสถานะไปแล้ว';
         }
     } elseif ($action === 'complete') {
+        $old_status = booking_status_for_log($conn, $id);
         $stmt = $conn->prepare("UPDATE bookings SET status='completed', updated_at=NOW() WHERE bookings_id=? AND status='confirmed'");
         $stmt->bind_param("i", $id);
         $success = $stmt->execute() && $stmt->affected_rows === 1;
+        if ($success) {
+            $log_result = insert_booking_status_log($conn, $id, $old_status, 'completed', 'complete', 'Booking completed by admin.');
+            $log_success = $log_result['success'];
+            $log_message = $log_result['message'];
+            if (!$log_success) {
+                $message = 'ปิดงานสำเร็จ แต่บันทึกไทม์ไลน์ไม่สำเร็จ: ' . $log_message;
+            }
+        } else {
+            $message = 'ปิดงานไม่ได้: รายการนี้ต้องอยู่ในสถานะยืนยันแล้วก่อน';
+        }
     } elseif ($action === 'no_show') {
+        $old_status = booking_status_for_log($conn, $id);
         $stmt = $conn->prepare("UPDATE bookings SET status='no_show', updated_at=NOW() WHERE bookings_id=? AND status='confirmed'");
         $stmt->bind_param("i", $id);
         $success = $stmt->execute() && $stmt->affected_rows === 1;
+        if ($success) {
+            $log_result = insert_booking_status_log($conn, $id, $old_status, 'no_show', 'no_show', 'Marked as no-show; deposit retained.');
+            $log_success = $log_result['success'];
+            $log_message = $log_result['message'];
+            if (!$log_success) {
+                $message = 'บันทึกไม่มาสำเร็จ แต่บันทึกไทม์ไลน์ไม่สำเร็จ: ' . $log_message;
+            }
+        } else {
+            $message = 'บันทึกไม่มาไม่ได้: รายการนี้ต้องอยู่ในสถานะยืนยันแล้วก่อน';
+        }
     } elseif ($action === 'delete') {
-        $stmt = $conn->prepare("DELETE FROM bookings WHERE bookings_id=?");
-        $stmt->bind_param("i", $id);
-        $success = $stmt->execute();
+        $message = 'ระบบไม่อนุญาตให้ลบการจองโดยตรง กรุณายกเลิกหรือปิดงานแทน';
     }
 
     header('Content-Type: application/json');
-    echo json_encode(['success' => $success, 'action' => $action, 'id' => $id]);
+    echo json_encode([
+        'success' => $success,
+        'action' => $action,
+        'id' => $id,
+        'message' => $message,
+        'log_success' => $log_success,
+        'log_message' => $log_message
+    ]);
     exit;
 }
 
@@ -554,6 +870,15 @@ $result = $conn->query("SELECT * FROM bookings ORDER BY bookings_id DESC");
 $bookings = [];
 while ($row = $result->fetch_assoc()) {
     $bookings[] = $row;
+}
+
+$activeBookedDates = [];
+foreach ($bookings as $bookingForDateMarker) {
+    $markerDate = (string)($bookingForDateMarker['booking_date'] ?? '');
+    $markerStatus = (string)($bookingForDateMarker['status'] ?? '');
+    if ($markerDate !== '' && $markerDate !== '0000-00-00' && in_array($markerStatus, ['pending', 'awaiting_payment', 'confirmed'], true)) {
+        $activeBookedDates[$markerDate][] = (int)($bookingForDateMarker['bookings_id'] ?? 0);
+    }
 }
 
 $bookingYears = [];
@@ -605,6 +930,7 @@ $adminPageExtraHead = <<<HTML
 HTML;
 adminPageStart('จัดการรายการจอง');
 ?>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
     * {
         box-sizing: border-box;
@@ -900,6 +1226,16 @@ adminPageStart('จัดการรายการจอง');
         color: white;
     }
 
+    .btn-edit {
+        background: rgba(246, 194, 62, 0.14);
+        color: #b7791f;
+    }
+
+    .btn-edit:hover {
+        background: #f6c23e;
+        color: #2f2500;
+    }
+
     .btn-complete {
         background: rgba(20, 184, 166, 0.12);
         color: #0f766e;
@@ -938,6 +1274,27 @@ adminPageStart('จัดการรายการจอง');
     .btn-info:hover {
         background: #36b9cc;
         color: white;
+    }
+
+    .flatpickr-day.booked-date,
+    .flatpickr-day.booked-date:hover {
+        background: #dc3545;
+        border-color: #dc3545;
+        color: #fff;
+    }
+
+    .flatpickr-day.booked-date.flatpickr-disabled,
+    .flatpickr-day.booked-date.flatpickr-disabled:hover {
+        background: rgba(220, 53, 69, 0.18);
+        border-color: rgba(220, 53, 69, 0.45);
+        color: #b02a37;
+        text-decoration: line-through;
+    }
+
+    .flatpickr-day.booked-date.selected {
+        background: #b02a37;
+        border-color: #b02a37;
+        color: #fff;
     }
 
     .stats-card {
@@ -1371,6 +1728,12 @@ adminPageStart('จัดการรายการจอง');
         <div class="fs-4 fw-bold text-primary">฿<?= number_format($stats['actual_received'], 2) ?></div>
     </div>
 
+    <div class="d-flex justify-content-end mb-3">
+        <a class="btn btn-outline-success" href="export_bookings.php">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+        </a>
+    </div>
+
     <!-- Filter Buttons -->
     <div class="mb-3 mb-md-4 text-center py-2 py-md-3 bg-white rounded-3 shadow-sm">
         <div class="filter-btn-group" role="group">
@@ -1580,14 +1943,20 @@ adminPageStart('จัดการรายการจอง');
                             <hr class="my-3 opacity-50">
 
                             <div class="d-flex gap-2 justify-content-end flex-wrap">
-                                <?php if ($booking['status'] == 'pending' && !$isAwaitingSlipCheck): ?>
+                                <?php if (!in_array($booking['status'], ['completed', 'no_show', 'cancelled'], true)): ?>
+                                    <button class="action-btn btn-edit" onclick="showEditBookingModal(<?= $booking['bookings_id'] ?>, '<?= htmlspecialchars(json_encode($booking), ENT_QUOTES, 'UTF-8') ?>', this)">
+                                        <i class="bi bi-pencil-square me-1"></i> แก้ไข
+                                    </button>
+                                <?php endif; ?>
+
+                                <?php if (in_array($booking['status'], ['pending', 'awaiting_payment'], true) && !$isAwaitingSlipCheck): ?>
                                     <button class="action-btn btn-info" onclick="showQrCodeModal(<?= $booking['bookings_id'] ?>, '<?= htmlspecialchars(json_encode($booking), ENT_QUOTES, 'UTF-8') ?>')">
-                                        <i class="bi bi-qr-code me-1"></i> ส่ง QR
+                                        <i class="bi bi-qr-code me-1"></i> <?= $booking['status'] === 'awaiting_payment' ? 'ส่ง QR ใหม่' : 'ส่ง QR' ?>
                                     </button>
                                 <?php endif; ?>
 
                                 <?php if ($isAwaitingSlipCheck): ?>
-                                    <button class="action-btn btn-confirm" onclick="showConfirmationModal(<?= $booking['bookings_id'] ?>, 'confirm', 'ยืนยันการจองนี้ใช่หรือไม่?', this)">
+                                    <button class="action-btn btn-confirm" onclick="showPaymentConfirmModal(<?= $booking['bookings_id'] ?>, '<?= htmlspecialchars(json_encode($booking), ENT_QUOTES, 'UTF-8') ?>', this)">
                                         <i class="bi bi-check2-circle me-1"></i> ยืนยัน
                                     </button>
                                 <?php endif; ?>
@@ -1609,6 +1978,9 @@ adminPageStart('จัดการรายการจอง');
                                 <button class="btn btn-light rounded-pill px-3" onclick="viewDetails(<?= htmlspecialchars(json_encode($booking)) ?>)">
                                     <i class="bi bi-eye"></i>
                                 </button>
+                                <a class="btn btn-light rounded-pill px-3" href="booking_timeline.php?booking_id=<?= (int)$booking['bookings_id'] ?>" title="ดูไทม์ไลน์">
+                                    <i class="bi bi-clock-history"></i>
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -1627,6 +1999,69 @@ adminPageStart('จัดการรายการจอง');
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div id="modalBody" class="modal-body p-4"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editBookingModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">แก้ไขการจอง</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editBookingId">
+                <div class="mb-3">
+                    <div class="fw-semibold" id="editBookingCode"></div>
+                    <div class="text-muted small" id="editBookingCustomer"></div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <label for="editBookingDate" class="form-label">วันที่เข้าชม</label>
+                        <input type="text" class="form-control" id="editBookingDate" placeholder="เลือกวันที่" required>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label for="editBookingTime" class="form-label">เวลา</label>
+                        <select class="form-select" id="editBookingTime" required>
+                            <option value="08:00">08:00 น.</option>
+                            <option value="09:00">09:00 น.</option>
+                            <option value="10:00">10:00 น.</option>
+                            <option value="11:00">11:00 น.</option>
+                            <option value="12:00">12:00 น.</option>
+                            <option value="13:00">13:00 น.</option>
+                            <option value="14:00">14:00 น.</option>
+                            <option value="15:00">15:00 น.</option>
+                            <option value="16:00">16:00 น.</option>
+                            <option value="17:00">17:00 น.</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label for="editVisitorCount" class="form-label">จำนวนผู้เข้าชม</label>
+                        <input type="number" min="1" max="500" step="1" class="form-control" id="editVisitorCount" required>
+                    </div>
+                </div>
+                <div class="alert alert-light border mt-4 mb-0">
+                    <div class="d-flex justify-content-between gap-3">
+                        <span>ยอดรวม</span>
+                        <strong id="editPriceTotal">฿0.00</strong>
+                    </div>
+                    <div class="d-flex justify-content-between gap-3">
+                        <span>มัดจำ 30%</span>
+                        <strong id="editDepositAmount">฿0.00</strong>
+                    </div>
+                    <div class="d-flex justify-content-between gap-3">
+                        <span>ยอดคงเหลือ</span>
+                        <strong id="editBalanceAmount">฿0.00</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" id="saveEditBookingButton">
+                    <i class="bi bi-save me-2"></i>บันทึก
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -1728,6 +2163,7 @@ adminPageStart('จัดการรายการจอง');
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
     // Initialize Bootstrap Modals
     const confirmModalEl = document.getElementById('actionConfirmModal');
@@ -1737,15 +2173,22 @@ adminPageStart('จัดการรายการจอง');
     const statusModal = new bootstrap.Modal(statusModalEl);
     const detailModalEl = document.getElementById('detailModal');
     const detailModal = new bootstrap.Modal(detailModalEl);
+    const editBookingModalEl = document.getElementById('editBookingModal');
+    const editBookingModal = new bootstrap.Modal(editBookingModalEl);
     const qrCodeModalEl = document.getElementById('qrCodeModal');
     const qrCodeModal = new bootstrap.Modal(qrCodeModalEl);
     const actionLoadingLabels = {
+        edit_booking: 'กำลังบันทึก...',
         confirm: 'กำลังยืนยัน...',
         cancel: 'กำลังยกเลิก...',
         complete: 'กำลังปิดรายการ...',
         no_show: 'กำลังบันทึกไม่มา...'
     };
     let activeActionButtons = [];
+    let editBookingSourceButton = null;
+    let editBookingDatePicker = null;
+    let activeEditBookingId = null;
+    const activeBookedDates = <?= json_encode($activeBookedDates, JSON_UNESCAPED_SLASHES) ?>;
 
     function setButtonLoading(button, label) {
         if (!button) return;
@@ -1798,7 +2241,7 @@ adminPageStart('จัดการรายการจอง');
         activeActionButtons = [];
     }
 
-    function handleBookingAction(id, action, reason = null, sourceButton = null, modalButton = null) {
+    function handleBookingAction(id, action, reason = null, sourceButton = null, modalButton = null, extraData = {}) {
         setActionLoading(sourceButton, action, modalButton);
         showStatusModal('กำลังดำเนินการ', 'กรุณารอสักครู่ ระบบกำลังทำรายการ...', 'loading');
 
@@ -1809,6 +2252,9 @@ adminPageStart('จัดการรายการจอง');
         if (reason) {
             formData.append('reason', reason);
         }
+        Object.entries(extraData || {}).forEach(([key, value]) => {
+            formData.append(key, value);
+        });
 
         fetch('booking_list.php', {
                 method: 'POST',
@@ -1822,7 +2268,7 @@ adminPageStart('จัดการรายการจอง');
             })
             .then(data => {
                 if (data.success) {
-                    showStatusModal('สำเร็จ', 'ดำเนินการเรียบร้อยแล้ว', true, true);
+                    showStatusModal('สำเร็จ', data.message || 'ดำเนินการเรียบร้อยแล้ว', true, true);
                     statusModalEl.addEventListener('hidden.bs.modal', () => {
                         location.reload();
                     }, {
@@ -1839,15 +2285,192 @@ adminPageStart('จัดการรายการจอง');
             });
     }
 
+    function editBookingTotals(visitorCount) {
+        const count = Math.max(1, Number.parseInt(visitorCount, 10) || 1);
+        const total = (count * 150) + 1800 + 3000;
+        const deposit = Math.round(total * 0.3 * 100) / 100;
+        return {
+            total,
+            deposit,
+            balance: Math.round((total - deposit) * 100) / 100
+        };
+    }
+
+    function updateEditBookingTotals() {
+        const countInput = document.getElementById('editVisitorCount');
+        const totals = editBookingTotals(countInput ? countInput.value : 1);
+        const moneyFormat = new Intl.NumberFormat('th-TH', {
+            style: 'currency',
+            currency: 'THB',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+
+        document.getElementById('editPriceTotal').textContent = moneyFormat.format(totals.total);
+        document.getElementById('editDepositAmount').textContent = moneyFormat.format(totals.deposit);
+        document.getElementById('editBalanceAmount').textContent = moneyFormat.format(totals.balance);
+    }
+
+    function formatLocalDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function bookedByAnotherBooking(dateStr) {
+        const bookingIds = activeBookedDates[dateStr] || [];
+        return bookingIds.some(bookingId => Number(bookingId) !== Number(activeEditBookingId));
+    }
+
+    function markBookedDates() {
+        document.querySelectorAll('.flatpickr-day').forEach(dayEl => {
+            if (!dayEl.dateObj) return;
+            const dateStr = formatLocalDate(dayEl.dateObj);
+            if (activeBookedDates[dateStr]) {
+                dayEl.classList.add('booked-date');
+                dayEl.title = bookedByAnotherBooking(dateStr) ? 'มีการจองแล้ว' : 'วันที่จองเดิมของรายการนี้';
+            }
+        });
+    }
+
+    function ensureEditBookingDatePicker() {
+        if (editBookingDatePicker || typeof flatpickr === 'undefined') {
+            return;
+        }
+
+        editBookingDatePicker = flatpickr('#editBookingDate', {
+            dateFormat: 'Y-m-d',
+            minDate: 'today',
+            disable: [
+                function(date) {
+                    return bookedByAnotherBooking(formatLocalDate(date));
+                }
+            ],
+            onReady: markBookedDates,
+            onDayCreate: function(selectedDates, dateStr, instance, dayElem) {
+                const dayDate = formatLocalDate(dayElem.dateObj);
+                if (activeBookedDates[dayDate]) {
+                    dayElem.classList.add('booked-date');
+                    dayElem.title = bookedByAnotherBooking(dayDate) ? 'มีการจองแล้ว' : 'วันที่จองเดิมของรายการนี้';
+                }
+            },
+            onMonthChange: markBookedDates,
+            onYearChange: markBookedDates,
+            onOpen: markBookedDates,
+            onValueUpdate: markBookedDates
+        });
+    }
+
+    function showEditBookingModal(id, bookingJson, sourceButton = null) {
+        const booking = JSON.parse(bookingJson);
+        editBookingSourceButton = sourceButton;
+        activeEditBookingId = id;
+        ensureEditBookingDatePicker();
+
+        document.getElementById('editBookingId').value = id;
+        document.getElementById('editBookingCode').textContent = '#' + (booking.booking_code || '');
+        document.getElementById('editBookingCustomer').textContent = booking.guest_name || '';
+        if (editBookingDatePicker) {
+            editBookingDatePicker.set('disable', [
+                function(date) {
+                    return bookedByAnotherBooking(formatLocalDate(date));
+                }
+            ]);
+            editBookingDatePicker.setDate(booking.booking_date || '', false, 'Y-m-d');
+        } else {
+            document.getElementById('editBookingDate').value = booking.booking_date || '';
+        }
+        document.getElementById('editBookingTime').value = String(booking.booking_time || '').slice(0, 5);
+        document.getElementById('editVisitorCount').value = booking.visitor_count || 1;
+
+        const today = new Date().toISOString().slice(0, 10);
+        document.getElementById('editBookingDate').setAttribute('min', today);
+        updateEditBookingTotals();
+        editBookingModal.show();
+        setTimeout(markBookedDates, 0);
+    }
+
+    const editVisitorCountInput = document.getElementById('editVisitorCount');
+    if (editVisitorCountInput) {
+        editVisitorCountInput.addEventListener('input', updateEditBookingTotals);
+    }
+
+    const saveEditBookingButton = document.getElementById('saveEditBookingButton');
+    if (saveEditBookingButton) {
+        saveEditBookingButton.addEventListener('click', function() {
+            const id = document.getElementById('editBookingId').value;
+            const bookingDate = document.getElementById('editBookingDate').value;
+            const bookingTime = document.getElementById('editBookingTime').value;
+            const visitorCount = Number.parseInt(document.getElementById('editVisitorCount').value, 10) || 0;
+
+            if (!bookingDate || !bookingTime || visitorCount < 1 || visitorCount > 500) {
+                alert('กรุณาระบุวันที่ เวลา และจำนวนคนให้ถูกต้อง');
+                return;
+            }
+
+            editBookingModal.hide();
+            handleBookingAction(id, 'edit_booking', null, editBookingSourceButton, saveEditBookingButton, {
+                booking_date: bookingDate,
+                booking_time: bookingTime,
+                visitor_count: visitorCount
+            });
+        });
+    }
+
+    function showPaymentConfirmModal(id, bookingJson, sourceButton = null) {
+        const booking = JSON.parse(bookingJson);
+        const modalBody = document.getElementById('actionConfirmModalBody');
+        const modalLabel = document.getElementById('actionConfirmModalLabel');
+        const expectedAmount = Number.parseFloat(booking.deposit_amount) || 0;
+
+        modalLabel.textContent = 'ยืนยันการชำระเงิน';
+        modalBody.innerHTML = `
+            <div class="mb-3">
+                <div class="fw-semibold mb-1">#${escapeHtml(booking.booking_code || '')}</div>
+                <div class="text-muted small">ยอดมัดจำตามระบบ: ฿${expectedAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            </div>
+            <div class="mb-3">
+                <label for="paymentReceivedAmount" class="form-label">ยอดเงินที่ตรวจสอบแล้ว</label>
+                <input type="number" min="0" step="0.01" class="form-control" id="paymentReceivedAmount" value="${expectedAmount.toFixed(2)}">
+            </div>
+            <div class="mb-0">
+                <label for="paymentVerifyNote" class="form-label">หมายเหตุ</label>
+                <textarea class="form-control" id="paymentVerifyNote" rows="3" placeholder="เช่น ยอดตรงกับสลิป / ธนาคาร / เวลาโอน"></textarea>
+            </div>
+        `;
+
+        confirmActionButton.className = 'btn btn-success';
+        restoreButton(confirmActionButton);
+        confirmActionButton.onclick = () => {
+            const amountInput = document.getElementById('paymentReceivedAmount');
+            const noteInput = document.getElementById('paymentVerifyNote');
+            const amount = Number.parseFloat(amountInput ? amountInput.value : '0') || 0;
+
+            if (amount <= 0) {
+                alert('กรุณาระบุยอดเงินที่ตรวจสอบแล้ว');
+                if (amountInput) amountInput.focus();
+                return;
+            }
+
+            confirmModal.hide();
+            handleBookingAction(id, 'confirm', null, sourceButton, confirmActionButton, {
+                payment_received_amount: amount.toFixed(2),
+                payment_note: noteInput ? noteInput.value.trim() : ''
+            });
+        };
+        confirmModal.show();
+    }
+
     function showConfirmationModal(id, action, message, sourceButton = null) {
         const modalBody = document.getElementById('actionConfirmModalBody');
         const modalLabel = document.getElementById('actionConfirmModalLabel');
 
-        if (action === 'confirm' || action === 'complete' || action === 'no_show') {
+        if (action === 'complete' || action === 'no_show') {
             modalBody.textContent = message;
             modalLabel.textContent = action === 'complete'
                 ? 'ยืนยันเสร็จสิ้น'
-                : (action === 'no_show' ? 'ยืนยันไม่มา/ยึดมัดจำ' : 'ยืนยันการจอง');
+                : 'ยืนยันไม่มา/ยึดมัดจำ';
             confirmActionButton.className = action === 'no_show' ? 'btn btn-secondary' : 'btn btn-success';
             restoreButton(confirmActionButton);
 
@@ -2026,7 +2649,7 @@ adminPageStart('จัดการรายการจอง');
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        showStatusModal('สำเร็จ', 'ส่งอีเมลพร้อม QR Code เรียบร้อยแล้ว', true, true);
+                        showStatusModal('สำเร็จ', data.message || 'ส่งอีเมลพร้อม QR Code เรียบร้อยแล้ว', true, true);
                         statusModalEl.addEventListener('hidden.bs.modal', () => {
                             window.location.reload();
                         }, {

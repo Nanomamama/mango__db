@@ -820,6 +820,7 @@ function adminPageStart(string $title): void
 
             .bell-ring {
                 animation: bellRing 0.6s ease-in-out;
+                transform-origin: top center;
             }
 
             /* Badge pulse */
@@ -863,13 +864,40 @@ function adminPageStart(string $title): void
 
             .notification-bell-btn i {
                 font-size: 1.05rem;
+                transform-origin: top center;
+            }
+
+            .notification-bell-btn.bell-ring-active i {
+                color: #ef4444 !important;
+                animation: bellRing 1.05s ease-in-out infinite;
+            }
+
+            .notification-badge {
+                position: absolute !important;
+                top: -6px !important;
+                right: -6px !important;
+                width: 22px !important;
+                min-width: 22px !important;
+                height: 22px !important;
+                padding: 0 !important;
+                border-radius: 50% !important;
+                background: #ef4444 !important;
+                color: #ffffff !important;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 11px !important;
+                font-weight: 800 !important;
+                line-height: 1 !important;
+                text-align: center !important;
+                box-shadow: 0 0 0 2px #ffffff, 0 8px 18px rgba(239, 68, 68, 0.35) !important;
             }
 
             .notification-dropdown-menu {
                 position: absolute;
                 top: calc(100% + 12px);
                 right: 0;
-                width: min(360px, calc(100vw - 32px));
+                width: min(420px, calc(100vw - 24px));
                 border: 1px solid rgba(226, 232, 240, 0.96);
                 border-radius: 22px;
                 background: rgba(255, 255, 255, 0.98);
@@ -1009,9 +1037,12 @@ function adminPageStart(string $title): void
                 font-size: 0.9rem;
                 font-weight: 600;
                 line-height: 1.4;
-                white-space: nowrap;
+                white-space: normal;
                 overflow: hidden;
                 text-overflow: ellipsis;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
             }
 
             .notification-item-subtitle {
@@ -1035,22 +1066,33 @@ function adminPageStart(string $title): void
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                width: 10px;
-                height: 10px;
+                max-width: 118px;
+                min-height: 24px;
+                padding: 4px 8px;
                 margin-top: 6px;
                 border-radius: 999px;
-                background: #22c55e;
-                box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+                background: #ecfdf5;
+                color: #047857;
+                font-size: 0.68rem;
+                font-weight: 700;
+                line-height: 1.25;
+                text-align: center;
+                overflow: hidden;
+                text-overflow: ellipsis;
                 flex-shrink: 0;
             }
 
             .notification-dropdown-footer {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
                 padding: 10px;
                 background: linear-gradient(180deg, #fbfefd 0%, #f8fafc 100%);
                 border-top: 1px solid #eef2f7;
             }
 
-            .notification-dropdown-link {
+            .notification-dropdown-link,
+            .notification-read-all-btn {
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -1058,16 +1100,25 @@ function adminPageStart(string $title): void
                 width: 100%;
                 padding: 11px 14px;
                 border-radius: 14px;
+                border: 0;
                 background: rgba(1, 106, 112, 0.08);
                 color: var(--green);
                 font-size: 0.82rem;
                 font-weight: 700;
                 text-decoration: none;
                 transition: 0.2s ease;
+                cursor: pointer;
             }
 
-            .notification-dropdown-link:hover {
+            .notification-dropdown-link:hover,
+            .notification-read-all-btn:hover {
                 background: rgba(1, 106, 112, 0.14);
+            }
+
+            .notification-read-all-btn:disabled {
+                opacity: 0.45;
+                cursor: not-allowed;
+                transform: none;
             }
 
             @keyframes dropdownFade {
@@ -1116,6 +1167,14 @@ function adminPageStart(string $title): void
                     รายการจอง
 
                 </a>
+
+                <!-- <a href="./booking_timeline.php"
+                    class="nav-link <?= $currentPage === 'booking_timeline.php' ? 'active' : '' ?>">
+
+                    <i class='bx bx-time-five'></i>
+                    ไทม์ไลน์จอง
+
+                </a> -->
 
                 <a href="./manage_orders.php"
                     class="nav-link <?= $currentPage === 'manage_orders.php' ? 'active' : '' ?>">
@@ -1249,6 +1308,9 @@ function adminPageStart(string $title): void
                                 </div>
                             </div>
                             <div class="notification-dropdown-footer">
+                                <button type="button" id="notificationReadAll" class="notification-read-all-btn">
+                                    อ่านทั้งหมด
+                                </button>
                                 <a href="./booking_list.php" class="notification-dropdown-link">
                                     ดูการจองทั้งหมด →
                                 </a>
@@ -1322,7 +1384,6 @@ function adminPageStart(string $title): void
             // Notification System
             class NotificationManager {
                 constructor() {
-                    this.lastCheck = localStorage.getItem('lastBookingCheck') || Math.floor(Date.now() / 1000);
                     this.currentCount = 0;
                     this.checkInterval = null;
                     this.isDropdownOpen = false;
@@ -1343,6 +1404,7 @@ function adminPageStart(string $title): void
                     this.badge = document.getElementById('notificationBadge');
                     this.dropdown = document.getElementById('notificationDropdown');
                     this.notificationList = document.getElementById('notificationList');
+                    this.readAllBtn = document.getElementById('notificationReadAll');
                 }
 
                 bindEvents() {
@@ -1351,9 +1413,24 @@ function adminPageStart(string $title): void
                         this.bellBtn.addEventListener('click', (e) => {
                             e.stopPropagation();
                             this.toggleDropdown();
-                            if (this.currentCount > 0) {
-                                this.markAsRead();
-                            }
+                        });
+                    }
+
+                    if (this.readAllBtn) {
+                        this.readAllBtn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            this.markAllAsRead();
+                        });
+                    }
+
+                    if (this.notificationList) {
+                        this.notificationList.addEventListener('click', (e) => {
+                            const item = e.target.closest('[data-notification-id]');
+                            if (!item) return;
+
+                            e.preventDefault();
+                            this.markOneAsRead(item.dataset.notificationId, item.href);
                         });
                     }
 
@@ -1375,7 +1452,7 @@ function adminPageStart(string $title): void
                 }
 
                 setupAudio() {
-                    // เล่นเสียงเมื่อมีการจองใหม่ (optional)
+                    // เล่นเสียงเมื่อมีอัปเดตการจองใหม่ (optional)
                     try {
                         this.audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
                         this.audio.volume = 0.3;
@@ -1396,7 +1473,7 @@ function adminPageStart(string $title): void
 
                 async checkNewBookings() {
                     try {
-                        const response = await fetch(`./get_new_bookings.php?last_check=${encodeURIComponent(this.lastCheck)}&t=${Date.now()}`, {
+                        const response = await fetch(`./get_new_bookings.php?t=${Date.now()}`, {
                             cache: 'no-store',
                             credentials: 'same-origin'
                         });
@@ -1415,11 +1492,11 @@ function adminPageStart(string $title): void
 
                         if (data.success) {
                             const totalCount = Number.parseInt(data.count ?? 0, 10) || 0;
-                            const newCount = Number.parseInt(data.new_count ?? 0, 10) || 0;
+                            const shouldAlert = totalCount > 0 && totalCount !== this.currentCount;
 
-                            if (newCount > 0) {
-                                // มีการจองใหม่!
-                                this.showNewBookingNotification(newCount, data.recent_bookings);
+                            if (shouldAlert) {
+                                // มีอัปเดตการจองใหม่!
+                                this.showNewBookingNotification(totalCount, data.recent_bookings);
 
                                 // เล่นเสียง
                                 if (this.audio) {
@@ -1440,8 +1517,6 @@ function adminPageStart(string $title): void
                             }
 
                             // อัปเดตเวลาเช็คล่าสุด
-                            this.lastCheck = data.current_time || Math.floor(Date.now() / 1000);
-                            localStorage.setItem('lastBookingCheck', this.lastCheck);
                         } else {
                             console.warn('Booking notification check failed:', data.error || data);
                         }
@@ -1459,6 +1534,17 @@ function adminPageStart(string $title): void
                     } else {
                         this.badge.style.display = 'none';
                     }
+
+                    if (this.readAllBtn) {
+                        this.readAllBtn.disabled = count <= 0;
+                    }
+
+                    this.updateBellState(count);
+                }
+
+                updateBellState(count) {
+                    if (!this.bellBtn) return;
+                    this.bellBtn.classList.toggle('bell-ring-active', count > 0);
                 }
 
                 ringBell() {
@@ -1481,10 +1567,30 @@ function adminPageStart(string $title): void
                     }
                 }
 
+                getNotificationLabel(booking) {
+                    const type = booking && booking.notification_type ? booking.notification_type : 'booking_created';
+
+                    if (type === 'payment_submitted') {
+                        return 'แนบสลิปชำระเงินแล้ว';
+                    }
+
+                    return 'มีการจองใหม่';
+                }
+
+                getNotificationIcon(booking) {
+                    const type = booking && booking.notification_type ? booking.notification_type : 'booking_created';
+
+                    if (type === 'payment_submitted') {
+                        return 'fas fa-receipt';
+                    }
+
+                    return 'fas fa-calendar-check';
+                }
+
                 showNewBookingNotification(count, recentBookings) {
                     // แสดง Toast Notification (ถ้า浏览器支持)
                     if ('Notification' in window && Notification.permission === 'granted') {
-                        const title = `มีการจองใหม่ ${count} รายการ`;
+                        const title = `มีอัปเดตการจองใหม่ ${count} รายการ`;
                         const body = recentBookings && recentBookings[0] ?
                             `${recentBookings[0].customer_name} - ${recentBookings[0].time_ago}` :
                             'คลิกเพื่อดูรายละเอียด';
@@ -1497,7 +1603,7 @@ function adminPageStart(string $title): void
                     }
 
                     // แสดงข้อความแจ้งเตือนแบบสั้นๆ (Snackbar)
-                    this.showSnackbar(`มีการจองใหม่ ${count} รายการ`, 'info');
+                    this.showSnackbar(`มีอัปเดตการจองใหม่ ${count} รายการ`, 'info');
                 }
 
                 showSnackbar(message, type = 'info') {
@@ -1547,9 +1653,57 @@ function adminPageStart(string $title): void
                     }
                 }
 
-                markAsRead() {
+                async markNotification(payload) {
+                    const response = await fetch('./mark_booking_notification_read.php', {
+                        method: 'POST',
+                        cache: 'no-store',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Mark notification failed: ${response.status}`);
+                    }
+
+                    return response.json();
+                }
+
+                async markOneAsRead(notificationId, targetUrl) {
+                    try {
+                        await this.markNotification({
+                            notification_id: Number.parseInt(notificationId || '0', 10) || 0
+                        });
+                    } catch (error) {
+                        console.error('Error marking notification as read:', error);
+                    } finally {
+                        window.location.href = targetUrl;
+                    }
+                }
+
+                async markAllAsRead() {
+                    if (this.currentCount <= 0) return;
+
+                    try {
+                        const result = await this.markNotification({
+                            action: 'all'
+                        });
+
+                        if (result && result.success) {
+                            this.currentCount = 0;
+                            this.updateBadge(0);
+                            this.updateNotificationList([]);
+                            this.closeDropdown();
+                        }
+                    } catch (error) {
+                        console.error('Error marking all notifications as read:', error);
+                    }
+                }
+
+                unusedLegacyMarkAsRead() {
                     // ส่ง request เพื่อ mark as read
-                    localStorage.setItem('lastBookingCheck', String(this.lastCheck));
                 }
 
                 updateNotificationList(bookings) {
@@ -1569,25 +1723,32 @@ function adminPageStart(string $title): void
 
                     let html = '';
                     bookings.forEach(booking => {
+                        const label = this.getNotificationLabel(booking);
+                        const icon = this.getNotificationIcon(booking);
+                        const bookingCode = booking.booking_code ? `#${booking.booking_code}` : '';
+                        const bookingDate = booking.booking_date || 'รอยืนยันวันจอง';
                         html += `
-                <a href="booking_list.php?highlight=${booking.id}" 
+                <a href="booking_list.php?highlight=${booking.id}"
+                   data-notification-id="${escapeHtml(String(booking.notification_id || ''))}"
                    class="notification-item">
                     <div class="notification-item-row">
                         <div class="notification-item-icon">
-                            <i class="fas fa-calendar-check"></i>
+                            <i class="${icon}"></i>
                         </div>
                         <div class="notification-item-content">
                             <p class="notification-item-title">
-                                ${escapeHtml(booking.customer_name)}
+                                ${escapeHtml(label)}: ${escapeHtml(booking.customer_name)}
                             </p>
                             <p class="notification-item-subtitle">
-                                ${escapeHtml(booking.booking_date || 'รอ确认')}
+                                ${escapeHtml([bookingCode, bookingDate].filter(Boolean).join(' · '))}
                             </p>
                             <p class="notification-item-time">
-                                <i class="far fa-clock"></i> ${booking.time_ago}
+                                <i class="far fa-clock"></i> ${escapeHtml(booking.time_ago)}
                             </p>
                         </div>
-                        <span class="notification-item-status"></span>
+                        <span class="notification-item-status">
+                            ${escapeHtml(booking.status_label || booking.status || '')}
+                        </span>
                     </div>
                 </a>
             `;
