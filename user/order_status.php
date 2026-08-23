@@ -4,6 +4,7 @@ require_once __DIR__ . '/../db/db.php';
 
 $member_id = $_SESSION['member_id'] ?? null;
 
+$rate = &$_SESSION['order_search_rate'];
 /*
 |--------------------------------------------------------------------------
 | IP Rate Limit
@@ -151,6 +152,26 @@ if ($rateData) {
     ];
 }
 
+// ถ้ายังอยู่ในช่วงล็อก
+if ($rate['blocked_until'] > $now) {
+
+    $remaining = ceil(($rate['blocked_until'] - $now) / 60);
+
+    $error = "ค้นหามากเกินไป กรุณารอประมาณ {$remaining} นาทีแล้วลองใหม่";
+    $search_blocked = true;
+} else {
+
+    $search_blocked = false;
+
+    // ล้างประวัติที่เกิน 10 นาที
+    $rate['attempts'] = array_values(
+        array_filter(
+            $rate['attempts'],
+            fn($timestamp) => ($now - $timestamp) < $RATE_LIMIT_WINDOW
+        )
+    );
+}
+
 //-----------------------------------------------------------------------------
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
@@ -161,6 +182,7 @@ $orders = [];
 $search_performed = false;
 $error = '';
 $success = '';
+$search_blocked = false;
 
 $keyword = trim($_GET['keyword'] ?? '');
 

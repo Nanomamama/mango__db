@@ -1,7 +1,6 @@
 <?php
 session_start();
 require_once __DIR__ . '/../db/db.php';
-require_once __DIR__ . '/../config/env.php';
 require_once __DIR__ . '/line_service.php';
 
 
@@ -33,7 +32,6 @@ $guest_line_user_id = $_SESSION['guest_line_user_id'] ?? '';
 $guest_line_display_name = $_SESSION['guest_line_display_name'] ?? '';
 $order_line_user_id = $member_id ? ($member_line_user_id ?: $guest_line_user_id) : $guest_line_user_id;
 $order_line_display_name = $member_id ? ($member_line_display_name ?: $guest_line_display_name) : $guest_line_display_name;
-$google_maps_api_key = app_env('GOOGLE_MAPS_API_KEY', '');
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -47,6 +45,7 @@ $google_maps_api_key = app_env('GOOGLE_MAPS_API_KEY', '');
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Mitr:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
@@ -949,58 +948,6 @@ $google_maps_api_key = app_env('GOOGLE_MAPS_API_KEY', '');
             border: 1px solid rgba(1, 106, 112, .16);
         }
 
-        .delivery-map-actions {
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
-        }
-
-        .delivery-current-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            border: 1px solid rgba(1, 106, 112, .18);
-            border-radius: 10px;
-            background: var(--white);
-            color: var(--sage);
-            font-weight: 800;
-            padding: 9px 12px;
-            cursor: pointer;
-            transition: .2s ease;
-        }
-
-        .delivery-current-btn:hover {
-            border-color: rgba(1, 106, 112, .35);
-            background: #eefaf8;
-        }
-
-        .delivery-current-btn:disabled {
-            cursor: not-allowed;
-            opacity: .65;
-        }
-
-        .delivery-map-modal .modal-content {
-            min-height: 100vh;
-            border: 0;
-            border-radius: 0;
-        }
-
-        .delivery-map-modal .modal-body {
-            padding: 12px;
-            background: #f8fffd;
-        }
-
-        .delivery-map-modal-mount {
-            min-height: calc(100vh - 162px);
-        }
-
-        .delivery-map-modal-mount #deliveryMap {
-            height: calc(100vh - 162px);
-            min-height: 420px;
-        }
-
         .delivery-map-status {
             margin-top: 10px;
             padding: 9px 10px;
@@ -1355,19 +1302,7 @@ $google_maps_api_key = app_env('GOOGLE_MAPS_API_KEY', '');
                                     <textarea class="form-control" name="customer_address" id="customer_address"
                                         placeholder="หมายเหตุเพิ่มเติม" rows="3"></textarea>
                                     <div class="delivery-map-box" id="deliveryMapBox">
-                                        <div id="deliveryMapInlineMount">
-                                            <div id="deliveryMap"></div>
-                                        </div>
-                                        <div class="delivery-map-actions">
-                                            <button type="button" class="delivery-current-btn" id="useCurrentLocationBtn" data-current-location-btn onclick="useCurrentDeliveryLocation()">
-                                                <i class="fas fa-location-crosshairs"></i>
-                                                ใช้ตำแหน่งปัจจุบัน
-                                            </button>
-                                            <button type="button" class="delivery-current-btn" onclick="openDeliveryMapModal()">
-                                                <i class="fas fa-expand"></i>
-                                                ขยายแผนที่
-                                            </button>
-                                        </div>
+                                        <div id="deliveryMap"></div>
                                         <div class="delivery-map-status" id="deliveryMapStatus">เลือกตำแหน่งจัดส่งบนแผนที่</div>
                                         <div class="delivery-coordinate">
                                             <div>ละติจูด<strong id="deliveryLatText">-</strong></div>
@@ -1410,31 +1345,6 @@ $google_maps_api_key = app_env('GOOGLE_MAPS_API_KEY', '');
                     </div>
                 </div>
             </form>
-        </div>
-    </div>
-
-    <!-- DELIVERY MAP MODAL -->
-    <div class="modal fade delivery-map-modal" id="deliveryMapModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-fullscreen">
-            <div class="modal-content">
-                <div class="modal-head">
-                    <h5><i class="fas fa-map-location-dot me-2"></i>ปักหมุดตำแหน่งจัดส่ง</h5>
-                    <button class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="delivery-map-modal-mount" id="deliveryMapModalMount"></div>
-                </div>
-                <div class="modal-footer justify-content-between">
-                    <button type="button" class="delivery-current-btn" data-current-location-btn onclick="useCurrentDeliveryLocation()">
-                        <i class="fas fa-location-crosshairs"></i>
-                        ใช้ตำแหน่งปัจจุบัน
-                    </button>
-                    <button type="button" class="delivery-current-btn" data-bs-dismiss="modal">
-                        <i class="fas fa-check"></i>
-                        ยืนยันตำแหน่ง
-                    </button>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -1491,28 +1401,15 @@ $google_maps_api_key = app_env('GOOGLE_MAPS_API_KEY', '');
     <?php include 'footer.php'; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=<?= rawurlencode((string) $google_maps_api_key) ?>&libraries=geometry&callback=onGoogleMapsReady" defer></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
     <script>
-        window.googleMapsReady = false;
-        window.onGoogleMapsReady = function() {
-            window.googleMapsReady = true;
-            if (typeof initDeliveryMap === 'function') {
-                const mapBox = document.getElementById('deliveryMapBox');
-                if (mapBox && mapBox.classList.contains('is-visible')) {
-                    initDeliveryMap();
-                }
-            }
-        };
-
         let cart = [];
         let submittingAfterServerSync = false;
         let deliveryMap = null;
         let deliveryArea = null;
-        let deliveryAreaPolygons = [];
-        let deliveryAreaBounds = null;
         let deliveryMarker = null;
         let deliveryMapLoaded = false;
-        let deliveryMapModalInstance = null;
 
         try {
             cart = JSON.parse(localStorage.getItem("cart")) || [];
@@ -1796,282 +1693,10 @@ $google_maps_api_key = app_env('GOOGLE_MAPS_API_KEY', '');
             document.getElementById('delivery_longitude').value = '';
             document.getElementById('deliveryLatText').textContent = '-';
             document.getElementById('deliveryLngText').textContent = '-';
-            if (deliveryMarker) {
-                deliveryMarker.setMap(null);
+            if (deliveryMarker && deliveryMap) {
+                deliveryMap.removeLayer(deliveryMarker);
             }
             deliveryMarker = null;
-        }
-
-        function refreshDeliveryMapView() {
-            if (!deliveryMap || !window.google?.maps) return;
-
-            google.maps.event.trigger(deliveryMap, 'resize');
-
-            if (deliveryMarker) {
-                deliveryMap.panTo(deliveryMarker.getPosition());
-                deliveryMap.setZoom(Math.max(deliveryMap.getZoom() || 16, 16));
-                return;
-            }
-
-            if (deliveryAreaBounds) {
-                deliveryMap.fitBounds(deliveryAreaBounds);
-            }
-        }
-
-        function moveDeliveryMapTo(targetId) {
-            const mapElement = document.getElementById('deliveryMap');
-            const target = document.getElementById(targetId);
-            if (!mapElement || !target) return;
-
-            target.appendChild(mapElement);
-            setTimeout(refreshDeliveryMapView, 120);
-        }
-
-        function openDeliveryMapModal() {
-            if (!deliveryMapLoaded) {
-                initDeliveryMap();
-            }
-
-            const modalElement = document.getElementById('deliveryMapModal');
-            if (!modalElement) return;
-
-            deliveryMapModalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
-            modalElement.addEventListener('shown.bs.modal', () => {
-                moveDeliveryMapTo('deliveryMapModalMount');
-            }, { once: true });
-            modalElement.addEventListener('hidden.bs.modal', () => {
-                moveDeliveryMapTo('deliveryMapInlineMount');
-            }, { once: true });
-            deliveryMapModalInstance.show();
-        }
-
-        function geoJsonRingToGooglePath(ring) {
-            return ring.map(point => ({
-                lat: Number(point[1]),
-                lng: Number(point[0])
-            }));
-        }
-
-        function getDeliveryAreaFeatures(data) {
-            if (!data) return [];
-            return data.type === 'FeatureCollection' ? (data.features || []) : [data];
-        }
-
-        function buildDeliveryAreaPolygons(data) {
-            const polygons = [];
-            const bounds = new google.maps.LatLngBounds();
-
-            getDeliveryAreaFeatures(data).forEach(feature => {
-                const geometry = feature.type === 'Feature' ? feature.geometry : feature;
-                if (!geometry || !Array.isArray(geometry.coordinates)) return;
-
-                const polygonCoordinates = geometry.type === 'Polygon'
-                    ? [geometry.coordinates]
-                    : (geometry.type === 'MultiPolygon' ? geometry.coordinates : []);
-
-                polygonCoordinates.forEach(polygonCoordinate => {
-                    const paths = polygonCoordinate.map(geoJsonRingToGooglePath);
-                    if (!paths.length || !paths[0].length) return;
-
-                    paths[0].forEach(point => bounds.extend(point));
-
-                    const polygon = new google.maps.Polygon({
-                        paths,
-                        strokeColor: '#28a745',
-                        strokeOpacity: 1,
-                        strokeWeight: 3,
-                        fillColor: '#28a745',
-                        fillOpacity: 0.25,
-                        map: deliveryMap
-                    });
-
-                    polygon.addListener('click', event => {
-                        if (event.latLng) {
-                            placeDeliveryMarker(event.latLng);
-                        }
-                    });
-
-                    polygons.push(polygon);
-                });
-            });
-
-            return { polygons, bounds };
-        }
-
-        function pointOnDeliverySegment(x, y, x1, y1, x2, y2) {
-            const cross = (y - y1) * (x2 - x1) - (x - x1) * (y2 - y1);
-            if (Math.abs(cross) > 0.0000001) return false;
-
-            return x >= Math.min(x1, x2) - 0.0000001 &&
-                x <= Math.max(x1, x2) + 0.0000001 &&
-                y >= Math.min(y1, y2) - 0.0000001 &&
-                y <= Math.max(y1, y2) + 0.0000001;
-        }
-
-        function pointInDeliveryRing(longitude, latitude, ring) {
-            let inside = false;
-            const count = Array.isArray(ring) ? ring.length : 0;
-            if (count < 4) return false;
-
-            for (let i = 0, j = count - 1; i < count; j = i++) {
-                const xi = Number(ring[i]?.[0] ?? 0);
-                const yi = Number(ring[i]?.[1] ?? 0);
-                const xj = Number(ring[j]?.[0] ?? 0);
-                const yj = Number(ring[j]?.[1] ?? 0);
-
-                if (pointOnDeliverySegment(longitude, latitude, xi, yi, xj, yj)) {
-                    return true;
-                }
-
-                const intersects = ((yi > latitude) !== (yj > latitude)) &&
-                    (longitude < ((xj - xi) * (latitude - yi) / ((yj - yi) || 0.0000001) + xi));
-
-                if (intersects) inside = !inside;
-            }
-
-            return inside;
-        }
-
-        function pointInDeliveryPolygonCoordinates(longitude, latitude, polygon) {
-            if (!Array.isArray(polygon) || !polygon[0] || !pointInDeliveryRing(longitude, latitude, polygon[0])) {
-                return false;
-            }
-
-            for (let i = 1; i < polygon.length; i++) {
-                if (pointInDeliveryRing(longitude, latitude, polygon[i])) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        function pointInDeliveryAreaData(point) {
-            if (!deliveryArea) return false;
-
-            const latitude = point.lat();
-            const longitude = point.lng();
-
-            return getDeliveryAreaFeatures(deliveryArea).some(feature => {
-                const geometry = feature.type === 'Feature' ? feature.geometry : feature;
-                if (!geometry || !Array.isArray(geometry.coordinates)) return false;
-
-                if (geometry.type === 'Polygon') {
-                    return pointInDeliveryPolygonCoordinates(longitude, latitude, geometry.coordinates);
-                }
-
-                if (geometry.type === 'MultiPolygon') {
-                    return geometry.coordinates.some(polygon =>
-                        pointInDeliveryPolygonCoordinates(longitude, latitude, polygon)
-                    );
-                }
-
-                return false;
-            });
-        }
-
-        function isPointInDeliveryArea(point) {
-            if (window.google?.maps?.geometry?.poly) {
-                const insideGooglePolygon = deliveryAreaPolygons.some(polygon =>
-                    google.maps.geometry.poly.containsLocation(point, polygon)
-                );
-                if (insideGooglePolygon) return true;
-            }
-
-            return pointInDeliveryAreaData(point);
-        }
-
-        function placeDeliveryMarker(point, successMessage = 'ปักหมุดตำแหน่งจัดส่งแล้ว') {
-            if (!deliveryArea || !deliveryAreaPolygons.length) {
-                setDeliveryMapStatus('กำลังโหลดพื้นที่จัดส่ง กรุณารอสักครู่', true);
-                return false;
-            }
-
-            if (!isPointInDeliveryArea(point)) {
-                clearDeliveryLocation();
-                setDeliveryMapStatus('ตำแหน่งนี้อยู่นอกพื้นที่จัดส่ง กรุณาเลือกในพื้นที่สีเขียว', true);
-                return false;
-            }
-
-            if (deliveryMarker) {
-                deliveryMarker.setMap(null);
-            }
-
-            deliveryMarker = new google.maps.Marker({
-                position: point,
-                map: deliveryMap
-            });
-
-            const lat = point.lat();
-            const lng = point.lng();
-            document.getElementById('delivery_latitude').value = lat.toFixed(7);
-            document.getElementById('delivery_longitude').value = lng.toFixed(7);
-            document.getElementById('deliveryLatText').textContent = lat.toFixed(7);
-            document.getElementById('deliveryLngText').textContent = lng.toFixed(7);
-            setDeliveryMapStatus(successMessage);
-            return true;
-        }
-
-        function setCurrentLocationButtonLoading(isLoading) {
-            document.querySelectorAll('[data-current-location-btn]').forEach(button => {
-                button.disabled = isLoading;
-                button.innerHTML = isLoading
-                    ? '<i class="fas fa-spinner fa-spin"></i> กำลังค้นหาตำแหน่ง'
-                    : '<i class="fas fa-location-crosshairs"></i> ใช้ตำแหน่งปัจจุบัน';
-            });
-        }
-
-        function useCurrentDeliveryLocation() {
-            if (!navigator.geolocation) {
-                setDeliveryMapStatus('เบราว์เซอร์นี้ไม่รองรับการขอตำแหน่งปัจจุบัน', true);
-                return;
-            }
-
-            if (!deliveryMapLoaded) {
-                initDeliveryMap();
-            }
-
-            if (!deliveryMap) {
-                setDeliveryMapStatus('Google Maps ยังไม่พร้อม กรุณารอสักครู่แล้วลองใหม่', true);
-                return;
-            }
-
-            setCurrentLocationButtonLoading(true);
-            setDeliveryMapStatus('กรุณาอนุญาตให้เบราว์เซอร์เข้าถึงตำแหน่งปัจจุบัน');
-
-            navigator.geolocation.getCurrentPosition(
-                position => {
-                    setCurrentLocationButtonLoading(false);
-
-                    const point = new google.maps.LatLng(
-                        position.coords.latitude,
-                        position.coords.longitude
-                    );
-
-                    deliveryMap.panTo(point);
-                    deliveryMap.setZoom(Math.max(deliveryMap.getZoom() || 16, 16));
-                    placeDeliveryMarker(point, 'ใช้ตำแหน่งปัจจุบันเป็นจุดจัดส่งแล้ว');
-                },
-                error => {
-                    setCurrentLocationButtonLoading(false);
-                    let message = 'ไม่สามารถอ่านตำแหน่งปัจจุบันได้ กรุณาปักหมุดบนแผนที่แทน';
-
-                    if (error.code === error.PERMISSION_DENIED) {
-                        message = 'ไม่ได้รับอนุญาตให้เข้าถึงตำแหน่ง กรุณาอนุญาต GPS ในเบราว์เซอร์หรือปักหมุดเอง';
-                    } else if (error.code === error.POSITION_UNAVAILABLE) {
-                        message = 'ไม่พบตำแหน่งปัจจุบัน กรุณาเปิด GPS หรือปักหมุดเอง';
-                    } else if (error.code === error.TIMEOUT) {
-                        message = 'ค้นหาตำแหน่งนานเกินไป กรุณาลองอีกครั้งหรือปักหมุดเอง';
-                    }
-
-                    setDeliveryMapStatus(message, true);
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 12000,
-                    maximumAge: 0
-                }
-            );
         }
 
         function initDeliveryMap() {
@@ -2079,20 +1704,12 @@ $google_maps_api_key = app_env('GOOGLE_MAPS_API_KEY', '');
                 return;
             }
 
-            if (!window.googleMapsReady || !window.google?.maps?.Map) {
-                setDeliveryMapStatus('Google Maps ยังไม่พร้อม กรุณาตรวจสอบ API key หรือรอสักครู่แล้วลองใหม่', true);
-                return;
-            }
-
             deliveryMapLoaded = true;
-            const defaultCenter = { lat: 17.936707, lng: 101.738149 };
-            deliveryMap = new google.maps.Map(document.getElementById('deliveryMap'), {
-                center: defaultCenter,
-                zoom: 14,
-                mapTypeControl: false,
-                streetViewControl: false,
-                fullscreenControl: true
-            });
+            deliveryMap = L.map('deliveryMap').setView([17.936707, 101.738149], 14);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(deliveryMap);
 
             fetch('Map/DeliveryArea.geojson')
                 .then(response => {
@@ -2103,23 +1720,47 @@ $google_maps_api_key = app_env('GOOGLE_MAPS_API_KEY', '');
                 })
                 .then(data => {
                     deliveryArea = data;
-                    const builtArea = buildDeliveryAreaPolygons(data);
-                    deliveryAreaPolygons = builtArea.polygons;
-                    deliveryAreaBounds = builtArea.bounds;
+                    const polygon = L.geoJSON(data, {
+                        style: {
+                            color: '#28a745',
+                            weight: 3,
+                            fillColor: '#28a745',
+                            fillOpacity: 0.25
+                        }
+                    }).addTo(deliveryMap);
 
-                    if (!deliveryAreaPolygons.length) {
-                        throw new Error('invalid area');
-                    }
-
-                    deliveryMap.fitBounds(deliveryAreaBounds);
+                    deliveryMap.fitBounds(polygon.getBounds());
                     setDeliveryMapStatus('แตะตำแหน่งภายในพื้นที่สีเขียวเพื่อปักหมุดจัดส่ง');
                 })
                 .catch(() => {
                     setDeliveryMapStatus('โหลดพื้นที่จัดส่งไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', true);
                 });
 
-            deliveryMap.addListener('click', event => {
-                placeDeliveryMarker(event.latLng);
+            deliveryMap.on('click', event => {
+                if (!deliveryArea) {
+                    setDeliveryMapStatus('กำลังโหลดพื้นที่จัดส่ง กรุณารอสักครู่', true);
+                    return;
+                }
+
+                const point = turf.point([event.latlng.lng, event.latlng.lat]);
+                const inside = turf.booleanPointInPolygon(point, deliveryArea.features[0]);
+
+                if (!inside) {
+                    clearDeliveryLocation();
+                    setDeliveryMapStatus('ตำแหน่งนี้อยู่นอกพื้นที่จัดส่ง กรุณาเลือกในพื้นที่สีเขียว', true);
+                    return;
+                }
+
+                if (deliveryMarker) {
+                    deliveryMap.removeLayer(deliveryMarker);
+                }
+
+                deliveryMarker = L.marker(event.latlng).addTo(deliveryMap);
+                document.getElementById('delivery_latitude').value = event.latlng.lat.toFixed(7);
+                document.getElementById('delivery_longitude').value = event.latlng.lng.toFixed(7);
+                document.getElementById('deliveryLatText').textContent = event.latlng.lat.toFixed(7);
+                document.getElementById('deliveryLngText').textContent = event.latlng.lng.toFixed(7);
+                setDeliveryMapStatus('ปักหมุดตำแหน่งจัดส่งแล้ว');
             });
         }
 
@@ -2132,7 +1773,7 @@ $google_maps_api_key = app_env('GOOGLE_MAPS_API_KEY', '');
                 initDeliveryMap();
                 setTimeout(() => {
                     if (deliveryMap) {
-                        google.maps.event.trigger(deliveryMap, 'resize');
+                        deliveryMap.invalidateSize();
                     }
                 }, 80);
             } else {
@@ -2160,8 +1801,8 @@ $google_maps_api_key = app_env('GOOGLE_MAPS_API_KEY', '');
                 ta.removeAttribute('required');
             } else {
                 lbl.innerHTML = '<i class="fas fa-map-marker-alt" style="color:var(--sage);margin-right:6px"></i>รายละเอียดที่อยู่จัดส่ง';
-                ta.placeholder = 'รายละเอียดเพิ่มเติม (ถ้ามี) เช่น บ้านเลขที่ จุดสังเกต หรือซอย';
-                ta.removeAttribute('required');
+                ta.placeholder = 'กรอกที่อยู่สำหรับจัดส่ง เช่น ซอย หมู่บ้านที่เจาะจงเพื่อการจัดส่งที่ถูกต้อง';
+                ta.setAttribute('required', 'required');
             }
         }
 
@@ -2175,6 +1816,7 @@ $google_maps_api_key = app_env('GOOGLE_MAPS_API_KEY', '');
             const name = document.querySelector('input[name="customer_name"]').value.trim();
             const phone = document.querySelector('input[name="customer_phone"]').value.trim();
             const phoneDigits = phone.replace(/\D/g, '');
+            const address = document.getElementById("customer_address").value.trim();
 
             if (cart.length === 0) {
                 Swal.fire({
@@ -2197,6 +1839,14 @@ $google_maps_api_key = app_env('GOOGLE_MAPS_API_KEY', '');
                     icon: 'error',
                     title: 'ยังไม่เลือกวัน-เวลา',
                     text: 'กรุณาเลือกวันและเวลารับสินค้า'
+                });
+                return false;
+            }
+            if (type === 'delivery' && !address) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ระบุที่อยู่',
+                    text: 'กรุณากรอกที่อยู่สำหรับจัดส่ง'
                 });
                 return false;
             }

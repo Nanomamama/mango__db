@@ -1,72 +1,6 @@
 <?php
 require_once 'auth.php';
-require_once __DIR__ . '/../config/env.php';
 require_once __DIR__ . '/../db/db.php';
-
-function admin_env_file_value(string $key, string $default = ''): string
-{
-    $path = __DIR__ . '/../.env';
-    if (!is_file($path) || !is_readable($path)) {
-        return $default;
-    }
-
-    foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
-        $line = trim($line);
-        if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
-            continue;
-        }
-
-        [$envKey, $value] = explode('=', $line, 2);
-        if (trim($envKey) !== $key) {
-            continue;
-        }
-
-        $value = trim($value);
-        if (
-            (str_starts_with($value, '"') && str_ends_with($value, '"')) ||
-            (str_starts_with($value, "'") && str_ends_with($value, "'"))
-        ) {
-            $value = substr($value, 1, -1);
-        }
-
-        return trim($value);
-    }
-
-    return $default;
-}
-
-function admin_table_exists(mysqli $conn, string $table): bool
-{
-    $stmt = $conn->prepare("
-        SELECT COUNT(*) AS total
-        FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-    ");
-    $stmt->bind_param('s', $table);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-
-    return (int) ($row['total'] ?? 0) > 0;
-}
-
-function admin_column_exists(mysqli $conn, string $table, string $column): bool
-{
-    $stmt = $conn->prepare("
-        SELECT COUNT(*) AS total
-        FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-          AND COLUMN_NAME = ?
-    ");
-    $stmt->bind_param('ss', $table, $column);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-
-    return (int) ($row['total'] ?? 0) > 0;
-}
 
 $code = $_GET['code'] ?? '';
 
@@ -83,11 +17,6 @@ if (!$order) {
 }
 
 $id = $order['order_id'];
-$googleMapsApiKey = trim((string) app_env('GOOGLE_MAPS_API_KEY', ''));
-if ($googleMapsApiKey === '') {
-    $googleMapsApiKey = admin_env_file_value('GOOGLE_MAPS_API_KEY', '');
-}
-$deliveryLocation = null;
 
 $item_stmt = $conn->prepare("
     SELECT oi.*, p.product_image
@@ -98,52 +27,6 @@ $item_stmt = $conn->prepare("
 $item_stmt->bind_param("i", $id);
 $item_stmt->execute();
 $items = $item_stmt->get_result();
-
-if (($order['receive_type'] ?? '') === 'delivery' && admin_table_exists($conn, 'delivery_locations')) {
-    if (admin_column_exists($conn, 'delivery_locations', 'order_id')) {
-        $locationStmt = $conn->prepare("
-            SELECT latitude, longitude, address_note, created_at
-            FROM delivery_locations
-            WHERE order_id = ?
-            ORDER BY created_at DESC
-            LIMIT 1
-        ");
-        $locationStmt->bind_param('i', $id);
-        $locationStmt->execute();
-        $deliveryLocation = $locationStmt->get_result()->fetch_assoc() ?: null;
-        $locationStmt->close();
-    }
-
-    if (!$deliveryLocation && !empty($order['member_id'])) {
-        $memberId = (int) $order['member_id'];
-        $locationStmt = $conn->prepare("
-            SELECT latitude, longitude, address_note, created_at
-            FROM delivery_locations
-            WHERE member_id = ?
-            ORDER BY created_at DESC
-            LIMIT 1
-        ");
-        $locationStmt->bind_param('i', $memberId);
-        $locationStmt->execute();
-        $deliveryLocation = $locationStmt->get_result()->fetch_assoc() ?: null;
-        $locationStmt->close();
-    }
-
-    if (!$deliveryLocation && trim((string) ($order['customer_address'] ?? '')) !== '') {
-        $addressNote = trim((string) $order['customer_address']);
-        $locationStmt = $conn->prepare("
-            SELECT latitude, longitude, address_note, created_at
-            FROM delivery_locations
-            WHERE address_note = ?
-            ORDER BY created_at DESC
-            LIMIT 1
-        ");
-        $locationStmt->bind_param('s', $addressNote);
-        $locationStmt->execute();
-        $deliveryLocation = $locationStmt->get_result()->fetch_assoc() ?: null;
-        $locationStmt->close();
-    }
-}
 
 $statusMap = [
     'pending'   => ['label' => 'รอยืนยัน',     'color' => 'var(--status-pending-text)', 'bg' => 'var(--status-pending-bg)', 'icon' => 'fa-clock', 'border' => 'var(--status-pending-border)'],
@@ -467,49 +350,6 @@ body {
 .chip-delivery {
   background-color: #8dfff2;
     color: var(--success-text);
-}
-
-.delivery-map-panel {
-    margin-top: 1rem;
-    border: 1px solid var(--gray-200);
-    border-radius: 0.75rem;
-    overflow: hidden;
-    background: var(--gray-50);
-}
-
-#adminDeliveryMap {
-    width: 100%;
-    height: 300px;
-}
-
-.delivery-map-meta {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    padding: 0.85rem 1rem;
-    border-top: 1px solid var(--gray-200);
-    font-weight: 700;
-    color: var(--text-secondary);
-}
-
-.delivery-map-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    color: var(--primary);
-    text-decoration: none;
-    font-weight: 800;
-}
-
-.delivery-map-empty {
-    margin-top: 1rem;
-    padding: 1rem;
-    border: 1px dashed var(--gray-300);
-    border-radius: 0.75rem;
-    color: var(--text-secondary);
-    font-weight: 700;
-    background: var(--gray-50);
 }
 
 /* Timeline */
@@ -1033,35 +873,6 @@ body {
                             </span>
                         </div>
                     </div>
-
-                    <?php if ($order['receive_type'] === 'delivery'): ?>
-                        <?php if ($deliveryLocation): 
-                            $deliveryLat = (float) $deliveryLocation['latitude'];
-                            $deliveryLng = (float) $deliveryLocation['longitude'];
-                            $googleMapUrl = 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($deliveryLat . ',' . $deliveryLng);
-                        ?>
-                            <div class="delivery-map-panel">
-                                <div id="adminDeliveryMap"
-                                     data-lat="<?= htmlspecialchars((string) $deliveryLat) ?>"
-                                     data-lng="<?= htmlspecialchars((string) $deliveryLng) ?>"></div>
-                                <div class="delivery-map-meta">
-                                    <span>
-                                        <i class="fas fa-location-dot"></i>
-                                        <?= number_format($deliveryLat, 7) ?>, <?= number_format($deliveryLng, 7) ?>
-                                    </span>
-                                    <a class="delivery-map-link" href="<?= htmlspecialchars($googleMapUrl) ?>" target="_blank" rel="noopener">
-                                        <i class="fas fa-up-right-from-square"></i>
-                                        เปิดใน Google Maps
-                                    </a>
-                                </div>
-                            </div>
-                        <?php else: ?>
-                            <div class="delivery-map-empty">
-                                <i class="fas fa-map-location-dot"></i>
-                                ยังไม่พบพิกัดจัดส่งของออเดอร์นี้
-                            </div>
-                        <?php endif; ?>
-                    <?php endif; ?>
                 </div>
             </div>
 
@@ -1248,44 +1059,6 @@ body {
         </div>
     </div>
 </div>
-
-<?php if ($deliveryLocation && $googleMapsApiKey !== ''): ?>
-<script>
-window.initAdminDeliveryMap = function() {
-    const mapElement = document.getElementById('adminDeliveryMap');
-    if (!mapElement || !window.google?.maps) return;
-
-    const position = {
-        lat: Number(mapElement.dataset.lat),
-        lng: Number(mapElement.dataset.lng)
-    };
-
-    const map = new google.maps.Map(mapElement, {
-        center: position,
-        zoom: 17,
-        mapTypeControl: false,
-        streetViewControl: true,
-        fullscreenControl: true
-    });
-
-    new google.maps.Marker({
-        position,
-        map,
-        title: 'ตำแหน่งจัดส่ง'
-    });
-};
-</script>
-<script src="https://maps.googleapis.com/maps/api/js?key=<?= rawurlencode((string) $googleMapsApiKey) ?>&callback=initAdminDeliveryMap" defer></script>
-<?php elseif ($deliveryLocation): ?>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const mapElement = document.getElementById('adminDeliveryMap');
-    if (mapElement) {
-        mapElement.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;padding:1rem;text-align:center;font-weight:800;color:#64748b;">ยังไม่ได้ตั้งค่า GOOGLE_MAPS_API_KEY</div>';
-    }
-});
-</script>
-<?php endif; ?>
 
 <script>
 function toggleReject() {
