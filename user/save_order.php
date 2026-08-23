@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . '/../db/db.php';
+require_once __DIR__ . '/delivery_area.php';
 require_once __DIR__ . '/line_service.php';
 
 const MAX_CART_ITEMS = 50;
@@ -35,16 +36,20 @@ function generate_order_code(mysqli $conn): string
 
 function save_delivery_location(
     mysqli $conn,
+    int $orderId,
     ?int $memberId,
     float $latitude,
     float $longitude,
     string $addressNote
 ): void {
+    ensure_delivery_locations_order_column($conn);
+
     $ipAddress = substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45);
     $userAgent = substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
 
     $stmt = $conn->prepare("
         INSERT INTO delivery_locations (
+            order_id,
             member_id,
             latitude,
             longitude,
@@ -52,10 +57,11 @@ function save_delivery_location(
             ip_address,
             user_agent
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     ");
     $stmt->bind_param(
-        'iddsss',
+        'iiddsss',
+        $orderId,
         $memberId,
         $latitude,
         $longitude,
@@ -65,6 +71,48 @@ function save_delivery_location(
     );
     $stmt->execute();
     $stmt->close();
+}
+
+function ensure_delivery_locations_order_column(mysqli $conn): void
+{
+    $conn->query("
+        CREATE TABLE IF NOT EXISTS delivery_locations (
+            location_id INT(11) NOT NULL AUTO_INCREMENT,
+            order_id INT(11) DEFAULT NULL,
+            member_id INT(11) DEFAULT NULL,
+            latitude DECIMAL(10,7) NOT NULL,
+            longitude DECIMAL(10,7) NOT NULL,
+            address_note TEXT DEFAULT NULL,
+            ip_address VARCHAR(45) DEFAULT NULL,
+            user_agent VARCHAR(255) DEFAULT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (location_id),
+            KEY idx_delivery_locations_order_id (order_id),
+            KEY idx_delivery_locations_member_id (member_id),
+            KEY idx_delivery_locations_created_at (created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+    ");
+
+    $columnResult = $conn->query("SHOW COLUMNS FROM delivery_locations LIKE 'order_id'");
+    $hasOrderColumn = $columnResult && $columnResult->num_rows > 0;
+    if ($columnResult instanceof mysqli_result) {
+        $columnResult->free();
+    }
+
+    if (!$hasOrderColumn) {
+        $conn->query("ALTER TABLE delivery_locations ADD COLUMN order_id INT(11) DEFAULT NULL AFTER location_id");
+    }
+
+    $indexResult = $conn->query("SHOW INDEX FROM delivery_locations WHERE Key_name = 'idx_delivery_locations_order_id'");
+    $hasOrderIndex = $indexResult && $indexResult->num_rows > 0;
+    if ($indexResult instanceof mysqli_result) {
+        $indexResult->free();
+    }
+
+    if (!$hasOrderIndex) {
+        $conn->query("ALTER TABLE delivery_locations ADD KEY idx_delivery_locations_order_id (order_id)");
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -128,10 +176,6 @@ if (!in_array($receiveType, ['pickup', 'delivery'], true)) {
     redirect_with_error('รูปแบบการรับสินค้าไม่ถูกต้อง');
 }
 
-if ($receiveType === 'delivery' && $customerAddress === '') {
-    redirect_with_error('กรุณากรอกรายละเอียดที่อยู่สำหรับจัดส่ง');
-}
-
 $deliveryLatitude = null;
 $deliveryLongitude = null;
 if ($receiveType === 'delivery') {
@@ -144,6 +188,15 @@ if ($receiveType === 'delivery') {
 
     if ($deliveryLatitude < -90 || $deliveryLatitude > 90 || $deliveryLongitude < -180 || $deliveryLongitude > 180) {
         redirect_with_error('พิกัดตำแหน่งจัดส่งไม่ถูกต้อง');
+    }
+
+    try {
+        if (!point_in_delivery_area($deliveryLatitude, $deliveryLongitude)) {
+            redirect_with_error('ตำแหน่งนี้อยู่นอกพื้นที่จัดส่ง กรุณาปักหมุดใหม่ภายในพื้นที่ที่กำหนด');
+        }
+    } catch (Throwable $e) {
+        error_log('Delivery area validation failed: ' . $e->getMessage());
+        redirect_with_error('ไม่สามารถตรวจสอบพื้นที่จัดส่งได้ กรุณาลองใหม่อีกครั้ง');
     }
 }
 
@@ -300,7 +353,7 @@ try {
     $itemStmt->close();
 
     if ($receiveType === 'delivery' && $deliveryLatitude !== null && $deliveryLongitude !== null) {
-        save_delivery_location($conn, $memberId, $deliveryLatitude, $deliveryLongitude, $customerAddress);
+        save_delivery_location($conn, $orderId, $memberId, $deliveryLatitude, $deliveryLongitude, $customerAddress);
     }
 
     $conn->commit();
