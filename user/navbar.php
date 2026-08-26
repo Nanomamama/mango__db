@@ -245,6 +245,73 @@ if (isset($_SESSION['member_id'])) {
       opacity: 0.8;
     }
 
+    .profile-menu {
+      position: relative;
+      list-style: none;
+    }
+
+    .profile-menu summary {
+      list-style: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      color: var(--green);
+      font-weight: 600;
+      user-select: none;
+    }
+
+    .profile-menu summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .profile-menu summary::after {
+      content: "";
+      display: inline-block;
+      margin-left: 8px;
+      vertical-align: middle;
+      border-top: 0.35em solid;
+      border-right: 0.35em solid transparent;
+      border-bottom: 0;
+      border-left: 0.35em solid transparent;
+    }
+
+    .profile-menu[open] summary::after {
+      transform: rotate(180deg);
+    }
+
+    .profile-dropdown-menu {
+      border: 1px solid rgba(1, 106, 112, 0.12);
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+      padding: 8px;
+      min-width: 220px;
+      display: block;
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      z-index: 5000;
+      background: #fff;
+    }
+
+    .profile-dropdown-menu .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-weight: 500;
+    }
+
+    .profile-dropdown-menu .dropdown-item:hover {
+      background: #f0fdfa;
+      color: var(--green);
+    }
+
+    .profile-dropdown-menu .dropdown-item.text-danger:hover {
+      background: #fff1f2;
+      color: #dc3545 !important;
+    }
+
     .profile-img-wrapper {
       width: 42px;
       height: 42px;
@@ -360,18 +427,35 @@ if (isset($_SESSION['member_id'])) {
             <?php else: ?>
               
               <li class="nav-item mt-3 mt-xl-0">
-                <a href="member_profile.php" class="profile-link">
-                  <div class="profile-img-wrapper">
-                    <img src="image/profile.png" class="profile-img" alt="โปรไฟล์">
-                  </div>
-                  <span>โปรไฟล์</span>
-                </a>
-              </li>
-
-              <li class="nav-item mt-2 mt-xl-0 ms-xl-3">
-                <a href="member_logout.php" class="cta-btns logout-btn px-3 py-1">  
-                  ออกจากระบบ
-                </a>
+                <details class="profile-menu" id="profileMenuDropdown">
+                  <summary class="profile-link" aria-label="เปิดเมนูโปรไฟล์">
+                    <div class="profile-img-wrapper">
+                      <img src="image/profile.png" class="profile-img" alt="โปรไฟล์">
+                    </div>
+                    <span>โปรไฟล์</span>
+                  </summary>
+                  <ul class="dropdown-menu dropdown-menu-end profile-dropdown-menu">
+                    <li>
+                      <a class="dropdown-item" href="member_profile.php">
+                        <i class='bx bx-user-circle'></i>
+                        ดูโปรไฟล์ของฉัน
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="member_profile.php?edit=1">
+                        <i class='bx bx-edit'></i>
+                        แก้ไขโปรไฟล์
+                      </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                    <a class="dropdown-item text-danger js-logout-confirm" href="member_logout.php">
+                      <i class='bx bx-log-out'></i>
+                      ออกจากระบบ
+                    </a>
+                    </li>
+                  </ul>
+                </details>
               </li>
               
             <?php endif; ?>
@@ -390,6 +474,30 @@ if (isset($_SESSION['member_id'])) {
         navbar.classList.add('scrolled');
       } else {
         navbar.classList.remove('scrolled');
+      }
+    });
+
+    document.addEventListener('click', function(event) {
+      document.querySelectorAll('.profile-menu[open]').forEach(menu => {
+        if (!menu.contains(event.target)) {
+          menu.removeAttribute('open');
+        }
+      });
+    });
+
+    document.addEventListener('keydown', function(event) {
+      if (event.key !== 'Escape') return;
+      document.querySelectorAll('.profile-menu[open]').forEach(menu => {
+        menu.removeAttribute('open');
+      });
+    });
+
+    document.addEventListener('click', function(event) {
+      const logoutLink = event.target.closest('.js-logout-confirm');
+      if (!logoutLink) return;
+
+      if (!confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+        event.preventDefault();
       }
     });
   </script>

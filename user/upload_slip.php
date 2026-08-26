@@ -89,6 +89,7 @@ $stmt_check = $conn->prepare("
         b.visitor_count, 
         b.deposit_amount, 
         b.price_total,
+        b.payment_qr_path,
         b.status AS booking_status, 
         m.status AS member_status
     FROM bookings b
@@ -114,6 +115,11 @@ if ((int)($booking_details['member_status'] ?? 0) !== 1) {
 if (!in_array((string)($booking_details['booking_status'] ?? ''), ['pending', 'awaiting_payment'], true)) {
     http_response_code(409);
     echo json_encode(['success' => false, 'message' => 'booking cannot accept slip upload']);
+    exit;
+}
+if (empty($booking_details['payment_qr_path'])) {
+    http_response_code(409);
+    echo json_encode(['success' => false, 'message' => 'กรุณารอ QR Code ชำระเงินจากเจ้าหน้าที่ก่อนอัปโหลดสลิป']);
     exit;
 }
 $stmt_check->close();

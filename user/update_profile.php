@@ -6,6 +6,20 @@ if (!isset($_SESSION['member_id'])) {
     exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+    exit;
+}
+
+$sessionToken = $_SESSION['csrf_token'] ?? '';
+$postedToken = $_POST['csrf_token'] ?? '';
+if (!is_string($postedToken) || $sessionToken === '' || !hash_equals($sessionToken, $postedToken)) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'คำขอไม่ถูกต้อง กรุณารีเฟรชหน้าแล้วลองใหม่']);
+    exit;
+}
+
 require_once __DIR__ . '/../db/db.php';
 
 $member_id = (int)$_SESSION['member_id'];
@@ -22,6 +36,21 @@ $zipcode = isset($_POST['zipcode']) ? trim($_POST['zipcode']) : '';
 // basic validation
 if ($fullname === '') {
     echo json_encode(['success' => false, 'error' => 'กรุณากรอกชื่อ-นามสกุล']);
+    exit;
+}
+
+if ($phone !== '' && !preg_match('/^[0-9+\-\s()]{8,20}$/', $phone)) {
+    echo json_encode(['success' => false, 'error' => 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง']);
+    exit;
+}
+
+if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    echo json_encode(['success' => false, 'error' => 'กรุณากรอกอีเมลให้ถูกต้อง']);
+    exit;
+}
+
+if ($zipcode !== '' && !preg_match('/^[0-9]{5}$/', $zipcode)) {
+    echo json_encode(['success' => false, 'error' => 'กรุณากรอกรหัสไปรษณีย์ 5 หลัก']);
     exit;
 }
 

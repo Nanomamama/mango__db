@@ -10,6 +10,11 @@ $csrf_token = $_SESSION['csrf_token'];
 require_once __DIR__ . '/line_service.php';
 require_once __DIR__ . '/../db/db.php'; // ตรวจสอบให้แน่ใจว่ามีการเชื่อมต่อฐานข้อมูล
 
+date_default_timezone_set('Asia/Bangkok');
+$min_advance_days = 3;
+$booking_today = date('Y-m-d');
+$first_bookable_date = date('Y-m-d', strtotime('+' . $min_advance_days . ' days'));
+
 // ตรวจสอบสถานะผู้ใช้ที่เข้าสู่ระบบ
 if (isset($_SESSION['member_id'])) {
     $member_id_for_status_check = $_SESSION['member_id'];
@@ -63,7 +68,6 @@ if ($is_member) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="apple-touch-icon" sizes="180x180" href="/mango/logo/logo_01.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/mango/logo/logo_01.png">
-    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ffffff">
     <title>สวนลุงเผือก</title>
 
@@ -643,6 +647,54 @@ if ($is_member) {
             background-color: #f8fafc;
             transform: none;
             box-shadow: none;
+        }
+
+        .calendar-table-modern td.advance-blocked-date {
+            background-color: #fff1f2;
+            color: #b91c1c;
+            cursor: not-allowed;
+            border-color: #fecdd3;
+        }
+
+        .calendar-table-modern td.advance-blocked-date .calendar-day-number {
+            color: #dc2626;
+        }
+
+        .calendar-table-modern td.advance-blocked-date:hover {
+            background-color: #fff1f2;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .calendar-unavailable-note {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            margin-top: 4px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: #fee2e2;
+            color: #b91c1c;
+            font-size: 0.72rem;
+            line-height: 1.3;
+            font-weight: 600;
+        }
+
+        .booking-rule-note {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin: 0 0 1rem 0;
+            padding: 0.85rem 1rem;
+            border: 1px solid #fecdd3;
+            border-radius: var(--border-radius-sm);
+            background: #fff1f2;
+            color: #991b1b;
+        }
+
+        .booking-rule-note i {
+            margin-top: 2px;
         }
 
         .calendar-table-modern td.booked {
@@ -1773,6 +1825,10 @@ if ($is_member) {
         const MEMBER_ID_SESSION = <?php echo json_encode($member_id_session, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>; // ส่ง member_id ไปยัง JavaScript
         const MEMBER_DATA = <?php echo json_encode($member_data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
         const CSRF_TOKEN = <?php echo json_encode($csrf_token, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        const MIN_ADVANCE_DAYS = <?php echo json_encode($min_advance_days); ?>;
+        const BOOKING_TODAY = <?php echo json_encode($booking_today, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        const FIRST_BOOKABLE_DATE = <?php echo json_encode($first_bookable_date, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        const ADVANCE_BOOKING_MESSAGE = `ต้องจองล่วงหน้าอย่างน้อย ${MIN_ADVANCE_DAYS} วัน เพื่อให้เจ้าของสวนเตรียมความพร้อม กรุณาเลือกวันที่ ${formatThaiDateLong(FIRST_BOOKABLE_DATE)} เป็นต้นไป`;
 
         function isCurrentMemberBooking(booking) {
             if (!booking || !booking.member_id || !MEMBER_ID_SESSION) return false;
@@ -2109,6 +2165,39 @@ if ($is_member) {
             return new Date(s + 'T00:00:00');
         }
 
+        function formatThaiDateLong(dateStr) {
+            const dateObj = parseYMD(dateStr);
+            if (isNaN(dateObj)) return dateStr;
+            const thaiMonths = [
+                "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน",
+                "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม",
+                "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+            ];
+            return `${dateObj.getDate()} ${thaiMonths[dateObj.getMonth()]} ${dateObj.getFullYear() + 543}`;
+        }
+
+        function isBeforeFirstBookableDate(dateStr) {
+            return dateStr < FIRST_BOOKABLE_DATE;
+        }
+
+        function isAdvanceBlockedDate(dateStr) {
+            return dateStr >= BOOKING_TODAY && dateStr < FIRST_BOOKABLE_DATE;
+        }
+
+        async function parseJsonResponse(response) {
+            const rawText = await response.text();
+            if (!rawText.trim()) {
+                throw new Error(`เซิร์ฟเวอร์ตอบกลับว่างเปล่า (HTTP ${response.status})`);
+            }
+
+            try {
+                return JSON.parse(rawText);
+            } catch (error) {
+                const preview = rawText.replace(/\s+/g, ' ').trim().slice(0, 300);
+                throw new Error(`เซิร์ฟเวอร์ไม่ได้ตอบกลับเป็น JSON (HTTP ${response.status}): ${preview}`);
+            }
+        }
+
         // Escape HTML to safely inject booking names into cell title/text
         function escapeHtml(unsafe) {
             return String(unsafe)
@@ -2141,6 +2230,10 @@ if ($is_member) {
                 '<h5 class="mb-0">' + thaiMonths[month] + ' ' + (year + 543) + '</h5>' +
                 '<button class="btn btn-secondary-modern btn-sm" onclick="nextMonth()">เดือนถัดไป<i class="fas fa-chevron-right ms-1"></i></button>' +
                 '</div>';
+            html += `<div class="booking-rule-note">
+                        <i class="fas fa-circle-exclamation"></i>
+                        <div>ต้องจองล่วงหน้าอย่างน้อย ${MIN_ADVANCE_DAYS} วัน เพื่อให้เจ้าของสวนเตรียมความพร้อม วันที่เริ่มจองได้คือ <strong>${escapeHtml(formatThaiDateLong(FIRST_BOOKABLE_DATE))}</strong></div>
+                     </div>`;
 
             html += '<table class="calendar-table-modern">';
             html += '<thead><tr><th>จ</th><th>อ</th><th>พ</th><th>พฤ</th><th>ศ</th><th>ส</th><th>อา</th></tr></thead><tbody>';
@@ -2158,6 +2251,7 @@ if ($is_member) {
                     const bookings = (window.bookingData || []).filter(b => b.date === dateStr);
                     const hasConfirmed = bookings.some(b => b.status === 'confirmed');
                     const hasPending = bookings.some(b => b.status === 'pending' || b.status === 'awaiting_payment');
+                    const isAdvanceBlocked = isAdvanceBlockedDate(dateStr);
 
                     // กำหนดคลาสตามสถานะ
                     let cellClass = '';
@@ -2167,6 +2261,10 @@ if ($is_member) {
 
                     if (dateObj < today) {
                         cellClass += ' past-date';
+                    }
+
+                    if (isAdvanceBlocked) {
+                        cellClass += ' advance-blocked-date';
                     }
 
                     if (hasConfirmed) {
@@ -2181,6 +2279,10 @@ if ($is_member) {
 
                     html += `<td class="${cellClass.trim()}" data-date="${dateStr}">`;
                     html += '<div class="calendar-day-number">' + day + '</div>';
+
+                    if (isAdvanceBlocked) {
+                        html += `<div class="calendar-unavailable-note" title="${escapeHtml(ADVANCE_BOOKING_MESSAGE)}">จองล่วงหน้า ${MIN_ADVANCE_DAYS} วัน</div>`;
+                    }
 
                     // แสดงจุดสถานะการจอง
                     if (hasConfirmed || hasPending) {
@@ -2227,6 +2329,11 @@ if ($is_member) {
                     if (this.classList.contains('past-date')) return;
 
                     const d = this.getAttribute('data-date');
+                    if (isBeforeFirstBookableDate(d)) {
+                        showAlert(ADVANCE_BOOKING_MESSAGE, 'error');
+                        return;
+                    }
+
                     // ป้องกันการจองวันที่มีการยืนยันหรือรออนุมัติแล้ว
                     const bookingsForDate = (window.bookingData || []).filter(b => b.date === d);
                     if (bookingsForDate.some(b => b.status === 'confirmed' || b.status === 'pending' || b.status === 'awaiting_payment')) {
@@ -2412,6 +2519,11 @@ if ($is_member) {
                 return;
             }
 
+            if (isBeforeFirstBookableDate(dateStr)) {
+                showAlert(ADVANCE_BOOKING_MESSAGE, 'error');
+                return;
+            }
+
             // ป้องกันการจองวันที่มีการยืนยันหรือรออนุมัติแล้ว
             const bookingsForDate = (window.bookingData || []).filter(b => b.date === dateStr);
             if (bookingsForDate.some(b => b.status === 'confirmed' || b.status === 'pending' || b.status === 'awaiting_payment')) {
@@ -2474,6 +2586,12 @@ if ($is_member) {
             }
             if (!selectedDate) {
                 showAlert('กรุณาเลือกวันที่เข้าชมก่อน', 'error');
+                return;
+            }
+
+            if (isBeforeFirstBookableDate(selectedDate)) {
+                showAlert(ADVANCE_BOOKING_MESSAGE, 'error');
+                showCalendarSection();
                 return;
             }
 
@@ -2744,6 +2862,12 @@ if ($is_member) {
                 return;
             }
 
+            if (isBeforeFirstBookableDate(selectedDate)) {
+                showAlert(ADVANCE_BOOKING_MESSAGE, 'error');
+                showCalendarSection();
+                return;
+            }
+
             const submitButton = document.getElementById('submitButton');
             const buttonText = document.getElementById('buttonText');
             const buttonLoading = document.getElementById('buttonLoading');
@@ -2783,7 +2907,13 @@ if ($is_member) {
                     method: 'POST',
                     body: fd
                 })
-                .then(res => res.json())
+                .then(async res => {
+                    const json = await parseJsonResponse(res);
+                    if (!res.ok && json && !json.status) {
+                        json.status = 'error';
+                    }
+                    return json;
+                })
                 .then(json => {
                     if (json && (json.status === 'success' || json.status === 'partial')) {
                         const code = json.booking_code || json.booking_id || '';
@@ -2825,6 +2955,16 @@ if ($is_member) {
                         modal.show();
 
                         // ไม่จำเป็นต้องรีเซ็ตฟอร์มหรือทำอย่างอื่นแล้ว เพราะหน้าจะรีโหลด
+                    } else {
+                        const serverMessage = json && Array.isArray(json.errors)
+                            ? json.errors.join('\n')
+                            : (json && json.detail
+                                ? `${json.message || 'ไม่สามารถบันทึกการจองได้'}: ${json.detail}`
+                                : (json && json.message ? json.message : 'ไม่สามารถบันทึกการจองได้'));
+                        document.getElementById('errorModalTitle').textContent = 'ไม่สามารถจองวันนี้ได้';
+                        document.getElementById('errorModalMessage').textContent = serverMessage;
+                        const errModal = new bootstrap.Modal(document.getElementById('errorModal'));
+                        errModal.show();
                     }
                 })
                 .catch(err => {

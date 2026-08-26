@@ -6,12 +6,80 @@ if (session_status() === PHP_SESSION_NONE) {
 
 header('Content-Type: application/json; charset=utf-8');
 set_time_limit(60);
+date_default_timezone_set('Asia/Bangkok');
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+
+$saveBookingResponded = false;
+ob_start();
+
+function saveBookingLog(string $message): void
+{
+    $line = '[' . date('c') . '] ' . $message . PHP_EOL;
+    $written = @file_put_contents(__DIR__ . '/save_booking_errors.log', $line, FILE_APPEND | LOCK_EX);
+    if ($written === false) {
+        @file_put_contents(rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'mango_save_booking_errors.log', $line, FILE_APPEND | LOCK_EX);
+    }
+    error_log($message);
+}
+
+function respondJson($code, $data)
+{
+    global $saveBookingResponded;
+    $saveBookingResponded = true;
+    if (ob_get_length() !== false) {
+        ob_clean();
+    }
+    http_response_code($code);
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+register_shutdown_function(function () {
+    global $saveBookingResponded;
+    if ($saveBookingResponded) {
+        return;
+    }
+
+    $error = error_get_last();
+    $fatalTypes = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
+    if ($error && in_array((int)($error['type'] ?? 0), $fatalTypes, true)) {
+        saveBookingLog('shutdown fatal: ' . ($error['message'] ?? 'fatal error') . ' in ' . ($error['file'] ?? '-') . ':' . ($error['line'] ?? '-'));
+        if (ob_get_length() !== false) {
+            ob_clean();
+        }
+        http_response_code(500);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Server error',
+            'detail' => $error['message'] ?? 'fatal error',
+        ], JSON_UNESCAPED_UNICODE);
+    } elseif (ob_get_length() !== false) {
+        ob_end_flush();
+    }
+});
 
 // include booking helpers
 require_once __DIR__ . '/booking_utils.php';
 require_once __DIR__ . '/line_service.php';
 require_once __DIR__ . '/booking_status_log.php';
-require_once __DIR__ . '/../admin/booking_notification_lib.php';
+if (is_file(__DIR__ . '/../admin/booking_notification_lib.php')) {
+    require_once __DIR__ . '/../admin/booking_notification_lib.php';
+} else {
+    saveBookingLog('admin notification library missing; skipped admin notification helpers.');
+    if (!function_exists('admin_booking_notifications_ensure_pdo')) {
+        function admin_booking_notifications_ensure_pdo(PDO $pdo): bool
+        {
+            return false;
+        }
+    }
+    if (!function_exists('admin_booking_notification_insert_pdo')) {
+        function admin_booking_notification_insert_pdo(PDO $pdo, string $type, int $bookingId): bool
+        {
+            return false;
+        }
+    }
+}
 
 // Load DB config
 $dbConfig = [
@@ -22,10 +90,14 @@ $dbConfig = [
     'charset' => 'utf8mb4'
 ];
 
-if (file_exists(__DIR__ . '/../db/db.php')) {
-    include __DIR__ . '/../db/db.php';
-} elseif (file_exists(__DIR__ . '/../db.php')) {
-    include __DIR__ . '/../db.php';
+try {
+    if (file_exists(__DIR__ . '/../db/db.php')) {
+        include __DIR__ . '/../db/db.php';
+    } elseif (file_exists(__DIR__ . '/../db.php')) {
+        include __DIR__ . '/../db.php';
+    }
+} catch (Throwable $e) {
+    saveBookingLog('db config include failed: ' . $e->getMessage());
 }
 
 if (isset($servername, $username, $password, $dbname)) {
@@ -42,13 +114,11 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
 } catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode(['status' => 'error', 'message' => 'DB connection failed']);
-    exit;
+    respondJson(500, ['status' => 'error', 'message' => 'DB connection failed']);
 }
 
 function get($k, $d=null){ return isset($_POST[$k]) ? trim($_POST[$k]) : $d; }
-function errorJson($code,$data){ http_response_code($code); echo json_encode($data); exit; }
+function errorJson($code,$data){ respondJson($code, $data); }
 function requirePostCsrf(): void {
     $sessionToken = $_SESSION['csrf_token'] ?? '';
     $postedToken = $_POST['csrf_token'] ?? '';
@@ -98,13 +168,20 @@ $status = 'pending';
 $is_member_booking = 1;
 
 $errors = [];
+$min_advance_days = 3;
+$today_ymd = date('Y-m-d');
+$first_bookable_ymd = date('Y-m-d', strtotime('+' . $min_advance_days . ' days'));
 $allowed_times = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00'];
 if (empty($booking_date) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $booking_date)) {
     $errors[] = 'booking_date is invalid';
 } else {
     [$year, $month, $day] = array_map('intval', explode('-', $booking_date));
-    if (!checkdate($month, $day, $year) || strtotime($booking_date) < strtotime(date('Y-m-d'))) {
+    if (!checkdate($month, $day, $year)) {
         $errors[] = 'booking_date is invalid';
+    } elseif ($booking_date < $today_ymd) {
+        $errors[] = 'booking_date is invalid';
+    } elseif ($booking_date < $first_bookable_ymd) {
+        $errors[] = 'ต้องจองล่วงหน้าอย่างน้อย 3 วัน เพื่อให้เจ้าของสวนเตรียมความพร้อม';
     }
 }
 if (empty($booking_time) || !in_array($booking_time, $allowed_times, true)) $errors[] = 'booking_time is invalid';
@@ -118,7 +195,7 @@ $adminNotificationsReady = false;
 try {
     $adminNotificationsReady = admin_booking_notifications_ensure_pdo($pdo);
 } catch (Throwable $e) {
-    error_log('admin notification table ensure failed: ' . $e->getMessage());
+    saveBookingLog('admin notification table ensure failed: ' . $e->getMessage());
 }
 
 // Duplicate check (transactional to reduce race conditions)
@@ -208,7 +285,7 @@ try {
         try {
             admin_booking_notification_insert_pdo($pdo, 'booking_created', (int)$id);
         } catch (Throwable $e) {
-            error_log('admin booking notification insert failed: ' . $e->getMessage());
+            saveBookingLog('admin booking notification insert failed: ' . $e->getMessage());
         }
     }
     if ($pdo->inTransaction()) $pdo->commit();
@@ -216,16 +293,21 @@ try {
     $res = ['status'=>'success','booking_id'=>$id,'booking_code'=>$booking_code, 'booking_type_saved'=>$booking_type];
     if ($attachment_path) $res['attachment_path']=$attachment_path;
 
-    if (!empty($member['line_user_id'])) {
-        $res['line_user_notify'] = line_send_member_booking_created(
-            (string) $member['line_user_id'],
-            $booking_code,
-            $booking_date,
-            $booking_time,
-            $visitor_count
-        ) ? 'sent' : 'failed';
-    } else {
-        $res['line_user_notify'] = 'skipped_not_linked';
+    try {
+        if (!empty($member['line_user_id'])) {
+            $res['line_user_notify'] = line_send_member_booking_created(
+                (string) $member['line_user_id'],
+                $booking_code,
+                $booking_date,
+                $booking_time,
+                $visitor_count
+            ) ? 'sent' : 'failed';
+        } else {
+            $res['line_user_notify'] = 'skipped_not_linked';
+        }
+    } catch (Throwable $e) {
+        saveBookingLog('member LINE notify error: ' . $e->getMessage());
+        $res['line_user_notify'] = 'failed';
     }
 
     // Fetch inserted row for verification
@@ -242,7 +324,7 @@ try {
                 'attachment_path' => $inserted['attachment_path'] ?? null
             ];
         }
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         // ignore
     }
 
@@ -251,7 +333,7 @@ try {
         require_once __DIR__ . '/sendEmail.php';
         $emailResult = sendBookingEmails(['booking_code' => $booking_code, 'async' => 1]);
         $res['sendEmail_status'] = $emailResult['status'] ?? 'unknown';
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         $res['sendEmail_exception'] = $e->getMessage();
     }
 
@@ -279,8 +361,8 @@ try {
             ob_end_clean();
             $res['lineNotify_status'] = 'success';
         }
-    } catch (Exception $e) {
-        error_log('saveBooking LINE notify error: ' . $e->getMessage());
+    } catch (Throwable $e) {
+        saveBookingLog('admin LINE notify error: ' . $e->getMessage());
         $res['lineNotify_exception'] = $e->getMessage();
     }
 
@@ -289,8 +371,12 @@ try {
 
 } catch (PDOException $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
-    error_log('saveBooking error: '.$e->getMessage());
-    errorJson(500,['status'=>'error','message'=>'DB error']);
+    saveBookingLog('PDO error: '.$e->getMessage());
+    errorJson(500,['status'=>'error','message'=>'DB error','detail'=>$e->getMessage()]);
+} catch (Throwable $e) {
+    if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) $pdo->rollBack();
+    saveBookingLog('fatal error: '.$e->getMessage());
+    errorJson(500,['status'=>'error','message'=>'Server error','detail'=>$e->getMessage()]);
 }
 
 ?>

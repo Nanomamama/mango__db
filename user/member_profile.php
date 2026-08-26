@@ -219,7 +219,8 @@ if ($stmtRecentOrders) {
 // ดึงรายการการจองล่าสุด 5 รายการ
 $recent_bookings = [];
 $stmt2 = $conn->prepare("
-    SELECT bookings_id, booking_code, booking_date AS date, booking_time AS time, guest_name AS name, status
+    SELECT bookings_id, booking_code, booking_date AS date, booking_time AS time, guest_name AS name,
+           visitor_count, status, payment_slip, payment_qr_path, price_total, deposit_amount, balance_amount, updated_at
     FROM bookings
     WHERE member_id = ?
     ORDER BY created_at DESC, bookings_id DESC
@@ -235,6 +236,20 @@ if ($stmt2) {
     }
     $stmt2->close();
 }
+
+$latest_booking = $recent_bookings[0] ?? null;
+$latest_booking_status = $latest_booking ? memberBookingStatusLabel(trim($latest_booking['status'] ?? '')) : null;
+$latest_booking_needs_slip = $latest_booking
+    && in_array((string)($latest_booking['status'] ?? ''), ['pending', 'awaiting_payment'], true)
+    && !empty($latest_booking['payment_qr_path'])
+    && empty($latest_booking['payment_slip']);
+$latest_booking_waiting_qr = $latest_booking
+    && in_array((string)($latest_booking['status'] ?? ''), ['pending', 'awaiting_payment'], true)
+    && empty($latest_booking['payment_qr_path'])
+    && empty($latest_booking['payment_slip']);
+$latest_booking_upload_url = $latest_booking
+    ? 'bookings.php?action=upload_slip&booking_id=' . urlencode((string)$latest_booking['bookings_id']) . '&visitor_count=' . urlencode((string)($latest_booking['visitor_count'] ?? 1))
+    : 'bookings.php';
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -962,6 +977,129 @@ if ($stmt2) {
             flex-wrap: wrap;
         }
 
+        .booking-overview {
+            margin-top: 24px;
+            background: #fff;
+            border: 1px solid var(--ant-border-color);
+            border-radius: var(--ant-border-radius);
+            overflow: hidden;
+        }
+
+        .booking-overview-inner {
+            display: grid;
+            grid-template-columns: minmax(0, 1.3fr) minmax(260px, 0.7fr);
+            gap: 0;
+        }
+
+        .booking-overview-main,
+        .booking-overview-side {
+            padding: 24px;
+        }
+
+        .booking-overview-side {
+            border-left: 1px solid var(--ant-border-color);
+            background: #fafafa;
+        }
+
+        .booking-section-label {
+            color: var(--ant-text-color-secondary);
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .booking-overview-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .booking-overview-title h2 {
+            font-size: 22px;
+            line-height: 1.35;
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .booking-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .booking-meta-item {
+            border-top: 1px solid #edf0f2;
+            padding-top: 10px;
+        }
+
+        .booking-meta-label {
+            color: var(--ant-text-color-secondary);
+            font-size: 13px;
+        }
+
+        .booking-meta-value {
+            color: var(--ant-text-color);
+            font-weight: 600;
+            margin-top: 3px;
+            word-break: break-word;
+        }
+
+        .booking-actions-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+
+        .quick-action-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .quick-action-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            color: var(--ant-text-color);
+            text-decoration: none;
+            padding: 12px 0;
+            border-bottom: 1px solid #edf0f2;
+        }
+
+        .quick-action-link:last-child {
+            border-bottom: none;
+        }
+
+        .quick-action-link:hover {
+            color: var(--ant-primary-color);
+        }
+
+        .form-feedback {
+            display: none;
+            margin-bottom: 14px;
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 14px;
+        }
+
+        .form-feedback.is-error {
+            display: block;
+            background: #fff2f0;
+            border: 1px solid #ffccc7;
+            color: #cf1322;
+        }
+
+        .form-feedback.is-success {
+            display: block;
+            background: #f6ffed;
+            border: 1px solid #b7eb8f;
+            color: #237804;
+        }
+
         .order-status-tag {
             display: inline-flex;
             align-items: center;
@@ -1025,6 +1163,19 @@ if ($stmt2) {
 
             .purchase-total {
                 text-align: left;
+            }
+
+            .booking-overview-inner {
+                grid-template-columns: 1fr;
+            }
+
+            .booking-overview-side {
+                border-left: none;
+                border-top: 1px solid var(--ant-border-color);
+            }
+
+            .booking-meta-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -1188,9 +1339,11 @@ if ($stmt2) {
                             </div>
                             <div class="modal-body">
                                 <form id="editProfileForm">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES); ?>">
+                                    <div id="profileFormFeedback" class="form-feedback" role="alert"></div>
                                     <div class="ant-row" style="gap:12px;">
                                         <div class="ant-col ant-col-12">
-                                            <label class="ant-descriptions-item-label">ชื่อ-นามสกุล</label>
+                                            <label class="ant-descriptions-item-label">ชื่อ-นามสกุล *</label>
                                             <input type="text" name="fullname" id="fullname" class="ant-input" style="width:100%;padding:8px;margin-top:6px;" value="<?php echo htmlspecialchars($fullname, ENT_QUOTES); ?>" required>
                                         </div>
                                         <div class="ant-col ant-col-12">
@@ -1250,6 +1403,93 @@ if ($stmt2) {
                 </div>
             </div>
 
+            <!-- Booking Overview -->
+            <section class="booking-overview">
+                <div class="booking-overview-inner">
+                    <div class="booking-overview-main">
+                        <div class="booking-section-label">การจองของฉัน</div>
+                        <?php if ($latest_booking): ?>
+                            <div class="booking-overview-title">
+                                <h2>
+                                    <?php if ($latest_booking_needs_slip): ?>
+                                        รออัปโหลดสลิปเพื่อดำเนินการต่อ
+                                    <?php elseif ($latest_booking_waiting_qr): ?>
+                                        รอ QR Code ชำระเงินจากเจ้าหน้าที่
+                                    <?php else: ?>
+                                        สถานะการจองล่าสุด
+                                    <?php endif; ?>
+                                </h2>
+                                <span class="ant-tag" style="<?php echo htmlspecialchars($latest_booking_status['style'] ?? '', ENT_QUOTES); ?>">
+                                    <?php echo htmlspecialchars($latest_booking_status['label'] ?? 'ไม่ระบุ'); ?>
+                                </span>
+                            </div>
+                            <div class="text-muted">
+                                <?php echo htmlspecialchars($latest_booking['booking_code'] ?: 'ยังไม่มีรหัสการจอง'); ?>
+                                · <?php echo htmlspecialchars(formatBookingDate($latest_booking['date'], $latest_booking['time'])); ?>
+                            </div>
+                            <div class="booking-meta-grid">
+                                <div class="booking-meta-item">
+                                    <div class="booking-meta-label">ชื่อผู้จอง</div>
+                                    <div class="booking-meta-value"><?php echo htmlspecialchars($latest_booking['name'] ?: '-'); ?></div>
+                                </div>
+                                <div class="booking-meta-item">
+                                    <div class="booking-meta-label">จำนวนผู้เข้าชม</div>
+                                    <div class="booking-meta-value"><?php echo htmlspecialchars((int)($latest_booking['visitor_count'] ?? 0)); ?> คน</div>
+                                </div>
+                                <div class="booking-meta-item">
+                                    <div class="booking-meta-label">ยอดคงเหลือ</div>
+                                    <div class="booking-meta-value">฿<?php echo number_format((float)($latest_booking['balance_amount'] ?? 0), 0); ?></div>
+                                </div>
+                            </div>
+                            <div class="booking-actions-row">
+                                <?php if ($latest_booking_needs_slip): ?>
+                                    <a href="<?php echo htmlspecialchars($latest_booking_upload_url, ENT_QUOTES); ?>" class="ant-btn ant-btn-primary">
+                                        <i class='bx bx-upload'></i> อัปโหลดสลิป
+                                    </a>
+                                <?php elseif ($latest_booking_waiting_qr): ?>
+                                    <span class="ant-tag" style="background:#fff7e6;border-color:#ffe58f;color:#ad6800;line-height:30px;">
+                                        <i class='bx bx-time-five'></i> ยังไม่สามารถอัปโหลดสลิปได้
+                                    </span>
+                                <?php endif; ?>
+                                <button id="checkBookingBtn" class="ant-btn ant-btn-default" type="button">
+                                    <i class='bx bx-search-alt'></i> ดูสถานะล่าสุด
+                                </button>
+                                <button id="viewBookingHistoryBtn" class="ant-btn ant-btn-default" type="button">
+                                    <i class='bx bx-history'></i> ประวัติทั้งหมด
+                                </button>
+                            </div>
+                        <?php else: ?>
+                            <div class="booking-overview-title">
+                                <h2>ยังไม่มีการจองเข้าชมสวน</h2>
+                            </div>
+                            <div class="text-muted">เริ่มจองรอบเข้าชม แล้วระบบจะแสดงสถานะล่าสุดไว้ตรงนี้</div>
+                            <div class="booking-actions-row">
+                                <a href="bookings.php" class="ant-btn ant-btn-primary">
+                                    <i class='bx bx-calendar-plus'></i> จองเข้าชมสวน
+                                </a>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <aside class="booking-overview-side">
+                        <div class="booking-section-label">ทางลัด</div>
+                        <div class="quick-action-list">
+                            <a class="quick-action-link" href="order_status.php">
+                                <span><i class='bx bx-shopping-bag'></i> คำสั่งซื้อสินค้า</span>
+                                <i class='bx bx-chevron-right'></i>
+                            </a>
+                            <a class="quick-action-link" href="products.php">
+                                <span><i class='bx bx-store'></i> เลือกซื้อสินค้า</span>
+                                <i class='bx bx-chevron-right'></i>
+                            </a>
+                            <a class="quick-action-link" href="bookings.php">
+                                <span><i class='bx bx-calendar-plus'></i> จองเข้าชมใหม่</span>
+                                <i class='bx bx-chevron-right'></i>
+                            </a>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+
             <!-- Main Content -->
             <div class="ant-row" style="margin-top: 24px;">
                 <!-- Left Column -->
@@ -1267,7 +1507,7 @@ if ($stmt2) {
                                         <span class="ant-descriptions-item-label">
                                             <i class='bx bx-user'></i> ชื่อ-นามสกุล
                                         </span>
-                                        <span class="ant-descriptions-item-content"><?php echo htmlspecialchars($fullname); ?></span>
+                                        <span id="profileFullnameValue" class="ant-descriptions-item-content"><?php echo htmlspecialchars($fullname); ?></span>
                                     </div>
                                 </div>
                                 <div class="ant-descriptions-row">
@@ -1275,7 +1515,7 @@ if ($stmt2) {
                                         <span class="ant-descriptions-item-label">
                                             <i class='bx bx-phone'></i> เบอร์โทรศัพท์
                                         </span>
-                                        <span class="ant-descriptions-item-content"><?php echo htmlspecialchars($phone); ?></span>
+                                        <span id="profilePhoneValue" class="ant-descriptions-item-content"><?php echo htmlspecialchars($phone ?: '-'); ?></span>
                                     </div>
                                 </div>
                                 <div class="ant-descriptions-row">
@@ -1283,7 +1523,7 @@ if ($stmt2) {
                                         <span class="ant-descriptions-item-label">
                                             <i class='bx bx-envelope'></i> อีเมล
                                         </span>
-                                        <span class="ant-descriptions-item-content"><?php echo htmlspecialchars($email); ?></span>
+                                        <span id="profileEmailValue" class="ant-descriptions-item-content"><?php echo htmlspecialchars($email ?: '-'); ?></span>
                                     </div>
                                 </div>
                                 <div class="ant-descriptions-row">
@@ -1418,48 +1658,6 @@ if ($stmt2) {
                         </div>
                     </div>
 
-                    <!-- Booking Actions -->
-                    <div class="ant-card">
-                        <div class="ant-card-head">
-                            <i class='bx bx-calendar-event card-header-icon'></i>
-                            <span>การจองเข้าชมสวน</span>
-                        </div>
-                        <div class="ant-card-body">
-                            <div class="ant-row">
-                                <div class="ant-col ant-col-8">
-                                    <div class="ant-card action-card ant-card-bordered" style="text-align: center; padding: 24px;">
-                                        <div class="action-icon"><i class='bx bx-history'></i></div>
-                                        <div class="action-title">ประวัติการจอง</div>
-                                        <div class="action-description">ดูการจองทั้งหมด</div>
-                                        <button id="viewBookingHistoryBtn" class="ant-btn ant-btn-default" style="margin-top: 16px;" type="button">
-                                            <i class='bx bx-show'></i> ดูประวัติ
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="ant-col ant-col-8">
-                                    <div class="ant-card action-card ant-card-bordered" style="text-align: center; padding: 24px;">
-                                        <div class="action-icon"><i class='bx bx-check-circle'></i></div>
-                                        <div class="action-title">สถานะการจองล่าสุด</div>
-                                        <div class="action-description">ตรวจสอบการอนุมัติ</div>
-                                        <button id="checkBookingBtn" class="ant-btn ant-btn-default" style="margin-top: 16px;" type="button">
-                                            <i class='bx bx-search-alt'></i> ตรวจสอบ
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="ant-col ant-col-8">
-                                    <div class="ant-card action-card ant-card-bordered" style="text-align: center; padding: 24px;">
-                                        <div class="action-icon"><i class='bx bx-plus-circle'></i></div>
-                                        <div class="action-title">จองเข้าชมใหม่</div>
-                                        <div class="action-description">จองรอบเข้าชมใหม่</div>
-                                        <a href="bookings.php" class="ant-btn ant-btn-primary" style="margin-top: 16px;">
-                                            <i class='bx bx-calendar-plus'></i> จองเลย
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Recent Activities -->
                     <div class="ant-card" style="margin-top: 24px;">
                         <div class="ant-card-head">
@@ -1569,39 +1767,83 @@ if ($stmt2) {
                 subdistrict_id: <?php echo json_encode((int)$subdistrict_id); ?>
             };
 
+            function openEditProfileModal() {
+                if (!editModalEl) return;
+                if (!editModalObj) editModalObj = new bootstrap.Modal(editModalEl);
+                if (!successModalObj) successModalObj = new bootstrap.Modal(successModalEl);
+                clearProfileFeedback();
+                populateProvinces().then(() => {
+                    editModalObj.show();
+                });
+            }
+
             if (editBtn) {
                 editBtn.addEventListener('click', function() {
-                    if (!editModalObj) editModalObj = new bootstrap.Modal(editModalEl);
-                    if (!successModalObj) successModalObj = new bootstrap.Modal(successModalEl);
-                    populateProvinces().then(() => {
-                        editModalObj.show();
-                    });
+                    openEditProfileModal();
                 });
             }
 
             // Save profile
             const saveBtn = document.getElementById('saveProfileBtn');
+            const feedbackEl = document.getElementById('profileFormFeedback');
+            const originalSaveText = saveBtn ? saveBtn.innerHTML : '';
+
+            function showProfileFeedback(message, type) {
+                if (!feedbackEl) return;
+                feedbackEl.textContent = message;
+                feedbackEl.className = 'form-feedback ' + (type === 'success' ? 'is-success' : 'is-error');
+            }
+
+            function clearProfileFeedback() {
+                if (!feedbackEl) return;
+                feedbackEl.textContent = '';
+                feedbackEl.className = 'form-feedback';
+            }
+
+            function validateProfileForm(fd) {
+                const fullnameValue = String(fd.get('fullname') || '').trim();
+                const phoneValue = String(fd.get('phone') || '').trim();
+                const emailValue = String(fd.get('email') || '').trim();
+                const zipcodeValue = String(fd.get('zipcode') || '').trim();
+
+                if (!fullnameValue) return 'กรุณากรอกชื่อ-นามสกุล';
+                if (phoneValue && !/^[0-9+\-\s()]{8,20}$/.test(phoneValue)) return 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง';
+                if (emailValue && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) return 'กรุณากรอกอีเมลให้ถูกต้อง';
+                if (zipcodeValue && !/^[0-9]{5}$/.test(zipcodeValue)) return 'กรุณากรอกรหัสไปรษณีย์ 5 หลัก';
+                return '';
+            }
+
             if (saveBtn) {
                 saveBtn.addEventListener('click', function() {
-                    saveBtn.disabled = true;
                     const form = document.getElementById('editProfileForm');
                     const fd = new FormData(form);
+                    const validationError = validateProfileForm(fd);
+
+                    clearProfileFeedback();
+                    if (validationError) {
+                        showProfileFeedback(validationError, 'error');
+                        return;
+                    }
+
+                    saveBtn.disabled = true;
+                    saveBtn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> กำลังบันทึก";
                     fetch('update_profile.php', {
                             method: 'POST',
                             body: fd
                         }).then(res => res.json())
                         .then(json => {
                             saveBtn.disabled = false;
+                            saveBtn.innerHTML = originalSaveText;
                             if (json && json.success) {
                                 // update UI fields in page
                                 const nameEl = document.querySelector('.profile-name');
                                 if (nameEl) nameEl.textContent = fd.get('fullname');
-                                const phoneEls = document.querySelectorAll('.ant-descriptions-item-content');
-                                // update phone and email in the first card; best-effort replace
-                                const phoneSpan = Array.from(document.querySelectorAll('.ant-descriptions-item-content')).find(el => el.textContent.trim() === '<?php echo htmlspecialchars($phone); ?>');
-                                if (phoneSpan) phoneSpan.textContent = fd.get('phone');
-                                const emailSpan = Array.from(document.querySelectorAll('.ant-descriptions-item-content')).find(el => el.textContent.trim() === '<?php echo htmlspecialchars($email); ?>');
-                                if (emailSpan) emailSpan.textContent = fd.get('email');
+                                const profileFullname = document.getElementById('profileFullnameValue');
+                                const phoneSpan = document.getElementById('profilePhoneValue');
+                                const emailSpan = document.getElementById('profileEmailValue');
+                                if (profileFullname) profileFullname.textContent = fd.get('fullname') || '-';
+                                if (phoneSpan) phoneSpan.textContent = fd.get('phone') || '-';
+                                if (emailSpan) emailSpan.textContent = fd.get('email') || '-';
 
                                 // update full address block
                                 const fullAddress = document.querySelector('.full-address');
@@ -1618,12 +1860,13 @@ if ($stmt2) {
                                 editModalObj.hide();
                                 successModalObj.show();
                             } else {
-                                alert((json && json.error) ? json.error : 'ไม่สามารถบันทึกข้อมูลได้');
+                                showProfileFeedback((json && json.error) ? json.error : 'ไม่สามารถบันทึกข้อมูลได้', 'error');
                             }
                         }).catch(err => {
                             saveBtn.disabled = false;
+                            saveBtn.innerHTML = originalSaveText;
                             console.error(err);
-                            alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+                            showProfileFeedback('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง', 'error');
                         });
                 });
             }
@@ -1715,6 +1958,17 @@ if ($stmt2) {
                         const zipEl = document.getElementById('zipcode');
                         if (zipEl) zipEl.value = sel.dataset.zip;
                     }
+                }
+            });
+
+            document.addEventListener('DOMContentLoaded', function() {
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('edit') === '1') {
+                    openEditProfileModal();
+                    params.delete('edit');
+                    const cleanQuery = params.toString();
+                    const cleanUrl = window.location.pathname + (cleanQuery ? '?' + cleanQuery : '') + window.location.hash;
+                    window.history.replaceState({}, '', cleanUrl);
                 }
             });
         })();
