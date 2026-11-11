@@ -2087,11 +2087,26 @@ if ($is_member) {
         let currentMonth = new Date().getMonth();
         let currentYear = new Date().getFullYear();
 
+        function getInitialCalendarDate() {
+            const params = new URLSearchParams(window.location.search);
+            const monthParam = params.get('month');
+
+            if (/^\d{4}-\d{2}$/.test(monthParam || '')) {
+                const year = Number(monthParam.slice(0, 4));
+                const month = Number(monthParam.slice(5, 7));
+                if (year >= 1900 && month >= 1 && month <= 12) {
+                    return new Date(year, month - 1, 1);
+                }
+            }
+
+            return new Date();
+        }
+
         // ฟังก์ชันสำหรับเริ่มต้นปฏิทินแบบตาราง
         function initCalendar() {
-            const today = new Date();
-            window.currentMonth = today.getMonth();
-            window.currentYear = today.getFullYear();
+            const initialDate = getInitialCalendarDate();
+            window.currentMonth = initialDate.getMonth();
+            window.currentYear = initialDate.getFullYear();
 
             // ดึงข้อมูลการจองจากเซิร์ฟเวอร์ (ถ้ามี) แล้วเรนเดอร์ปฏิทิน
             fetchBookings().then(() => {
@@ -2279,10 +2294,6 @@ if ($is_member) {
 
                     html += `<td class="${cellClass.trim()}" data-date="${dateStr}">`;
                     html += '<div class="calendar-day-number">' + day + '</div>';
-
-                    if (isAdvanceBlocked) {
-                        html += `<div class="calendar-unavailable-note" title="${escapeHtml(ADVANCE_BOOKING_MESSAGE)}">จองล่วงหน้า ${MIN_ADVANCE_DAYS} วัน</div>`;
-                    }
 
                     // แสดงจุดสถานะการจอง
                     if (hasConfirmed || hasPending) {
