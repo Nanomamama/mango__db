@@ -2,6 +2,10 @@
 require_once 'auth.php';
 require_once __DIR__ . '/../db/db.php';
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // ดึงวันว่าง/ไม่ว่างจากฐานข้อมูล
 $dates = [];
 $res = $conn->query("SELECT date, status FROM calendar_dates");
@@ -725,6 +729,7 @@ $admin_email = $_SESSION['admin_email'] ?? '';
             let selectedDates = [];
             let calendar;
             const existingDates = <?php echo json_encode($dates); ?>;
+            const CSRF_TOKEN = <?php echo json_encode($_SESSION['csrf_token'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
             // Count stats
             let availableCount = 0;
@@ -913,7 +918,8 @@ $admin_email = $_SESSION['admin_email'] ?? '';
                                         'Content-Type': 'application/json'
                                     },
                                     body: JSON.stringify({
-                                        dates: [dateStr]
+                                        dates: [dateStr],
+                                        csrf_token: CSRF_TOKEN
                                     })
                                 })
                                 .then(res => res.json())
@@ -993,7 +999,8 @@ $admin_email = $_SESSION['admin_email'] ?? '';
                             },
                             body: JSON.stringify({
                                 dates: selectedDates,
-                                status: status
+                                status: status,
+                                csrf_token: CSRF_TOKEN
                             })
                         })
                         .then(res => res.json())
@@ -1060,7 +1067,8 @@ $admin_email = $_SESSION['admin_email'] ?? '';
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            dates: selectedDates
+                            dates: selectedDates,
+                            csrf_token: CSRF_TOKEN
                         })
                     })
                     .then(res => res.json())

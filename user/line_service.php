@@ -16,6 +16,16 @@ function line_user_url(string $path): string
     return line_app_base_url() . '/user/' . ltrim($path, '/');
 }
 
+function line_booking_user_url(?string $bookingDate = null): string
+{
+    $path = 'bookings.php';
+    if ($bookingDate && preg_match('/^\d{4}-\d{2}/', $bookingDate, $matches)) {
+        $path .= '?' . http_build_query(['month' => $matches[0]]);
+    }
+
+    return line_user_url($path);
+}
+
 function line_link_url(string $redirect = 'profile'): string
 {
     $redirect = $redirect === 'bookings' ? 'bookings' : 'profile';
@@ -168,11 +178,10 @@ function line_send_member_booking_created(
     }
 
     $message = "รับคำขอจองเรียบร้อยแล้ว\n";
-    $message .= "รหัสการจอง: {$bookingCode}\n";
     $message .= "วันที่เข้าชม: " . line_format_booking_date($bookingDate, $bookingTime) . "\n";
     $message .= "จำนวนผู้เข้าชม: {$visitorCount} คน\n";
     $message .= "สถานะ: รอเจ้าหน้าที่ตรวจสอบ\n\n";
-    $message .= "ตรวจสอบการจอง: " . line_user_url('member_profile.php');
+    $message .= "ตรวจสอบการจอง: " . line_booking_user_url($bookingDate);
 
     return line_push_message($lineUserId, $message);
 }
@@ -209,21 +218,23 @@ function line_send_booking_status(mysqli $conn, int $bookingId, string $status, 
     }
 
     $message = "แจ้งเตือนสถานะการจอง\n";
-    $message .= "รหัสการจอง: " . ($booking['booking_code'] ?? '-') . "\n";
+    if ($status === 'confirmed') {
+        $message .= "รหัสการจอง: " . ($booking['booking_code'] ?? '-') . "\n";
+    }
     $message .= "วันที่เข้าชม: " . line_format_booking_date($booking['booking_date'] ?? null, $booking['booking_time'] ?? null) . "\n";
     $message .= "จำนวนผู้เข้าชม: " . (int) ($booking['visitor_count'] ?? 0) . " คน\n";
     $message .= "สถานะ: " . line_booking_status_label($status);
 
     if ($status === 'awaiting_payment') {
         $message .= "\nยอดมัดจำ: " . number_format((float) ($booking['deposit_amount'] ?? 0), 2) . " บาท";
-        $message .= "\nกรุณาเปิดหน้าโปรไฟล์/การจองเพื่อแนบสลิปชำระเงิน";
+        $message .= "\nกรุณาเปิดหน้าการจองเพื่อแนบสลิปชำระเงิน";
     } elseif ($status === 'confirmed') {
         $message .= "\nยอดคงเหลือชำระวันเข้าชม: " . number_format((float) ($booking['balance_amount'] ?? 0), 2) . " บาท";
     } elseif ($status === 'cancelled' && !empty($note)) {
         $message .= "\nเหตุผล: " . trim($note);
     }
 
-    $message .= "\n\nตรวจสอบการจอง: " . line_user_url('member_profile.php');
+    $message .= "\n\nตรวจสอบการจอง: " . line_booking_user_url($booking['booking_date'] ?? null);
 
     return line_push_message((string) $booking['line_user_id'], $message);
 }
@@ -260,13 +271,12 @@ function line_send_booking_slip_received(mysqli $conn, int $bookingId): bool
     }
 
     $message = "ได้รับสลิปชำระเงินแล้ว\n";
-    $message .= "รหัสการจอง: " . ($booking['booking_code'] ?? '-') . "\n";
     $message .= "วันที่เข้าชม: " . line_format_booking_date($booking['booking_date'] ?? null, $booking['booking_time'] ?? null) . "\n";
     $message .= "จำนวนผู้เข้าชม: " . (int) ($booking['visitor_count'] ?? 0) . " คน\n";
     $message .= "สถานะ: รอเจ้าหน้าที่ตรวจสอบสลิป\n";
     $message .= "ยอดมัดจำ: " . number_format((float) ($booking['deposit_amount'] ?? 0), 2) . " บาท\n";
     $message .= "ยอดคงเหลือชำระวันเข้าชม: " . number_format((float) ($booking['balance_amount'] ?? 0), 2) . " บาท";
-    $message .= "\n\nตรวจสอบการจอง: " . line_user_url('member_profile.php');
+    $message .= "\n\nตรวจสอบการจอง: " . line_booking_user_url($booking['booking_date'] ?? null);
 
     return line_push_message((string) $booking['line_user_id'], $message);
 }
